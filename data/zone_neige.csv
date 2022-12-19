@@ -1,0 +1,125 @@
+Region;Zone
+01  Ain  (A2);A2 
+01  Ain (C2);C2
+02  Aisne  (A1);A1 
+02  Aisne  (C1);C1
+03  Allier;A2
+04  Alpes-de-Haute-Provence;C1
+05  Hautes-Alpes;C1
+06  Alpes-Maritimes  (A2);A2
+06  Alpes-Maritimes  (C1);C1
+07  Ardèche;C2
+08  Ardennes  (A1);A1
+08  Ardennes  (C1);C1
+09  Ariège;A2 
+09  Ariège;C2
+10  Aube  (A1);A1
+11  Aude  (C2);C2
+11  Aude  (D);D
+12  Aveyron;A2
+13  Bouches-du-Rhône;A2
+14  Calvados;A1
+15  Cantal;A2
+16  Charente;A2
+17  Charente-Maritime;A2
+18  Cher;A1
+19  Corrèze;A2
+21  Côte d'Or;A1
+22  Côtes-d'Armor;A1
+23  Creuse;A2
+24  Dordogne;A2
+25  Doubs  (B1);B1
+25  Doubs  (C1);C1
+25  Doubs  (E);E
+26  Drôme;C2
+27  Eure;A1
+28  Eure-et-Loir;A1
+29  Finistère;A1
+2A  Corse-du-Sud;A2
+2B  Haute-Corse;A2
+30  Gard;B2
+31  Haute-Garonne  (A2);A2
+31  Haute-Garonne  (C2);C2
+32  Gers;A2
+33  Gironde;A2
+34  Hérault  (B2);B2
+34  Hérault  (C2);C2
+35  Ille-et-Vilaine;A1
+36  Indre;A1
+37  Indre-et-Loire;A1
+38  Isère;C2
+39  Jura  (B1);B1
+39  Jura  (C1);C1
+40  Landes;A2
+41  Loir-et-Cher;A1
+42  Loire;A2
+43  Haute-Loire;A2
+44  Loire-Atlantique;A1
+45  Loiret;A1
+46  Lot;A2
+47  Lot-et-Garonne;A2
+48  Lozère;A2
+49  Maine-et-Loire;A1
+50  Manche;A1
+51  Marne;A1
+52  Haute-Marne;A1
+53  Mayenne;A1
+54  Meurthe-et-Moselle  (A1);A1 
+54  Meurthe-et-Moselle  (B1);B1
+54  Meurthe-et-Moselle  (C1);C1
+55  Meuse  (A1);A1
+55  Meuse  (C1);C1
+56  Morbihan;A1
+57  Moselle  (A1);A1 
+57  Moselle  (B1);B1
+57  Moselle  (C1);C1
+58  Nièvre;A1
+59  Nord  (A1);A1
+59  Nord  (C1);C1
+60  Oise;A1
+61  Orne;A1
+62  Pas-de-Calais;A1
+63  Puy-de-Dôme;A2
+64  Pyrénées-Atlantiques;A2
+65  Hautes-Pyrénées;A2
+66  Pyrénées-Orientales  (C2);C2
+66  Pyrénées-Orientales  (D);D
+67  Bas-Rhin  (B1);B1
+67  Bas-Rhin  (C1);C1
+68  Haut-Rhin;C1
+69  Rhône;A2
+70  Haute-Saône  (B1);B1
+70  Haute-Saône  (C1);C1
+71  Saône-et-Loire  (A2);A2
+71  Saône-et-Loire  (B1);B1
+72  Sarthe;A1
+73  Savoie  (C2);C2
+73  Savoie  (E);E
+74  Haute-Savoie  (C2);C2
+74  Haute-Savoie  (E);E
+75  Paris;A1
+76  Seine-Maritime;A1
+77  Seine-et-Marne;A1
+78  Yvelines;A1
+79  Deux-Sèvres;A1
+80  Somme;A1
+81  Tarn  (A2);A2
+81  Tarn  (C2);C2
+82  Tarn-et-Garonne;A2
+83  Var  (A2);A2
+83  Var  (C2);C2
+84  Vaucluse  (B2);B2
+84  Vaucluse  (C2);C2
+85  Vendée;A1
+86  Vienne;A1
+87  Haute-Vienne;A2
+88  Vosges  (A1);A1 
+88  Vosges  (B1);B1
+88  Vosges  (C1);C1
+89  Yonne;A1
+90  Territoire de Belfort;C2
+91  Essonne;A1
+92  Hauts-de-Seine;A1
+93  Seine-Saint-Denis;A1
+94  Val-de-Marne;A1
+95  Val-d'Oise;A1
