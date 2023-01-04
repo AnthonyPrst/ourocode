@@ -55,7 +55,7 @@ class Combinaison(Project):
 		self.elsQP()
 		
 	
-	def data_from_csv(self, data_file=str):
+	def data_from_csv(self, data_file:str):
 		""" Retourne un dataframe d'un fichier CSV """
 		repertory = os.getcwd() + "/data/" + data_file
 		data_csv = pd.read_csv(repertory, sep=';', index_col=0)
