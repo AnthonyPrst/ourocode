@@ -244,7 +244,7 @@ class Wind(Building):
 		"""Retour la pression dynamique de référence (informatif)
 
 		Returns:
-			float: pression en N/mm²
+			float: pression en N/m²
 		"""
 		return 0.5 * self.RHO_AIR * self._Vb**2 #4.10
 
@@ -255,7 +255,7 @@ class Wind(Building):
 		et les fluctuation rapides de vitesse
 
 		Returns:
-			float: pression en N/mm²
+			float: pression en N/m²
 		"""
 		return (1 + 7 * self._Iv_z) * 0.5 * self.RHO_AIR * self._Vm_z**2 #4.8
 
@@ -265,7 +265,7 @@ class Wind(Building):
 		"""Retourne le coefficient d_bat'exposition à la hauteur z (informatif)
 
 		Returns:
-			float: coef d_bat'expo
+			float: coef d'expo
 		"""
 		return self._Qp_z/self._Qb #4.9
 	
@@ -277,7 +277,7 @@ class Wind(Building):
 			Cpe (_type_): coefficient de pression extérieure
 
 		Returns:
-			float: pression en N/mm²
+			float: pression en N/m²
 		"""
 		return self._Qp_z*Cpe #5.1
 	
@@ -289,7 +289,7 @@ class Wind(Building):
 			Cpi (_type_): coefficient de pression intérieure
 
 		Returns:
-			float: pression en N/mm²"""
+			float: pression en N/m²"""
 		return self._Qp_z*Cpi #5.2
 
 	def Fw_e(self, Aref):
@@ -442,7 +442,7 @@ class Toiture_isolee_1pant(Wind):
 		"""Créer une classe permetant le calcul d'une toiture isolée à un versant au vent selon l'EN 1991-1-4 §7.3
 
 		Args:
-			phi (int | float): le degré d_bat'obstruction sous une toiture isolée entre 0 et 1.
+			phi (int | float): le degré d'obstruction sous une toiture isolée entre 0 et 1.
 			load_area (int | float): aire chargée pour le calcul des éléments ou des fixations.
 		"""
 		super().__init__(*args, **kwargs)
@@ -468,7 +468,7 @@ class Toiture_isolee_1pant(Wind):
 		self.df = self._data_from_csv(os.path.join("vent", "vent_Cp_toiture_isolee_1_versant.csv"))
 		self.df.reset_index(drop=False, inplace=True)
 		 
-		geometrie = {"A": {"lenght": [(self.d_bat - self.d_bat/10*2), (self.b_bat - self.b_bat/10*2)], "surface": (self.d_bat - self.d_bat/10*2) * (self.b_bat - self.b_bat/10*2) / mt.cos(mt.radians(self.alphatoit))},
+		geometrie = {"A": {"lenght": [(self.b_bat - self.b_bat/10*2), (self.d_bat - self.d_bat/10*2)], "surface": (self.d_bat - self.d_bat/10*2) * (self.b_bat - self.b_bat/10*2) / mt.cos(mt.radians(self.alphatoit))},
 					"B": {"lenght": [(self.d_bat - self.d_bat/10*2), self.b_bat/10], "surface": ((self.d_bat - self.d_bat/10*2) * self.b_bat/10) / mt.cos(mt.radians(self.alphatoit))},
 					"C": {"lenght": [(self.b_bat - self.b_bat/10*2), self.d_bat/10], "surface": ((self.b_bat - self.b_bat/10*2) * self.d_bat/10) / mt.cos(mt.radians(self.alphatoit))}}
 		return geometrie
@@ -526,6 +526,10 @@ class Toiture_isolee_1pant(Wind):
 	def get_wind_dict(self) -> dict:
 		return self.wind_direction
 	
+
+	def get_geo(self, dir="0°"):
+		return self.wind_direction[dir]["geometrie"]
+
 
 	def get_Cp(self, dir="0°"):
 		return self.wind_direction[dir]["Cp"]
