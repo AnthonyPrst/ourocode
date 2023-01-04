@@ -8,10 +8,10 @@ import sys
 import math as mt
 
 sys.path.append(os.path.join(os.getcwd(), "eurocode"))
-from eurocode import EC5_Element_droit as EC5_Ele
+from EC5_Element_droit import Flexion
 
 
-class Poutre_simple_decroi(EC5_Ele.Flexion):
+class Poutre_simple_decroi(Flexion):
     """ Défini une classe poutre à simple décroissance hérité à partir de la classe Beam du fichier EC5_Element_droit.py.
         Avec pour argument :
             alpha : angle de la fibre coupé par rapport à la fibre neutre """
@@ -25,7 +25,7 @@ class Poutre_simple_decroi(EC5_Ele.Flexion):
         fvd = self.f_type_d("fvk", loadtype, typecombi)
         ft90d = self.f_type_d("ft90k", loadtype, typecombi)
         fc90d = self.f_type_d("fc90k", loadtype, typecombi)
-        fmd = self.f_type_d("fm0k", loadtype, typecombi)
+        fmd = self.f_m_d(loadtype, typecombi)
 
         if type_contrainte == "traction":
             self.Km_alpha = 1 / mt.sqrt(1 + ((fmd / (0.75 * fvd)) * mt.tan(mt.radians(self.alpha)))**2 + ((fmd / ft90d) * mt.tan(mt.radians(self.alpha))**2)**2)

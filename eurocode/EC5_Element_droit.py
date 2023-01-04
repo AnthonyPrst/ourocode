@@ -12,19 +12,30 @@ import math as mt
 import pandas as pd
 
 sys.path.append(os.path.join(os.getcwd(), "eurocode"))
-from objet import Objet
+from A0_Projet import Project
 
 
 # ================================ GLOBAL ==================================
 
 
-class Beam(Objet):
-    """ Classe qui définis les caractéristiques d'un élément droit"""
-
+class Beam(Project):
     LIST_SECTION = ["Rectangulaire","Circulaire"]
     LIST_TYPE_B = ["Massif","BLC", "LVL", "OSB 2", "OSB 3/4", "CP"]
 
-    def __init__(self, b: int, h: int, section: str = LIST_SECTION[0], Hi: int = 12, Hf: int = 12, classe ='C24', cs=1, *args, **kwargs):
+    def __init__(self, b:int, h:int, section: str=LIST_SECTION[0], Hi: int=12, Hf: int=12, classe: str='C24', cs: int=1, **kwargs):
+        """Classe qui définis les caractéristiques d'un élément droit. 
+        Cette classe est hérité de la classe Project du module A0_Projet.py.
+
+        Args:
+            b (int): largeur de pose de la pièce en mm
+            h (int): hauteur de pose de la pièce en mm
+            section (str, optional): Type de section. Defaults to "Rectangulaire".
+            Hi (int, optional): Humidité initiale de pose en %. Defaults to 12.
+            Hf (int, optional): Humidité finale de pose en %. Defaults to 12.
+            classe (str, optional): Classe mécanique du bois. Defaults to 'C24'.
+            cs (int, optional): Classe de service de l'élément. Defaults to 1.
+        """
+        super().__init__(**kwargs)
         self.b = b
         self.h = h
         self.section = section
@@ -37,19 +48,9 @@ class Beam(Objet):
             setattr(self, key, value)
             
         self.sectionCalcul()
-        
-
-    @classmethod
-    def from_parent_class(cls, object, **kwargs):
-        """Class méthode permetant l'intanciation des classes hérité de la classe parent, par une classe déjà instanciée.
-
-        Args:
-            object (class object): l'objet Beam déjà créer par l'utilisateur
-        """ 
-        return cls(**object.__dict__, **kwargs)
     
 
-    def __data_from_csv(self, data_file=str):
+    def __data_from_csv(self, data_file:str):
         """ Retourne un dataframe d'un fichier CSV """
         repertory = os.getcwd() + "/data/" + data_file
         data_csv = pd.read_csv(repertory, sep=';', index_col=0)
@@ -84,7 +85,6 @@ class Beam(Objet):
             return i
         
     
-
     @property
     def caract_meca(self):
         """ Retourne les caractéristiques méca du bois sous forme de dataframe pandas """
@@ -287,8 +287,8 @@ class Flexion(Beam):
         return k_crit
     
     
-    def f_type_d(self, loadtype="Permanente", typecombi="Fondamentales"):
-        return super().f_type_d("fm0k", loadtype, typecombi)
+    def f_m_d(self, loadtype="Permanente", typecombi="Fondamentales"):
+        return self.f_type_d("fm0k", loadtype, typecombi)
     
     
     def sigma_m_d(self, M, axe='y'):
@@ -696,8 +696,8 @@ class Cisaillement(Beam):
 
 # ================================ Poutre assemblées mécaniquement Annexe B ==================================
 
-class Poutre_assemblee_meca(Objet):
-    def __init__(self, beam_2:object, l: int|float, Kser: list=[0,None,0], entraxe: list=[1, None, 1], psy2: int|float=0, *args, **kwargs):
+class Poutre_assemblee_meca(Project):
+    def __init__(self, beam_2:object, l: int|float, Kser: list=[0,None,0], entraxe: list=[1, None, 1], psy2: int|float=0, **kwargs):
         """Classe définissant une poutre composée d'au maximum 3 éléments connectés entre eux par liaisons mécanique 
         suivant la théorie de HEIMESHOFF Annexe B de l'EN 1995
 
@@ -717,7 +717,7 @@ class Poutre_assemblee_meca(Objet):
                                          Defaults to 0.
             **kwargs (object): beam_1 et ou beam_3
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self.beam = [None , beam_2, None]
         self.l = l
 

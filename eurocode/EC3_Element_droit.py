@@ -8,15 +8,15 @@ import math as mt
 import pandas as pd
 
 sys.path.append(os.path.join(os.getcwd(), "eurocode"))
-from objet import Objet
+from A0_Projet import Project
 
-class Element(Objet):
+class Element(Project):
 
     GAMMA_M = {"gamma_M0": 1, "gamma_M1": 1, "gamma_M2": 1.25, "gamma_M3": 1.1, "gamma_M3_ser": 1.25,
              "gamma_M4": 1, "gamma_M5": 1, "gamma_M6_ser": 1, "gamma_M7": 1.1}
     E = 210000
              
-    def __init__(self, t: int=0, h: int=0, classe_acier: str="S235", classe_transv: int=1, *args, **kwargs):
+    def __init__(self, t: int=0, h: int=0, classe_acier: str="S235", classe_transv: int=1, **kwargs):
         """Configure un objet Element pour vérifier un élément acier suivant l'EN 1993-1-1. 
 
         Args:
@@ -25,7 +25,7 @@ class Element(Objet):
             classe_acier (str, optional): _description_. Defaults to "S235".
             classe_transv (int, optional): _description_. Defaults to 1.
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self.t = t
         self.h = h
         self.classe_acier = classe_acier
@@ -33,16 +33,6 @@ class Element(Objet):
         self.__fy_fu()
         for key, value in kwargs.items():
             setattr(self, key, value)
-        
-
-    @classmethod
-    def from_parent_class(cls, object, **kwargs):
-        """Class méthode permetant l'intanciation des classe hérité de la classe parent, par une classe déjà instanciée.
-
-        Args:
-            object (class object): l'objet Element déjà créer par l'utilisateur
-        """ 
-        return cls(**object.__dict__, **kwargs)
     
 
     def __data_from_csv(self, data_file: str):
@@ -251,5 +241,4 @@ class Flexion(Element):
 if __name__ == "__main__":
     aire = 10*112
     calcul = Compression(t=10, h=112, classe_acier="S235", classe_transv=1, A=aire, lo={'y':228, 'z':228}, coeflf=2)
-    Element.save_object(calcul)
-    print(type(calcul.fy))
+    print(calcul.fy)
