@@ -8,14 +8,20 @@ import numpy as np
 import pandas as pd
 
 sys.path.append(os.path.join(os.getcwd(), "eurocode"))
-from objet import Objet
+from A0_Projet import Project
 
-class Combinaison(Objet):
-	""" Créer les combinaisons d'action suivant les actions données """
-	def __init__(self, list_load=list, alti=0, cat="Categorie A"):
-		super().__init__()
+class Combinaison(Project):
+	"""  """
+	def __init__(self, list_load:list, cat="Categorie A", **kwargs):
+		"""Créer une classe Combinaison qui génère les combinaisons d'action suivant les actions données.
+		Cette classe est hérité de la classe Project du module A0_Projet.py
+
+		Args:
+			list_load (_type_, optional): liste des charges provenant du module MEF_. Defaults to list.
+			cat (str, optional): catégorie d'exploitation de la zone considéré. Defaults to "Categorie A".
+		"""
+		super().__init__(**kwargs)
 		self.list_load = list_load
-		self.alti = alti
 		self.cat = cat
 		self.coefg = (1, 1.35) # Ginf, Gsup
 		self.coefq = (1.5)  # Qsup
@@ -70,7 +76,7 @@ class Combinaison(Objet):
 			listPsy.append([None, None, None])
 		
 		for i in range(3):
-			if self.alti>1000: 
+			if self.alt>1000: 
 				listval.append(data_csv_psy.loc["Neige > 1000m"].loc["psy"+str(i)])
 			else:
 				listval.append(data_csv_psy.loc["Neige < 1000m"].loc["psy"+str(i)])
@@ -212,7 +218,7 @@ class Combinaison(Objet):
 		self.df_load_ELUSTR = self.create_dataframe_load(array_load)
 		
 	
-	def return_combi_ELUSTR(self, combi):
+	def _return_combi_ELUSTR(self, combi):
 		return self.df_load_ELUSTR.loc[self.df_load_ELUSTR['Combinaison']==combi]
 	
 
@@ -290,7 +296,7 @@ class Combinaison(Objet):
 		self.df_load_ELScarac = self.create_dataframe_load(array_load)
 	
 
-	def return_combi_ELScarac(self, combi):
+	def _return_combi_ELScarac(self, combi):
 		return self.df_load_ELScarac.loc[self.df_load_ELScarac['Combinaison']==combi]
 
 
@@ -372,7 +378,7 @@ class Combinaison(Objet):
 		self.df_load_ELSqp = self.create_dataframe_load(array_load)
 
 
-	def return_combi_ELSqp(self, combi):
+	def _return_combi_ELSqp(self, combi):
 		return self.df_load_ELSqp.loc[self.df_load_ELSqp['Combinaison']==combi]
 
 
@@ -395,19 +401,19 @@ class Combinaison(Objet):
 			combi = self.list_combination.iloc[i,0]
 
 			if elu and combi[0:7] == 'ELU_STR':
-				df_combi = self.return_combi_ELUSTR(combi)
+				df_combi = self._return_combi_ELUSTR(combi)
 				df_combi = df_combi.drop('Combinaison', 1)
 				load_list_combi = df_combi.values.tolist()
 				dict_load_combi[combi] =  load_list_combi
 
 			if elsc and combi[0:5] == 'ELS_C':
-				df_combi = self.return_combi_ELScarac(combi)
+				df_combi = self._return_combi_ELScarac(combi)
 				df_combi = df_combi.drop('Combinaison', 1)
 				load_list_combi = df_combi.values.tolist()
 				dict_load_combi[combi] =  load_list_combi
 			
 			if elsqp and combi[0:6] == 'ELS_QP':
-				df_combi = self.return_combi_ELSqp(combi)
+				df_combi = self._return_combi_ELSqp(combi)
 				df_combi = df_combi.drop('Combinaison', 1)
 				load_list_combi = df_combi.values.tolist()
 				dict_load_combi[combi] =  load_list_combi
@@ -423,19 +429,19 @@ class Combinaison(Objet):
 			combi = list_combination[i]
 
 			if elu and combi[0:7] == 'ELU_STR':
-				df_combi = self.return_combi_ELUSTR(combi)
+				df_combi = self._return_combi_ELUSTR(combi)
 				df_combi = df_combi.drop('Combinaison', 1)
 				load_list_combi = df_combi.values.tolist()
 				dict_load_combi[combi] =  load_list_combi
 
 			if elsc and combi[0:5] == 'ELS_C':
-				df_combi = self.return_combi_ELScarac(combi)
+				df_combi = self._return_combi_ELScarac(combi)
 				df_combi = df_combi.drop('Combinaison', 1)
 				load_list_combi = df_combi.values.tolist()
 				dict_load_combi[combi] =  load_list_combi
 			
 			if elsqp and combi[0:6] == 'ELS_QP':
-				df_combi = self.return_combi_ELSqp(combi)
+				df_combi = self._return_combi_ELSqp(combi)
 				df_combi = df_combi.drop('Combinaison', 1)
 				load_list_combi = df_combi.values.tolist()
 				dict_load_combi[combi] =  load_list_combi
@@ -444,8 +450,8 @@ class Combinaison(Objet):
 
 
 class Calcul_EC0(Combinaison):
-	def __init__(self, list_load: list, alti: int = 200, cat="Categorie A", elu_str: bool = True, els_c: bool = True, els_qp: bool = True):
-		super().__init__(list_load, alti, cat)
+	def __init__(self, elu_str: bool = True, els_c: bool = True, els_qp: bool = True, **kwargs):
+		super().__init__(**kwargs)
 		self.dict_combi = self.choice_combi_df(elu_str, els_c, els_qp)
 
 
@@ -460,11 +466,14 @@ class Calcul_EC0(Combinaison):
 			if action:
 				indexAction = name_combi[8:].find(action)
 				if indexAction > -1 :
-					if action == "S" and self.alti >= 1000 :
+					if action == "S" and self.alt >= 1000 :
 						name_load_type = dictName["Q"]
 					else:
 						name_load_type = dictName[action]
 		return name_load_type
+
+
+		
 
 if __name__== "__main__":
 
@@ -472,9 +481,9 @@ if __name__== "__main__":
 				 [0, 'Poids propre', 'Permanente G', 'Linéique', -36, '0/100', 'Z'],
 				 [2, '', 'Neige S', 'Linéique', -200, '0/100', 'Z'],
 				 [3, '', 'Exploitation Q', 'Linéique', -150, '0/100', 'Z']]
-	c1 = Calcul_EC0(list_load, 1001, cat="Cat A : habitation")
+	c1 = Calcul_EC0(list_load=list_load, alt=1001, cat="Cat A : habitation", h_bat=5, d_bat=15, b_bat=13.1, alphatoit=15)
 	rcombi = "ELU_STR 1.35G + 1.5S"
-	print(c1.return_combi_ELUSTR(rcombi))
+	print(c1._return_combi_ELUSTR(rcombi))
 
 	
 	
