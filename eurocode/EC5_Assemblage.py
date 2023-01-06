@@ -28,8 +28,6 @@ class Assemblage(Project):
         nfile : le nombre de file dans l'assemblage
         n : le nombre d'organe par file
         _nef : le nombre efficace d'organe dans une file
-        kmod : coef. de modification qui tient compte de l'effe de la durée de chargmement et de l'humidité
-        gammaM : coefficient partiel de matériaux
         MyRk : moment d'écoulement plastique en N.mm
         FaxRk : capacité résistante à l'arrachement caractéristique de l'organe en N
         t1 : valeur minimale entre epaisseur de l'élément bois latéral et la profondeur de pénétration en mm
@@ -41,49 +39,77 @@ class Assemblage(Project):
     GAMMA_M_ASS = 1.3
     DICO_COEF_LIMITE = {"Pointe circulaire": 0.15, "Pointe carrée": 0.25,
                      "Boulon": 0.25, "Autres pointes": 0.5, "Tirefond": 1}
+    TYPE_ASSEMBLAGE = ["Bois/Bois","Bois/Métal"]
 
-    def __init__(self,beam_1:object, beam_2:object, kmod: float|int=0.8, nfile: int=1, FaxRk: float=0, t1: int=0, fh1k: float=0, t2: int=0, fh2k: float=0, nCis: int=1, **kwargs):
+    def __init__(self,beam_1:object, beam_2:object, nfile: int=1, nCis: int=[1,2], **kwargs):
         super().__init__(**kwargs)
         self.beam_1 = beam_1
         self.beam_2 = beam_2
-        self.kmod = kmod
+        
         self.nfile = nfile
-        self.FaxRk = FaxRk
-        self.t1 = t1
-        self.t2 = t2
-        self.fh1k = fh1k
-        self.fh2k = fh2k
+        # self.FaxRk = FaxRk
+        # self.t1 = t1
+        # self.t2 = t2
+        # self.fh1k = fh1k
+        # self.fh2k = fh2k
         self.nCis = nCis
     
+    @property
+    def type_asssemblage(self):
+        self.type_beam = []
+        for i, beam in enumerate([self.beam_1, self.beam_2]):
+            if beam.type_bois:
+                self.type_beam.append("Bois")
+                self.K_mod = beam.K_mod
+            else:
+                self.type_beam.append("Métal")
+                
+        if self.type_beam[0] == "Bois":
+            return self.type_beam[0] + "/" + self.type_beam[1]
+        else:
+            return self.type_beam[1] + "/" + self.type_beam[0]
+        
+    @property
+    def rho_mean(self):
+        if self.type_asssemblage == __class__.TYPE_ASSEMBLAGE[0]:
+            self.rho_m1 = int(self.beam_1.caract_meca.loc["rhomean"])
+            self.rho_m2 = int(self.beam_2.caract_meca.loc["rhomean"])
+            return mt.sqrt(self.rho_m1, self.rho_m2)
+        else:
+            for cat in self.type_asssemblage:
+                if self.type_asssemblage[0] == "Bois":
+                    return int(self.beam_1.caract_meca.loc["rhomean"])
+                else:
+                    return int(self.beam_2.caract_meca.loc["rhomean"])
+            
         
     # 7.1 Glissement des assemblages
-    def Kser(self, rhom, met_bet=False, perc=False):
-        """ Calcul le kser du type d'un organe et de l'asssemblage en N/mm avec:
-            norg : nombre d'organe dans l'assemblage
-            rhom : masse volumique moyenne en kg/m3
-            met_bet : True si assemblage Bois/métal ou Bois/Béton
-            perc : True si pré perçage de fait (valable que pour les pointes)
-            
-            NON VERIFIER"""
-        
+    def Kser(self, perc=False)->list:
+        """Calcul le kser du type d'un organe et de l'asssemblage en N/mm 
+
+        Args:
+            perc (bool, optional): True si pré perçage de fait (valable que pour les pointes). Defaults to False.
+
+        Returns:
+            list: retourne une liste du kser d'un organe par plan de cisaillement et celui de l'assemblage
+        """
         if self.type_organe == "Boulon" or self.type_organe == "Broche" or self.type_organe == "Tirefond":
-            kser = rhom**1.5 * self.d / 23
+            kser = self.rho_mean**1.5 * self.d / 23
         elif self.type_organe == "Pointe circulaire" or self.type_organe == "Pointe carrée" or self.type_organe == "Autres pointes":
             if perc:
-                kser = rhom**1.5 * self.d / 23
+                kser = self.rho_mean**1.5 * self.d / 23
             else:
-                kser = rhom**1.5 * self.d**0.8 / 30
+                kser = self.rho_mean**1.5 * self.d**0.8 / 30
         elif self.type_organe == "Agrafe":
-            kser = rhom**1.5 * self.d**0.8 / 80
+            kser = self.rho_mean**1.5 * self.d**0.8 / 80
         elif self.type_organe == "Anneau" or self.type_organe == "Crampon C10/C11":
-            kser = rhom * self.dc / 2
+            kser = self.rho_mean * self.dc / 2
         elif self.type_organe == "Crampon C1/C9":
-            kser = 1.5 * rhom * self.d / 4
+            kser = 1.5 * self.rho_mean * self.d / 4
         
         ktype = 1
-        while met_bet:
+        if self.type_asssemblage == __class__.TYPE_ASSEMBLAGE[1]:
             ktype = 2
-            met_bet = False
             
         kser_ass = kser * self.nfile * self.n * self.nCis * ktype
         return kser, kser_ass
@@ -91,38 +117,38 @@ class Assemblage(Project):
 
     # 8.1.2 Assemblage par organe multiple
 
-    def FvRd(self, Fvrktot):
-        """Calcul la valeur de calcul (design) de résistance au cisaillement d'un organe en N avvec :
-            Fvrktot : capacité résistante en cisaillement caractéristique avec la partie de Johansen + l'effet de corde en N
-            nfile : le nombre de file dans l'assemblage
-            _nef : le nombre efficace d'organe dans une file
-            nCis : Nombre de plan cisaillé entre 1 et 2
-            kmod : coef. de modification qui tient compte de l'effe de la durée de chargmement et de l'humidité
-            gammaM : coefficient partiel de matériaux"""
-        fvrd = (Fvrktot * self.nfile * self._nef * self.nCis * self.kmod) / __class__.GAMMA_M_ASS
+    def FvRd(self, Fvrktot: float) -> float:
+        """Calcul la valeur de calcul (design) de résistance au cisaillement de l'assemblage en N
+
+        Args:
+            Fvrktot (float): capacité résistante en cisaillement caractéristique avec la partie de Johansen + l'effet de corde en N
+
+        Returns:
+            float: retourne Fv_Rd de l'assemblage
+        """
+        #     Fvrktot : capacité résistante en cisaillement caractéristique avec la partie de Johansen + l'effet de corde en N
+        fvrd = (Fvrktot * self.nfile * self._nef * self.nCis * self.K_mod) / __class__.GAMMA_M_ASS
         return fvrd
 
     def F_Rd(self, F_rk):
         """Calcul la valeur de calcul (design) de résistance de l'assemblage en N avec :
-            F_rk : capacité résistante caractéristique de l'organe en N
-            kmod : coef. de modification qui tient compte de l'effe de la durée de chargmement et de l'humidité
-            gammaM : coefficient partiel de matériaux"""
-        f_rd = (F_rk * self.kmod) / __class__.GAMMA_M_ASS
+            F_rk : capacité résistante caractéristique de l'organe en N"""
+        f_rd = (F_rk * self.K_mod) / __class__.GAMMA_M_ASS
         return f_rd
 
 
 
     # 8.1.4 Effort d'assemblage inclinés par rapport au fil
 
-    def w(self, wpl=0):
+    def _w(self, wpl=0):
         """Calcul le facteur de modification pour le calcul de la valeur caractéristique au fendage F90,Rk avec:
             wpl : largeur de la plaque métallique emboutie parallèlement au fil en mm
             type_organe : type d'organe utilisé, pour les plaques métalliques embouties : "plaque", pour les autres : "autres" """
-        if self.type_organe == "plaque" or self.type_organe == "plaques":
-            wf = max((wpl / 100) ** 0.35, 1)
+        if self.type_organe == "plaques métaliques embouties":
+            w = max((wpl / 100) ** 0.35, 1)
         else:
-            wf = 1
-        return wf
+            w = 1
+        return w
 
 
     def F90Rk(self, b, h, he, w=1):
@@ -354,7 +380,7 @@ class Pointe(Assemblage):
 
     TYPE_ASSEMBLAGE = ["Bois/Bois", ["CP", "Panneau dur", "PP/OSB"], "Bois/Métal"]
 
-    def __init__(self, d: float|int, fu: int, n: int, alpha: float, pk: int=350, type_assemblage: str=TYPE_ASSEMBLAGE[0], type_organe: str="Pointe circulaire", percage: bool=False, *args, **kwargs):
+    def __init__(self, d: float|int, fu: int, n: int, alpha: float, pk: int=350, type_assemblage: str=TYPE_ASSEMBLAGE[0], type_organe: str=["Pointe circulaire", "Pointe carrée", "Autres pointes"], percage: bool=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.d = d
         self.n = n
@@ -562,8 +588,9 @@ class Boulon(Assemblage):
         n : nombre de boulons dans une file
         alpha : angle entre l'effort de l'organe et le fil du bois en ° """
 
-    def __init__(self, d, fuk, n, alpha,*args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, d, fuk, n, alpha, **kwargs):
+        super().__init__(**kwargs)
+        self.type_organe = "Boulon"
         self.d = d
         self.fuk = fuk
         self.n = n
@@ -667,6 +694,7 @@ class Broche(Boulon):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.type_organe = "Broche"
 
 
     @property
@@ -707,6 +735,7 @@ class Tirefond(object):
         alphaTirefond : angle formé entre l'axe du tirefond et le fil du bois, doit être supérieur à 30°"""
 
     def __init__(self, d, d1, dh,  pa, fhead, ftensk, n, alphaTirefond=90):
+        self.type_organe = "Tirefond"
         self.d = d
         self.d1 = d1
         self.dh = dh
@@ -817,6 +846,7 @@ class Annneau(object):
     """Défini un objet anneau avec :"""
 
     def __init__(self, dc, t1, t2, hc, typeA="bois"):
+        self.type_organe = "Anneau"
         self.dc = dc
         self.t1 = t1
         self.t2 = t2

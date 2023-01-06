@@ -146,9 +146,9 @@ class Beam(Project):
         Returns:
             float: Résistance de calcul en N/mm2 du type de vérification étudié.
         """
-        self.Kmod = self.kmod[loadtype].iloc[0]
+        self.K_mod = self.kmod[loadtype].iloc[0]
         self.Gm = self.gamma_M.loc[typecombi]
-        self.f_type_rd = (float(self.caract_meca.loc[typeCarac]) * self.Kmod) / self.Gm
+        self.f_type_rd = (float(self.caract_meca.loc[typeCarac]) * self.K_mod) / self.Gm
         return self.f_type_rd
     
 
