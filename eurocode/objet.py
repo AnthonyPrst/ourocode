@@ -1,6 +1,8 @@
 # coding in UTF-8 
 # by Anthony PARISOT
 
+import os
+import pandas as pd
 import pickle
 from tkinter import filedialog
 
@@ -10,7 +12,12 @@ class Objet(object):
     """
     def __init__(self) -> None:
         pass
-
+    
+    def _data_from_csv(self, data_file: str):
+            """ Retourne un dataframe d'un fichier CSV """
+            repertory = os.path.join(os.getcwd(), "data", data_file)
+            data_csv = pd.read_csv(repertory, sep=';', header=0, index_col=0)
+            return data_csv
 
     @classmethod
     def _from_parent_class(cls, object, **kwargs):

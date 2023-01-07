@@ -50,7 +50,7 @@ class Boulon(Element):
 
     @property
     def __qualite_acier(self):
-        df = self._Element__data_from_csv("qualite_acier.csv")
+        df = self._data_from_csv("qualite_acier.csv")
         df = df.loc[self.qualite]
         return df
     

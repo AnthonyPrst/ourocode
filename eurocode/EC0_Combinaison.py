@@ -49,24 +49,17 @@ class Combinaison(Project):
 				self.combiActionVariable[4] = "W-"
 
 
-		self.listPsy = self.coefPsy()
-		self.eluSTR()
-		self.elsC()
-		self.elsQP()
-		
-	
-	def data_from_csv(self, data_file:str):
-		""" Retourne un dataframe d'un fichier CSV """
-		repertory = os.getcwd() + "/data/" + data_file
-		data_csv = pd.read_csv(repertory, sep=';', index_col=0)
-		return data_csv   
+		self.listPsy = self._coefPsy()
+		self._elu_STR()
+		self._els_C()
+		self._els_QP() 
 
 
-	def coefPsy(self):
+	def _coefPsy(self):
 		""" Retourne les caractéristiques psy sous forme de liste python """
 		listPsy = []
 		listval = []
-		data_csv_psy = self.data_from_csv("coeff_psy.csv")
+		data_csv_psy = self._data_from_csv("coeff_psy.csv")
 		if self.cat != 'Aucune':
 			for i in range(3):
 				listval.append(data_csv_psy.loc[self.cat].loc["psy"+str(i)])
@@ -122,7 +115,7 @@ class Combinaison(Project):
 			self.name_combination.append(nameCombi)
 			
 	
-	def eluSTR(self):
+	def _elu_STR(self):
 		""" Combinaison à l'ELU STR """
 		lenListLoad = len(self.list_load)
 		array_load = np.empty((0, 8))
@@ -222,7 +215,7 @@ class Combinaison(Project):
 		return self.df_load_ELUSTR.loc[self.df_load_ELUSTR['Combinaison']==combi]
 	
 
-	def elsC(self):
+	def _els_C(self):
 		lenListLoad = len(self.list_load)
 		array_load = np.empty((0, 8))
 
@@ -300,7 +293,7 @@ class Combinaison(Project):
 		return self.df_load_ELScarac.loc[self.df_load_ELScarac['Combinaison']==combi]
 
 
-	def elsQP(self):
+	def _els_QP(self):
 		lenListLoad = len(self.list_load)
 		array_load = np.empty((0, 8))
 
@@ -393,7 +386,7 @@ class Combinaison(Project):
 		return pd.DataFrame(self.name_combination, columns=['Combinaison'])
 	
 	
-	def choice_combi_df(self, elu=True, elsc=True, elsqp=True):
+	def choice_combi_df(self, elu: bool=["True", "False"], _els_C: bool=["True", "False"], _els_QP: bool=["True", "False"]):
 		shape = len(self.list_combination)
 		dict_load_combi = {}
 
@@ -406,13 +399,13 @@ class Combinaison(Project):
 				load_list_combi = df_combi.values.tolist()
 				dict_load_combi[combi] =  load_list_combi
 
-			if elsc and combi[0:5] == 'ELS_C':
+			if _els_C and combi[0:5] == 'ELS_C':
 				df_combi = self._return_combi_ELScarac(combi)
 				df_combi = df_combi.drop('Combinaison', 1)
 				load_list_combi = df_combi.values.tolist()
 				dict_load_combi[combi] =  load_list_combi
 			
-			if elsqp and combi[0:6] == 'ELS_QP':
+			if _els_QP and combi[0:6] == 'ELS_QP':
 				df_combi = self._return_combi_ELSqp(combi)
 				df_combi = df_combi.drop('Combinaison', 1)
 				load_list_combi = df_combi.values.tolist()
@@ -421,7 +414,7 @@ class Combinaison(Project):
 		return dict_load_combi
 
 
-	def choice_combi_list(self, list_combination, elu=True, elsc=True, elsqp=True):
+	def choice_combi_list(self, list_combination, elu: bool=["True", "False"], _els_C: bool=["True", "False"], _els_QP: bool=["True", "False"]):
 		shape = len(list_combination)
 		dict_load_combi = {}
 
@@ -434,13 +427,13 @@ class Combinaison(Project):
 				load_list_combi = df_combi.values.tolist()
 				dict_load_combi[combi] =  load_list_combi
 
-			if elsc and combi[0:5] == 'ELS_C':
+			if _els_C and combi[0:5] == 'ELS_C':
 				df_combi = self._return_combi_ELScarac(combi)
 				df_combi = df_combi.drop('Combinaison', 1)
 				load_list_combi = df_combi.values.tolist()
 				dict_load_combi[combi] =  load_list_combi
 			
-			if elsqp and combi[0:6] == 'ELS_QP':
+			if _els_QP and combi[0:6] == 'ELS_QP':
 				df_combi = self._return_combi_ELSqp(combi)
 				df_combi = df_combi.drop('Combinaison', 1)
 				load_list_combi = df_combi.values.tolist()
@@ -455,7 +448,13 @@ class Calcul_EC0(Combinaison):
 		self.dict_combi = self.choice_combi_df(elu_str, els_c, els_qp)
 
 
-	def min_type_load(self, name_combi):
+	def min_type_load(self, name_combi:str) -> str:
+		"""Retourne le type de chargment de plus courte durée
+
+		Args:
+			name_combi (str): Combinaison à analyser
+		"""
+  
 		dictName = {"G": "Permanente",
 					"Q": "Moyen terme",
 					"S": "Court terme",

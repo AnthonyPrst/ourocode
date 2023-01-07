@@ -47,17 +47,10 @@ class Beam(Project):
         for key, value in kwargs.items():
             setattr(self, key, value)
             
-        self.sectionCalcul()
-    
-
-    def __data_from_csv(self, data_file:str):
-        """ Retourne un dataframe d'un fichier CSV """
-        repertory = os.getcwd() + "/data/" + data_file
-        data_csv = pd.read_csv(repertory, sep=';', index_col=0)
-        return data_csv
+        self._sectionCalcul()
     
     
-    def sectionCalcul(self, B90=0.25):
+    def _sectionCalcul(self, B90=0.25):
         """ Retourne la section de calcul en fonction de l'humidité de pose et celle d'utilisation avec pour argument:
                 Hi : Humidité de pose en %
                 Hf : Humidité finale en % selon AN Hf = 12%
@@ -88,7 +81,7 @@ class Beam(Project):
     @property
     def caract_meca(self):
         """ Retourne les caractéristiques méca du bois sous forme de dataframe pandas """
-        data_csv_meca = self.__data_from_csv("caracteristique_meca_bois.csv")
+        data_csv_meca = self._data_from_csv("caracteristique_meca_bois.csv")
         return data_csv_meca.loc[self.classe]
     
     
@@ -97,14 +90,14 @@ class Beam(Project):
         """ Retourne le kmod du bois avec pour argument:
             cs : classe de service (1, 2 ou 3) 
             duree_charge : temps de chargement ("instantanée" etc) """
-        data_csv_kmod = self.__data_from_csv("kmod.csv")
+        data_csv_kmod = self._data_from_csv("kmod.csv")
         data_kmod = data_csv_kmod.loc[self.type_bois]
         return data_kmod.loc[data_kmod["CS"]==self.cs]
 
 
     @property
     def gamma_M(self):
-        data_csv_gammaM = self.__data_from_csv("gammaM.csv")
+        data_csv_gammaM = self._data_from_csv("gammaM.csv")
         return data_csv_gammaM.loc[self.type_bois]
     
     
@@ -128,7 +121,7 @@ class Beam(Project):
 
     @property
     def Kdef(self):
-        data_csv_kdef = self.__data_from_csv("kdef.csv")
+        data_csv_kdef = self._data_from_csv("kdef.csv")
         kdef = float(data_csv_kdef.loc[self.type_bois][str(self.cs)])
         if self.Hi > 20:
             kdef += 1
@@ -155,7 +148,7 @@ class Beam(Project):
     def fleche(self, long, Ed_WinstQ, Ed_Wnetfin, Ed_Wfin, type_ele='Element structuraux', type_bat='Batiments courants'):
         """ Retourne le taux de travail de la flèche en % avec pour argument:
             """
-        data_csv_fleche = self.__data_from_csv("val_limite_fleche.csv")
+        data_csv_fleche = self._data_from_csv("val_limite_fleche.csv")
         self.data_fleche= data_csv_fleche.loc[type_ele]
         self.data_fleche = self.data_fleche.loc[self.data_fleche["Type batiment"]==type_bat]
 

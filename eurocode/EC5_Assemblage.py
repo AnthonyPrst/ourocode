@@ -19,30 +19,28 @@ def interpolationLineaire(x, xa, xb, ya, yb):
 # ====================================================== GENERAL =========================================================
 # 8.1 Généralité
 class Assemblage(Project):
-    """ Défini un object assemblage avec :
-
-        type_organe : le type d'organe de l'assemblage "Pointe circulaire", "Pointe carrée", "Autres pointes", "Agrafe", "Tirefond"
-        , "Boulon"ou"Broche", "plaque", "Anneau", "Crampon C1/C9","Crampon C10/C11".
-
-        d : diamètre efficace de l'organe en mm
-        nfile : le nombre de file dans l'assemblage
-        n : le nombre d'organe par file
-        _nef : le nombre efficace d'organe dans une file
-        MyRk : moment d'écoulement plastique en N.mm
-        FaxRk : capacité résistante à l'arrachement caractéristique de l'organe en N
-        t1 : valeur minimale entre epaisseur de l'élément bois latéral et la profondeur de pénétration en mm
-        t2 : epaisseur de l'élément bois central en mm
-        fh1k : portance locale dans l'élément bois 1
-        fh2k : portance locale dans l'élément bois 2
-        nCis : Nombre de plan cisaillé entre 1 et 2
-    """
     GAMMA_M_ASS = 1.3
     DICO_COEF_LIMITE = {"Pointe circulaire": 0.15, "Pointe carrée": 0.25,
                      "Boulon": 0.25, "Autres pointes": 0.5, "Tirefond": 1}
     TYPE_ASSEMBLAGE = ["Bois/Bois","Bois/Métal"]
 
-    def __init__(self,beam_1:object, beam_2:object, nfile: int=1, nCis: int=[1,2], **kwargs):
+    def __init__(self,beam_1:object, beam_2:object, nfile: int=1, nCis: int=["1","2"], **kwargs):
+        """Créer un objet Assemblage qui permet de calculer un assemblage bois/bois ou bois/métal à l'EN 1995.
+        Cette classe est dérivé de la classe Project du module A0_Project.py
+
+        Args:
+            beam_1 (object): objet correspondant à i=1, Beam  ou dérivé de cet objet provenant du module EC5_Element_droit.py
+                             ou bien objet Element ou dérivé de cet objet provenant du module EC3_Element_droit.py
+                             
+            beam_2 (object): objet correspondant à i=2, Beam ou dérivé de cet objet provenant du module EC5_Element_droit.py
+                             ou bien objet Element ou dérivé de cet objet provenant du module EC3_Element_droit.py
+                             
+            nfile (int, optional): le nombre de file dans l'assemblage. Defaults to 1.
+            nCis (int, optional): Nombre de plan cisaillé entre 1 et 2. Defaults to ["1","2"].
+        """
+        
         super().__init__(**kwargs)
+        #type_organe : le type d'organe de l'assemblage "Pointe circulaire", "Pointe carrée", "Autres pointes", "Agrafe", "Tirefond", "Boulon"ou"Broche", "plaque", "Anneau", "Crampon C1/C9","Crampon C10/C11".
         self.beam_1 = beam_1
         self.beam_2 = beam_2
         
@@ -53,34 +51,40 @@ class Assemblage(Project):
         # self.fh1k = fh1k
         # self.fh2k = fh2k
         self.nCis = nCis
+        
+        self.__type_assemblage()
     
-    @property
-    def type_asssemblage(self):
-        self.type_beam = []
+    def __type_assemblage(self):
+        self._type_beam = []
         for i, beam in enumerate([self.beam_1, self.beam_2]):
-            if beam.type_bois:
-                self.type_beam.append("Bois")
-                self.K_mod = beam.K_mod
-            else:
-                self.type_beam.append("Métal")
+            try:
+                if beam.type_bois:
+                    if beam.type_bois in ["Massif","BLC", "LVL"]:
+                        self._type_beam.append("Bois")
+                    elif beam.type_bois in ["OSB 2", "OSB 3/4"]:
+                        self._type_beam.append("PP/OSB")
+                    else:
+                        self._type_beam.append("CP")
+                    self.K_mod = beam.K_mod
+            except AttributeError:
+                self._type_beam.append("Métal")
                 
-        if self.type_beam[0] == "Bois":
-            return self.type_beam[0] + "/" + self.type_beam[1]
+        if self._type_beam[0] == "Bois":
+            self.type_assemblage = self._type_beam[0] + "/" + self._type_beam[1]
         else:
-            return self.type_beam[1] + "/" + self.type_beam[0]
+            self.type_assemblage = self._type_beam[1] + "/" + self._type_beam[0]
         
     @property
-    def rho_mean(self):
-        if self.type_asssemblage == __class__.TYPE_ASSEMBLAGE[0]:
-            self.rho_m1 = int(self.beam_1.caract_meca.loc["rhomean"])
-            self.rho_m2 = int(self.beam_2.caract_meca.loc["rhomean"])
-            return mt.sqrt(self.rho_m1, self.rho_m2)
+    def rho_mean_ass(self):
+        if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[0]:
+            rho_m1 = int(self.beam_1.caract_meca.loc["rhomean"])
+            rho_m2 = int(self.beam_2.caract_meca.loc["rhomean"])
+            return mt.sqrt(rho_m1 * rho_m2)
         else:
-            for cat in self.type_asssemblage:
-                if self.type_asssemblage[0] == "Bois":
-                    return int(self.beam_1.caract_meca.loc["rhomean"])
-                else:
-                    return int(self.beam_2.caract_meca.loc["rhomean"])
+            if self._type_beam[0] == "Bois":
+                return int(self.beam_1.caract_meca.loc["rhomean"])
+            else:
+                return int(self.beam_2.caract_meca.loc["rhomean"])
             
         
     # 7.1 Glissement des assemblages
@@ -94,21 +98,21 @@ class Assemblage(Project):
             list: retourne une liste du kser d'un organe par plan de cisaillement et celui de l'assemblage
         """
         if self.type_organe == "Boulon" or self.type_organe == "Broche" or self.type_organe == "Tirefond":
-            kser = self.rho_mean**1.5 * self.d / 23
+            kser = self.rho_mean_ass**1.5 * self.d / 23
         elif self.type_organe == "Pointe circulaire" or self.type_organe == "Pointe carrée" or self.type_organe == "Autres pointes":
             if perc:
-                kser = self.rho_mean**1.5 * self.d / 23
+                kser = self.rho_mean_ass**1.5 * self.d / 23
             else:
-                kser = self.rho_mean**1.5 * self.d**0.8 / 30
+                kser = self.rho_mean_ass**1.5 * self.d**0.8 / 30
         elif self.type_organe == "Agrafe":
-            kser = self.rho_mean**1.5 * self.d**0.8 / 80
+            kser = self.rho_mean_ass**1.5 * self.d**0.8 / 80
         elif self.type_organe == "Anneau" or self.type_organe == "Crampon C10/C11":
-            kser = self.rho_mean * self.dc / 2
+            kser = self.rho_mean_ass * self.dc / 2
         elif self.type_organe == "Crampon C1/C9":
-            kser = 1.5 * self.rho_mean * self.d / 4
+            kser = 1.5 * self.rho_mean_ass * self.d / 4
         
         ktype = 1
-        if self.type_asssemblage == __class__.TYPE_ASSEMBLAGE[1]:
+        if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[1]:
             ktype = 2
             
         kser_ass = kser * self.nfile * self.n * self.nCis * ktype
@@ -117,17 +121,26 @@ class Assemblage(Project):
 
     # 8.1.2 Assemblage par organe multiple
 
-    def FvRd(self, Fvrktot: float) -> float:
+    def FvRd(self, effet_corde: bool=["True", "False"]) -> float:
         """Calcul la valeur de calcul (design) de résistance au cisaillement de l'assemblage en N
 
         Args:
-            Fvrktot (float): capacité résistante en cisaillement caractéristique avec la partie de Johansen + l'effet de corde en N
+            effet_corde (bool): prise en compte de l'effet de corde, si oui alors True.
 
         Returns:
-            float: retourne Fv_Rd de l'assemblage
+            float: retourne Fv_Rd de l'assemblage en N
         """
         #     Fvrktot : capacité résistante en cisaillement caractéristique avec la partie de Johansen + l'effet de corde en N
-        fvrd = (Fvrktot * self.nfile * self._nef * self.nCis * self.K_mod) / __class__.GAMMA_M_ASS
+        if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[0]:
+            self.FvRk_Johansen = self._FvRk_BoisBois_Johansen()
+            if effet_corde:
+                self.FvRk = self._FvRk_BoisBois_Tot()
+        else:
+            self.FvRk_Johansen = self._FvRk_BoisMetal_Johansen()
+            if effet_corde:
+                self.FvRk = self._FvRk_BoisMetal_Tot()
+        
+        fvrd = (self.FvRk * self.nfile * self._nef * self.nCis * self.K_mod) / __class__.GAMMA_M_ASS
         return fvrd
 
     def F_Rd(self, F_rk):
@@ -164,16 +177,11 @@ class Assemblage(Project):
     # 8.2.2 Assemblage bois/bois bois/panneau
 
 
-    @property
-    def FvRkBoisBoisJohansen(self):
+    def _FvRk_BoisBois_Johansen(self):
         """Calcul la capacité résistante en cisaillement de la tige en N par plan de cisaillement avec
-            MyRk : moment d'écoulement plastique en N.mm
             t1 : valeur minimale entre epaisseur de l'élément bois latéral et la profondeur de pénétration en mm
-            t2 : epaisseur de l'élément bois central en mm
-            d : diamètre efficace de l'organe en mm
-            fh1k : portance locale dans l'élément bois 1
-            fh2k : portance locale dans l'élément bois 2
-            nCis : Nombre de plan cisaillé entre 1 et 2 """
+            t2 : epaisseur de l'élément bois central en mm """
+            
         beta = self.fh2k/self.fh1k
 
         if self.nCis == 1:
@@ -191,7 +199,7 @@ class Assemblage(Project):
 
             modeVal = min(a, b, c, d, e, f)
             dicoRupture = {a: "A", b: "B", c: "C", d: "D", e: "E", f: "F"}
-            modeRupture = dicoRupture[modeVal]
+            self.mode_rupture = dicoRupture[modeVal]
 
         else:
 
@@ -204,68 +212,67 @@ class Assemblage(Project):
 
             modeVal = min(g, h, j, k)
             dicoRupture = {g: "G", h: "H", j: "J", k: "K"}
-            modeRupture = dicoRupture[modeVal]
-        return modeVal, modeRupture
+            self.mode_rupture = dicoRupture[modeVal]
+        return modeVal, self.mode_rupture
 
 
-    def FvRkBoisBoisTot(self, Fvrk, mode):
+    def _FvRk_BoisBois_Tot(self):
         """Calcul la capacité résistante en cisaillement caractéristique avec la partie de Johansen + l'effet de corde si il existe dans le
         mode de rupture avec :
             Fvrk : résistance en cisaillement (uniquement partie de Johansen !) de l'organe en N par plan"
             FaxRk : résistance à l'arrachement de l'organe en N
             mode : mode de rupture de l'organe "A","B","C","D","E","F","G","H","I","J","K","L" ou "M"
-            type_organe : le type d'organe de l'assemblage "Pointe circulaire", "Pointe carrée", "Autres pointes", "Tirefond"
-            , "Boulon"ou"Broche" """
+        """
         coeflimit = __class__.DICO_COEF_LIMITE.get(self.type_organe, 0)
+        
+        if self.mode_rupture in ["C", "D", "E", "F", "J", "K"]:
 
-        if mode == "C" or mode == "D" or mode == "E" or mode == "F" or mode == "J" or mode == "K":
-
-            FaxRkreel = min((self.FaxRk / 4), (coeflimit * Fvrk))
-            fvrktot = Fvrk + FaxRkreel
+            self.FaxRk_reel = min((self.FaxRk / 4), (coeflimit * self.FvRk_Johansen[0]))
+            fvrk = self.FvRk_Johansen[0] + self.FaxRk_reel
 
         else:
-
-            fvrktot = Fvrk
-
-        return fvrktot
+            fvrk = self.FvRk_Johansen[0]
+        return fvrk
 
 
     # 8.2.3 Assemblage bois métal
 
-    def FvRkBoisMetalJohansen(self, epPlaq, posPlaq="centrale"):
+    def _FvRk_BoisMetal_Johansen(self):
         """Calcul la capacité résistante en cisaillement de la tige en N par plan de cisaillement avec
-            MyRk : moment d'écoulement plastique en N.mm
             t1 : valeur minimale entre epaisseur de l'élément bois latéral et la profondeur de pénétration en mm
             t2 : epaisseur de l'élément bois central en mm
-            d : diamètre efficace de l'organe en mm
-            epPlaq : epaisseur de la plaque métalique en mm
-            fh1k : portance locale dans l'élément bois 1
-            fh2k : portance locale dans l'élément bois 2
-            posPlaq : position de la plaque dans l'assemblage "centrale" ou "externe"
-            nCis : Nombre de plan cisaillé entre 1 et 2
             """
-  
-        if epPlaq <= 0.5 * self.d:
-            typePlaque = "mince"
 
-        elif self.d <= epPlaq:
-            typePlaque = "epaisse"
+        if self._type_beam[0] == "Métal":
+            self.t = self.beam_1.t
+            if self.nCis == 2:
+                self.pos_plaq = "externe"
+        else:
+            self.t = self.beam_2.t
+            if self.nCis == 2:
+                self.pos_plaq = "centrale"
+            
+        if self.t <= 0.5 * self.d:
+            self.type_plaque = "mince"
+
+        elif self.d <= self.t:
+            self.type_plaque = "epaisse"
             
         else:
-            typePlaque = "intermédiaire"
+            self.type_plaque = "intermédiaire"
             print("ATTENTION interpolation linéaire à faire ! EC5-8.2.3.1")
             
 
-        if typePlaque == "mince" and self.nCis == 1:
+        if self.type_plaque == "mince" and self.nCis == 1:
 
             a = 0.4 * self.fh1k * self.t1 * self.d
             b = 1.15 * mt.sqrt(2 * self.MyRk * self.fh1k * self.d)
 
             modeVal = min(a, b)
             dicoRupture = {a: "A", b: "B"}
-            modeRupture = dicoRupture[modeVal]
+            self.mode_rupture = dicoRupture[modeVal]
 
-        elif typePlaque == "epaisse" and self.nCis == 1:
+        elif self.type_plaque == "epaisse" and self.nCis == 1:
 
             c = self.fh1k * self.t1 * self.d
             d = c * (mt.sqrt(2 + (4 * self.MyRk) /
@@ -274,9 +281,9 @@ class Assemblage(Project):
 
             modeVal = min(c, d, e)
             dicoRupture = {c: "C", d: "D", e: "E"}
-            modeRupture = dicoRupture[modeVal]
+            self.mode_rupture = dicoRupture[modeVal]
 
-        elif self.nCis == 2 and posPlaq == "centrale":
+        elif self.nCis == 2 and self.pos_plaq == "centrale":
 
             f = self.fh1k * self.t1 * self.d
             g = f * (mt.sqrt(2 + (4 * self.MyRk) /
@@ -285,16 +292,16 @@ class Assemblage(Project):
 
             modeVal = min(f, g, h)
             dicoRupture = {f: "F", g: "G", h: "H"}
-            modeRupture = dicoRupture[modeVal]
+            self.mode_rupture = dicoRupture[modeVal]
 
-        elif typePlaque == "mince" and self.nCis == 2 and posPlaq != "centrale":
+        elif self.type_plaque == "mince" and self.nCis == 2 and self.pos_plaq != "centrale":
 
             j = 0.5 * self.fh2k * self.t2 * self.d
             k = 1.15 * mt.sqrt(2 * self.MyRk * self.fh2k * self.d)
 
             modeVal = min(j, k)
             dicoRupture = {j: "J", k: "K"}
-            modeRupture = dicoRupture[modeVal]
+            self.mode_rupture = dicoRupture[modeVal]
 
         else:
 
@@ -303,31 +310,24 @@ class Assemblage(Project):
 
             modeVal = min(lmode, m)
             dicoRupture = {lmode: "L", m: "M"}
-            modeRupture = dicoRupture[modeVal]
+            self.mode_rupture = dicoRupture[modeVal]
 
-        return modeVal, modeRupture
+        return modeVal, self.mode_rupture
 
 
-    def FvRkBoisMetalTot(self, Fvrk, mode):
+    def _FvRk_BoisMetal_Tot(self):
         """Calcul la capacité résistante en cisaillement caractéristique avec la partie de Johansen + l'effet de corde si il existe dans le
-        mode de rupture avec :
-            Fvrk : résistance en cisaillement (uniquement partie de Johansen !) de l'organe en N par plan"
-            FaxRk : résistance à l'arrachement de l'organe en N
-            mode : mode de rupture de l'organe "A","B","C","D","E","F","G","H","I","J","K","L" ou "M"
-            type_organe : le type d'organe de l'assemblage "Pointe circulaire", "Pointe carrée", "Autres pointes", "Tirefond"
-            , "Boulon"ou"Broche" """
+        mode de rupture avec"""
         coeflimit = __class__.DICO_COEF_LIMITE.get(self.type_organe, 0)
 
-        if mode == "B" or mode == "D" or mode == "E" or mode == "G" or mode == "H" or mode == "K" or mode == "M":
+        if self.mode_rupture in ["B", "D", "E", "G", "H", "K", "M"]:
 
-            FaxRkreel = min((self.FaxRk / 4), (coeflimit * Fvrk))
-            fvrktot = Fvrk + FaxRkreel
-
+            self.FaxRk_reel = min((self.FaxRk / 4), (coeflimit * self.FvRk_Johansen[0]))
+            fvrk = self.FvRk_Johansen[0] + self.FaxRk_reel
+            
         else:
-
-            fvrktot = Fvrk
-
-        return fvrktot
+            fvrk = self.FvRk_Johansen[0]
+        return fvrk
     
     
     # Annexe A : Cisaillement de bloc
@@ -587,47 +587,112 @@ class Boulon(Assemblage):
         fuk : la valeur caractéristique de résistance à la traction du boulon en N/mm2
         n : nombre de boulons dans une file
         alpha : angle entre l'effort de l'organe et le fil du bois en ° """
-
-    def __init__(self, d, fuk, n, alpha, **kwargs):
+        
+    QUALITE_ACIER = ['4.6', '4.8', '5.6', '5.8', '6.8', '8.8', '9.8', '10.9', '12.9']
+    
+    def __init__(self, d, qualite: float=QUALITE_ACIER, n: int=1, alpha: int|float=0, **kwargs):
         super().__init__(**kwargs)
         self.type_organe = "Boulon"
         self.d = d
-        self.fuk = fuk
+        self.qualite = qualite
+        self.fuk = self.__qualite_acier.loc["fub"]
         self.n = n
+        self._nef = n
         self.alpha = mt.radians(alpha)
-        
+    
+    @property
+    def __qualite_acier(self):
+        df = self._data_from_csv("qualite_acier.csv")
+        df = df.loc[self.qualite]
+        return df
+
         
     # 8.5.1 Boulons chargés latéralement
     # 8.5.1.1 Généralité et assemblage bois/bois
-    def fh0k(self, pk):
+    
+    def _fh0k(self, beam: object):
         """Calcul la portance locale d'un boulon bois/bois ou d'un tire fond si d>6mm avec :
-            d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm
-            pk : masse volumique caractéristique du bois en kg/m3"""
-        fh0k = 0.082 * (1 - 0.01 * self.d) * pk
-        return fh0k
-
-
-    def k90(self, typeB="C"):
+            beam: poutre à calculer
+        """
+        rho_k = int(beam.caract_meca.loc["rhok"])
+        return 0.082 * (1 - 0.01 * self.d) * rho_k
+    
+    
+    def _K_90(self, beam: object):
         """Coef. modélisant la diminution de portance local quand un angle est donnée entre l'effort et le fil avec
-            typeB : type de bois utilisé "C" = Résineux ; "LVL" ; "D" = Feuillus
-            d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm"""
-        if typeB == "C" or typeB == "c":
+            beam: poutre à calculer"""
+            
+        if beam.classe[0:1] == "C":
+                type_b = "C"
+        elif beam.classe[0:3] == "LVL":
+            type_b = "LVL"
+        else: 
+            type_b == "D"
+                    
+        if type_b == "C" or type_b == "c":
             ck90 = 1.35 + 0.015 * self.d
-        elif typeB == "LVL" or typeB == "lvl":
+        elif type_b == "LVL" or type_b == "lvl":
             ck90 = 1.30 + 0.015 * self.d
         else:
             ck90 = 0.9 + 0.015 * self.d
         return ck90
+    
 
-
-    def fhak(self, fh0k, k90):
+    def _fhak(self, fh0k, k90):
         """Calcul la portance locale d'un boulon bois/bois ou d'un tire fond si d>6mm par rapport à un effort donné à un angle
         du fil en MPa avec :
             fh0k : portance locale dans le sens du fil d'un boulon
             alpha : angle entre l'effort de l'organe et le fil du bois en °
             k90 : coef. de réduction de la portance locale quand un effort à un angle par rapport au fil du bois"""
+        
         fhak = fh0k / (k90 * mt.sin(self.alpha) ** 2 + mt.cos(self.alpha) ** 2)
         return fhak
+    
+    
+    # 8.5.1.1 Généralité et assemblage bois/panneaux
+    def _fhk(self, beam:object):
+        """ Calcul la portance locale d'un boulon dans un assemblage bois/panneaux en MPa avec :
+            d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm
+            pk : masse volumique caractéristique du contreplaqué en kg/m3
+            ep : epaisseur du panneau en mm
+            typeP : type de panneau utilisé :  "CP" ou "Autres" """
+        if beam.type_bois == "CP":
+            rho_k = int(beam.caract_meca.loc["rhok"])
+            fhk = 0.11 * (1 - 0.01 * self.d) * rho_k
+        else:
+            ep = beam.b_calcul
+            fhk = 50 * (self.d**(-0.6)) * (ep**0.2)
+        return fhk
+    
+    
+    
+    def fhik(self):
+        """Calcul la portance locale d'un boulon bois/bois ou d'un tire fond si d>6mm
+        """
+    
+        dict_beam = {"1": {}, "2": {}}
+        for i, beam in enumerate([self.beam_1, self.beam_2]):
+            if self._type_beam[i] == "Bois":
+                dict_beam[str(i+1)]["fh0k"] = self._fh0k(beam)
+                dict_beam[str(i+1)]["K90"] = self._K_90(beam)
+                dict_beam[str(i+1)]["fhik"] = self._fhak(dict_beam[str(i+1)]["fh0k"], dict_beam[str(i+1)]["K90"])
+                
+            elif self._type_beam[i] == "CP" or self._type_beam[i] == "PP/OSB":
+                dict_beam[str(i+1)]["fhik"] = self._fhk(beam)
+                
+            else:
+                dict_beam[str(i+1)]["fhik"] = 0
+        
+            if self._type_beam[i] != "Métal":
+                if i:
+                    self.t2 = self.beam_2.b_calcul
+                else:
+                    self.t1 = self.beam_1.b_calcul
+        
+        
+        self.fh1k = dict_beam["1"]["fhik"]
+        self.fh2k = dict_beam["2"]["fhik"]
+        return self.fh1k, self.fh2k
 
 
     @property
@@ -662,25 +727,13 @@ class Boulon(Assemblage):
             a1 : l'espacement entre boulon dans le sens du fil du bois
             n : nombre de boulons dans une file 
             d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm"""
-        _nef = min(self.n**0.9 * (a1/(13 * self.d))**(1/4), self.n)
-        return _nef
-    
-
-    # 8.5.1.1 Généralité et assemblage bois/panneaux
-    def fhk(self, pk, ep, typeP="Autres"):
-        """ Calcul la portance locale d'un boulon dans un assemblage bois/panneaux en MPa avec :
-            d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm
-            pk : masse volumique caractéristique du contreplaqué en kg/m3
-            ep : epaisseur du panneau en mm
-            typeP : type de panneau utilisé :  "CP" ou "Autres" """
-        if typeP == "CP":
-            fhk = 0.11 * (1 - 0.01 * self.d) * pk
-        else:
-            fhk = 50 * (self.d**(-0.6)) * (ep**0.2)
-        return fhk
+        self._nef = min(self.n**0.9 * (a1/(13 * self.d))**(1/4), self.n)
+        return self._nef
 
     # 8.5.2 Boulons chargés axialement
-
+    @property
+    def FaxRk(self):
+        return 0
 
 # ======================================================= BROCHE =========================================================
 # 8.6 Assemblage par broche
@@ -692,8 +745,8 @@ class Broche(Boulon):
         n : nombre de broche dans une file
         alpha : angle entre l'effort de l'organe et le fil du bois en ° """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.type_organe = "Broche"
 
 
@@ -899,9 +952,18 @@ class Annneau(object):
 
 
 if __name__ == "__main__":
-
-    pointe = Pointe(2.5, 10000, 2, 90, t1=12, t2=60)
-    pointe.fh1k = pointe.fhk_bois()
-    pointe.fh2k = pointe.fh1k
-    print(pointe.pince)
-    print(pointe.FvRkBoisBoisJohansen)
+    from EC5_Element_droit import Beam
+    from EC3_Element_droit import Element
+    
+    # beam1 = Beam(60, 200, "Rectangulaire")
+    # beam1.f_type_d()
+    beam1 = Element(6, 200)
+    beam2 = Beam(60, 200, "Rectangulaire", classe="C24")
+    beam2.f_type_d()
+    ass= Assemblage(beam1, beam2, nfile=1, nCis=2)
+    bl = Boulon._from_parent_class(ass, d=16, qualite=8.8, n=2)
+    print(bl.fhik())
+    print(bl.pinceBoulon)
+    print(bl.nef(100))
+    print(bl.FvRd(effet_corde=True))
+    print(bl.Kser())

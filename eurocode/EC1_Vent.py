@@ -61,20 +61,6 @@ class Wind(Building):
 		self.CsCd = CsCd
 
 
-	def _data_from_csv(self, data_file:str):
-		"""Retourne un dataframe d_bat'un fichier CSV
-
-		Args:
-			data_file (str): Nom du fichier CSV à importer
-
-		Returns:
-			data_csv: dataframe pandas du fichier CSV
-		"""
-		repertory = os.path.join(os.getcwd(), "data", data_file)
-		data_csv = pd.read_csv(repertory, sep=';', index_col=0)
-		return data_csv
-
-
 	@property
 	def cat_terrain(self):
 		return __class__.CAT_TERRAIN[self.terrain]
