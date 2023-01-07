@@ -35,17 +35,11 @@ class Element(Project):
             setattr(self, key, value)
     
 
-    def __data_from_csv(self, data_file: str):
-            """ Retourne un dataframe d'un fichier CSV """
-            repertory = os.path.join(os.getcwd(), "data", data_file)
-            data_csv = pd.read_csv(repertory, sep=';', index_col=0)
-            return data_csv
-
     @property
     def __classe_acier(self):
         """Retourne le dataframe de la classe d'acier défini 
         """
-        df = self.__data_from_csv("caracteristique_meca_acier.csv")
+        df = self._data_from_csv("caracteristique_meca_acier.csv")
         df = df.loc[self.classe_acier]
         return df
 
