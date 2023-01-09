@@ -39,13 +39,14 @@ class Combinaison(Project):
 		self.name_combination = []
 		self.dicoCombiAct = {"Permanente G": "G", 
 							 "Exploitation Q": "Q",
-							 "Neige S": "S", 
+							 "Neige normale Sn": "Sn",
 							 "Vent pression W+": "W+",
 							 "Vent dépression W-": "W-",
+							 "Neige accidentelle Sx": "Sx",
 							 "Sismique Ae": "Ae"
 							 }
 
-		self.combiActionVariable = [0]*6 
+		self.combiActionVariable = [0]*7 
 		for nload in range(len(self.list_load)):
 			if self.list_load[nload][2] == "Permanente G":
 				self.combiActionVariable[0] = "G"
@@ -53,21 +54,25 @@ class Combinaison(Project):
 			elif self.list_load[nload][2] == "Exploitation Q":
 				self.combiActionVariable[1] = "Q"
 
-			elif self.list_load[nload][2] == "Neige S":
-				self.combiActionVariable[2] = "S"
+			elif self.list_load[nload][2] == "Neige normale Sn":
+				self.combiActionVariable[2] = "Sn"
 
 			elif self.list_load[nload][2] == "Vent pression W+":
 				self.combiActionVariable[3] = "W+"
 
 			elif self.list_load[nload][2] == "Vent dépression W+":
 				self.combiActionVariable[4] = "W-"
+
+			elif self.list_load[nload][2] == "Neige accidentelle Sx":
+				self.combiActionVariable[5] = "Sx"
 			else:
-				self.combiActionVariable[5] = "Ae"
+				self.combiActionVariable[6] = "Ae"
 
 
 		self._elu_STR()
 		self._els_C()
-		self._els_QP() 
+		self._els_QP()
+
 
 	@property
 	def coef_psy(self):
@@ -100,7 +105,7 @@ class Combinaison(Project):
 	def index_action_psy(self ,action_variable):
 		if action_variable == "Q":
 			index = 0
-		elif action_variable == "S":
+		elif action_variable == "Sn":
 			index = 1
 		elif action_variable == "W+" or action_variable == "W-" :
 			index = 2
@@ -472,9 +477,10 @@ class Calcul_EC0(Combinaison):
   
 		dictName = {"G": "Permanente",
 					"Q": "Moyen terme",
-					"S": "Court terme",
+					"Sn": "Court terme",
 					"W+": "Instantanee", 
 					"W-": "Instantanee",
+					"Sx": "Instantanee",
 					"Ae": "Instantanee"
 					}
 
@@ -482,8 +488,10 @@ class Calcul_EC0(Combinaison):
 			if action:
 				indexAction = name_combi[8:].find(action)
 				if indexAction > -1 :
-					if action == "S" and self.alt >= 1000 :
+					if action == "Sn" and self.alt >= 1000 :
 						name_load_type = dictName["Q"]
+					elif action == "Sn" and self.cat == "Cat H : toits":
+						name_load_type = dictName["Sn"]
 					else:
 						name_load_type = dictName[action]
 		return name_load_type
@@ -495,11 +503,12 @@ if __name__== "__main__":
 
 	list_load = [[1, '', 'Permanente G', 'Linéique', -10, '0/100', 'Z'],
 				 [0, 'Poids propre', 'Permanente G', 'Linéique', -36, '0/100', 'Z'],
-				 [2, '', 'Neige S', 'Linéique', -200, '0/100', 'Z'],
+				 [2, '', 'Neige normale Sn', 'Linéique', -200, '0/100', 'Z'],
 				 [3, '', 'Exploitation Q', 'Linéique', -150, '0/100', 'Z']]
 	c1 = Calcul_EC0(list_load=list_load, alt=1001, cat="Cat A : habitation", h_bat=5, d_bat=15, b_bat=13.1, alphatoit=15)
-	rcombi = "ELU_STR 1.35G + 1.5S"
+	rcombi = "ELU_STR 1.35G + 1.5Sn"
 	print(c1._return_combi_ELUSTR(rcombi))
+	print(c1.coef_psy)
 
 	
 	
