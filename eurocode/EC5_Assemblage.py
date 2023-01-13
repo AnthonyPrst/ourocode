@@ -22,7 +22,8 @@ class Assemblage(Project):
     GAMMA_M_ASS = 1.3
     DICO_COEF_LIMITE = {"Pointe circulaire": 0.15, "Pointe carrée": 0.25,
                      "Boulon": 0.25, "Autres pointes": 0.5, "Tirefond": 1}
-    TYPE_ASSEMBLAGE = ["Bois/Bois","Bois/Métal"]
+    TYPE_BOIS_ASSEMBLAGE = ("Bois","PP/OSB", "CP", "Panneau dur")
+    TYPE_ASSEMBLAGE = ("Bois/Bois", "Bois/Métal")
 
     def __init__(self,beam_1:object, beam_2:object, nfile: int=1, nCis: int=["1","2"], **kwargs):
         """Créer un objet Assemblage qui permet de calculer un assemblage bois/bois ou bois/métal à l'EN 1995.
@@ -46,34 +47,39 @@ class Assemblage(Project):
         
         self.nfile = nfile
         # self.FaxRk = FaxRk
-        # self.t1 = t1
-        # self.t2 = t2
-        # self.fh1k = fh1k
-        # self.fh2k = fh2k
         self.nCis = nCis
-        
         self.__type_assemblage()
     
+
     def __type_assemblage(self):
         self._type_beam = []
         for i, beam in enumerate([self.beam_1, self.beam_2]):
             try:
                 if beam.type_bois:
                     if beam.type_bois in ["Massif","BLC", "LVL"]:
-                        self._type_beam.append("Bois")
+                        self._type_beam.append(self.TYPE_BOIS_ASSEMBLAGE[0])
                     elif beam.type_bois in ["OSB 2", "OSB 3/4"]:
-                        self._type_beam.append("PP/OSB")
-                    else:
-                        self._type_beam.append("CP")
-                    self.K_mod = beam.K_mod
+                        self._type_beam.append(self.TYPE_BOIS_ASSEMBLAGE[1])
+                    elif beam.type_bois == "CP":
+                        self._type_beam.append(self.TYPE_BOIS_ASSEMBLAGE[2])
+                    elif beam.type_bois == "Panneau dur":
+                        self._type_beam.append(self.TYPE_BOIS_ASSEMBLAGE[3])
+
+                    beam.rho_k = int(beam.caract_meca.loc["rhok"])
             except AttributeError:
                 self._type_beam.append("Métal")
-                
-        if self._type_beam[0] == "Bois":
-            self.type_assemblage = self._type_beam[0] + "/" + self._type_beam[1]
+
+        # Détermine le type d'assemblage Bois/Bois ou Bois/métal  
+        if self._type_beam[0] in self.TYPE_BOIS_ASSEMBLAGE:
+            if self._type_beam[1] in self.TYPE_BOIS_ASSEMBLAGE:
+                self.type_assemblage = self.TYPE_ASSEMBLAGE[0]
+            else:
+                self.type_assemblage = self.TYPE_ASSEMBLAGE[1]
+
         else:
-            self.type_assemblage = self._type_beam[1] + "/" + self._type_beam[0]
+            self.type_assemblage = self.TYPE_ASSEMBLAGE[1]
         
+
     @property
     def rho_mean_ass(self):
         if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[0]:
@@ -81,7 +87,7 @@ class Assemblage(Project):
             rho_m2 = int(self.beam_2.caract_meca.loc["rhomean"])
             return mt.sqrt(rho_m1 * rho_m2)
         else:
-            if self._type_beam[0] == "Bois":
+            if self._type_beam[0] in self.TYPE_BOIS_ASSEMBLAGE:
                 return int(self.beam_1.caract_meca.loc["rhomean"])
             else:
                 return int(self.beam_2.caract_meca.loc["rhomean"])
@@ -121,8 +127,8 @@ class Assemblage(Project):
 
     # 8.1.2 Assemblage par organe multiple
 
-    def FvRd(self, effet_corde: bool=["True", "False"]) -> float:
-        """Calcul la valeur de calcul (design) de résistance au cisaillement de l'assemblage en N
+    def FvRk(self, effet_corde: bool=["True", "False"]) -> float:
+        """Calcul la valeur de calcul caractéristique de résistance au cisaillement de l'assemblage en N
 
         Args:
             effet_corde (bool): prise en compte de l'effet de corde, si oui alors True.
@@ -134,19 +140,25 @@ class Assemblage(Project):
         if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[0]:
             self.FvRk_Johansen = self._FvRk_BoisBois_Johansen()
             if effet_corde:
-                self.FvRk = self._FvRk_BoisBois_Tot()
+                self.Fv_Rk = self._FvRk_BoisBois_Tot()
         else:
             self.FvRk_Johansen = self._FvRk_BoisMetal_Johansen()
             if effet_corde:
-                self.FvRk = self._FvRk_BoisMetal_Tot()
+                self.Fv_Rk = self._FvRk_BoisMetal_Tot()
         
-        fvrd = (self.FvRk * self.nfile * self._nef * self.nCis * self.K_mod) / __class__.GAMMA_M_ASS
-        return fvrd
+        self.Fv_Rk_ass = self.Fv_Rk * self.nfile * self._nef * self.nCis
+        return self.Fv_Rk, self.Fv_Rk_ass
 
-    def F_Rd(self, F_rk):
+
+    def F_Rd(self, F_rk, num_beam: int=(1, 2)):
         """Calcul la valeur de calcul (design) de résistance de l'assemblage en N avec :
             F_rk : capacité résistante caractéristique de l'organe en N"""
-        f_rd = (F_rk * self.K_mod) / __class__.GAMMA_M_ASS
+        
+        if num_beam == 1:
+            kmod = beam1.K_mod
+        else:
+            kmod = beam2.K_mod
+        f_rd = (F_rk * kmod) / __class__.GAMMA_M_ASS
         return f_rd
 
 
@@ -378,23 +390,52 @@ class Pointe(Assemblage):
         type_pointe : "Carrée" = False "Circulaire" = True
         """
 
-    TYPE_ASSEMBLAGE = ["Bois/Bois", ["CP", "Panneau dur", "PP/OSB"], "Bois/Métal"]
+    TYPE_ASSEMBLAGE = ("Bois/Bois", ("CP", "Panneau dur", "PP/OSB"), "Bois/Métal")
+    QUALITE_ACIER = ('6.8', '8.8', '9.8', '10.9', '12.9')
+    TYPE_ORGANE = ("Pointe circulaire", "Pointe carrée", "Autres pointes")
 
-    def __init__(self, d: float|int, fu: int, n: int, alpha: float, pk: int=350, type_assemblage: str=TYPE_ASSEMBLAGE[0], type_organe: str=["Pointe circulaire", "Pointe carrée", "Autres pointes"], percage: bool=False, *args, **kwargs):
+    def __init__(self, d: float|int, d_tete: int, l:int|float, qualite: float=QUALITE_ACIER, n: int=1, alpha: float=0, type_organe: str=TYPE_ORGANE, percage: bool=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.d = d
+        self.d_tete = d_tete
+        self.l = l #longueur sous tête
+        self.qualite = qualite
         self.n = n
-        self.fu = fu
+        self.fu = self.__qualite_acier.loc["fub"]
         self.alpha = mt.radians(alpha)
-        self.pk = pk
-        self.type_assemblage = type_assemblage
         self.percage = percage
+        self.type_organe = type_organe
 
-        if type_organe == "Pointe carrée":
-            self.type_organe = __class__.DICO_COEF_LIMITE[type_organe]
+        self.__t1_t2()
+
+
+    @property
+    def __qualite_acier(self):
+        df = self._data_from_csv("qualite_acier.csv")
+        df = df.loc[self.qualite]
+        return df
+
+    @property
+    def _type_circulaire(self):
+        if self.type_organe == "Pointe carrée":
+            return False
         else:
-            self.type_organe = __class__.DICO_COEF_LIMITE[type_organe]
-            self.type_circulaire = True
+            return True
+
+
+    def __t1_t2(self):
+        """Retourne t1 et t2 en mm suivant l'EN 1995 §8.3.1.1
+        """
+        if self.nCis == 1:
+            if self._type_beam[0] in self.TYPE_BOIS_ASSEMBLAGE:
+                self.t1 = self.beam_1.b_calcul
+            if self._type_beam[1] in self.TYPE_BOIS_ASSEMBLAGE:
+                self.t2 = self.l-self.beam_1.b_calcul
+        else:
+            if self._type_beam[0] in self.TYPE_BOIS_ASSEMBLAGE:
+                self.t1 = min(self.beam_1.b_calcul, self.l-self.beam_1.b_calcul)
+            if self._type_beam[1] in self.TYPE_BOIS_ASSEMBLAGE:
+                self.t2 = self.beam_2.b_calcul
 
 
     @property
@@ -403,7 +444,7 @@ class Pointe(Assemblage):
             d : diamètre de la pointe en mm (pour les pointe carrée = coté de la pointe)
             fu : la résistance caractéristique en traction du fil d'acier en N/mm2 """
         if self.fu >= 600:
-            if self.type_circulaire == True:
+            if self._type_circulaire == True:
                 MyRk = 0.3 * self.fu * self.d**2.6
             else:
                 MyRk = 0.45 * self.fu * self.d**2.6
@@ -412,44 +453,76 @@ class Pointe(Assemblage):
             print("La résistance du fil en traction est inférieur à 600 MPa, vérifier vos données !")
 
 
-    def fhk_bois(self):
+    def _fhk_bois(self, beam:object):
         """ Calcul la portance locale des pointes inférieur à 8mm dans le bois et le LVL en MPa
             """
         if self.percage:
-            fhk = 0.082 * (1 - 0.01 * self.d) * self.pk
+            fhk = 0.082 * (1 - 0.01 * self.d) * beam.rho_k
         else:
-            fhk = 0.082 * self.pk * self.d**(-0.3)
+            fhk = 0.082 * beam.rho_k * self.d**(-0.3)
         return fhk
 
 
-    def fhk_panneau(self, t: int, diam_tete_pointe: int):
+    def _fhk_panneau(self, beam:object):
         """Calcul la portance locale des pointes dans les panneaux en MPa
 
         Args:
             t (int): épaisseur du panneau en mm
-            diam_tete_pointe (int): diamètre de la tête de la pointe
+            self.d_tete (int): diamètre de la tête de la pointe
 
         Returns:
             float: portance locale en MPa
         """
-        if diam_tete_pointe >= 2*self.d:
-            if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[1][0]:
-                fhk = 0.11 * self.pk * self.d**-0.3
-            elif self.type_assemblage == __class__.TYPE_ASSEMBLAGE[1][1]:
-                fhk = 30 * self.d**-0.3 * t**0.6
+        if self.d_tete >= 2*self.d:
+            if beam.type_bois == "CP":
+                fhk = 0.11 * beam.rho_k * self.d**-0.3
+            elif beam.type_bois == "Panneau dur":
+                fhk = 30 * self.d**-0.3 * beam.b_calcul**0.6
             else:
-                fhk = 65 * self.d**-0.7 * t**0.1
+                fhk = 65 * self.d**-0.7 * beam.b_calcul**0.1
             return fhk
         else:
             print(f"La tête de la pointe doit être au moins égale à {2*self.d} mm")
+
+
+    def fhik(self) -> tuple:
+        """Calcul la portance locale d'une pointe en MPa dans les deux éléments de l'assemblage
+
+        ATTENTION: Pas de prise en compte des panneaux durs au sens de la norme EN 622-2
+
+        Returns:
+            tuple: (fh1k, fh2k) en MPa
+        """
+    
+        dict_beam = {"1": {}, "2": {}}
+        for i, beam in enumerate([self.beam_1, self.beam_2]):
+            if self._type_beam[i] == "Bois":
+                dict_beam[str(i+1)]["fhk"] = self._fhk_bois(beam)
+                
+            elif self._type_beam[i] == "CP" or self._type_beam[i] == "PP/OSB":
+                dict_beam[str(i+1)]["fhk"] = self._fhk_panneau(beam)
+                
+            else:
+                dict_beam[str(i+1)]["fhk"] = 0
+        
+            if self._type_beam[i] != "Métal":
+                if i:
+                    self.t2 = self.beam_2.b_calcul
+                else:
+                    self.t1 = self.beam_1.b_calcul
+        
+        
+        self.fh1k = dict_beam["1"]["fhk"]
+        self.fh2k = dict_beam["2"]["fhk"]
+        return self.fh1k, self.fh2k
 
 
     def _kef(self, a1):
         """ coefficient donnée dans le tableau 8.1 fonction de a1 et du percage qui réduit le nombre efficace de pointe dans le sens 
             du fil avec :
                 a1 : l'espacement entre tige dans le sens du fil du bois """
-        listeTab = [self.d * 4, self.d * 7, self.d *
-                    10, self.d * 14, ["x", 0.7, 0.85, 1]]
+        listeTab = (self.d * 4, self.d * 7, self.d *
+                    10, self.d * 14, ("x", 0.7, 0.85, 1))
 
         if a1 >= listeTab[3]:
             kef = 1
@@ -480,7 +553,8 @@ class Pointe(Assemblage):
                 else:
                     kef = interpolationLineaire(
                         a1, listeTab[j-1], listeTab[j], listeTab[4][j-1], listeTab[4][j])
-        return kef
+        self.kef = kef
+        return self.kef
 
 
     def nef(self, a1):
@@ -493,10 +567,11 @@ class Pointe(Assemblage):
         return self._nef
 
 
-    @property
-    def pince(self):
+    def _pince(self, beam:object):
         """Défini les différentes pinces minimales pour une pointe en mm"""
-        
+
+        rho_k = beam.rho_k
+
         if self.percage:
             a1 = round((4 + mt.cos(self.alpha)) * self.d, 1)
             a2 = round((3 + mt.sin(self.alpha)) * self.d, 1)
@@ -509,7 +584,7 @@ class Pointe(Assemblage):
             else:
                 a4t = round((3 + 4 * mt.sin(self.alpha)) * self.d, 1)
         else:
-            if self.pk <= 420:
+            if rho_k <= 420:
                 if self.d < 5:
                     a1 = round((5 + 5 * mt.cos(self.alpha)) * self.d, 1)
                     a4t = round((5 + 2 * mt.sin(self.alpha)) * self.d, 1)
@@ -522,7 +597,7 @@ class Pointe(Assemblage):
                 a3c = round(10 * self.d, 1)
                 a4c = a2
 
-            elif self.pk > 420 and self.pk <= 500:
+            elif rho_k > 420 and rho_k <= 500:
                 a1 = round((7 + 8 * mt.cos(self.alpha)) * self.d, 1)
                 a2 = round(7 * self.d, 1)
                 a3t = round((15 + 5 * mt.cos(self.alpha)) * self.d, 1)
@@ -539,20 +614,30 @@ class Pointe(Assemblage):
         if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[0]: #Si assemblage bois bois
             pass
 
-        elif self.type_assemblage == __class__.TYPE_ASSEMBLAGE[2]: #Si assemblage bois métal
+        elif self.type_assemblage == __class__.TYPE_ASSEMBLAGE[1]: #Si assemblage bois métal
             a1 = round(a1 * 0.7, 1)
             a2 = round(a2 * 0.7, 1)
 
         else: #Si assemblage bois panneau
             a1 = round(a1 * 0.85, 1)
             a2 = round(a2 * 0.85, 1)
-            if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[1][0]:
+            if beam.type_bois == "CP":
                 a3t = round((3 + 4 * mt.sin(self.alpha)) * self.d, 1)
                 a3c = round(3 * self.d, 1)
                 a4t = a3t
                 a4c = a3c
 
         return {"a1": a1, "a2":a2, "a3t": a3t, "a3c": a3c, "a4t": a4t, "a4c": a4c}
+
+
+    @property
+    def pince_ass(self):
+        if __class__.TYPE_ASSEMBLAGE[0]:
+            return self._pince(self.beam_1), self._pince(self.beam_2)
+        elif self._type_beam[0] == __class__.TYPE_BOIS_ASSEMBLAGE:
+            return self._pince(self.beam_1)
+        else:
+            return self._pince(self.beam_2)
 
 
     def prepercage(self, sensible: bool=False):
@@ -588,7 +673,7 @@ class Boulon(Assemblage):
         n : nombre de boulons dans une file
         alpha : angle entre l'effort de l'organe et le fil du bois en ° """
         
-    QUALITE_ACIER = ['4.6', '4.8', '5.6', '5.8', '6.8', '8.8', '9.8', '10.9', '12.9']
+    QUALITE_ACIER = ('4.6', '4.8', '5.6', '5.8', '6.8', '8.8', '9.8', '10.9', '12.9')
     
     def __init__(self, d, qualite: float=QUALITE_ACIER, n: int=1, alpha: int|float=0, **kwargs):
         super().__init__(**kwargs)
@@ -599,6 +684,8 @@ class Boulon(Assemblage):
         self.n = n
         self._nef = n
         self.alpha = mt.radians(alpha)
+
+        self._fhik()
     
     @property
     def __qualite_acier(self):
@@ -614,8 +701,7 @@ class Boulon(Assemblage):
         """Calcul la portance locale d'un boulon bois/bois ou d'un tire fond si d>6mm avec :
             beam: poutre à calculer
         """
-        rho_k = int(beam.caract_meca.loc["rhok"])
-        return 0.082 * (1 - 0.01 * self.d) * rho_k
+        return 0.082 * (1 - 0.01 * self.d) * beam.rho_k
     
     
     def _K_90(self, beam: object):
@@ -657,8 +743,7 @@ class Boulon(Assemblage):
             ep : epaisseur du panneau en mm
             typeP : type de panneau utilisé :  "CP" ou "Autres" """
         if beam.type_bois == "CP":
-            rho_k = int(beam.caract_meca.loc["rhok"])
-            fhk = 0.11 * (1 - 0.01 * self.d) * rho_k
+            fhk = 0.11 * (1 - 0.01 * self.d) * beam.rho_k
         else:
             ep = beam.b_calcul
             fhk = 50 * (self.d**(-0.6)) * (ep**0.2)
@@ -666,7 +751,7 @@ class Boulon(Assemblage):
     
     
     
-    def fhik(self):
+    def _fhik(self):
         """Calcul la portance locale d'un boulon bois/bois ou d'un tire fond si d>6mm
         """
     
@@ -704,7 +789,7 @@ class Boulon(Assemblage):
 
 
     @property
-    def pinceBoulon(self):
+    def pince(self):
         """Défini les différentes pinces minimales pour un boulon en mm avec :
             alpha : angle entre l'effort de l'organe et le fil du bois en °
             d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm """
@@ -751,7 +836,7 @@ class Broche(Boulon):
 
 
     @property
-    def pinceBroche(self):
+    def pince(self):
         """Défini les différentes pinces minimales pour une broche en mm avec :
             alpha : angle entre l'effort de l'organe et le fil du bois en °
             d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm """
@@ -955,15 +1040,20 @@ if __name__ == "__main__":
     from EC5_Element_droit import Beam
     from EC3_Element_droit import Element
     
-    # beam1 = Beam(60, 200, "Rectangulaire")
-    # beam1.f_type_d()
-    beam1 = Element(6, 200)
-    beam2 = Beam(60, 200, "Rectangulaire", classe="C24")
-    beam2.f_type_d()
-    ass= Assemblage(beam1, beam2, nfile=1, nCis=2)
-    bl = Boulon._from_parent_class(ass, d=16, qualite=8.8, n=2)
-    print(bl.fhik())
-    print(bl.pinceBoulon)
-    print(bl.nef(100))
-    print(bl.FvRd(effet_corde=True))
-    print(bl.Kser())
+    beam1 = Beam(60, 200, "Rectangulaire")
+    beam1.f_type_d()
+
+    beam2 = Element(6, 200, classe_acier="S235")
+
+    ass = Assemblage(beam1, beam2, nfile=1, nCis=1)
+
+    pointe = Boulon._from_parent_class(ass, d=12, qualite=4.6, n=2, alpha=0)
+    print(pointe.pince)
+    print(pointe.type_assemblage)
+    print(pointe.nef(40))
+    print(pointe.Kser())
+    print(pointe.FvRk(effet_corde=True))
+    print(pointe.F_Rd(9658.682))
+
+
+    
