@@ -44,7 +44,6 @@ class Assemblage(Projet):
         #type_organe : le type d'organe de l'assemblage "Pointe circulaire", "Pointe carrée", "Autres pointes", "Agrafe", "Tirefond", "Boulon"ou"Broche", "plaque", "Anneau", "Crampon C1/C9","Crampon C10/C11".
         self.beam_1 = beam_1
         self.beam_2 = beam_2
-        
         self.nfile = nfile
         # self.FaxRk = FaxRk
         self.nCis = nCis
@@ -94,7 +93,7 @@ class Assemblage(Projet):
             
         
     # 7.1 Glissement des assemblages
-    def Kser(self, perc: bool=(False, True))->list:
+    def Kser(self, perc: bool=("False", "True")):
         """Calcul le kser du type d'un organe et de l'asssemblage en N/mm 
 
         Args:
@@ -127,37 +126,41 @@ class Assemblage(Projet):
 
     # 8.1.2 Assemblage par organe multiple
 
-    def FvRk(self, effet_corde: bool=("True", "False")) -> float:
+    def FvRk(self, effet_corde: bool=("True", "False")):
         """Calcul la valeur de calcul caractéristique de résistance au cisaillement de l'assemblage en N
 
         Args:
             effet_corde (bool): prise en compte de l'effet de corde, si oui alors True.
 
         Returns:
-            float: retourne Fv_Rd de l'assemblage en N
+            float: retourne un tuple du Fv_Rd unitaire d'une broche et de l'assemblage en N
         """
         #     Fvrktot : capacité résistante en cisaillement caractéristique avec la partie de Johansen + l'effet de corde en N
         if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[0]:
             self.FvRk_Johansen = self._FvRk_BoisBois_Johansen()
             if effet_corde:
                 self.Fv_Rk = self._FvRk_BoisBois_Tot()
+            else:
+                self.Fv_Rk = self.FvRk_Johansen[0]
         else:
             self.FvRk_Johansen = self._FvRk_BoisMetal_Johansen()
             if effet_corde:
                 self.Fv_Rk = self._FvRk_BoisMetal_Tot()
+            else:
+                self.Fv_Rk = self.FvRk_Johansen[0]
         
         self.Fv_Rk_ass = self.Fv_Rk * self.nfile * self._nef * self.nCis
         return self.Fv_Rk, self.Fv_Rk_ass
 
 
-    def F_Rd(self, F_rk, num_beam: int=(1, 2)):
+    def F_Rd(self, F_rk, num_beam: int=("1", "2")):
         """Calcul la valeur de calcul (design) de résistance de l'assemblage en N avec :
             F_rk : capacité résistante caractéristique de l'organe en N"""
         
         if num_beam == 1:
-            kmod = beam1.K_mod
+            kmod = self.beam_1.K_mod
         else:
-            kmod = beam2.K_mod
+            kmod = self.beam_2.K_mod
         f_rd = (F_rk * kmod) / __class__.GAMMA_M_ASS
         return f_rd
 
@@ -394,7 +397,7 @@ class Pointe(Assemblage):
     QUALITE_ACIER = ('6.8', '8.8', '9.8', '10.9', '12.9')
     TYPE_ORGANE = ("Pointe circulaire", "Pointe carrée", "Autres pointes")
 
-    def __init__(self, d:float, d_tete:int, l:float, qualite: float=QUALITE_ACIER, n: int=1, alpha: float=0, type_organe: str=TYPE_ORGANE, percage: bool=("False", "True"), *args, **kwargs):
+    def __init__(self, d:float, d_tete:int, l:float, qualite: str=QUALITE_ACIER, n: int=1, alpha: float=0, type_organe: str=TYPE_ORGANE, percage: bool=("False", "True"), *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.d = d
         self.d_tete = d_tete
@@ -675,7 +678,7 @@ class Boulon(Assemblage):
         
     QUALITE_ACIER = tuple(Assemblage._data_from_csv(Assemblage, "qualite_acier.csv").index)
     
-    def __init__(self, d, qualite: float=QUALITE_ACIER, n: int=1, alpha: float=0, **kwargs):
+    def __init__(self, d:float, qualite: str=QUALITE_ACIER, n: int=1, alpha: float=0, **kwargs):
         super().__init__(**kwargs)
         self.type_organe = "Boulon"
         self.d = d
@@ -872,10 +875,14 @@ class Tirefond(object):
         n : nombre de boulons dans une file
         alphaTirefond : angle formé entre l'axe du tirefond et le fil du bois, doit être supérieur à 30°"""
 
-    def __init__(self, d:float, d1:float, dh:float,  pa:float, fhead:float, ftensk:float, n, alphaTirefond: float=90):
-        self.type_organe = "Tirefond"
+    def __init__(self, d:float, d1:float, dh:float,  pa:float, fhead:float, ftensk:float, n, alphaTirefond: float=90, **kwargs):
         self.d = d
         self.d1 = d1
+        self.d_ef = d1*1.1
+        if self.d_ef <= 6:
+            super(Pointe, self).__init__(d=self.d_ef, d_tete=dh, **kwargs)
+        self.type_organe = "Tirefond"
+        
         self.dh = dh
         self.pa = pa
         self.fhead = fhead
@@ -1037,23 +1044,19 @@ class Annneau(object):
 
 
 if __name__ == "__main__":
-    from EC5_Element_droit import Beam
+    from EC5_Element_droit import Poutre
     from EC3_Element_droit import Element
     
-    beam1 = Beam(60, 200, "Rectangulaire")
-    beam1.f_type_d()
+    beam1 = Poutre(60, 140, "Rectangulaire", classe="C24", cs=2)
+    beam1.f_type_d("fm0k", "Instantanee", "Fondamentales")
 
-    beam2 = Element(6, 200, classe_acier="S235")
+    beam2 = Poutre(160, 440, "Rectangulaire", classe="GL24h", cs=2)
+    beam1.f_type_d("fm0k", "Instantanee", "Fondamentales")
 
     ass = Assemblage(beam1, beam2, nfile=1, nCis=1)
 
-    pointe = Boulon._from_parent_class(ass, d=12, qualite=4.6, n=2, alpha=0)
-    print(pointe.pince)
-    print(pointe.type_assemblage)
-    print(pointe.nef(40))
-    print(pointe.Kser())
-    print(pointe.FvRk(effet_corde=True))
-    print(pointe.F_Rd(9658.682))
+    pointe = Pointe._from_parent_class(ass, d=6, d_tete=12, l=120, qualite="10.9", n=1, alpha=0, type_organe="Autres pointes", percage="False")
+    print(pointe.pince_ass)
 
 
     

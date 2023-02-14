@@ -20,6 +20,17 @@ class Objet(object):
             data_csv = pd.read_csv(repertory, sep=';', header=0, index_col=0)
             return data_csv
     
+    @property
+    def objet(self):
+        """Retourne l'objet lui même.
+        """
+        return self
+
+    def return_value(self, value: str):
+        """Retourne l'argument donnée.
+        """
+        return value
+    
     @classmethod
     def _from_dict(cls, dictionary:dict):
         """Class méthode permetant l'intanciation des classe hérité de la classe parent, par une classe déjà instanciée.
@@ -30,13 +41,20 @@ class Objet(object):
         return cls(**dictionary)
     
     @classmethod
-    def _from_parent_class(cls, object, **kwargs):
+    def _from_parent_class(cls, objet: list|object, **kwargs):
         """Class méthode permetant l'intanciation des classe hérité de la classe parent, par une classe déjà instanciée.
 
         Args:
             object (class object): l'objet Element déjà créer par l'utilisateur
-        """ 
-        return cls(**object.__dict__, **kwargs)
+        """
+        dict_objet = {}
+        if type(objet) is list:
+            for obj in objet:
+                dict_objet.update(obj.__dict__)
+        else:
+            dict_objet = objet.__dict__
+
+        return cls(**dict_objet, **kwargs)
 
     
     def _save_muliple_objects(self, object: list):

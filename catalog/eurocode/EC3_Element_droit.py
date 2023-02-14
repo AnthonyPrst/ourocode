@@ -62,9 +62,9 @@ class Element(Projet):
             b ou d : Largeur ou diamètre de la poutre en mm
             h : Hauteur de la poutre en mm """
         if self.t and self.h:
-            iy = (self.t * self.h**3)/12
-            iz = (self.h * self.t**3)/12
-            return [iy, iz]
+            self.Iy = (self.t * self.h**3)/12
+            self.Iz = (self.h * self.t**3)/12
+            return [self.Iy, self.Iz]
 
         elif self.Iy and self.Iz:
             return [self.Iy, self.Iz]
@@ -72,7 +72,7 @@ class Element(Projet):
 
 
 class Traction(Element):
-    def __init__(self, A: float|int, Anet: float|int=0, ass_cat_C: bool=False, *args, **kwargs):
+    def __init__(self, A: float, Anet: float=0, ass_cat_C: bool=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.A = A
         self.Anet = Anet

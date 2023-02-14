@@ -11,7 +11,7 @@ sys.path.append(os.path.join(os.getcwd(), "eurocode"))
 from A0_Projet import Batiment
 
 
-class Snow(Batiment):
+class Neige(Batiment):
 	REGION_NEIGE = list(Batiment._data_from_csv(Batiment, "zone_neige.csv").index)
 	EXPOSITION = ("Normal", "Protégé")
 	TYPE_TOIT = ("1 versant", "2 versants")
@@ -201,5 +201,5 @@ class Snow(Batiment):
 
 
 if __name__ == "__main__":
-	Action_snow = Snow("79  Deux-Sèvres", exposition="Normal", type_toit="1 versant", blocage=True, h_bat=5, d_bat=15, b_bat=13.1, alphatoit=15)
+	Action_snow = Neige("79  Deux-Sèvres", exposition="Normal", type_toit="1 versant", blocage=True, h_bat=5, d_bat=15, b_bat=13.1, alphatoit=15)
 	print(Action_snow.Sn)
