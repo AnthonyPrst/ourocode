@@ -14,9 +14,9 @@ from EC3_Element_droit import Element
 #======================================================= BOULON =========================================================
 
 class Boulon(Element):
-    QUALITE_ACIER = tuple(Element._data_from_csv(Element, "qualite_acier.csv").index)
+    QUALITE_ACIER = tuple(str(key) for key in Element._data_from_csv(Element, "qualite_acier.csv").index)
 
-    def __init__(self, d:float, d0:float, qualite: float=QUALITE_ACIER, verif_filetage: bool=("False", "True"), filetage_EN1090: bool=("True", "False"), *args, **kwargs):
+    def __init__(self, d:float, d0:float, qualite: str=QUALITE_ACIER, verif_filetage: bool=("False", "True"), filetage_EN1090: bool=("True", "False"), *args, **kwargs):
         """Configure un objet boulon permettant les vérification suivant l'EN 1993-1-8. Cette classe est hérité de la classe Element du fichier EC3_Element_droit.py.
 
         Args:
@@ -60,7 +60,7 @@ class Boulon(Element):
     @property
     def __section_boulon(self):
         try:
-            df = self._Element__data_from_csv("section_boulon.csv")
+            df = self._data_from_csv("section_boulon.csv")
             df = df.loc[self.d]
             return df
         except KeyError:
@@ -144,7 +144,7 @@ class Boulon(Element):
 
     
     #Combinaison des efforts
-    def taux_FvEd_FtEd(self, FvEd: int, FtEd: int) -> dict:
+    def taux_FvEd_FtEd(self, FvEd: int, FtEd: int):
         """Retourne les taux de travail en cisaillement, en traction et combiné du boulon
 
         Args:
@@ -172,7 +172,7 @@ class Boulon(Element):
         return self.taux_bl
     
     
-    def BpRd(self, d_ecrou: int, d_head_bl: int, *args) -> float:
+    def BpRd(self, d_ecrou: int, d_head_bl: int, *args):
         """Retourne la résistance au poinçonnement de la plaque en N
 
         Args:
@@ -188,7 +188,7 @@ class Boulon(Element):
         return (0.6 * mt.pi * dm * tp * self.fu) / __class__.GAMMA_M["gamma_M2"]
 
     
-    def FbRd(self, e1: float ,e2: float , p1: float, p2: float) -> float:
+    def FbRd(self, e1: float ,e2: float , p1: float, p2: float):
         """Retourne la pression diamétrale en N. 
            ATTENTION: ne prends pas en compte les réductions de résistance lié au critère de l'assemblage (voir §3.6.1-10 et tab 3.4)
                         - jeux non normalisés -> 0.8 * Fb,Rd
@@ -206,6 +206,7 @@ class Boulon(Element):
         """
         self._alpha_b = min(e1 / (3 * self.d0), (p1 / (3 * self.d0)) - 0.25, self.fub / self.fu, 1)
         self._k1 = min(2.8 * e2 / self.d0 - 1.7, 1.4 * p2 / self.d0 - 1.7, 2.5)
+
         # print(alpha_b , k1)
         return self._k1 * self._alpha_b * self.fu * self.d * self.t / __class__.GAMMA_M["gamma_M2"]
 
@@ -356,5 +357,7 @@ class Soudure(Element):
 
 if __name__ == "__main__":
     soudure = Soudure(gorge=4, l=140, retour_soudure=True, alpha=90, classe_acier="S235")
-    
+    ele = Element(classe_acier="S235", classe_transv=1)
+    bl = Boulon._from_parent_class(ele, d=12,d0=14,qualite="A2-50",verif_filetage=True, filetage_EN1090=True)
     print(soudure.critere_generale(0, 100135))
+    print(bl.fub)

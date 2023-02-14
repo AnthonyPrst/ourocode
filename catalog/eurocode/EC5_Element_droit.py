@@ -7,11 +7,12 @@
 # élément droit.
 import os
 import sys
+from PIL import Image
 
 import math as mt
 import pandas as pd
 
-sys.path.append(os.path.join(os.getcwd(), "eurocode"))
+sys.path.append(os.path.join(os.getcwd(), "catalog", "eurocode"))
 from A0_Projet import Projet
 
 
@@ -25,7 +26,7 @@ class Poutre(Projet):
     CS = ["1","2","3"]
     CARACTERISTIQUE = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").columns)
     LOAD_TIME = tuple(Projet._data_from_csv(Projet, "kmod.csv").columns)[1:]
-    TYPE_ACTION = ("Fondamentales" ," Accidentelles")
+    TYPE_ACTION = ("Fondamentales" ,"Accidentelles")
     TYPE_BAT = ("Batiments courants", "Batiments agricoles et similaires")
     TYPE_ELE = tuple(Projet._data_from_csv(Projet, "limite_fleche.csv").index.unique())
 
@@ -57,6 +58,7 @@ class Poutre(Projet):
         self._sectionCalcul()
     
     
+
     def _sectionCalcul(self, B90=0.25):
         """ Retourne la section de calcul en fonction de l'humidité de pose et celle d'utilisation avec pour argument:
                 Hi : Humidité de pose en %
@@ -65,24 +67,33 @@ class Poutre(Projet):
                 cote : Largeur ou hauteur de la section initiale en mm """
         self.b_calcul = self.b * (1 - B90 / 100 * (self.Hi - self.Hf))
         self.h_calcul = self.h * (1 - B90 / 100 * (self.Hi - self.Hf))
+
+    
+    @property
+    def aire(self):
+        if self.section == __class__.LIST_SECTION[0]:
+            return self.b_calcul * self.h_calcul
+        else:
+            return mt.pi * (self.b_calcul/2)**2
         
-        
+
     @property
     def inertie(self):
         """ Retourne le moment quadratique d'une section rectangulaire en mm4 avec pour argument :
             b ou d : Largeur ou diamètre de la poutre en mm
             h : Hauteur de la poutre en mm """
         if self.section == "Rectangulaire":
-            iy = (self.b_calcul * self.h_calcul**3)/12
-            iz = (self.h_calcul * self.b_calcul**3)/12
-            return [iy, iz]
+            self.Iy = (self.b_calcul * self.h_calcul**3)/12
+            self.Iz = (self.h_calcul * self.b_calcul**3)/12
+            return [self.Iy, self.Iz]
 
-        elif self.Iy and self.Iz:
+        elif hasattr(self, "Iy") and hasattr(self, "Iz"):
             return [self.Iy, self.Iz]
 
         else:
-            i = (mt.pi * self.b_calcul ** 4) / 64
-            return i
+            self.Iy = (mt.pi * self.b_calcul ** 4) / 64
+            self.Iz = self.Iy
+            return [self.Iy, self.Iz]
         
     
     @property
@@ -135,7 +146,7 @@ class Poutre(Projet):
         return kdef
 
     
-    def f_type_d(self,typeCarac=CARACTERISTIQUE, loadtype=LOAD_TIME, typecombi=TYPE_ACTION):
+    def f_type_d(self,typeCarac=CARACTERISTIQUE[0:6], loadtype=LOAD_TIME, typecombi=TYPE_ACTION):
         """Méthode donnant la résistance de calcul de l'élément fonction de la vérification
 
         Args:
@@ -295,6 +306,7 @@ class Flexion(Poutre):
     
     def sigma_m_d(self, M: float, axe=['y', 'z']):
         """ Retourne la contrainte sigma,m,d suivant sont axes de flexion avec :
+            Attention il n'est pas possible de prendre en compte le déversement
             M : Momment max dans la barre en kN.m
             axe : Axe d'inertie quadratique à considérer"""
         self.Md = {'y': 0, 'z': 0}
@@ -394,12 +406,17 @@ class Traction(Poutre):
         return self.taux_t_0_rd
     
 
+
 # ================================ Compression ==================================
  
 class Compression(Poutre):
     """ Classe intégrant les formules de compression et d'instabilité au flambement à l'EC5 """
-
-    def __init__(self, lo: dict="""{"y":0, "z":0}""", coeflf: float=1, *args, **kwargs):
+    COEF_LF = {"Encastré 1 côté" : 2,
+                "Rotule - Rotule" : 1,
+                "Encastré - Rotule" : 0.7,
+                "Encastré - Encastré" : 0.5,
+                "Encastré - Rouleau" : 1}
+    def __init__(self, lo_y: int, lo_z: int, coeflf: str=COEF_LF, *args, **kwargs):
         """ 
         b ou d : Largeur ou diamètre de la poutre en mm
         h : Hauteur en mm
@@ -418,15 +435,15 @@ class Compression(Poutre):
         classe : Classe mécanique du bois (C24 etc.)"""
 
         super().__init__(*args, **kwargs)
-        self.lo = lo
-        self.coeflf = coeflf
+        self.lo = {"y":lo_y, "z":lo_z}
+        self.coeflf = __class__.COEF_LF[coeflf]
 
     @property
     def lamb(self):
         """ Retourne l'élancement d'un poteau en compression avec risque de flambement suivant son axe de rotation """
-        lamb = {'y':0, 'z':0}
-        lamb['y'] = (self.lo['y'] * self.coeflf) / mt.sqrt(self.inertie[1] / (self.b_calcul * self.h_calcul))
-        lamb['z'] = (self.lo['z'] * self.coeflf) / mt.sqrt(self.inertie[0] / (self.b_calcul * self.h_calcul))
+        lamb = {}
+        lamb['y'] = (self.lo['y'] * self.coeflf) / mt.sqrt(self.inertie[0] / (self.aire))
+        lamb['z'] = (self.lo['z'] * self.coeflf) / mt.sqrt(self.inertie[1] / (self.aire))
         return lamb
     
     @property
@@ -493,107 +510,107 @@ class Compression(Poutre):
     # ================================ COMPRESSION PERPENDICULAIRE ==================================
 
 class Compression_perpendiculaire(Poutre):
-    """ Classe intégrant les formules de compression perpendiculaire à l'EC5 """
-
-    def __init__(self, typea= 1, *args, **kwargs):
+    """ Classe intégrant les formules de compression perpendiculaire selon l'EN 1995 §6.1.5"""
+    TYPE_APPUIS = ("Appuis discret", "Appuis continu")
+    def __init__(self, b_appuis:int, l_appuis: int, l1d: int=10000, l1g: int=10000, ad: int=0, ag: int=0, type_appuis: str=TYPE_APPUIS, *args, **kwargs):
         """ 
-        b ou d : Largeur ou diamètre de la poutre en mm
-        h : Hauteur en mm
-        Hi : Humidité de pose en %
+        b_appuis(int): largeur d'appuis en mm.
+        l_appuis(int): longeur de l'appuis en mm.
+        l1d(int) : Distance entre les charges en mm (l et l) (si pas de l1d ne rien mettre).
+        l1g(int) : Distance entre les charges en mm (l et l) (si pas de l1g ne rien mettre).
+        ad(int) : Distance depuis le bord jusqu'à l'appuis à droite (l) en mm (si pas de ad et au bord ne rien mettre).
+        ag(int) : Distance depuis le bord jusqu'à l'appuis à gauche (l) en mm (si pas de ad et au bord ne rien mettre).
 
-        typea : Type d'appui
-                                Appui continu : 0
-                                Appui discret : 1
+        type_appuis(str) : Type d'appuis : Appui continu, Appui discret : 1
                                 
         section : Forme de la section (Rectangulaire, Circulaire etc.)
         type_bois : Défini le type de bois utilisé (Massif, BLC, LVL)
         classe : Classe mécanique du bois (C24 etc.)"""
 
         super().__init__(*args, **kwargs)
-        self.typea = typea
-    
+        self.b_appuis = b_appuis
+        self.l_appuis = l_appuis
+        self.l1d = l1d
+        self.l1g = l1g
+        self.ad = ad
+        self.ag = ag
+        self.type_appuis = type_appuis
 
-    def kc90(self, l0: int, l1: int):
+    @property
+    def Kc_90(self):
         """ Retourne le facteur Kc,90 qui tient compte de la configuration de chargement, du fendage et de la déformation
             en compression avec pour argument :
             h : Hauteur de l'élement subissant la compression en mm
             lO : Longeur de l'appuis en compression en mm
-            l1 : Distance entre deux appuis en mm (l et l)
+            l1 : Distance la plus petite entre deux appuis en mm (l et l)
             """
-        if self.typea:
+        if self.l1d == 0 and self.l1g > 0:
+            l1 = self.l1g
+        elif self.l1g == 0 and self.l1d > 0:
+            l1 = self.l1d
+        else:
+            l1 = min(self.l1d, self.l1g)
+
+        if self.type_appuis == __class__.TYPE_APPUIS[0]:
             if self.type_bois == 'Massif':
                 if self.h_calcul <= 300:
                     if l1 >= 2 * self.h_calcul:
-                        self.kc_90 = 1.5
+                        kc_90 = 1.5
                     else:
-                        self.kc_90 = 1
+                        kc_90 = 1
                 else:
-                    self.kc_90 = 1.5
+                    kc_90 = 1.5
             elif self.type_bois == 'BLC':
-                if self.h_calcul <= 300 and l0 <= 400:
+                if self.h_calcul <= 300 and self.l_appuis <= 400:
                     if l1 >= 2 * self.h_calcul:
-                        self.kc_90 = 1.75
+                        kc_90 = 1.75
                     else:
-                        self.kc_90 = 1
-                elif self.h_calcul <= 300 and l0 > 400:
-                    self.kc_90 = 1
+                        kc_90 = 1
+                elif self.h_calcul <= 300 and self.l_appuis > 400:
+                    kc_90 = 1
                 else:
-                    self.kc_90 = 1.75
+                    kc_90 = 1.75
             else:
                 if self.h_calcul > 300:
-                    self.kc_90 = 1.75
+                    kc_90 = 1.75
                 else:
-                    self.kc_90 = 1
+                    kc_90 = 1
         else:
             if self.type_bois == 'Massif':
                 if self.h_calcul <= 300:
                     if l1 >= 2 * self.h_calcul:
-                        self.kc_90 = 1.25
+                        kc_90 = 1.25
                     else:
-                        self.kc_90 = 1
+                        kc_90 = 1
                 else:
-                    self.kc_90 = 1.5
+                    kc_90 = 1.5
             elif self.type_bois == 'BLC':
                 if self.h_calcul <= 300:
                     if l1 >= 2 * self.h_calcul:
-                        self.kc_90 = 1.5
+                        kc_90 = 1.5
                     else:
-                        self.kc_90 = 1
+                        kc_90 = 1
                 else:
-                    self.kc_90 = 1.75
+                    kc_90 = 1.75
             else:
                 if self.h_calcul > 300:
-                    self.kc_90 = 1.75
+                    kc_90 = 1.75
                 else:
-                    self.kc_90 = 1
+                    kc_90 = 1
 
-        return self.kc_90
+        return kc_90
 
 
     def f_c_90_d(self, loadtype=Poutre.LOAD_TIME, typecombi=Poutre.TYPE_ACTION):
         return super().f_type_d("fc90k", loadtype, typecombi)
     
     
-    def sigma_c_90_d(self, Fc90d: int, l0: int, l1d: int=10000, l1g: int=10000, ad: int=0, ag: int=0):
+    def sigma_c_90_d(self, Fc90d: int):
         """ Retourne la contrainte normal de compression à 90 degrés en MPa avec pour argument:
 
             Fc90d : Charge en compression perpendiculaire en N
-            l1d : Distance entre les charges en mm (l et l) (si pas de l1d ne rien mettre)
-            l1g : Distance entre les charges en mm (l et l) (si pas de l1g ne rien mettre)
-            ad : Distance depuis le bord jusqu'à l'appuis à droite (l) en mm (si pas de ad ne rien mettre)
-            ag : Distance depuis le bord jusqu'à l'appuis à gauche (l) en mm (si pas de ad ne rien mettre)"""
-
-        if l1d == 0 and l1g > 0:
-            l1 = l1g
-        elif l1g == 0 and l1d > 0:
-            l1 = l1d
-        else:
-            l1 = min(l1d, l1g)
-            
-        self.kc90(l0, l1)
-
-        self.aef = (l0 + min(30.0, ad, l0, 0.5*l1d) + min(30.0, ag, l0, 0.5*l1g)) * self.b_calcul
-        # self.aef = (l0 + min(30.0, ad, 0.5 * l1d) + min(30.0, ag, 0.5 * l1g)) * self.b_calcul
+        """
+        self.aef = (self.l_appuis + min(30.0, self.ad, self.l_appuis, 0.5*self.l1d) + min(30.0, self.ag, self.l_appuis, 0.5*self.l1g)) * self.b_appuis
         self.Fc90d = Fc90d
         self.sigma_c_90_rd = self.Fc90d / self.aef
 
@@ -603,9 +620,48 @@ class Compression_perpendiculaire(Poutre):
     def taux_c_90_d(self):
         """ Retourne le taux de travail de la compression perpendiculaire """
         self.taux_c_90_rd = {}
-        self.taux_c_90_rd['equ6.3'] = (self.sigma_c_90_rd / (self.kc_90 * self.f_type_rd))
-
+        self.taux_c_90_rd['equ6.3'] = self.sigma_c_90_rd / (self.Kc_90 * self.f_type_rd)
         return self.taux_c_90_rd
+    
+    
+    def show_c90(self):
+        """Affiche l'image des caractéristiques d'une compression perpendiculaire
+        """
+        file = os.path.join(Compression_perpendiculaire.PATH_CATALOG, "data", "screenshot", "C90_def.png")
+        image = Image.open(file)
+        image.show()
+
+
+
+class Compression_inclinees(Compression, Compression_perpendiculaire):
+    def __init__(self, alpha: float=45, **kwargs):
+        """Défini un objet qui permet de calculer la compression inclinées par rapport au fil comme décrit à l'EN 1995 §6.2.2.
+        Cette classe est hérité de la classe Compression et Compression_perpendiculaire, les deux provenants du module EC5_Element_droit.py.
+
+        Args:
+            alpha (float, optional): angle d'inclinaison en degrés de la compression. Defaults to 0.
+        """
+        super(Compression, self).__init__(**kwargs)
+        super(Compression_perpendiculaire, self).__init__(**kwargs)
+        self.alpha = alpha
+    
+    def sigma_c_alpha_d(self, Fcad: int):
+        """ Retourne la contrainte de compression inclinée en MPa avec:
+            Fcad : la charge en N de compression inclinée """
+        aire = self.b_appuis * self.l_appuis
+        self.F_c_alpha_d = Fcad
+        self.sigma_c_alpha_rd = self.F_c_alpha_d / aire
+        return self.sigma_c_alpha_rd
+
+    def taux_c_alpha_d(self, loadtype=Poutre.LOAD_TIME, typecombi=Poutre.TYPE_ACTION):
+        """ Retourne le taux de travail de la compression inclinées par rapport au fil """
+        fc0d = self.f_c_0_d(loadtype, typecombi)
+        fc90d = self.f_c_90_d(loadtype, typecombi)
+        self.taux_c_alpha_rd = {}
+        self.taux_c_alpha_rd['equ6.16'] = self.sigma_c_alpha_rd / (fc0d / ((fc0d /(self.Kc_90 * fc90d)) *  mt.sin(mt.radians(self.alpha))**2 + mt.cos(mt.radians(self.alpha))**2))
+        return self.taux_c_alpha_rd
+    
+
 
 
 # ================================ CISAILLEMENT ==================================
@@ -733,7 +789,6 @@ class Poutre_assemblee_meca(Projet):
         for index, beam in enumerate(self.beam):
             if beam is not None:
                 beam.module_young_mean_fin(psy2)
-                setattr(beam, "aire", beam.b_calcul * beam.h_calcul)
      
         self.Kser = Kser
         self.entraxe = entraxe
@@ -826,7 +881,7 @@ class Poutre_assemblee_meca(Projet):
 
 
 
-class Calcul_EC5_ELU(object):
+class _Calcul_EC5_ELU(object):
     
     def __init__(self,  b: int, h: int, long: int, l0_flamb: dict="""{"y":0, "z":0}""", coeflf: float = 1, l0_dev: int = 0, coeflef=0.9, 
                    pos: int =0, section: str ="Rectangulaire", Hi: int = 12, Hf: int = 12, classe: str = 'C24', cs: int = 1,
@@ -992,11 +1047,10 @@ class Calcul_EC5_ELU(object):
             
 
 if __name__=='__main__':
-    beam2 = Poutre(200, 100, Hi=20, classe="C18", cs=1)
-    beam1 = Poutre(200, 100, Hi=20, classe="C18", cs=1)
-    beam3 = Poutre(200, 100, Hi=20, classe="C18", cs=1)
-
-    poutre_compo = Poutre_assemblee_meca(beam_2=beam2, beam_1=beam1, beam_3=beam3, l=5000, Kser=[30400, None, 30400], entraxe=[357, None, 357], psy2=0)
-    print(poutre_compo.Kser_fin)
-    print(poutre_compo.EI_eff)
-    
+    beam = Poutre(100,200,"Rectangulaire", classe="C24", cs=2)
+    comp = Compression._from_parent_class(beam, lo_y=2000, lo_z=2000, coeflf="Rotule - Rotule")
+    c90 = Compression_perpendiculaire._from_parent_class(beam, b_appuis=100, l_appuis=100 , l1d=10000, l1g=10000, ad=0, ag=0, type_appuis="Appuis discret")
+    calpha = Compression_inclinees._from_parent_class([comp,c90],alpha=45)
+    print(calpha.sigma_c_alpha_d(10000))
+    print(calpha.taux_c_alpha_d("Permanente", "Fondamentales"))
+    print(calpha.f_c_0_d("Permanente", "Fondamentales"),calpha.f_c_90_d("Permanente", "Fondamentales"), calpha.Kc_90)

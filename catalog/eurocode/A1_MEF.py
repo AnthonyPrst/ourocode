@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 from scipy.sparse import coo_matrix, csr_matrix
 from scipy.sparse.linalg import spsolve
 
-from A0_Projet import Projet
+from EC0_Combinaison import Combinaison
 
 class _Base_graph(object): 
     """ Retourne un diagramme de base """
@@ -79,9 +79,9 @@ class _Triplets(object):
     
     
         
-class MEF(Projet, _Base_graph):
-    def __init__(self, long: int=5000, E: int=11000, A: float=200, G: float=200, J: float=200, Iy: float=200, Iz: float=200, ele: int=200, alphaZ: float=0, alphaY: float=0, alphaX: float=0,**kwargs):
-        """Classe permettant de créer des poutres MEF et de les calculer
+class MEF(Combinaison, _Base_graph):
+    def __init__(self, long: int, E: int, A: float, G: float, J: float, Iy: float, Iz: float, ele: int=500, alphaZ: float=0, alphaY: float=0, alphaX: float=0,**kwargs):
+        """Classe permettant de créer des poutres MEF et de les calculer. Cette classe est hérité de l'objet Combinaison du module EC0_Combinaison.py
         Args:
             long (int): Longueur de l'élément en mm
             E (int): Module de young en MPa
@@ -95,12 +95,16 @@ class MEF(Projet, _Base_graph):
             alphaY (float): Angle d'application des charges entre un repère local et global autour de y
             alphaX (float): Angle d'application des charges entre un repère local et global autour de x
         """
-        Projet.__init__(self, **kwargs)
+        super(Combinaison, self).__init__( **kwargs)
         _Base_graph.__init__(self)
-        self.L = long
-        self.ea = E*A
-        self.eiy = E*Iy
-        self.eiz = E*Iz
+        self.long = long
+        self.A = A
+        self.Iy = Iy
+        self.Iz = Iz
+
+        self.ea = E*self.A
+        self.eiy = E*self.Iy
+        self.eiz = E*self.Iz
         self.gj = G*J
         self.ele = ele
         self.alpha_R_tetaZ = np.radians(alphaZ)
@@ -108,6 +112,7 @@ class MEF(Projet, _Base_graph):
         self.alpha_R_tetaX = np.radians(alphaX)
         self.node_coor = self.node_coord()
         self.elementList = self.element_list()
+        self.list_supports = []
 
 
     def node_coord(self):
@@ -118,14 +123,14 @@ class MEF(Projet, _Base_graph):
             #     if i == 1:
             #         nodeCoor[i,0]= l0
             #     else:
-            #         nodeCoor[i,0]= round(self.L - l0)
+            #         nodeCoor[i,0]= round(self.long - l0)
             # elif i == 0:
             #     nodeCoor[i,0]= 0
             # elif i == self.ele:
-            #     nodeCoor[i,0]= round(self.L)
+            #     nodeCoor[i,0]= round(self.long)
             # else:
-            #     nodeCoor[i,0]= round(((self.L- l0) / (self.ele-2)) + nodeCoor[i-1,0])
-            nodeCoor[i,0]= round(self.L/ self.ele * i)
+            #     nodeCoor[i,0]= round(((self.long- l0) / (self.ele-2)) + nodeCoor[i-1,0])
+            nodeCoor[i,0]= round(self.long/ self.ele * i)
 
         print("\n Liste des coordonnées des éléments : \n", nodeCoor, "\n")
         return nodeCoor
@@ -519,7 +524,9 @@ class MEF(Projet, _Base_graph):
         rmy_min_index = self.react_coor[2].index(rmy_min)
         rmy_min_coor = [self.node_coor[rmy_min_index,0], rmy_min]
 
-        listMinMax = [rx_max_coor, rx_min_coor, rz_max_coor, rz_min_coor, rmy_max_coor, rmy_min_coor]
+        listMinMax = {"Rx_max": rx_max_coor, "Rx_min": rx_min_coor, 
+                      "Rz_max": rz_max_coor, "Rz_min": rz_min_coor, 
+                      "RMy_max": rmy_max_coor, "RMy_min": rmy_min_coor}
         return listMinMax
 
     
@@ -578,7 +585,9 @@ class MEF(Projet, _Base_graph):
         tetay_min_index = self.u_coor[2].index(tetay_min)
         tetay_min_coor = [self.node_coor[tetay_min_index,0], tetay_min]
 
-        listMinMax = [ux_max_coor, ux_min_coor, uz_max_coor, uz_min_coor, tetay_max_coor, tetay_min_coor]
+        listMinMax = {"Ux_max": ux_max_coor, "Ux_min": ux_min_coor, 
+                      "Uz_max": uz_max_coor, "Uz_min": uz_min_coor, 
+                      "tetay_max": tetay_max_coor, "tetay_min": tetay_min_coor}
 
         return listMinMax
 
@@ -642,9 +651,9 @@ class MEF(Projet, _Base_graph):
         my_min_index = self.ei_coor[2].index(my_min)
         my_min_coor = [self.node_coor[my_min_index,0], my_min]
 
-        listMinMax = [nx_max_coor, nx_min_coor, vz_max_coor, vz_min_coor, my_max_coor, my_min_coor]
-
-        return listMinMax
+        return {"Nx_max": nx_max_coor,"Nx_min": nx_min_coor, 
+                "Vz_max": vz_max_coor, "Vz_min": vz_min_coor, 
+                "My_max": my_max_coor, "My_min": my_min_coor}
 
 
 
@@ -808,12 +817,53 @@ class MEF(Projet, _Base_graph):
         plt.show()
 
 
-    def calcul_1D(self, listeForce: list="""[[2, "", "Permanente G", "Linéique", -2000, "0/2000", "Z"]]""", listeDeplacement: list="""[[1, "Rotule", 0, 40], [2, "Rotule", 2000, 40]]"""):
-        """ Calcul une poutre MEF 1D avec afficahge des diagrammes """
+    def get_supports(self):
+        """Retourne la liste des appuis définis.
+        """
+        return self.list_supports
+
+    def create_support(self, type_appuis: str=("Simple", 'Rotule', 'Encastrement'), pos: int=0, l_appuis: int=0):
+        """Ajoute un appuis dans la liste d'appuis de la classe MEF
+
+        Args:
+            type_appuis (str, optional): type d'appuis à créer. Defaults to ("Simple", 'Rotule', 'Encastrement').
+            pos (int, optional): position de l'appuis sur la poutre en mm. Defaults to 0.
+            l_appuis (int, optional): longueur d'appuis sur la poutre en mm. Defaults to 0.
+        """
+        load = (len(self.list_supports)+1, type_appuis, pos, l_appuis)
+        self.list_supports.append(load)
+        return load
+
+    
+    def create_supports_by_list(self, list_supports: list):
+        """Ajoute les charges d'une liste pré-défini dans la liste de chargement
+
+        Args:
+            list_supports (list): liste de charge.
+        """
+        for support in list_supports:
+            self.list_supports.append(support)
+        return self.list_supports
+
+    def del_support(self, index_load: int):
+        """Supprime une charge de l'attribut list_supports par son index
+
+        Args:
+            index_load (int): index de la charge à supprimer.
+        """
+        return self.list_supports.pop(index_load-1)
+
+
+    def calcul_1D(self):
+        """Calcul une poutre MEF 1D
+
+        Args:
+            list_loads (list): liste des charges combinées sur la poutre MEF.
+        """
         #start = time.time()
         self._matrice_K_1D()
-        self._matrice_Fext_1D(listeForce)
-        self._matrice_U_1D(listeDeplacement)
+        self._matrice_Fext_1D(self.list_loads)
+        self._matrice_U_1D(self.list_supports)
 
         self._condition_limite()
         self._equa_deplacement()
@@ -828,6 +878,13 @@ class MEF(Projet, _Base_graph):
         # print(f'Temps d\'exécution : {elapsed:.2}s')
     
     def graphique(self, name_combi:str):
+        """Affiche le graphique des efforts internes, des réactions d'appuis et de la flèche,
+            correspondant à la poutre MEF.
+
+        Args:
+            name_combi (str): défini le type de graphique à afficher, ELU ou ELS 
+                              et écrit le nom de la combinaison dans le graphique.
+        """
         if name_combi[0:3] == "ELU":
             self.show_graphique_reaction_Z(name_combi)
             self.show_graphique_reaction_X(name_combi)
@@ -839,6 +896,17 @@ class MEF(Projet, _Base_graph):
         
 
 if __name__ == '__main__':
+    from EC0_Combinaison import Chargement
+    _list_loads = [[1, '', 'Permanente G', 'Linéique', -10, '0/2000', 'Z'],
+                 [0, 'Poids propre', 'Permanente G', 'Linéique', -36, '0/2000', 'Z'],
+                 [2, '', 'Neige normale Sn', 'Linéique', -200, '0/2000', 'Z'],
+                 [3, '', 'Exploitation Q', 'Linéique', -150, '0/2000', 'Z']]
+    chargement = Chargement(pays="Japon")
+    chargement.create_load_by_list(_list_loads)
+    c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation")
+    print(c1.list_combination)
+    rcombi = "ELU_STR 1.35G + 1.5Sn"
+    c1.get_combi_list_load(rcombi)
     long = 2000
     node = int(round(long/100))
     
@@ -847,11 +915,10 @@ if __name__ == '__main__':
     a = b*h
     iy = (b*h**3)/12
     iz = (h*b**3)/12
-    test = MEF(long,11000,a, 350, 650, iy, iz, node, 0, 0, 0)
+    test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=350, J=650, Iy=iy, Iz=iz, ele=node, alphaZ=0, alphaY=0, alphaX=0)
 
-    listeForce  = [[2, "", "Permanente G", "Linéique", -2000, "0/2000", "Z"]]
     listdeplacement = [[1, "Rotule", 0, 40], [2, "Rotule", 2000, 40]]
+    test.create_supports_by_list(listdeplacement)
     
-    test.calcul_1D(listeForce, listdeplacement)
-    print("nombre d'éléments: ", test.ele)
+    test.calcul_1D()
     test.graphique("ELU")

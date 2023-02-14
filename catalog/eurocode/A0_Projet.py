@@ -4,13 +4,13 @@
 import os
 import sys
 
-sys.path.append(os.path.join(os.getcwd(), "eurocode"))
+sys.path.append(os.path.join(os.getcwd(),"eurocode"))
 from objet import Objet
 
 
 class Projet(Objet):
 	def __init__(self, ingenieur: str="Anthony PARISOT", num_project: str=None, name: str=None, adresse: str=None, 
-				region: int=None, pays: str="France", alt: int=0,**kwargs):
+				code_INSEE: int=None, pays: str="France", alt: int=0,**kwargs):
 		"""Créer une classe Projet hérité de la classe Objet du fichier objet.py. Cette classe défini le projet, d'ou découle l'ensemble des objets du catalogue.
 
 		Args:
@@ -27,7 +27,7 @@ class Projet(Objet):
 		self.num_project = num_project
 		self.name = name
 		self.adresse = adresse
-		self.region = region
+		self.code_INSEE = code_INSEE
 		self.pays = pays
 		self.alt = alt
 		for key, val in kwargs.items():

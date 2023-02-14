@@ -9,8 +9,15 @@ import math as mt
 from copy import copy
 
 import pandas as pd
+
 sys.path.append(os.path.join(os.getcwd(), "eurocode"))
 from A0_Projet import Batiment
+import forallpeople as si
+from handcalcs.decorator import handcalc
+
+
+
+si.environment("structural")
 
 
 def interpolation_lineaire(x, xa, xb, ya, yb):
@@ -24,8 +31,8 @@ def interpolation_logarithmique(x, xa, xb, ya, yb):
 	return y
 
 
-class Wind(Batiment):
-	RHO_AIR = 1.225 #kg/m3
+class Vent(Batiment):
+	RHO_AIR = 1.225 * si.kg/si.m**3#kg/m3
 	CPI = [0.2, -0.3]
 	VB0 = {"1": 22, "2": 24, "3": 26, "4": 28, 
 		   "Guadeloupe": 36, 
@@ -42,6 +49,7 @@ class Wind(Batiment):
 
 	CAT_ORO = {"Aucun": 1, "Cas 1": "1", "Cas 2": "2"}
 	REGION_VENT = list(Batiment._data_from_csv(Batiment, os.path.join("vent", "zone_vent.csv")).index)
+	CFR = {"Lisse": 0.01, "Rugueuse": 0.02, "Très rugueuse": 0.04}
 
 	def __init__(self, z:float, region_vent:str=REGION_VENT, terrain:str=CAT_TERRAIN, oro: str=CAT_ORO, CsCd: float= 1, **kwargs):
 		"""Créer une classe qui permet de calculer l'action de vent
@@ -57,7 +65,7 @@ class Wind(Batiment):
 		self.region_vent = region_vent
 		self.terrain = terrain
 		self.oro = oro
-		self.z = z
+		self.z = z *si.m
 		self.CsCd = CsCd
 
 
@@ -83,7 +91,7 @@ class Wind(Batiment):
 		Returns:
 			int: vitesse de référence du vent en m/s
 		"""
-		return self.VB0[str(self._zone)]
+		return self.VB0[str(self._zone)] * si.m/si.s
 
 
 	@property
@@ -108,7 +116,7 @@ class Wind(Batiment):
 		Returns:
 			float: max entre 300m et R
 		"""
-		return max(23 * self.z**1.2, 300)
+		return max(23 * self.z.value**1.2, 300) *si.m
 
 
 	@property
@@ -126,8 +134,8 @@ class Wind(Batiment):
 			float: le coef de rugosité fonction de la hauteur au niveau du sol et de la rugosité de terrain
 		"""
 		
-		if self.cat_terrain["Zmin"] <= self.z <= 200:
-			Cr_z = self._Kr * mt.log(self.z/self.cat_terrain["Z0"])
+		if self.cat_terrain["Zmin"] <= self.z.value <= 200:
+			Cr_z = self._Kr * mt.log(self.z.value/self.cat_terrain["Z0"])
 		else:
 			Cr_z = self._Kr * mt.log(self.cat_terrain["Zmin"]/self.cat_terrain["Z0"])
 
@@ -162,7 +170,7 @@ class Wind(Batiment):
 
 				delta_AC = self.alt - Am
 
-				if self.z >= 10:
+				if self.z.value >= 10:
 					C0_z = 1 + 0.004 * delta_AC*mt.exp(z-10)
 				else:
 					C0_z = 1 + 0.004 * delta_AC*mt.exp(0)
@@ -218,7 +226,7 @@ class Wind(Batiment):
 			float: intensité de la turbulence
 		"""
 
-		if self.cat_terrain["Zmin"] <= self.z <= 200 or self.z < self.cat_terrain["Zmin"] :
+		if self.cat_terrain["Zmin"] <= self.z.value <= 200 or self.z.value < self.cat_terrain["Zmin"] :
 			return self._sigma_v / self._Vm_z #4.7
 		else:
 			print("""Erreur la hauteur max du bâtiment ne peut dépasser 200m, 
@@ -285,8 +293,35 @@ class Wind(Batiment):
 	def Fw_i(self, Aref: float):
 		pass #5.6
 	
-	def Ffr(self, Cfr: float, Afr: float):
-		pass #5.7
+	@handcalc(override="symbolic", precision=2, jupyter_display=False, left="$", right="$")
+	def Ffr(self, Afr: float, Cfr: str=CFR):
+		"""Retourne les forces de frottement sur le bâtiment en N selon l'EN 1991-1-4 §5.7/7.5.
+
+		Args:
+			Afr (float): aire de référence en m² correspondant à la surface d'application des forces de frottement.
+						Il convient d'appliquer les forces de frottement sur la partie des surfaces extérieures
+						parallèle au vent, située au-delà d'une certaine distance des bords au vent ou des angles 
+						au vent de la toiture, distance égale à la plus petite valeur de 2 · b ou 4 · h .
+
+			Cfr (str): type de surface de frottement
+										- Lisse / exemple: acier, béton lisse
+										- Rugueuse / exemple: béton brut, bardeaux bitumés(shingles)
+										- Très rugueuse / exemple: ondulation, nervures, pliures
+
+		Returns:
+			float: effort en N
+		"""
+		self._Afr = Afr * si.m**2
+		self._Cfr = self.CFR[Cfr]
+		return self._Cfr * self._Qp_z * self._Afr
+
+	def show_Ffr(self):
+		"""Affiche l'image du zonage pour une toiture isolée un versant
+		"""
+		file = os.path.join(Vent.PATH_CATALOG, "data", "vent", "vent_Ffr.png")
+		image = Image.open(file)
+		image.show()
+
 
 	def K_red_U(self):
 		"""Retourne le coefficient de défaut de corrélation entre les pressions aérodynamiques au vent et sous le vent,
@@ -305,7 +340,7 @@ class Wind(Batiment):
 			
 		
 
-class Murs_verticaux(Wind):
+class Murs_verticaux(Vent):
 	def __init__(self, load_area:float, *args, **kwargs):
 		"""Créer une classe permettant le calcul des voiles verticaux au vent selon l'EN 1991-1-4 §7.2.2
 
@@ -409,14 +444,14 @@ class Murs_verticaux(Wind):
 	def show_zonage(self):
 		"""Affiche l'image du zonage pour les murs verticaux
 		"""
-		file = os.path.join(Wind.PATH_CATALOG, "data", "vent", "vent_Cpe_mur_verticaux.png")
+		file = os.path.join(Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_mur_verticaux.png")
 		image = Image.open(file)
 		image.show()
 
 
 
 
-class Toiture_2pants(Wind):
+class Toiture_2pants(Vent):
 	"""Créer une classe permetant le calcul d'une toiture à deux versant symétrique au vent selon l'EN 1991-1-4 §7.2.5
 	"""
 	def __init__(self, load_area: float, *args, **kwargs):
@@ -424,7 +459,7 @@ class Toiture_2pants(Wind):
 		
 
 
-class Toiture_isolee_1pant(Wind):
+class Toiture_isolee_1pant(Vent):
 	def __init__(self, phi: float, load_area: float, *args, **kwargs):
 		"""Créer une classe permetant le calcul d'une toiture isolée à un versant au vent selon l'EN 1991-1-4 §7.3
 
@@ -525,13 +560,13 @@ class Toiture_isolee_1pant(Wind):
 	def show_zonage(self):
 		"""Affiche l'image du zonage pour une toiture isolée un versant
 		"""
-		file = os.path.join(Wind.PATH_CATALOG, "data", "vent", "vent_Cp_toiture_isolee_1_versant.png")
+		file = os.path.join(Vent.PATH_CATALOG, "data", "vent", "vent_Cp_toiture_isolee_1_versant.png")
 		image = Image.open(file)
 		image.show()
 
 
 
-class Toiture_isolee_2pants(Wind):
+class Toiture_isolee_2pants(Vent):
 	def __init__(self, phi: float, load_area: float, *args, **kwargs):
 		"""Créer une classe permetant le calcul d_bat'une toiture isolée à deux versants au vent selon l'EN 1991-1-4 §7.3
 		ATTENTION : Il ne semble pas y avoir d'inversion de zonage quand le vent est à 0° ou 90° mais une inversion des longueurs de surface A VALIDER !
@@ -633,16 +668,21 @@ class Toiture_isolee_2pants(Wind):
 	def show_zonage(self):
 		"""Affiche l'image du zonage pour une toiture isolée un versant
 		"""
-		file = os.path.join(Wind.PATH_CATALOG, "data", "vent", "vent_Cp_toiture_isolee_2_versants.png")
+		file = os.path.join(Vent.PATH_CATALOG, "data", "vent", "vent_Cp_toiture_isolee_2_versants.png")
 		image = Image.open(file)
 		image.show()
 
 
 
 if __name__ == "__main__":
-	
+
 	building = Batiment(h_bat=5, d_bat=15, b_bat=13.1, alphatoit=15, alt=400)
-	Action_wind = Wind._from_parent_class(building, region_vent="88  Vosges", terrain="IIIa", oro="Aucun", z=5)
+	Action_wind = Vent._from_parent_class(building, region_vent="88  Vosges", terrain="IIIa", oro="Aucun", z=5)
+	print(si.environment())
+	ffr= Action_wind.Ffr(15, "Lisse")
+	print(ffr)
+	print(Action_wind._rayon_secteur_angu)
+	#Action_wind.show_Ffr()
 	vertical = Toiture_isolee_2pants._from_parent_class(Action_wind, phi=0.5, load_area=1.9)
-	vertical.show_zonage()
-	print(vertical.get_Cp())
+	#vertical.show_zonage()
+	print(vertical.get_Cp("0°"))
