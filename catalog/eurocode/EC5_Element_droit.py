@@ -191,7 +191,7 @@ class Poutre(Projet):
         return self.taux_ELS
 
 
-    def module_young_mean_fin (self, psy2: float) -> float:
+    def module_young_mean_fin (self, psy2: float):
         """renvoie le E,mean,fin en fonction du Kdef et du psy2"""
         self.psy2 = psy2
         module = int(self.caract_meca.loc["E0mean"])
@@ -209,10 +209,7 @@ class Flexion(Poutre):
 
     def __init__(self, lo:int, coeflef: float=COEF_LEF['Appuis simple'][1], pos=LOAD_POS, *args, **kwargs):
         """ 
-        b ou d : Largeur ou diamètre de la poutre en mm
         lo : Longeur de déversement en mm de la poutre
-        h : Hauteur en mm
-        Hi : Humidité de pose en %
 
         coeflef :
                     appuis simple :
@@ -227,10 +224,6 @@ class Flexion(Poutre):
                                     si Charge sur fibre comprimée pos = 0
                                     si Charge sur fibre neutre pos = 1
                                     si Charge sur fibre tendu pos = 2 
-        
-        type_bois : Défini le type de bois utilisé (Massif, BLC, LVL)
-        section : Forme de la section (Rectangulaire, Circulaire etc.)
-        classe : Classe mécanique du bois (C24 etc.) 
         """
         super().__init__(*args, **kwargs)
         self.lo = lo
@@ -348,15 +341,9 @@ class Flexion(Poutre):
 # ================================ Traction ==================================
 
 class Traction(Poutre):
-    """ Classe intégrant les formules de compression et d'instabilité au flambement à l'EC5 """
+    """ Classe intégrant les formules de traction à l'EC5 """
 
     def __init__(self, *args, **kwargs):
-        """ 
-        b ou d : Largeur ou diamètre de la poutre en mm
-        h : Hauteur en mm
-        section : Forme de la section (Rectangulaire, Circulaire etc.)
-        classe : Classe mécanique du bois (C24 etc.)"""
-
         super().__init__(*args, **kwargs)
 
 
@@ -418,8 +405,6 @@ class Compression(Poutre):
                 "Encastré - Rouleau" : 1}
     def __init__(self, lo_y: int, lo_z: int, coeflf: str=COEF_LF, *args, **kwargs):
         """ 
-        b ou d : Largeur ou diamètre de la poutre en mm
-        h : Hauteur en mm
         lo : Longueur de flambement suivant l'axe de rotation (y ou z) en mm
 
         coeflf : Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
@@ -429,10 +414,7 @@ class Compression(Poutre):
                                                     Encastré - Rotule : 0.7
                                                     Encastré - Encastré : 0.5
                                                     Encastré - Rouleau : 1
-        
-        type_bois : Défini le type de bois utilisé (Massif, BLC, LVL)
-        section : Forme de la section (Rectangulaire, Circulaire etc.)
-        classe : Classe mécanique du bois (C24 etc.)"""
+        """
 
         super().__init__(*args, **kwargs)
         self.lo = {"y":lo_y, "z":lo_z}
@@ -635,7 +617,7 @@ class Compression_perpendiculaire(Poutre):
 
 class Compression_inclinees(Compression, Compression_perpendiculaire):
     def __init__(self, alpha: float=45, **kwargs):
-        """Défini un objet qui permet de calculer la compression inclinées par rapport au fil comme décrit à l'EN 1995 §6.2.2.
+        """Classe qui permet de calculer la compression inclinées par rapport au fil comme décrit à l'EN 1995 §6.2.2.
         Cette classe est hérité de la classe Compression et Compression_perpendiculaire, les deux provenants du module EC5_Element_droit.py.
 
         Args:
@@ -675,7 +657,6 @@ class Cisaillement(Poutre):
 
     def kv(self, hef:int, x:int, i:float, ent=("Dessous", "Dessus")):
         """ Retourne le facteur d'entaille kv avec pour argument :
-            h : Hauteur de la poutre en mm
             hef : Hauteur efficace de la poutre (hauteur - hauteur de l'entaille) en mm
             x : Distance entre le centre de réaction à l'appuis et le coin de l'entaille en mm
             i : pente de l'entaille (ex : i45° = 1) en % non multiplié par 100

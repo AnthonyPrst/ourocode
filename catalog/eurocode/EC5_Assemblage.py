@@ -153,7 +153,7 @@ class Assemblage(Projet):
         return self.Fv_Rk, self.Fv_Rk_ass
 
 
-    def F_Rd(self, F_rk, num_beam: int=("1", "2")):
+    def F_Rd(self, F_rk: float, num_beam: int=("1", "2")):
         """Calcul la valeur de calcul (design) de résistance de l'assemblage en N avec :
             F_rk : capacité résistante caractéristique de l'organe en N"""
         
@@ -827,14 +827,14 @@ class Boulon(Assemblage):
 # 8.6 Assemblage par broche
 
 class Broche(Boulon):
-    """ Défini une objet broche avec : 
+    """ Créer une classe Broche.
         d : diamètre efficace de la broche ( entre 6 et 30 mm) en  mm
         fuk : la valeur caractéristique de résistance à la traction de la broche en N/mm2
         n : nombre de broche dans une file
         alpha : angle entre l'effort de l'organe et le fil du bois en ° """
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, d:float, qualite: str=Boulon.QUALITE_ACIER, n: int=1, alpha: float=0, **kwargs):
+        super().__init__(d, qualite, n, alpha, **kwargs)
         self.type_organe = "Broche"
 
 

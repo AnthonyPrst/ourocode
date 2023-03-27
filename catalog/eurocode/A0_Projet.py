@@ -9,6 +9,7 @@ from objet import Objet
 
 
 class Projet(Objet):
+	JUPYTER_DISPLAY = False
 	def __init__(self, ingenieur: str="Anthony PARISOT", num_project: str=None, name: str=None, adresse: str=None, 
 				code_INSEE: int=None, pays: str="France", alt: int=0,**kwargs):
 		"""Créer une classe Projet hérité de la classe Objet du fichier objet.py. Cette classe défini le projet, d'ou découle l'ensemble des objets du catalogue.
