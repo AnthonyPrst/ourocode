@@ -7,6 +7,10 @@ import sys
 import math as mt
 import pandas as pd
 
+import forallpeople as si
+si.environment("structural")
+from handcalcs.decorator import handcalc
+
 sys.path.append(os.path.join(os.getcwd(), "eurocode"))
 from A0_Projet import Projet
 
@@ -14,26 +18,24 @@ class Element(Projet):
 
     GAMMA_M = {"gamma_M0": 1, "gamma_M1": 1, "gamma_M2": 1.25, "gamma_M3": 1.1, "gamma_M3_ser": 1.25,
              "gamma_M4": 1, "gamma_M5": 1, "gamma_M6_ser": 1, "gamma_M7": 1.1}
-    E = 210000
+    E = 210000 * si.MPa
     CLASSE_STEEL = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_acier.csv").index)
              
-    def __init__(self, t: int=0, h: int=0, classe_acier: str=CLASSE_STEEL, classe_transv: int=("1","2","3","4"), **kwargs):
+    def __init__(self, t: float=0, h: float=0, classe_acier: str=CLASSE_STEEL, classe_transv: int=("1","2","3","4"), **kwargs):
         """Configure un objet Element pour vérifier un élément acier suivant l'EN 1993-1-1. 
 
         Args:
             t (int, optional): épaisseur de la plaque en mm. Defaults to 0.
             h (int, optional): hauteur de la plaque en mm. Defaults to 0.
-            classe_acier (str, optional): _description_. Defaults to "S235".
-            classe_transv (int, optional): _description_. Defaults to 1.
+            classe_acier (str, optional): classe d'acier. Defaults to "S235".
+            classe_transv (int, optional): classe transversale de la section en fonction de sa capacité de plastification. Defaults to 1.
         """
         super().__init__(**kwargs)
-        self.t = t
-        self.h = h
+        self.t = t * si.mm
+        self.h = h * si.mm
         self.classe_acier = classe_acier
         self.classe_transv = classe_transv
         self.__fy_fu()
-        for key, value in kwargs.items():
-            setattr(self, key, value)
     
 
     @property
@@ -48,12 +50,13 @@ class Element(Projet):
     def __fy_fu(self):
         """Défini fy (résistance élastique) et fu (résistance plastique) en MPa fonction de la classe d'acier choisi
         """
-        if self.t <= 40:
-            self.fy = self.__classe_acier.loc["t<= 40  fy"]
-            self.fu = self.__classe_acier.loc["t<= 40  fu"]
-        elif self.t > 40 and self.t <= 80:
-            self.fy = self.__classe_acier.loc["40<t<= 80  fy"]
-            self.fu = self.__classe_acier.loc["40<t<= 80  fu"]
+        print(self.t)
+        if self.t <= 40*si.mm:
+            self.fy = self.__classe_acier.loc["t<= 40  fy"] * si.MPa
+            self.fu = self.__classe_acier.loc["t<= 40  fu"] * si.MPa
+        elif self.t > 40*si.mm and self.t<= 80*si.mm:
+            self.fy = self.__classe_acier.loc["40<t<= 80  fy"] * si.MPa
+            self.fu = self.__classe_acier.loc["40<t<= 80  fu"] * si.MPa
 
     
     @property
@@ -72,30 +75,38 @@ class Element(Projet):
 
 
 class Traction(Element):
-    def __init__(self, A: float, Anet: float=0, ass_cat_C: bool=False, *args, **kwargs):
+    def __init__(self, A: float, Anet: float=0, ass_cat_C: bool=("False", "True"), *args, **kwargs):
+        """Défini une classe traction permettant le calcul d'un élément métallique à l'EN 1993-1-1 §6.2.3.
+        Cette classe est hérité de la classe Element du module EC3_Element_droit.py.
+
+        Args:
+            A (float): Aire brute de la section en mm².
+            Anet (float, optional): Aire nette au droit droit des trous de fixation selon §6.2.2.2 en mm². Defaults to 0.
+            ass_cat_C (bool, optional): Si assemblage de catégorie C alors True sinon False, voir EN 1993-1-8 §3.4.1.(1). Defaults to ("False", "True").
+        """
         super().__init__(*args, **kwargs)
-        self.A = A
-        self.Anet = Anet
-        self.ass_cat_C = ass_cat_C
+        self.A = A * si.mm*2
+        self.Anet = Anet * si.mm*2
+        self.ass_cat_C = ass_cat_C 
 
     @property
     def _Npl_Rd(self):
         """Calcul la résistance plastique en traction de la section transversale brute en N (équa 6.6)
         """
-        return (self.A * self.fy)/__class__.GAMMA_M["gamma_M0"]
+        return (self.A * self.fy)/__class__.GAMMA_M["gamma_M0"] #(équa 6.6)
 
     @property
     def _Nu_Rd(self):
         """Calcul la résistance ultime en traction de la section transversale nette en N (équa 6.7)
         """
-        return 0.9*(self.Anet * self.fu)/__class__.GAMMA_M["gamma_M2"]
+        return 0.9*(self.Anet * self.fu)/__class__.GAMMA_M["gamma_M2"] #(équa 6.7)
 
     @property
     def _Nnet_Rd(self):
         """Calcul la résistance ultime en traction de la section transversale nette en N
         lorsque l'assemblage est de catégorie C (équa 6.8)
         """
-        return (self.Anet * self.fy)/__class__.GAMMA_M["gamma_M0"]
+        return (self.Anet * self.fy)/__class__.GAMMA_M["gamma_M0"] #(équa 6.8)
     
     @property
     def Nt_Rd (self):
@@ -119,7 +130,7 @@ class Compression(Element):
     def __init__(self, A: float, lo: dict="{'y':0, 'z':0}", courbe_flamb: dict="{'y':'c', 'z':'c'}", coeflf: float=1, *args, **kwargs):
         """
         Args:
-            A (float | int): Aire brute si classe 1,2 ou 3 et Aeff si classe 4
+            A (float | int): Aire brute si classe 1,2 ou 3 et Aeff si classe 4 en mm²
             lo (dict, optional): Longueur de flambement suivant l'axe de rotation (y ou z) en mm. Defaults to {'y':0, 'z':0}.
             coeflf (float, optional): Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
                                     fonction des du type d'appuis :
@@ -130,8 +141,8 @@ class Compression(Element):
                                                 Encastré - Rouleau : 1. Defaults to 1.
         """
         super().__init__(*args, **kwargs)
-        self.A = A
-        self.lo = lo
+        self.A = A * si.mm**2
+        self.lo ={'y': lo["y"]*si.mm, 'z': lo["z"]*si.mm}
         self.courbe_flamb = courbe_flamb
         self.coeflf = coeflf
 
@@ -144,11 +155,11 @@ class Compression(Element):
         return (self.A * self.fy)/__class__.GAMMA_M["gamma_M0"]
 
     @property
-    def _lamb(self):
+    def lamb(self):
         """ Retourne l'élancement d'un poteau en compression avec risque de flambement suivant son axe de rotation """
         lamb = {'y':0, 'z':0}
-        lamb['y'] = (self.lo['y'] * self.coeflf) / mt.sqrt(self._inertie[0] / (self.A))
-        lamb['z'] = (self.lo['z'] * self.coeflf) / mt.sqrt(self._inertie[1] / (self.A))
+        lamb['y'] = (self.lo['y'].value * 10**3 * self.coeflf) / mt.sqrt(self._inertie[0] / (self.A))
+        lamb['z'] = (self.lo['z'].value * 10**3 * self.coeflf) / mt.sqrt(self._inertie[1] / (self.A))
         return lamb
 
     @property
@@ -156,7 +167,7 @@ class Compression(Element):
         """ Retourne l'élancement relatif d'un poteau en compression avec risque de flambement suivant son axe de rotation """
         lamb_rel_Axe = {'y':0, 'z':0}
         for cle, value in lamb_rel_Axe.items():
-            lamb_rel_Axe[cle] = (self._lamb[cle] / mt.pi) * mt.sqrt(self.fy / __class__.E)
+            lamb_rel_Axe[cle] = (self.lamb[cle] / mt.pi) * mt.sqrt(self.fy / __class__.E)
         return lamb_rel_Axe
 
     @property
@@ -198,42 +209,77 @@ class Compression(Element):
 
 
 class Cisaillement(Element):
-    def __init__(self, Av: int|float, *args, **kwargs):
+    def __init__(self, Av: float, *args, **kwargs):
+        """Defini une classe permettant le calcul d'un élément métalique en cisaillement selon l'EN 1993-1-1 §6.2.6.
+        Cette classe est hérité de la classe Element du module E3_Element_droit.py.
+
+        Args:
+            Av (float): Aire de cisaillemment en mm²
+        """
         super().__init__(*args, **kwargs)
-        self.Av = Av
+        self.Av = Av * si.mm**2
 
     @property
     def Vpl_Rd(self):
         """Calcul la résistance du cisaillment plastique en N (équa 6.18)
         """
-        return (self.Av * (self.fy/mt.sqrt(3)))/__class__.GAMMA_M["gamma_M0"]       
+        return (self.Av * (self.fy/mt.sqrt(3)))/__class__.GAMMA_M["gamma_M0"] #(équa 6.18)    
 
 
 
 class Flexion(Element):
-    def __init__(self, Wpl: float|int=0, Wel_min: float|int=0, Weff_min: float|int=0, *args, **kwargs):
+    def __init__(self, W: float, *args, **kwargs):
+        """Defini une classe permettant le calcul en flexion d'un élément acier suivant l'EN 1993-1-1 §6.2.5.
+        Cette classe est hérité de la classe Element du module EC3_Element_droit.py.
+
+        Args:
+            Wpl (float, optional): Module de flexion plastique (pour les sections transversales de classe 1 et 2) de la section en mm3.
+            Wel_min (float, optional): Module de flexion élastique (pour les sections transversales de classe 3) de la section en mm3.
+            Weff_min (float, optional): Module de flexion efficace (pour les sections transversales de classe 4) de la section en mm3.
+        """
         super().__init__(*args, **kwargs)
-        self.Wpl = Wpl
-        self.Wel_min = Wel_min
-        self.Weff_min = Weff_min
+        self.W = W * si.mm**3
 
     @property
     def Mc_Rd(self):
         """Calcul la résistance du moment fléchissant de la section transversale en N (équa 6.13, 6.14, et 6.15)
         """
         match self.classe_transv:
-            case (1|2):
-                return (self.Wpl* self.fy)/__class__.GAMMA_M["gamma_M0"]
+            case 1|2:
+                return (self.W* self.fy)/__class__.GAMMA_M["gamma_M0"] #(équa 6.13)
             case 3:
-                return (self.Wel_min * self.fy)/__class__.GAMMA_M["gamma_M0"]
+                return (self.W * self.fy)/__class__.GAMMA_M["gamma_M0"] #(équa 6.14)
             case 4:
-                return (self.Weff_min * self.fy)/__class__.GAMMA_M["gamma_M0"]
+                return (self.W * self.fy)/__class__.GAMMA_M["gamma_M0"] #(équa 6.15)
             
         
-  
-    
+    def Mc_V_Rd(self, Av: float, V_Ed: float):
+        """Calcul la résistance du moment fléchissant avec prise en compte de l'incidence du cisaillement sur ce dernier EN 1993-1-1 §6.2.8
+            (équa 6.29)
+
+        Args:
+            Av (float): Aire de cisaillemment en mm².
+            V_Ed (float): Effort de cisaillement en kN.
+        """
+        A_v = Av * si.mm**2
+        V_Ed = V_Ed * si.kN
+        cis = Cisaillement._from_parent_class(self, Av=Av)
+        Vpl_Rd = cis.Vpl_Rd
+        Mc_Rd = self.Mc_Rd
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            if V_Ed/Vpl_Rd > 0.5:
+                rho = ((2*V_Ed) / Vpl_Rd-1)**2
+                My_V_Rd = rho * Mc_Rd
+            elif V_Ed/Vpl_Rd <= 0.5:
+                My_V_Rd = Mc_Rd
+            return My_V_Rd 
+        return val()
+
 
 if __name__ == "__main__":
     aire = 10*112
-    calcul = Compression(t=10, h=112, classe_acier="S235", classe_transv=1, A=aire, lo={'y':228, 'z':228}, coeflf=2)
-    print(calcul.fy)
+    calcul = Flexion(t=10, h=112, classe_acier="S235", classe_transv=1,  W=2000000)
+    print(calcul.Mc_V_Rd(200, 12000))
+    val =10* si.mm
+    print(val.value)
