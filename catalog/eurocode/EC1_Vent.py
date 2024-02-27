@@ -10,11 +10,12 @@ from math import *
 from copy import copy
 
 import pandas as pd
+import forallpeople as si
+from handcalcs.decorator import handcalc
 
 sys.path.append(os.path.join(os.getcwd(),"catalog", "eurocode"))
 from A0_Projet import Batiment
-import forallpeople as si
-from handcalcs.decorator import handcalc
+
 
 
 si.environment("structural")
@@ -51,20 +52,17 @@ class Vent(Batiment):
 				   "IV": {"Z0": 1, "Zmin": 15}}
 
 	CAT_ORO = {"Aucun": 1, "Cas 1": "1", "Cas 2": "2"}
-	REGION_VENT = list(Batiment._data_from_csv(Batiment, os.path.join("vent", "zone_vent.csv")).index)
 	CFR = {"Lisse": 0.01, "Rugueuse": 0.02, "Très rugueuse": 0.04}
 
-	def __init__(self, z:float, region_vent:str=REGION_VENT, terrain:str=CAT_TERRAIN, oro: str=CAT_ORO, CsCd: float= 1, **kwargs):
+	def __init__(self, z:float, terrain:str=CAT_TERRAIN, oro: str=CAT_ORO, CsCd: float= 1, **kwargs):
 		"""
 		Args:
 			z (float): hauteur en m sur le bâtiment ou est étudié le vent (Ze suivant EN 1991-1-4 §7.2.2).
 			alt (int): altitude du batiment étudié en m.
-			region_vent (str): Région ou ce situe le projet.
 			cat_terrain (str): Catégorie de terrain du projet.
 			cat_oro (str): Catégorie orographique. Default to "Aucun".
 		"""
 		super().__init__(**kwargs)
-		self.region_vent = region_vent
 		self.terrain = terrain
 		self.oro = oro
 		self.z = z *si.m
@@ -81,10 +79,9 @@ class Vent(Batiment):
 
 	@property
 	def _zone(self):
-		file = os.path.join("vent", "zone_vent.csv")
-		df = self._data_from_csv(file)
-		return df.loc[self.region_vent][0]
-
+		file = "carte_action_region.csv"
+		df = self._data_from_csv(file, index_col=1)
+		return int(df.loc[str(self.code_INSEE)]["Zone_vent"])
 
 	@property
 	def Vb_0(self):
@@ -117,13 +114,18 @@ class Vent(Batiment):
 
 
 	@property
-	def _rayon_secteur_angu(self):
+	def rayon_secteur_angu(self):
 		"""Retourne le rayon du secteur angulaire dans lequel la rugosité de terrain est à qualifier fonction de la hauteur du bâtiment étudier
 
 		Returns:
 			float: max entre 300m et R
 		"""
-		return max(23 * self.z.value**1.2, 300) *si.m
+		z = self.z.value
+		@handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+		def val():
+			rayon_secteur_angu = max(23 * z**1.2, 300) * si.m
+			return rayon_secteur_angu
+		return val()
 
 
 	@property
@@ -202,7 +204,7 @@ class Vent(Batiment):
 		C_r_z = self._Cr_z
 		C_o_z = self.Co_z
 		V_b = self.Vb[1]
-		@handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+		@handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
 		def val():
 			V_m_z = C_r_z * C_o_z * V_b
 			return V_m_z
@@ -268,7 +270,7 @@ class Vent(Batiment):
 		I_v_z = self._Iv_z
 		rho_air = self.RHO_AIR
 		V_m_z = self.Vm_z[1]
-		@handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+		@handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
 		def val():
 			Q_p_z = (1 + 7 * I_v_z) * 0.5 * rho_air * V_m_z**2 #4.8
 			return Q_p_z
@@ -289,23 +291,36 @@ class Vent(Batiment):
 		"""Retourne la pression aérodynamique sur les surfaces extérieures
 
 		Args:
-			Cpe (_type_): coefficient de pression extérieure
+			Cpe (float): coefficient de pression extérieure
 
 		Returns:
 			float: pression en N/m²
 		"""
-		return self.Qp_z*Cpe #5.1
+		Q_p_z = self.Qp_z[1]
+		C_pe = Cpe
+		@handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+		def val():
+			W_e = Q_p_z * C_pe #5.1
+			return W_e
+		return val()
 	
 
 	def Wi(self, Cpi: float):
 		"""Retourne la pression aérodynamique sur les surfaces intérieures
 
 		Args:
-			Cpi (_type_): coefficient de pression intérieure
+			Cpi (float): coefficient de pression intérieure
 
 		Returns:
 			float: pression en N/m²"""
-		return self.Qp_z*Cpi #5.2
+		Q_p_z = self.Qp_z[1]
+		C_pi = Cpi
+		@handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+		def val():
+			W_e = Q_p_z * C_pi #5.2
+			return W_e
+		return val()
+	
 
 	def Fw_e(self, Aref: float):
 		self.CsCd
@@ -336,7 +351,7 @@ class Vent(Batiment):
 		C_fr = self.CFR[Cfr]
 		Q_p_z = self.Qp_z[1]
 
-		@handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+		@handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
 		def val():
 			F_fr = C_fr * Q_p_z * A_fr
 			return F_fr
@@ -374,7 +389,7 @@ class Murs_verticaux(Vent):
 		"""Créer une classe permettant le calcul des voiles verticaux au vent selon l'EN 1991-1-4 §7.2.2
 
 		Args:
-			load_area (int | float): aire chargée pour le calcul des éléments ou des fixations
+			load_area (float): aire chargée pour le calcul des éléments ou des fixations
 		"""
 		super().__init__(*args, **kwargs)
 		self.load_area = load_area
@@ -519,9 +534,9 @@ class Toiture_isolee_1pant(Vent):
 		self._df = self._data_from_csv(os.path.join("vent", "vent_Cp_toiture_isolee_1_versant.csv"))
 		self._df.reset_index(drop=False, inplace=True)
 		 
-		geometrie = {"A": {"lenght": [(self.b_bat - self.b_bat/10*2), (self.d_bat - self.d_bat/10*2)], "surface": (self.d_bat - self.d_bat/10*2) * (self.b_bat - self.b_bat/10*2) / mt.cos(mt.radians(self.alphatoit))},
-					"B": {"lenght": [(self.d_bat - self.d_bat/10*2), self.b_bat/10], "surface": ((self.d_bat - self.d_bat/10*2) * self.b_bat/10) / mt.cos(mt.radians(self.alphatoit))},
-					"C": {"lenght": [(self.b_bat - self.b_bat/10*2), self.d_bat/10], "surface": ((self.b_bat - self.b_bat/10*2) * self.d_bat/10) / mt.cos(mt.radians(self.alphatoit))}}
+		geometrie = {"A": {"lenght": [(self.b_bat - self.b_bat/10*2), (self.d_bat - self.d_bat/10*2)], "surface": (self.d_bat - self.d_bat/10*2) * (self.b_bat - self.b_bat/10*2) / mt.cos(mt.radians(self.alpha_toit))},
+					"B": {"lenght": [(self.d_bat - self.d_bat/10*2), self.b_bat/10], "surface": ((self.d_bat - self.d_bat/10*2) * self.b_bat/10) / mt.cos(mt.radians(self.alpha_toit))},
+					"C": {"lenght": [(self.b_bat - self.b_bat/10*2), self.d_bat/10], "surface": ((self.b_bat - self.b_bat/10*2) * self.d_bat/10) / mt.cos(mt.radians(self.alpha_toit))}}
 		return geometrie
 
 
@@ -550,26 +565,26 @@ class Toiture_isolee_1pant(Vent):
 			
 			
 		
-		list_alphatoit= self._df["alpha_toit"].unique()
+		list_alpha_toit= self._df["alpha_toit"].unique()
 
-		if not self.alphatoit in list_alphatoit:
-			minimum = list_alphatoit[list_alphatoit < self.alphatoit].max()
-			maximum = list_alphatoit[list_alphatoit > self.alphatoit].min()
+		if not self.alpha_toit in list_alpha_toit:
+			minimum = list_alpha_toit[list_alpha_toit < self.alpha_toit].max()
+			maximum = list_alpha_toit[list_alpha_toit > self.alpha_toit].min()
 			df_min = self._df[self._df["alpha_toit"]==minimum]
 			df_max = self._df[self._df["alpha_toit"]==maximum]
 
 			self._df.reset_index(drop=True, inplace=True)
 			for i, phi in enumerate(["max", self.phi]):
-				self._df.loc[self._df.shape[0]]= [round(self.alphatoit, 2),
+				self._df.loc[self._df.shape[0]]= [round(self.alpha_toit, 2),
 												phi,
-												interpolation_lineaire(self.alphatoit, minimum, maximum, df_min.iloc[i,2], df_max.iloc[i,2]),
-												interpolation_lineaire(self.alphatoit, minimum, maximum, df_min.iloc[i,3], df_max.iloc[i,3]),
-												interpolation_lineaire(self.alphatoit, minimum, maximum, df_min.iloc[i,4], df_max.iloc[i,4]),
-												interpolation_lineaire(self.alphatoit, minimum, maximum, df_min.iloc[i,5], df_max.iloc[i,5])
+												interpolation_lineaire(self.alpha_toit, minimum, maximum, df_min.iloc[i,2], df_max.iloc[i,2]),
+												interpolation_lineaire(self.alpha_toit, minimum, maximum, df_min.iloc[i,3], df_max.iloc[i,3]),
+												interpolation_lineaire(self.alpha_toit, minimum, maximum, df_min.iloc[i,4], df_max.iloc[i,4]),
+												interpolation_lineaire(self.alpha_toit, minimum, maximum, df_min.iloc[i,5], df_max.iloc[i,5])
 												]
 			self._df = self._df[self._df["phi"].isin([self.phi, "max"])]
 
-		self._df = self._df[self._df["alpha_toit"]==round(self.alphatoit, 2)]
+		self._df = self._df[self._df["alpha_toit"]==round(self.alpha_toit, 2)]
 		self._df.set_index("alpha_toit", inplace=True)
 		return self._df
 
@@ -628,10 +643,10 @@ class Toiture_isolee_2pants(Vent):
 		self._df.reset_index(drop=False, inplace=True)
 		 
 		geometrie = {"A": {"lenght": [(self.d_bat - self.d_bat/10*2),  self.d_bat - (2*self.d_bat/10) - self.d_bat/5], 
-							"surface": ((self.d_bat - self.d_bat/10*2) * (self.d_bat - (2*self.d_bat/10) - self.d_bat/5)) / mt.cos(mt.radians(self.alphatoit))},
-					"B": {"lenght": [(self.d_bat - self.d_bat/10*2),  self.b_bat/10], "surface": ((self.d_bat - self.d_bat/10*2) * self.b_bat/10) / mt.cos(mt.radians(self.alphatoit))},
-					"C": {"lenght": [(self.b_bat - self.b_bat/10*2), self.d_bat/10], "surface": ((self.b_bat - self.b_bat/10*2) * self.d_bat/10) / mt.cos(mt.radians(self.alphatoit))},
-					"D": {"lenght": [(self.b_bat - self.b_bat/10*2)/2, (self.d_bat/5)/2], "surface": (((self.b_bat - self.b_bat/10*2) * self.d_bat/5) / mt.cos(mt.radians(self.alphatoit))/2)}}
+							"surface": ((self.d_bat - self.d_bat/10*2) * (self.d_bat - (2*self.d_bat/10) - self.d_bat/5)) / mt.cos(mt.radians(self.alpha_toit))},
+					"B": {"lenght": [(self.d_bat - self.d_bat/10*2),  self.b_bat/10], "surface": ((self.d_bat - self.d_bat/10*2) * self.b_bat/10) / mt.cos(mt.radians(self.alpha_toit))},
+					"C": {"lenght": [(self.b_bat - self.b_bat/10*2), self.d_bat/10], "surface": ((self.b_bat - self.b_bat/10*2) * self.d_bat/10) / mt.cos(mt.radians(self.alpha_toit))},
+					"D": {"lenght": [(self.b_bat - self.b_bat/10*2)/2, (self.d_bat/5)/2], "surface": (((self.b_bat - self.b_bat/10*2) * self.d_bat/5) / mt.cos(mt.radians(self.alpha_toit))/2)}}
 		return geometrie
 
 
@@ -661,27 +676,27 @@ class Toiture_isolee_2pants(Vent):
 			
 			
 		
-		list_alphatoit= self._df["alpha_toit"].unique()
+		list_alpha_toit= self._df["alpha_toit"].unique()
 
-		if not self.alphatoit in list_alphatoit:
-			minimum = list_alphatoit[list_alphatoit < self.alphatoit].max()
-			maximum = list_alphatoit[list_alphatoit > self.alphatoit].min()
+		if not self.alpha_toit in list_alpha_toit:
+			minimum = list_alpha_toit[list_alpha_toit < self.alpha_toit].max()
+			maximum = list_alpha_toit[list_alpha_toit > self.alpha_toit].min()
 			df_min = self._df[self._df["alpha_toit"]==minimum]
 			df_max = self._df[self._df["alpha_toit"]==maximum]
 
 			self._df.reset_index(drop=True, inplace=True)
 			for i, phi in enumerate(["max", self.phi]):
-				self._df.loc[self._df.shape[0]]= [round(self.alphatoit, 2),
+				self._df.loc[self._df.shape[0]]= [round(self.alpha_toit, 2),
 												phi,
-												interpolation_lineaire(self.alphatoit, minimum, maximum, df_min.iloc[i,2], df_max.iloc[i,2]),
-												interpolation_lineaire(self.alphatoit, minimum, maximum, df_min.iloc[i,3], df_max.iloc[i,3]),
-												interpolation_lineaire(self.alphatoit, minimum, maximum, df_min.iloc[i,4], df_max.iloc[i,4]),
-												interpolation_lineaire(self.alphatoit, minimum, maximum, df_min.iloc[i,5], df_max.iloc[i,5]),
-												interpolation_lineaire(self.alphatoit, minimum, maximum, df_min.iloc[i,6], df_max.iloc[i,6])
+												interpolation_lineaire(self.alpha_toit, minimum, maximum, df_min.iloc[i,2], df_max.iloc[i,2]),
+												interpolation_lineaire(self.alpha_toit, minimum, maximum, df_min.iloc[i,3], df_max.iloc[i,3]),
+												interpolation_lineaire(self.alpha_toit, minimum, maximum, df_min.iloc[i,4], df_max.iloc[i,4]),
+												interpolation_lineaire(self.alpha_toit, minimum, maximum, df_min.iloc[i,5], df_max.iloc[i,5]),
+												interpolation_lineaire(self.alpha_toit, minimum, maximum, df_min.iloc[i,6], df_max.iloc[i,6])
 												]
 			self._df = self._df[self._df["phi"].isin([self.phi, "max"])]
 
-		self._df = self._df[self._df["alpha_toit"]==round(self.alphatoit, 2)]
+		self._df = self._df[self._df["alpha_toit"]==round(self.alpha_toit, 2)]
 		self._df.set_index("alpha_toit", inplace=True)
 		return self._df
 
@@ -705,15 +720,15 @@ class Toiture_isolee_2pants(Vent):
 
 if __name__ == "__main__":
 
-	building = Batiment(h_bat=5, d_bat=15, b_bat=13.1, alphatoit=15, alt=400)
-	Action_wind = Vent._from_parent_class(building, region_vent="88  Vosges", terrain="IIIa", oro="Aucun", z=5)
+	building = Batiment(h_bat=5, d_bat=15, b_bat=13.1, alpha_toit=15, alt=400)
+	Action_wind = Vent._from_parent_class(building, terrain="IIIa", oro="Aucun", z=5)
 	print(si.environment())
 	print(Action_wind.Vb[1])
 	qpz= Action_wind.Qp_z
 	print(qpz)
 	ffr= Action_wind.Ffr(15, "Lisse")
 	print(ffr)
-	print(Action_wind._rayon_secteur_angu)
+	print(Action_wind.rayon_secteur_angu)
 	#Action_wind.show_Ffr()
 	vertical = Toiture_isolee_2pants._from_parent_class(Action_wind, phi=0.5, load_area=1.9)
 	#vertical.show_zonage()

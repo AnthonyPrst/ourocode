@@ -7,10 +7,15 @@
 # élément droit.
 import os
 import sys
-from PIL import Image
+
 
 import math as mt
+from math import sqrt, pi, cos, sin, radians
 import pandas as pd
+
+import forallpeople as si
+si.environment("structural")
+from handcalcs.decorator import handcalc
 
 sys.path.append(os.path.join(os.getcwd(), "catalog", "eurocode"))
 from A0_Projet import Projet
@@ -18,8 +23,7 @@ from A0_Projet import Projet
 
 # ================================ GLOBAL ==================================
 
-
-class Poutre(Projet):
+class Barre(Projet):
     LIST_SECTION = ["Rectangulaire","Circulaire"]
     LIST_TYPE_B = ["Massif","BLC", "LVL", "OSB 2", "OSB 3/4", "CP"]
     CLASSE_WOOD = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").index)[2:]
@@ -30,7 +34,7 @@ class Poutre(Projet):
     TYPE_BAT = ("Batiments courants", "Batiments agricoles et similaires")
     TYPE_ELE = tuple(Projet._data_from_csv(Projet, "limite_fleche.csv").index.unique())
 
-    def __init__(self, b:int, h:int, section: str=LIST_SECTION, Hi: int=12, Hf: int=12, classe: str=CLASSE_WOOD, cs: int=CS, **kwargs):
+    def __init__(self, b:int, h:int, section: str=LIST_SECTION, Hi: int=12, Hf: int=12, classe: str=CLASSE_WOOD, cs: int=CS, effet_systeme: bool=("False", "True"), **kwargs):
         """Classe qui définis les caractéristiques d'un élément droit. 
         Cette classe est hérité de la classe Projet du module A0_Projet.py.
 
@@ -42,15 +46,17 @@ class Poutre(Projet):
             Hf (int, optional): Humidité finale de pose en %. Defaults to 12.
             classe (str, optional): Classe mécanique du bois. Defaults to 'C24'.
             cs (int, optional): Classe de service de l'élément. Defaults to 1.
+            effet_systeme: Détermine si l'effet système s'applique.
         """
         super().__init__(**kwargs)
-        self.b = b
-        self.h = h
+        self.b = b * si.mm
+        self.h = h * si.mm
         self.section = section
         self.Hi = Hi
         self.Hf = Hf
         self.classe = classe
         self.cs = cs
+        self.effet_systeme = effet_systeme
 
         for key, value in kwargs.items():
             setattr(self, key, value)
@@ -83,17 +89,17 @@ class Poutre(Projet):
             b ou d : Largeur ou diamètre de la poutre en mm
             h : Hauteur de la poutre en mm """
         if self.section == "Rectangulaire":
-            self.Iy = (self.b_calcul * self.h_calcul**3)/12
-            self.Iz = (self.h_calcul * self.b_calcul**3)/12
-            return [self.Iy, self.Iz]
+            self.I_y = (self.b_calcul * self.h_calcul**3)/12
+            self.I_z = (self.h_calcul * self.b_calcul**3)/12
+            return [self.I_y, self.I_z]
 
         elif hasattr(self, "Iy") and hasattr(self, "Iz"):
-            return [self.Iy, self.Iz]
+            return [self.I_y * si.mm**4, self.I_z * si.mm**4]
 
         else:
-            self.Iy = (mt.pi * self.b_calcul ** 4) / 64
-            self.Iz = self.Iy
-            return [self.Iy, self.Iz]
+            self.I_y = (mt.pi * self.b_calcul ** 4) / 64
+            self.I_z = self.I_y
+            return [self.I_y, self.I_z]
         
     
     @property
@@ -102,22 +108,42 @@ class Poutre(Projet):
         data_csv_meca = self._data_from_csv("caracteristique_meca_bois.csv")
         return data_csv_meca.loc[self.classe]
     
-    
-    @property
-    def kmod(self):
-        """ Retourne le kmod du bois avec pour argument:
-            cs : classe de service (1, 2 ou 3) 
-            duree_charge : temps de chargement ("instantanée" etc) """
-        data_csv_kmod = self._data_from_csv("kmod.csv")
-        data_kmod = data_csv_kmod.loc[self.type_bois]
-        return data_kmod.loc[data_kmod["CS"]==self.cs]
-
 
     @property
-    def gamma_M(self):
+    def gamma_M_table(self):
+        """Retourne le tableau des gamma M pour le type de bois sélectionné
+        """
         data_csv_gammaM = self._data_from_csv("gammaM.csv")
         return data_csv_gammaM.loc[self.type_bois]
     
+    
+    @property
+    def K_def(self):
+        data_csv_kdef = self._data_from_csv("kdef.csv")
+        kdef = float(data_csv_kdef.loc[self.type_bois][str(self.cs)])
+        if self.Hi > 20:
+            kdef += 1
+        return kdef
+    
+    
+    @property
+    def K_mod_table(self):
+        """ Retourne le tableau des Kmod du bois
+        """
+        data_csv_kmod = self._data_from_csv("kmod.csv")
+        data_kmod = data_csv_kmod.loc[self.type_bois]
+        return data_kmod.loc[data_kmod["CS"]==self.cs]
+    
+    
+    @property
+    def k_sys(self):
+        """Détermine le Ksys d'un élément si celui-ci permet une redistribution des charges continues.
+        """
+        if self.effet_systeme:
+            return 1.1
+        else:
+            return 1
+
     
     @property
     def type_bois(self):
@@ -135,18 +161,9 @@ class Poutre(Projet):
             type_b = __class__.LIST_TYPE_B[5]
         
         return type_b
-    
-
-    @property
-    def Kdef(self):
-        data_csv_kdef = self._data_from_csv("kdef.csv")
-        kdef = float(data_csv_kdef.loc[self.type_bois][str(self.cs)])
-        if self.Hi > 20:
-            kdef += 1
-        return kdef
 
     
-    def f_type_d(self,typeCarac=CARACTERISTIQUE[0:6], loadtype=LOAD_TIME, typecombi=TYPE_ACTION):
+    def _f_type_d(self,typeCarac=CARACTERISTIQUE[0:6], loadtype=LOAD_TIME, typecombi=TYPE_ACTION):
         """Méthode donnant la résistance de calcul de l'élément fonction de la vérification
 
         Args:
@@ -157,85 +174,33 @@ class Poutre(Projet):
         Returns:
             float: Résistance de calcul en N/mm2 du type de vérification étudié.
         """
-        self.K_mod = self.kmod[loadtype].iloc[0]
-        self.Gm = self.gamma_M.loc[typecombi]
-        self.f_type_rd = (float(self.caract_meca.loc[typeCarac]) * self.K_mod) / self.Gm
-        return self.f_type_rd
+        self.K_mod = self.K_mod_table[loadtype].iloc[0]
+        self.gamma_M = self.gamma_M_table.loc[typecombi]
+
+        gamma_M = self.gamma_M
+        K_mod = self.K_mod
+        f_type_k = float(self.caract_meca.loc[typeCarac]) * si.MPa
+
+        if typeCarac == "fm0k" and self.k_sys > 1:
+            k_sys = self.k_sys
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            def val():
+                f_type_Rd = k_sys * f_type_k * K_mod / gamma_M
+                return f_type_Rd
+        else:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            def val():
+                f_type_Rd = (f_type_k * K_mod) / gamma_M
+                return f_type_Rd
+        value = val()
+        self.f_type_rd = value[1]
+        return value
     
 
-    def fleche(self, long:int, Ed_WinstQ:float, Ed_Wnetfin:float, Ed_Wfin:float, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
-        """ Retourne le taux de travail de la flèche en % avec pour argument:
-            """
-        data_csv_fleche = self._data_from_csv("limite_fleche.csv")
-        self.data_fleche= data_csv_fleche.loc[type_ele]
-        self.data_fleche = self.data_fleche.loc[self.data_fleche["Type batiment"]==type_bat]
-
-        self.Ed_WinstQ = Ed_WinstQ
-        self.Ed_Wnetfin = Ed_Wnetfin 
-        self.Ed_Wfin = Ed_Wfin
-  
-        try:
-            self.Rd_WinstQ = long / int(self.data_fleche['Winst(Q)'].iloc[0])
-        except ValueError:
-            self.Ed_WinstQ = 0
-            self.Rd_WinstQ = 1
-
-        self.Rd_Wnetfin = long / int(self.data_fleche['Wnet,fin'].iloc[0])
-        self.Rd_Wfin = long / int(self.data_fleche['Wfin'].iloc[0])
-
-        self.taux_ELS = {}
-        self.taux_ELS["Winst(Q)"] = self.Ed_WinstQ / self.Rd_WinstQ
-        self.taux_ELS["Wnet,fin"] = self.Ed_Wnetfin / self.Rd_Wnetfin
-        self.taux_ELS["Wfin"] = self.Ed_Wfin / self.Rd_Wfin
-
-        return self.taux_ELS
-
-
-    def module_young_mean_fin (self, psy2: float):
-        """renvoie le E,mean,fin en fonction du Kdef et du psy2"""
-        self.psy2 = psy2
-        module = int(self.caract_meca.loc["E0mean"])
-        self.E_mean_fin = module / (1 + self.psy2 * self.Kdef)
-        return self.E_mean_fin
-
-
-# ================================ FLEXION ==================================
-
-class Flexion(Poutre):
-    """ Classe intégrant les formules de flexion à l'EC5 """
-    COEF_LEF = {"Appuis simple" : [1, 0.9, 0.8], 
-                "Porte à faux": [0.5, 0.8]}
-    LOAD_POS =  {"Charge sur fibre comprimée": 0, "Charge sur fibre neutre": 1, "Charge sur fibre tendu" : 2}
-
-    def __init__(self, lo:int, coeflef: float=COEF_LEF['Appuis simple'][1], pos=LOAD_POS, *args, **kwargs):
-        """ 
-        lo : Longeur de déversement en mm de la poutre
-
-        coeflef :
-                    appuis simple :
-                                    Moment constant : 1
-                                    Charge répartie constante : 0.9
-                                    Charge concentrée au milieu de la portée : 0.8
-                    Porte à faux :
-                                    Charge répartie constante : 0.5
-                                    Charge concentrée agissant à l'extrémité libre : 0.8
-        pos : Positionnement de la charge sur la hauteur de poutre
-                                    
-                                    si Charge sur fibre comprimée pos = 0
-                                    si Charge sur fibre neutre pos = 1
-                                    si Charge sur fibre tendu pos = 2 
-        """
-        super().__init__(*args, **kwargs)
-        self.lo = lo
-        self.coeflef = coeflef
-        self.pos = __class__.LOAD_POS[pos]
-  
-
-    @property
-    def Kh(self):
+    def _K_h(self):
         """ Retourne le coef. Kh qui peut augmenter la resistance caractéristique fm,k et ft,k """
         kh = {}
-        dim = {'y': self.h_calcul, 'z': self.b_calcul}
+        dim = {'y': self.h_calcul.value *10**3, 'z': self.b_calcul.value *10**3}
 
         for cle, valeur in dim.items():
             if self.type_bois == "Massif":
@@ -251,10 +216,115 @@ class Flexion(Poutre):
             else:
                 print("LVL non pris en compte dans cette fonction")
                 kh[cle] = 1
-        return kh
+        return kh       
+    
+
+    def Emean_fin (self, psy2: float):
+        """renvoie le E,mean,fin en fonction du Kdef et du psy2"""
+        self.psy_2 = psy2
+        psy_2 = self.psy_2
+        E0_mean = int(self.caract_meca.loc["E0mean"]) * si.MPa
+        K_def = self.K_def
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            E_mean_fin = E0_mean / (1 + psy_2 * K_def)
+            return E_mean_fin
+            
+        value = val()
+        self.E_mean_fin = value[1]
+        return value   
+    
+
+    def fleche(self, long:int, Ed_WinstQ:float, Ed_Wnetfin:float, Ed_Wfin:float, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
+        """ Retourne le taux de travail de la flèche en % avec pour argument:
+            """
+        data_csv_fleche = self._data_from_csv("limite_fleche.csv")
+        self.data_fleche= data_csv_fleche.loc[type_ele]
+        self.data_fleche = self.data_fleche.loc[self.data_fleche["Type batiment"]==type_bat]
+        self.taux_ELS = {}
+
+        long = long * si.mm
+        Ed_W_inst_Q = Ed_WinstQ * si.mm
+        Ed_W_net_fin = Ed_Wnetfin * si.mm
+        Ed_W_fin = Ed_Wfin * si.mm
+
+        limit_W_inst_Q = self.data_fleche['Winst(Q)'].iloc[0]
+        limit_W_net_fin = int(self.data_fleche['Wnet,fin'].iloc[0])
+        limit_W_fin = int(self.data_fleche['Wfin'].iloc[0])
+
+        if limit_W_inst_Q != "None":
+            limit_W_inst_Q = int(limit_W_inst_Q)
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            def val():
+                Rd_W_inst_Q = long / limit_W_inst_Q
+                Rd_W_net_fin = long / limit_W_net_fin
+                Rd_W_fin = long / limit_W_fin
+
+                taux_W_inst_Q = Ed_W_inst_Q / Rd_W_inst_Q
+                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin
+                taux_W_fin = Ed_W_fin / Rd_W_fin
+                return taux_W_inst_Q, taux_W_net_fin, taux_W_fin
+            
+            value = val()
+            self.taux_ELS["Winst(Q)"] = value[1][0]
+            self.taux_ELS["Wnet,fin"] = value[1][1]
+            self.taux_ELS["Wfin"] = value[1][2]
+
+        else:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            def val():
+                Rd_W_net_fin = long / limit_W_net_fin
+                Rd_W_fin = long / limit_W_fin
+
+                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin
+                taux_W_fin = Ed_W_fin / Rd_W_fin
+                return taux_W_net_fin, taux_W_fin
+            
+            value = val()
+            self.taux_ELS["Wnet,fin"] = value[1][0]
+            self.taux_ELS["Wfin"] = value[1][1]
+
+        return value 
+
+
+# ================================ FLEXION ==================================
+
+class Flexion(Barre):
+    COEF_LEF = {"Appuis simple" : [1, 0.9, 0.8], 
+                "Porte à faux": [0.5, 0.8]}
+    LOAD_POS =  {"Charge sur fibre comprimée": 0, "Charge sur fibre neutre": 1, "Charge sur fibre tendu" : 2}
+
+    def __init__(self, lo:int, coeflef: float=COEF_LEF['Appuis simple'][1], pos: str=LOAD_POS, *args, **kwargs):
+        """Claasse permettant le calcul de la flexion d'une poutre bois selon l'EN 1995 §6.1.6, §6.2.3, §6.2.4 et §6.3.3.
+        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
+
+        Args:
+            lo (int): longueur de déversemment en mm
+            coeflef (float): appuis simple :
+                                                    Moment constant : 1
+                                                    Charge répartie constante : 0.9
+                                                    Charge concentrée au milieu de la portée : 0.8
+                                    porte à faux :
+                                                    Charge répartie constante : 0.5
+                                                    Charge concentrée agissant à l'extrémité libre : 0.8.
+
+            pos (str): positionnement de la charge sur la hauteur de poutre
+        """
+        super().__init__(*args, **kwargs)
+        self.lo = lo * si.mm
+        self.coeflef = coeflef
+        self.pos = __class__.LOAD_POS[pos]
+
 
     @property
-    def Km(self):
+    def K_h(self):
+        """ Retourne le coef. Kh qui peut augmenter la resistance caractéristique fm,k et ft,k """
+        return self._K_h()
+
+
+    @property
+    def K_m(self):
         """ Retourne le coef. Km qui reduit les contrainte d'une poutre scié en flexion """
         if self.type_bois == "Massif" or self.type_bois == "BLC" or self.type_bois == "LVL":
             if self.section == "Rectangulaire":
@@ -264,83 +334,176 @@ class Flexion(Poutre):
         else:
             km = 1
         return km
+    
 
     @property
-    def sig_m_crit(self):
+    def sigma_m_crit(self):
         """ Retourne sigma m,crit pour la prise en compte du déversement d'une poutre """
 
-        self.lef = self.lo * self.coeflef
+        self.l_ef = self.lo * self.coeflef
         if self.pos == 0:
-            self.lef = self.lef + 2 * self.h_calcul
+            self.l_ef = self.l_ef + 2 * self.h_calcul
         elif self.pos == 2:
-            self.lef = self.lef - 0.5 * self.h_calcul
-        return (0.78 * self.b_calcul ** 2 * int(self.caract_meca.loc['E005'])) / (self.h_calcul * self.lef)
+            self.l_ef = self.l_ef - 0.5 * self.h_calcul
+
+        b_calcul = self.b_calcul
+        h_calcul = self.h_calcul
+        l_ef = self.l_ef
+        E_0_05 = int(self.caract_meca.loc['E005']) * si.MPa
+        
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            sigma_m_crit = (0.78 * b_calcul ** 2 * E_0_05) / (h_calcul * l_ef)
+            return sigma_m_crit
+        return val()
+    
 
     @property
     def lamb_rel_m(self):
         """ Retourne l'élancement relatif de la section avec pour argument """
-        return mt.sqrt(float(self.caract_meca.loc['fm0k']) / self.sig_m_crit)
+        f_m0k = float(self.caract_meca.loc['fm0k']) *si.MPa
+        sigma_m_crit = self.sigma_m_crit[1]
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            lamb_rel_m = sqrt(f_m0k / sigma_m_crit)
+            return lamb_rel_m
+        return val()
+    
 
     @property
-    def Kcrit(self):
-        """ Retourne Kcrit le coef. de minoration de la résistance en flexion au déversement"""
-        if self.lamb_rel_m <= 0.75:
-            k_crit = 1
-        elif 0.75 < self.lamb_rel_m <= 1.4:
-            k_crit = 1.56 - 0.75 * self.lamb_rel_m
+    def K_crit(self):
+        """ Retourne K,crit le coef. de minoration de la résistance en flexion au déversement"""
+        lamb_rel_m = self.lamb_rel_m[1]
+
+        if lamb_rel_m <= 0.75:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            def val():
+                K_crit = 1
+                return K_crit
+        elif 0.75 < lamb_rel_m <= 1.4:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            def val():
+                K_crit = 1.56 - 0.75 * lamb_rel_m
+                return K_crit
         else:
-            k_crit = 1 / (self.lamb_rel_m ** 2)
-        return k_crit
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            def val():
+                K_crit = 1 / (lamb_rel_m ** 2)
+                return K_crit
+        return val()
     
     
-    def f_m_d(self, loadtype=Poutre.LOAD_TIME, typecombi=Poutre.TYPE_ACTION):
-        return self.f_type_d("fm0k", loadtype, typecombi)
+    def f_m_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
+        """Retourne la résistance f,m,d de l'élément en MPa
+
+        Args:
+            loadtype (str): chargement de plus courte durée sur l'élément.
+            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+
+        Returns:
+            float: f,m,d en MPa
+        """
+        return self._f_type_d("fm0k", loadtype, typecombi)
     
     
     def sigma_m_d(self, M: float, axe=['y', 'z']):
         """ Retourne la contrainte sigma,m,d suivant sont axes de flexion avec :
+            M : Moment max dans la barre en kN.m
+            axe : Axe d'inertie quadratique à considérer
+
             Attention il n'est pas possible de prendre en compte le déversement
-            M : Momment max dans la barre en kN.m
-            axe : Axe d'inertie quadratique à considérer"""
-        self.Md = {'y': 0, 'z': 0}
-        self.sigma_m_rd = {'y': 0, 'z': 0}
+            """
+        if not hasattr(self, "Md"):
+            self.Md = {'y': 0* si.kN*si.m, 'z': 0 * si.kN*si.m}
+            self.sigma_m_rd = {'y': 0 * si.MPa, 'z': 0 * si.MPa}
         
+        self.Md[axe] = M * si.kN*si.m
+
         if axe == 'y':
-            inertie = self.inertie[0]
+            I = self.inertie[0]
         elif axe == 'z':
-            inertie = self.inertie[1]
+            I = self.inertie[1]
         #prend en compte une section circulaire si aucun des deux axes
         else: 
-            inertie = self.inertie
-            
-        self.Md[axe] = M 
-        self.sigma_m_rd[axe] = (self.Md[axe] * 10**6) * (self.h_calcul/2) / inertie
-        return self.sigma_m_rd
+            I = self.inertie
+        
+        M_d = self.Md[axe]
+        h_calcul = self.h_calcul
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            sigma_m_d = M_d * h_calcul / (I * 2)
+            return sigma_m_d
+        value = val()
+        self.sigma_m_rd[axe] = value[1]
+        return value
     
 
-    def taux_m_d(self, taux_c_0_dy: float=0, taux_c_0_dz: float=0, taux_t_0_d: float=0):
-        """ retourne les différents taux de travaux en flexion """
+    def taux_m_d(self, compression: object=None, traction: object=None):
+        """Retourne les différents taux de travaux en flexion.
+        Si l'élement est une poutre (donc avec un travail principalement en flexion) et de la compression (EN 1995-1-1 §6.3.3) ou de la traction (EN 1995-1-1 §6.2.3) combinée, 
+        il est possible d'ajouter l'objet Compression et Traction et de vérifier ces combinaisons.
+
+        Args:
+            compression (object, optional): L'objet Compression avec ces taux de travaux préalablement calculés. Defaults to None.
+            traction (object, optional): L'objet Traction avec ces taux de travaux préalablement calculés. Defaults to None.
+
+        Returns:
+            list: retourne la liste des taux de travaux en %"""
         self.taux_m_rd = {}
-        self.taux_m_rd['equ6.11'] = (self.sigma_m_rd['y'] / (self.f_type_rd * self.Kh['y'])) + (self.Km * self.sigma_m_rd['z'] / (self.f_type_rd * self.Kh['z']))
-        self.taux_m_rd['equ6.12'] = (self.Km * self.sigma_m_rd['y'] / (self.f_type_rd * self.Kh['y'])) + (self.sigma_m_rd['z'] / (self.f_type_rd * self.Kh['z']))
-        self.taux_m_rd['equ6.33y'] = self.sigma_m_rd['y'] / (self.f_type_rd * self.Kh['y'] * self.Kcrit)
-        self.taux_m_rd['equ6.33z'] = self.sigma_m_rd['z'] / (self.f_type_rd * self.Kh['z'] * self.Kcrit)
-  
-        if taux_c_0_dy or taux_c_0_dz: 
-            self.taux_m_rd['equ6.35zyz'] = self.taux_m_rd['equ6.33y'] ** 2 + (self.sigma_m_rd['z'] / (self.f_type_rd * self.Kh['z'])) + taux_c_0_dz # 1er item axe de flexion pas au carré, 2eme item axe de flexion au carré, 3eme axe de compression
-            self.taux_m_rd['equ6.35yzz'] = self.taux_m_rd['equ6.33y'] + (self.sigma_m_rd['z'] / (self.f_type_rd * self.Kh['z'])) ** 2 + taux_c_0_dz
-            self.taux_m_rd['equ6.35yzy'] = self.taux_m_rd['equ6.33z'] ** 2 + (self.sigma_m_rd['y'] / (self.f_type_rd * self.Kh['y'])) + taux_c_0_dy
-            self.taux_m_rd['equ6.35zyy'] = self.taux_m_rd['equ6.33z'] + (self.sigma_m_rd['y'] / (self.f_type_rd * self.Kh['y'])) ** 2 + taux_c_0_dy
-        if taux_t_0_d:
-            self.taux_m_rd['equ6.17'] = self.taux_m_rd['equ6.11'] + taux_t_0_d
-            self.taux_m_rd['equ6.18'] = self.taux_m_rd['equ6.12'] + taux_t_0_d
-        return self.taux_m_rd
+
+        sigma_my_d = self.sigma_m_rd['y']
+        sigma_mz_d = self.sigma_m_rd['z']
+        f_m_d = self.f_type_rd
+        K_h_y = self.K_h['y']
+        K_h_z = self.K_h['z']
+        K_m = self.K_m
+        K_crit = self.K_crit[1]
+
+        if compression and isinstance(compression, Compression):
+            taux_6_23 = compression.taux_c_0_rd['equ6.23']
+            taux_6_24 = compression.taux_c_0_rd['equ6.24']
+        else:
+            taux_6_23 = 0
+            taux_6_24 = 0
+
+        if traction and isinstance(traction, Traction):
+            taux_6_1 = traction.taux_t_0_rd['equ6.1']
+        else:
+            taux_6_1 = 0
+
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            taux_6_11 = sigma_my_d / (f_m_d * K_h_y) + K_m * sigma_mz_d / (f_m_d * K_h_z) # equ6.11
+            taux_6_12 = K_m * sigma_my_d / (f_m_d * K_h_y) + sigma_mz_d / (f_m_d * K_h_z) # equ6.12
+            taux_6_17 = taux_6_11 + taux_6_1 # equ6.17
+            taux_6_18 = taux_6_12 + taux_6_1 # equ6.18
+            taux_6_33y = sigma_my_d / (f_m_d * K_h_y * K_crit) # equ6.33
+            taux_6_33z = sigma_mz_d / (f_m_d * K_h_z * K_crit) # equ6.33
+            taux_6_35zyz = taux_6_33y** 2 + (sigma_mz_d / (f_m_d * K_h_z)) + taux_6_24 # equ6.35
+            taux_6_35yzz = taux_6_33y  + (sigma_mz_d / (f_m_d * K_h_z)) ** 2 + taux_6_24 # equ6.35 interprétation
+            taux_6_35yzy = taux_6_33z** 2 + (sigma_my_d / (f_m_d * K_h_y)) + taux_6_23 # equ6.35
+            taux_6_35zyy = taux_6_33z + (sigma_my_d / (f_m_d * K_h_y)) ** 2 + taux_6_23 # equ6.35 interprétation
+            return taux_6_11, taux_6_12, taux_6_33y, taux_6_33z, taux_6_17, taux_6_18, taux_6_35zyz, taux_6_35yzz, taux_6_35yzy, taux_6_35zyy
+        
+        value = val()
+        self.taux_m_rd['equ6.11'] = value[1][0]
+        self.taux_m_rd['equ6.12'] = value[1][1]
+        self.taux_m_rd['equ6.33y'] = value[1][2]
+        self.taux_m_rd['equ6.33z'] = value[1][3]
+        self.taux_m_rd['equ6.17'] = value[1][4]
+        self.taux_m_rd['equ6.18'] = value[1][5]
+        self.taux_m_rd['equ6.35zyz'] = value[1][6] # 1er item axe de flexion pas au carré, 2eme item axe de flexion au carré, 3eme axe de compression
+        self.taux_m_rd['equ6.35yzz'] = value[1][7]
+        self.taux_m_rd['equ6.35yzy'] = value[1][8]
+        self.taux_m_rd['equ6.35zyy'] = value[1][9]
+        return value
 
 
 
 # ================================ Traction ==================================
 
-class Traction(Poutre):
+class Traction(Barre):
     """ Classe intégrant les formules de traction à l'EC5 """
 
     def __init__(self, *args, **kwargs):
@@ -348,66 +511,77 @@ class Traction(Poutre):
 
 
     @property
-    def Kh(self):
+    def K_h(self):
         """ Retourne le coef. Kh qui peut augmenter la resistance caractéristique fm,k et ft,k """
-        kh = {}
-        dim = {'y': self.h_calcul, 'z': self.b_calcul}
+        return self._K_h()
+    
+    
+    def f_t_0_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
+        """Retourne la résistance f,t,0,d de l'élément en MPa
 
-        for cle, valeur in dim.items():
-            if self.type_bois == "Massif":
-                if valeur < 150:
-                    kh[cle] = min((150 / valeur) ** 0.2, 1.3)
-                else :
-                    kh[cle] = 1
-            elif self.type_bois == "BLC":
-                if valeur < 600:
-                    kh[cle] = min((600 / valeur) ** 0.1, 1.1)
-                else :
-                    kh[cle] = 1
-            else:
-                print("LVL non pris en compte dans cette fonction")
-        return kh
+        Args:
+            loadtype (str): chargement de plus courte durée sur l'élément.
+            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+
+        Returns:
+            float: f,t,0,d en MPa
+        """
+        return super()._f_type_d("ft0k", loadtype, typecombi)
     
     
-    def f_t_0_d(self, loadtype=Poutre.LOAD_TIME, typecombi=Poutre.TYPE_ACTION):
-        return super().f_type_d("ft0k", loadtype, typecombi)
-    
-    
-    def sigma_t_0_d(self, Ft0d: int):
+    def sigma_t_0_d(self, Ft0d: float):
         """ Retourne la contrainte de traxion axial en MPa avec:
-            Ft0d : la charge en N de compression """
-        self.Ft0d = Ft0d
-        self.sigma_t_0_rd = self.Ft0d / (self.b_calcul * self.h_calcul)
-        return self.sigma_t_0_rd
+            Ft0d : la charge en kN de compression """
+        self.Ft_0_d = Ft0d * si.kN
+        Ft_0_d = self.Ft_0_d
+        A = self.aire
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            sigma_t_0_d = Ft_0_d / A
+            return sigma_t_0_d
+        value = val()
+        self.sigma_t_0_rd = value[1]
+        return value
 
 
-    def taux_t_0_d(self, taux_m_dy: float=0, taux_m_dz: float=0):
-        """ Retourne le taux de travail en traction axial """
-        kh = min(self.Kh['z'], self.Kh['y'])
+    def taux_t_0_d(self):
+        """Retourne le taux de travail en traction axial.
+
+        Returns:
+            float: taux de travail en %
+        """
         self.taux_t_0_rd = {}
-        self.taux_t_0_rd['equ6.1'] = self.sigma_t_0_rd / (kh * self.f_type_rd)
-        if taux_m_dy or taux_m_dz:
-            self.taux_t_0_rd['equ6.17'] = self.taux_t_0_rd['equ6.1'] + taux_m_dy
-            self.taux_t_0_rd['equ6.18'] = self.taux_t_0_rd['equ6.1'] + taux_m_dz
-        
-        return self.taux_t_0_rd
-    
+        K_h_y = self.K_h['y']
+        K_h_z = self.K_h['z']
+        sigma_t_0_d = self.sigma_t_0_rd
+        f_t_0_d = self.f_type_rd
+
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            K_h = min(K_h_y, K_h_z)
+            taux_6_1 = sigma_t_0_d / (K_h * f_t_0_d) # equ6.1
+            return taux_6_1
+        value = val()
+
+        self.taux_t_0_rd['equ6.1'] = value[1]
+        return value
 
 
 # ================================ Compression ==================================
  
-class Compression(Poutre):
+class Compression(Barre):
     """ Classe intégrant les formules de compression et d'instabilité au flambement à l'EC5 """
     COEF_LF = {"Encastré 1 côté" : 2,
                 "Rotule - Rotule" : 1,
                 "Encastré - Rotule" : 0.7,
                 "Encastré - Encastré" : 0.5,
                 "Encastré - Rouleau" : 1}
-    def __init__(self, lo_y: int, lo_z: int, coeflf: str=COEF_LF, *args, **kwargs):
+    def __init__(self, lo_y: int, lo_z: int, type_appuis: str=COEF_LF, *args, **kwargs):
         """ 
         lo : Longueur de flambement suivant l'axe de rotation (y ou z) en mm
 
-        coeflf : Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
+        type_appuis : Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
                     fonction des du type d'appuis :
                                                     Encastré 1 côté : 2
                                                     Rotule - Rotule : 1
@@ -417,81 +591,168 @@ class Compression(Poutre):
         """
 
         super().__init__(*args, **kwargs)
-        self.lo = {"y":lo_y, "z":lo_z}
-        self.coeflf = __class__.COEF_LF[coeflf]
+        self.lo_comp = {"y":lo_y * si.mm, "z":lo_z * si.mm}
+        self.coef_lef = __class__.COEF_LF[type_appuis]
+
 
     @property
     def lamb(self):
         """ Retourne l'élancement d'un poteau en compression avec risque de flambement suivant son axe de rotation """
-        lamb = {}
-        lamb['y'] = (self.lo['y'] * self.coeflf) / mt.sqrt(self.inertie[0] / (self.aire))
-        lamb['z'] = (self.lo['z'] * self.coeflf) / mt.sqrt(self.inertie[1] / (self.aire))
-        return lamb
+        lo_y = self.lo_comp['y'].value * 10**3
+        lo_z = self.lo_comp['z'].value * 10**3
+        coef_lef = self.coef_lef
+        I_y = self.inertie[0].value * 10**12
+        I_z = self.inertie[1].value * 10**12
+        A = self.aire.value * 10**6
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            lamb_y = (lo_y * coef_lef) / sqrt(I_y / A)
+            lamb_z = (lo_z * coef_lef) / sqrt(I_z / A)
+            return {'y': lamb_y, 'z': lamb_z}
+        return val()
+    
     
     @property
     def lamb_rel_Axe(self):
         """ Retourne l'élancement relatif d'un poteau en compression avec risque de flambement suivant son axe de rotation """
-        lamb_rel_Axe = {'y':0, 'z':0}
-        for cle, value in lamb_rel_Axe.items():
-            lamb_rel_Axe[cle] = (self.lamb[cle] / mt.pi) * mt.sqrt(float(self.caract_meca.loc['fc0k']) / int(self.caract_meca.loc['E005']))
-        return lamb_rel_Axe
+        lamb_y = self.lamb[1]['y']
+        lamb_z = self.lamb[1]['z']
+        f_c0k = float(self.caract_meca.loc['fc0k']) * si.MPa
+        E_0_05 = int(self.caract_meca.loc['E005']) * si.MPa
+
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            lamb_rel_y = (lamb_y / pi) * sqrt(f_c0k / E_0_05)
+            lamb_rel_z = (lamb_z / pi) * sqrt(f_c0k / E_0_05)
+            return {'y': lamb_rel_y, 'z': lamb_rel_z}
+        return val()
     
+
     @property
-    def betaC(self):
+    def beta_C(self):
         if self.type_bois == 'Massif':
             betaC = 0.2
         else:
             betaC = 0.1
         return betaC
     
+    
     @property
-    def kAxe(self):
+    def k_Axe(self):
         """ Retourne le facteur Ky ou Kz (fonction de l'axe de flambement) """
-        kA = {'y':0, 'z':0}
-        for cle, value in kA.items():
-            kA[cle] = 0.5 * (1 + self.betaC * (self.lamb_rel_Axe[cle] - 0.3) + self.lamb_rel_Axe[cle] ** 2)
-        return kA
+        beta_C = self.beta_C
+        lamb_rel_y = self.lamb_rel_Axe[1]['y']
+        lamb_rel_z = self.lamb_rel_Axe[1]['z']
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            k_y = 0.5 * (1 + beta_C * (lamb_rel_y - 0.3) + lamb_rel_y ** 2)
+            k_z = 0.5 * (1 + beta_C * (lamb_rel_z - 0.3) + lamb_rel_z ** 2)
+            return {'y': k_y, 'z': k_z}
+        return val()
+    
 
     @property
     def kc_Axe(self):
         """ Retourne le coefficient multiplicateur KcAxe  (axe = y ou z suivant axe de rotation en flambement) de fc,0,d """
-        kc_Axe = {'y':0, 'z':0}
-        for cle, value in kc_Axe.items():
-            kc_Axe[cle] = 1 / (self.kAxe[cle] + mt.sqrt(self.kAxe[cle] ** 2 - self.lamb_rel_Axe[cle] ** 2))
-        return kc_Axe
+        k_y = self.k_Axe[1]['y']
+        k_z = self.k_Axe[1]['z']
+        lamb_rel_y = self.lamb_rel_Axe[1]['y']
+        lamb_rel_z = self.lamb_rel_Axe[1]['z']
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            k_c_y = 1 / (k_y + sqrt(k_y** 2 - lamb_rel_y ** 2))
+            k_c_z = 1 / (k_z + sqrt(k_z** 2 - lamb_rel_z ** 2))
+            return {'y': k_c_y, 'z': k_c_z}
+        return val()
 
 
-    def f_c_0_d(self, loadtype=Poutre.LOAD_TIME, typecombi=Poutre.TYPE_ACTION):
-        return super().f_type_d("fc0k", loadtype, typecombi)
+    def f_c_0_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
+        """Retourne la résistance f,c,0,d de l'élément en MPa
+
+        Args:
+            loadtype (str): chargement de plus courte durée sur l'élément.
+            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+
+        Returns:
+            float: f,c,0,d en MPa
+        """
+        return super()._f_type_d("fc0k", loadtype, typecombi)
     
     
-    def sigma_c_0_d(self, Fc0d: int):
+    def sigma_c_0_d(self, Fc0d: float):
         """ Retourne la contrainte de compression axial en MPa avec:
-            Fc0d : la charge en N de compression """
-        aire = self.b_calcul * self.h_calcul
-        self.Fc0d = Fc0d
-        self.sigma_c_0_rd = self.Fc0d / aire
-        return self.sigma_c_0_rd
+            Fc0d : la charge en kN de compression """
+        self.Fc_0_d = Fc0d * si.kN
+        Fc_0_d = self.Fc_0_d
+        A = self.aire
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            sigma_c_0_d = Fc_0_d / A
+            return sigma_c_0_d
+        value = val()
+        self.sigma_c_0_rd = value[1]
+        return value
     
     
-    def taux_c_0_d(self, taux_m_dy: float=0, taux_m_dz: float=0):
-        """ Retourne le taux de travail de la compression axial """
+    def taux_c_0_d(self, flexion: object=None):
+        """Retourne les taux de travaux de la compression axial.
+        Si l'élement est un poteau (donc avec un travail principalement en compression) et de la flexion combinée (EN 1995-1-1 §6.3.2), 
+        il est possible d'ajouter l'objet flexion et de vérifier cette combinaison.
+
+        Args:
+            flexion (object, optional): L'objet Flexion avec ces taux de travaux préalablement calculés. Default to None.
+
+        Returns:
+            list: retourne la liste des taux de travaux en %
+        """
         self.taux_c_0_rd = {}
-        self.taux_c_0_rd['equ6.2'] = self.sigma_c_0_rd / self.f_type_rd
+        sigma_c_0_d = self.sigma_c_0_rd
+        f_c_0_d = self.f_type_rd
+        lamb_rel_y  = self.lamb_rel_Axe[1]['y']
+        lamb_rel_z  = self.lamb_rel_Axe[1]['z']
+        K_c_y = self.kc_Axe[1]['y']
+        K_c_z = self.kc_Axe[1]['z']
 
-        if self.lamb_rel_Axe['y'] < 0.3 and self.lamb_rel_Axe['z'] < 0.3:
-            self.taux_c_0_rd['equ6.19'] = (self.sigma_c_0_rd / (self.f_type_rd * self.kc_Axe['y']))**2 + taux_m_dy
-            self.taux_c_0_rd['equ6.20'] = self.sigma_c_0_rd / (self.f_type_rd * self.kc_Axe['z'])**2 + taux_m_dz
+        if flexion and isinstance(flexion, Flexion):
+            taux_6_11 = flexion.taux_m_rd["equ6.11"]
+            taux_6_12 = flexion.taux_m_rd["equ6.12"]
+        else:
+            taux_6_11 = 0
+            taux_6_12 = 0
 
-        self.taux_c_0_rd['equ6.23'] = (self.sigma_c_0_rd / (self.f_type_rd * self.kc_Axe['y'])) + taux_m_dy
-        self.taux_c_0_rd['equ6.24'] = self.sigma_c_0_rd / (self.f_type_rd * self.kc_Axe['z']) + taux_m_dz
-        return self.taux_c_0_rd
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            taux_6_2 = sigma_c_0_d / f_c_0_d # equ6.2
+            taux_6_23 = (sigma_c_0_d / (f_c_0_d * K_c_y)) + taux_6_11 # equ6.23
+            taux_6_24 = sigma_c_0_d / (f_c_0_d * K_c_z) + taux_6_12 # equ6.24
+
+            if lamb_rel_y < 0.3 and lamb_rel_z < 0.3:
+                taux_6_19 = (sigma_c_0_d / (f_c_0_d * K_c_y))**2 + taux_6_11 # equ6.19
+                taux_6_20 = sigma_c_0_d / (f_c_0_d * K_c_z)**2 + taux_6_12 # equ6.20
+                return taux_6_2, taux_6_23, taux_6_24, taux_6_19, taux_6_20
+            
+            return taux_6_2, taux_6_23, taux_6_24
+        value = val()
+
+        self.taux_c_0_rd['equ6.2'] = value[1][0]
+        self.taux_c_0_rd['equ6.23'] = value[1][1]
+        self.taux_c_0_rd['equ6.24'] = value[1][2]
+
+        if self.lamb_rel_Axe[1]['y'] < 0.3 and self.lamb_rel_Axe[1]['z'] < 0.3:
+            self.taux_c_0_rd['equ6.19'] = value[1][3]
+            self.taux_c_0_rd['equ6.20'] = value[1][4]
+
+        return value
 
     
 
     # ================================ COMPRESSION PERPENDICULAIRE ==================================
 
-class Compression_perpendiculaire(Poutre):
+class Compression_perpendiculaire(Barre):
     """ Classe intégrant les formules de compression perpendiculaire selon l'EN 1995 §6.1.5"""
     TYPE_APPUIS = ("Appuis discret", "Appuis continu")
     def __init__(self, b_appuis:int, l_appuis: int, l1d: int=10000, l1g: int=10000, ad: int=0, ag: int=0, type_appuis: str=TYPE_APPUIS, *args, **kwargs):
@@ -502,24 +763,21 @@ class Compression_perpendiculaire(Poutre):
         l1g(int) : Distance entre les charges en mm (l et l) (si pas de l1g ne rien mettre).
         ad(int) : Distance depuis le bord jusqu'à l'appuis à droite (l) en mm (si pas de ad et au bord ne rien mettre).
         ag(int) : Distance depuis le bord jusqu'à l'appuis à gauche (l) en mm (si pas de ad et au bord ne rien mettre).
-
-        type_appuis(str) : Type d'appuis : Appui continu, Appui discret : 1
-                                
-        section : Forme de la section (Rectangulaire, Circulaire etc.)
-        type_bois : Défini le type de bois utilisé (Massif, BLC, LVL)
-        classe : Classe mécanique du bois (C24 etc.)"""
+        type_appuis(str) : Type d'appuis (Appui continu, Appui discret)
+        """
 
         super().__init__(*args, **kwargs)
-        self.b_appuis = b_appuis
-        self.l_appuis = l_appuis
-        self.l1d = l1d
-        self.l1g = l1g
-        self.ad = ad
-        self.ag = ag
+        self.b_appuis = b_appuis * si.mm
+        self.l_appuis = l_appuis * si.mm
+        self.l1d = l1d * si.mm
+        self.l1g = l1g * si.mm
+        self.ad = ad * si.mm
+        self.ag = ag * si.mm
         self.type_appuis = type_appuis
 
+
     @property
-    def Kc_90(self):
+    def K_c90(self):
         """ Retourne le facteur Kc,90 qui tient compte de la configuration de chargement, du fendage et de la déformation
             en compression avec pour argument :
             h : Hauteur de l'élement subissant la compression en mm
@@ -528,14 +786,16 @@ class Compression_perpendiculaire(Poutre):
             """
         if self.l1d == 0 and self.l1g > 0:
             l1 = self.l1g
+            self.ag = self.l1g
         elif self.l1g == 0 and self.l1d > 0:
             l1 = self.l1d
+            self.ad = self.l1d
         else:
             l1 = min(self.l1d, self.l1g)
 
         if self.type_appuis == __class__.TYPE_APPUIS[0]:
             if self.type_bois == 'Massif':
-                if self.h_calcul <= 300:
+                if self.h_calcul.value * 10**3 <= 300:
                     if l1 >= 2 * self.h_calcul:
                         kc_90 = 1.5
                     else:
@@ -543,23 +803,23 @@ class Compression_perpendiculaire(Poutre):
                 else:
                     kc_90 = 1.5
             elif self.type_bois == 'BLC':
-                if self.h_calcul <= 300 and self.l_appuis <= 400:
+                if self.h_calcul.value * 10**3 <= 300 and self.l_appuis.value * 10**3 <= 400:
                     if l1 >= 2 * self.h_calcul:
                         kc_90 = 1.75
                     else:
                         kc_90 = 1
-                elif self.h_calcul <= 300 and self.l_appuis > 400:
+                elif self.h_calcul.value * 10**3 <= 300 and self.l_appuis.value * 10**3 > 400:
                     kc_90 = 1
                 else:
                     kc_90 = 1.75
             else:
-                if self.h_calcul > 300:
+                if self.h_calcul.value * 10**3 > 300:
                     kc_90 = 1.75
                 else:
                     kc_90 = 1
         else:
             if self.type_bois == 'Massif':
-                if self.h_calcul <= 300:
+                if self.h_calcul.value * 10**3 <= 300:
                     if l1 >= 2 * self.h_calcul:
                         kc_90 = 1.25
                     else:
@@ -567,7 +827,7 @@ class Compression_perpendiculaire(Poutre):
                 else:
                     kc_90 = 1.5
             elif self.type_bois == 'BLC':
-                if self.h_calcul <= 300:
+                if self.h_calcul.value * 10**3 <= 300:
                     if l1 >= 2 * self.h_calcul:
                         kc_90 = 1.5
                     else:
@@ -575,7 +835,7 @@ class Compression_perpendiculaire(Poutre):
                 else:
                     kc_90 = 1.75
             else:
-                if self.h_calcul > 300:
+                if self.h_calcul.value * 10**3 > 300:
                     kc_90 = 1.75
                 else:
                     kc_90 = 1
@@ -583,35 +843,66 @@ class Compression_perpendiculaire(Poutre):
         return kc_90
 
 
-    def f_c_90_d(self, loadtype=Poutre.LOAD_TIME, typecombi=Poutre.TYPE_ACTION):
-        return super().f_type_d("fc90k", loadtype, typecombi)
+    def f_c_90_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
+        """Retourne la résistance f,c,90,d de l'élément en MPa
+
+        Args:
+            loadtype (str): chargement de plus courte durée sur l'élément.
+            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+
+        Returns:
+            float: f,c,90,d en MPa
+        """
+        return super()._f_type_d("fc90k", loadtype, typecombi)
     
     
-    def sigma_c_90_d(self, Fc90d: int):
+    def sigma_c_90_d(self, Fc90d: float):
         """ Retourne la contrainte normal de compression à 90 degrés en MPa avec pour argument:
 
-            Fc90d : Charge en compression perpendiculaire en N
+            Fc90d : Charge en compression perpendiculaire en kN
         """
-        self.aef = (self.l_appuis + min(30.0, self.ad, self.l_appuis, 0.5*self.l1d) + min(30.0, self.ag, self.l_appuis, 0.5*self.l1g)) * self.b_appuis
-        self.Fc90d = Fc90d
-        self.sigma_c_90_rd = self.Fc90d / self.aef
+        
+        self.Fc90d = Fc90d * si.kN
+        Fc_90_d = self.Fc90d
+        l_appuis = self.l_appuis
+        b_appuis = self.b_appuis
+        l_1d = self.l1d
+        l_1g = self.l1g
+        ad = self.ad
+        ag = self.ag
+        mm = si.mm
 
-        return self.sigma_c_90_rd
+        @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            a_ef = (l_appuis + min(30*mm, ad, l_appuis, 0.5*l_1d) + min(30*mm, ag, l_appuis, 0.5*l_1g)) * b_appuis
+            sigma_c_90_d = Fc_90_d / a_ef
+            return sigma_c_90_d
+        value = val()
+        self.sigma_c_90_rd = value[1]
+        return value
 
 
     def taux_c_90_d(self):
         """ Retourne le taux de travail de la compression perpendiculaire """
         self.taux_c_90_rd = {}
-        self.taux_c_90_rd['equ6.3'] = self.sigma_c_90_rd / (self.Kc_90 * self.f_type_rd)
-        return self.taux_c_90_rd
+        sigma_c_90_d = self.sigma_c_90_rd
+        K_c90 = self.K_c90
+        f_c_90_d = self.f_type_rd
+
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            taux_6_3 = sigma_c_90_d / (K_c90 * f_c_90_d) # equ6.3
+            return taux_6_3
+         
+        value = val()
+        self.taux_c_90_rd['equ6.3'] = value[1]
+        return value
     
     
     def show_c90(self):
         """Affiche l'image des caractéristiques d'une compression perpendiculaire
         """
-        file = os.path.join(Compression_perpendiculaire.PATH_CATALOG, "data", "screenshot", "C90_def.png")
-        image = Image.open(file)
-        image.show()
+        self._show_element("C90_def.png")
 
 
 
@@ -627,58 +918,60 @@ class Compression_inclinees(Compression, Compression_perpendiculaire):
         super(Compression_perpendiculaire, self).__init__(**kwargs)
         self.alpha = alpha
     
-    def sigma_c_alpha_d(self, Fcad: int):
+    def sigma_c_alpha_d(self, Fcad: float):
         """ Retourne la contrainte de compression inclinée en MPa avec:
-            Fcad : la charge en N de compression inclinée """
-        aire = self.b_appuis * self.l_appuis
-        self.F_c_alpha_d = Fcad
-        self.sigma_c_alpha_rd = self.F_c_alpha_d / aire
-        return self.sigma_c_alpha_rd
-
-    def taux_c_alpha_d(self, loadtype=Poutre.LOAD_TIME, typecombi=Poutre.TYPE_ACTION):
-        """ Retourne le taux de travail de la compression inclinées par rapport au fil """
-        fc0d = self.f_c_0_d(loadtype, typecombi)
-        fc90d = self.f_c_90_d(loadtype, typecombi)
-        self.taux_c_alpha_rd = {}
-        self.taux_c_alpha_rd['equ6.16'] = self.sigma_c_alpha_rd / (fc0d / ((fc0d /(self.Kc_90 * fc90d)) *  mt.sin(mt.radians(self.alpha))**2 + mt.cos(mt.radians(self.alpha))**2))
-        return self.taux_c_alpha_rd
+            Fcad : la charge en kN de compression inclinée """
+        b_appuis = self.b_appuis
+        l_appuis = self.l_appuis
+        self.Fc_alpha_d = Fcad * si.kN
+        Fc_alpha_d  = self.Fc_alpha_d
+        
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            A = b_appuis * l_appuis
+            sigma_c_alpha_d = Fc_alpha_d / A
+            return sigma_c_alpha_d
+        
+        value = val()
+        self.sigma_c_alpha_rd = value[1]
+        return value
     
 
+    def taux_c_alpha_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
+        """ Retourne le taux de travail de la compression inclinées par rapport au fil """
+        self.taux_c_alpha_rd = {}
+        f_c_0_d = self.f_c_0_d(loadtype, typecombi)[1]
+        f_c_90_d = self.f_c_90_d(loadtype, typecombi)[1]
+        alpha = self.alpha
+        K_c90 = self.K_c90
+        sigma_c_alpha_d = self.sigma_c_alpha_rd
+
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            taux_6_16 = sigma_c_alpha_d / (f_c_0_d / ((f_c_0_d /(K_c90 * f_c_90_d)) * sin(radians(alpha))**2 + cos(radians(alpha))**2)) # equ6.16
+            return taux_6_16
+         
+        value = val()
+        self.taux_c_alpha_rd['equ6.16'] = value[1] 
+        return value
+    
 
 
 # ================================ CISAILLEMENT ==================================
 
-class Cisaillement(Poutre):
-    """ Classe intégrant les formules de cisaillement à l'EC5 """
-
+class Cisaillement(Barre):
+    DICT_KN = {"Massif": 5,"BLC": 6.5, "LVL": 4.5}
     def __init__(self, *args, **kwargs):
+        """Classe qui permet de calculer le cisaillement d'une poutre comme décrit à l'EN 1995 §6.1.7 et §6.5.
+        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
+        """
         super().__init__(*args, **kwargs)
-        self.Kv = 1
+        self.K_v = 1
+        self.h_ef = self.h_calcul
 
-    def kv(self, hef:int, x:int, i:float, ent=("Dessous", "Dessus")):
-        """ Retourne le facteur d'entaille kv avec pour argument :
-            hef : Hauteur efficace de la poutre (hauteur - hauteur de l'entaille) en mm
-            x : Distance entre le centre de réaction à l'appuis et le coin de l'entaille en mm
-            i : pente de l'entaille (ex : i45° = 1) en % non multiplié par 100
-            ent: Entaille sur le dessus ou dessous de la poutre
-            type_bois : Type de bois
-                                Massif
-                                BLC
-                                LVL """
-        dictkn = {"Massif": 5,"BLC": 6.5, "LVL": 4.5}
-        kn = dictkn[self.type_bois]
-        a = hef / self.h_calcul
-        if ent == "dessus" or ent == "Dessus":
-            self.Kv = 1
-        else:
-            self.Kv = min(1, (kn * (1 + ((1.1 * i ** 1.5) / mt.sqrt(self.h_calcul)))) / (
-                    mt.sqrt(self.h_calcul) * (mt.sqrt(a * (1 - a)) + 0.8 * (x / self.h_calcul) * mt.sqrt((1 / a) - a ** 2))))
-        self.h_calcul = hef
-        
-        return self.Kv
 
     @property
-    def Kcr(self):
+    def K_cr(self):
         """ Retourne le facteur de réduction de largeur Kcr avec pour argument:
             cs: Classe de service de la poutre
                                             CS 1 : 1
@@ -690,151 +983,214 @@ class Cisaillement(Poutre):
                                 BLC : 1
                                 Autre : 2 """
         if self.cs == 1:
-            if self.h_calcul > 150 and self.type_bois == "Massif":
-                k_cr = 0.67
+            if self.h_calcul.value * 10**3 > 150 and self.type_bois == self.LIST_TYPE_B[0]:
+                return 0.67
             else:
-                k_cr = 1
+                return 1
         elif self.cs == 2:
-            if self.h_calcul > 150 and self.type_bois == "Massif":
-                k_cr = 0.67
-            elif self.type_bois == "BLC":
-                k_cr = 0.67
+            if self.h_calcul.value * 10**3 > 150 and self.type_bois == self.LIST_TYPE_B[0]:
+                return 0.67
+            elif self.type_bois == self.LIST_TYPE_B[1]:
+                return 0.67
             else:
-                k_cr = 1
+                return 1
         else:
-            k_cr = 0.67
+            return 0.67
 
-        return k_cr
+
+    def Kv(self, hef:int, x:int, i_lo:int, ent=("Dessous", "Dessus")):
+        """Retourne le facteur d'entaille Kv pour une entaille au niveau d'un appuis
+
+        Args:
+            hef (int): Hauteur efficace de la poutre (hauteur - hauteur de l'entaille) en mm
+            x (int):Distance entre le centre de réaction à l'appuis et le coin de l'entaille en mm
+            i_lo (float): longueur horizontal de l'entaille en mm
+            ent (tuple, optional): Entaille sur le dessus ou dessous de la poutre.
+
+        Returns:
+            float: facteur Kv
+        """
+        K_n = self.DICT_KN[self.type_bois]
+        x = x * si.mm
+        h_ef = hef * si.mm
+        i = i_lo * si.mm / h_ef
+        h_calcul = self.h_calcul
+
+        if ent == "Dessus":
+            self.K_v = 1
+            return self.K_v
+        else:
+            @handcalc(override="long", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            def val():
+                alpha = h_ef / h_calcul
+                K_v = min(1, (K_n * (1 + (1.1 * i ** 1.5) / sqrt(h_calcul))) / (sqrt(h_calcul) * (sqrt(alpha * (1 - alpha)) + 0.8 * x / h_calcul * sqrt(1 / alpha - alpha ** 2))))
+                return K_v
+            self.h_ef = h_ef
+            value = val()
+            self.K_v = value[1]
+            return value
 
     
-    def f_v_d(self, loadtype=Poutre.LOAD_TIME, typecombi=Poutre.TYPE_ACTION):
-        return super().f_type_d("fvk", loadtype, typecombi)
+    def f_v_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
+        """Retourne la résistance f,v,d de l'élément en MPa
+
+        Args:
+            loadtype (str): chargement de plus courte durée sur l'élément.
+            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+
+        Returns:
+            float: f,v,d en MPa
+        """
+        return super()._f_type_d("fvk", loadtype, typecombi)
        
     
-    def tau_d(self, Vd:int):
-        """ Retourne la contrainte tau en  MPa pour le cisaillement longitudinale d'une poutre rectangle
-              Vd : Effort de cisaillement sur la poutre en N"""
-        self.Vd = Vd
-        bef = self.Kcr * self.b_calcul
-        self.tau_rd = (1.5 * self.Vd) / (bef * self.h_calcul)
-        return self.tau_rd
+    def tau_d(self, Vd:float):
+        """ Retourne la contrainte tau en  MPa pour le cisaillement longitudinale d'une poutre rectangulaire
+              Vd : Effort de cisaillement sur la poutre en kN"""
+        self.V_d = Vd * si.kN
+        V_d = self.V_d
+        K_cr = self.K_cr
+        b_calcul = self.b_calcul
+        h_ef = self.h_ef
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            b_ef = K_cr * b_calcul
+            tau_d = (1.5 * V_d) / (b_ef * h_ef)
+            return tau_d
+        
+        value = val()
+        self.tau_rd = value[1]
+        return value
 
 
     def taux_tau_d(self):
-        """ Retourne le taux de travail en cisaillement en % avec pour argument:
-            Vd : Effort de cisaillement sur la poutre en N
-            b : Largeur en mm
-            kcr : coef de réduction de largeur avec prise en compte de la fissuration
-            kv : coef prenant en compte la réduction de résistance liés à une entaille."""
+        """ Retourne le taux de travail en cisaillement en % """
         self.taux_tau_rd = {}
-        self.taux_tau_rd['equ6.13'] = self.tau_rd / self.f_type_rd
-        self.taux_tau_rd['equ6.60'] = self.tau_rd/ (self.Kv * self.f_type_rd)
+        tau_d = self.tau_rd
+        f_v_d = self.f_type_rd
+        K_v  = self.K_v
+
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            taux_6_13 = tau_d / f_v_d
+            taux_6_60 = tau_d/ (K_v * f_v_d)
+            return taux_6_13, taux_6_60
+         
+        value = val()
+        self.taux_tau_rd['equ6.13'] = value[1][0]
+        self.taux_tau_rd['equ6.60'] = value[1][1]
         
-        return self.taux_tau_rd
-
-
-# ================================ Poutre assemblées mécaniquement Annexe B ==================================
-
-class Poutre_assemblee_meca(Projet):
-    def __init__(self, beam_2:object, l: int|float, Kser: list=[0,None,0], entraxe: list=[1, None, 1], psy2: int|float=0, **kwargs):
-        """Classe définissant une poutre composée d'au maximum 3 éléments connectés entre eux par liaisons mécanique 
-        suivant la théorie de HEIMESHOFF Annexe B de l'EN 1995
-
-        Args:
-            beam_2 (object): objet contenant l'élément centrale de la poutre i=2, cette objet doit être issu de la classe élément ou de son héritage
-            l (int | float): longueur de la poutre en mm
-
-            Kser (list, optional): Rigidité de liaison par connecteur entre les éléments entre i=1/2 et i=2/3, en N/mm. 
-                                    S'il n'y a que 2 éléments connectés, laisser le l'index correspondant vide (ex: [0, 2000]). Defaults to [0,None,0].
-
-            entraxe (list, optional): Entraxe entre connecteur en mm suivant i=1 ou i=3. Defaults to [1, None, 1].
-
-            type_action (int | float, optional): Psy 2 qui permet de prendre en compte le fluage dans le temps,
-                                         si calcul en instantanée alors 0, 
-                                         si intermédiaire = voir dans data/coeff_psy.csv 
-                                         et enfin temps infini = 1. 
-                                         Defaults to 0.
-            **kwargs (object): beam_1 et ou beam_3
+        return value
+    
+    def show_Kv(self):
+        """Affiche l'image des caractéristiques d'une entaille au cisaillement
         """
-        super().__init__(**kwargs)
-        self.beam = [None , beam_2, None]
-        self.l = l
+        self._show_element("Kv_def.png")
 
-        for key, value in kwargs.items():
-            match key[0:4]:
-                case "beam" if key[-1] == "2":
-                    print("L'attribut ne peut pas être nommé beam_2, il est déjà pris par l'élément centrale ! beam_1 ou beam_3 possible !")
-                case "beam" if key[-1] != "2" and 1<= int(key[-1]) <=3 :
-                    self.beam[int(key[-1])-1] = value
 
-        for index, beam in enumerate(self.beam):
-            if beam is not None:
-                beam.module_young_mean_fin(psy2)
+# ================================ Barre assemblées mécaniquement Annexe B ==================================
+
+# class Poutre_assemblee_meca(Projet):
+#     def __init__(self, beam_2:object, l: int|float, Kser: list=[0,None,0], entraxe: list=[1, None, 1], psy_2: int|float=0, **kwargs):
+#         """Classe définissant une poutre composée d'au maximum 3 éléments connectés entre eux par liaisons mécanique 
+#         suivant la théorie de HEIMESHOFF Annexe B de l'EN 1995
+
+#         Args:
+#             beam_2 (object): objet contenant l'élément centrale de la poutre i=2, cette objet doit être issu de la classe élément ou de son héritage
+#             l (int | float): longueur de la poutre en mm
+
+#             Kser (list, optional): Rigidité de liaison par connecteur entre les éléments entre i=1/2 et i=2/3, en N/mm. 
+#                                     S'il n'y a que 2 éléments connectés, laisser l'index correspondant vide (ex: [0, 2000]). Defaults to [0,None,0].
+
+#             entraxe (list, optional): Entraxe entre connecteur en mm suivant i=1 ou i=3. Defaults to [1, None, 1].
+
+#             type_action (int | float, optional): Psy 2 qui permet de prendre en compte le fluage dans le temps,
+#                                          si calcul en instantanée alors 0, 
+#                                          si intermédiaire = voir dans data/coeff_psy.csv 
+#                                          et enfin temps infini = 1. 
+#                                          Defaults to 0.
+#             **kwargs (object): beam_1 et ou beam_3
+#         """
+#         super().__init__(**kwargs)
+#         self.beam = [None , beam_2, None]
+#         self.l = l
+
+#         for key, value in kwargs.items():
+#             match key[0:4]:
+#                 case "beam" if key[-1] == "2":
+#                     print("L'attribut ne peut pas être nommé beam_2, il est déjà pris par l'élément centrale ! beam_1 ou beam_3 possible !")
+#                 case "beam" if key[-1] != "2" and 1<= int(key[-1]) <=3 :
+#                     self.beam[int(key[-1])-1] = value
+
+#         for index, beam in enumerate(self.beam):
+#             if beam is not None:
+#                 beam.Emean_fin(psy_2)
      
-        self.Kser = Kser
-        self.entraxe = entraxe
+#         self.Kser = Kser
+#         self.entraxe = entraxe
 
     
-    @property
-    def Kser_fin(self):
-        """renvoie le Kser en fonction des Kdef des pièces assemblées et du psy2"""
-        kser_fin = [None] *3
-        for index, beam in enumerate(self.beam):
-            if beam is not None and index != 1:
-                kser_fin[index] = self.Kser[index] / (1 + self.beam[1].psy2 * (2 * (beam.Kdef * self.beam[1].Kdef)**0.5))
-        return kser_fin
+#     @property
+#     def Kser_fin(self):
+#         """renvoie le Kser en fonction des Kdef des pièces assemblées et du psy2"""
+#         kser_fin = [None] *3
+#         for index, beam in enumerate(self.beam):
+#             if beam is not None and index != 1:
+#                 kser_fin[index] = self.Kser[index] / (1 + self.beam[1].psy_2 * (2 * (beam.K_def * self.beam[1].K_def)**0.5))
+#         return kser_fin
 
 
-    @property
-    def gamma_i(self):
-        """renvoie le gamma"""
-        gamma = [0, 1, 0]
-        for index, beam in enumerate(self.beam):
-            if beam is not None and index != 1:
-                gamma[index] = (1 + mt.pi**(2) * beam.E_mean_fin * beam.aire * self.entraxe[index] / (self.Kser_fin[index] * self.l**(2)))**(-1)
-        return gamma
+#     @property
+#     def gamma_i(self):
+#         """renvoie le gamma"""
+#         gamma = [0, 1, 0]
+#         for index, beam in enumerate(self.beam):
+#             if beam is not None and index != 1:
+#                 gamma[index] = (1 + mt.pi**(2) * beam.E_mean_fin * beam.aire * self.entraxe[index] / (self.Kser_fin[index] * self.l**(2)))**(-1)
+#         return gamma
 
 
-    @property
-    def distance_ai(self):
-        """renvoie la distance à l'axe neutre de la pièce 2"""
-        denominateur = 0
-        for index, beam in enumerate(self.beam):
-            if beam is not None:
-                denominateur += (self.gamma_i[index] * beam.E_mean_fin * beam.aire)
+#     @property
+#     def distance_ai(self):
+#         """renvoie la distance à l'axe neutre de la pièce 2"""
+#         denominateur = 0
+#         for index, beam in enumerate(self.beam):
+#             if beam is not None:
+#                 denominateur += (self.gamma_i[index] * beam.E_mean_fin * beam.aire)
 
-        denominateur = 2 * denominateur 
-        if self.beam[0] == None or self.beam[2] == None:
-            for index, beam in enumerate(self.beam):
-                if beam is not None and index != 1:
-                    numerateur = self.gamma_i[index] * beam.E_mean_fin * beam.aire * (beam.h_calcul + self.beam[1].h_calcul)
-        else:
-            numerateur = (self.gamma_i[0] * self.beam[0].E_mean_fin * self.beam[0].aire * (self.beam[0].h_calcul + self.beam[1].h_calcul) 
-                        - self.gamma_i[2] * self.beam[2].E_mean_fin  * self.beam[2].aire * (self.beam[1].h_calcul + self.beam[2].h_calcul))
-        a2 =  numerateur / denominateur
+#         denominateur = 2 * denominateur 
+#         if self.beam[0] == None or self.beam[2] == None:
+#             for index, beam in enumerate(self.beam):
+#                 if beam is not None and index != 1:
+#                     numerateur = self.gamma_i[index] * beam.E_mean_fin * beam.aire * (beam.h_calcul + self.beam[1].h_calcul)
+#         else:
+#             numerateur = (self.gamma_i[0] * self.beam[0].E_mean_fin * self.beam[0].aire * (self.beam[0].h_calcul + self.beam[1].h_calcul) 
+#                         - self.gamma_i[2] * self.beam[2].E_mean_fin  * self.beam[2].aire * (self.beam[1].h_calcul + self.beam[2].h_calcul))
+#         a2 =  numerateur / denominateur
 
-        ai = [None, a2, None]
-        for index, beam in enumerate(self.beam):
-            if beam is not None and index != 1:
-                ai[index] = (beam.h_calcul + self.beam[1].h_calcul)/2 - (-a2)
-                if a2 >= 0 and index == 0 :
-                    ai[index] -= a2
-                elif a2 < 0 and index == 2:
-                    ai[index] -= a2
-                else:
-                    ai[index] += a2
-        return ai
+#         ai = [None, a2, None]
+#         for index, beam in enumerate(self.beam):
+#             if beam is not None and index != 1:
+#                 ai[index] = (beam.h_calcul + self.beam[1].h_calcul)/2 - (-a2)
+#                 if a2 >= 0 and index == 0 :
+#                     ai[index] -= a2
+#                 elif a2 < 0 and index == 2:
+#                     ai[index] -= a2
+#                 else:
+#                     ai[index] += a2
+#         return ai
         
 
 
-    @property
-    def EI_eff (self):
-        """renvoie la rigidité de la poutre connectée"""
-        ei_eff = 0
-        for index, beam in enumerate(self.beam):
-            if beam is not None:
-                ei_eff += (beam.E_mean_fin * beam.inertie[0] + self.gamma_i[index] * beam.E_mean_fin * self.beam[index].aire * self.distance_ai[index]**2)
-        return ei_eff
+#     @property
+#     def EI_eff (self):
+#         """renvoie la rigidité de la poutre connectée"""
+#         ei_eff = 0
+#         for index, beam in enumerate(self.beam):
+#             if beam is not None:
+#                 ei_eff += (beam.E_mean_fin * beam.inertie[0] + self.gamma_i[index] * beam.E_mean_fin * self.beam[index].aire * self.distance_ai[index]**2)
+#         return ei_eff
 
 
     # def verif_cisaillement(self, qz, l, EIeff):
@@ -861,177 +1217,56 @@ class Poutre_assemblee_meca(Projet):
     #     return u_fin
 
 
-
-class _Calcul_EC5_ELU(object):
-    
-    def __init__(self,  b: int, h: int, long: int, l0_flamb: dict="""{"y":0, "z":0}""", coeflf: float = 1, l0_dev: int = 0, coeflef=0.9, 
-                   pos: int =0, section: str ="Rectangulaire", Hi: int = 12, Hf: int = 12, classe: str = 'C24', cs: int = 1,
-                load_type: str = "Moyen terme", effort : list = [] , list_appuis: list = []):
-        """Fait un  calcul standart à l'EC5 ELU STR pour vérifier les taux de travaux de la traction, compression, flexion, cisaillement, C90 et retourne ainsi les objets crée dans une liste
-
-        Args:
-            b (int): largeur de pose de la pièce en mm
-            h (int): hauteur de pose de la pièce en mm
-            long (int): longeur de la pièce en mm
-            l0_flamb (dict, optional): longeur de flambement en mm suivant les deux axes y et z. Defaults to {'y':0, 'z':0}.
-            coeflf (int, optional): Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
-                    fonction des du type d'appuis :
-                                                    Encastré 1 côté : 2
-                                                    Rotule - Rotule : 1
-                                                    Encastré - Rotule : 0.7
-                                                    Encastré - Encastré : 0.5
-                                                    Encastré - Rouleau : 1 . Defaults to 1.
-                    
-            l0_dev (int, optional): longeur de déversement en mm. Defaults to 0.
-            coeflef (int, optional): Coefficient multiplicateur de la longeur pour obtenir la longueur efficace de déversement en fonction:
-   
-                       Appuis simple :
-                                    Moment constant : 1
-                                    Charge répartie constante : 0.9
-                                    Charge concentrée au milieu de la portée : 0.8
-                    Porte à faux :
-                                    Charge répartie constante : 0.5
-                                    Charge concentrée agissant à l'extrémité libre : 0.8 . Defaults to 0.9.. Defaults to 0.
-         
-            pos (int, optional): positionnement de la charge sur la hauteur de poutre
-                        
-                                    si charge sur fibre comprimée pos = 0
-                                    si charge sur fibre neutre pos = 1
-                                    si charge sur fibre tendu pos = 2  Defaults to 0.
-         
-            section (str, optional): Type de section. Defaults to "Rectangulaire".
-            Hi (int, optional): Humidité initiale de pose en %. Defaults to 12.
-            Hf (int, optional): Humidité finale de pose en %. Defaults to 12.
-            classe (str, optional): Classe mécanique du bois. Defaults to 'C24'.
-            cs (int, optional): Classe de service de l'élément. Defaults to 1.
-            load_type (str, optional): Type de chargment de plus courte durée:
-   
-                       "Permanente",
-                    "Moyen terme",
-                    "Court terme",
-                    "Instantanee", Defaults to "Moyen terme".
-     
-            effort (list, optional): Liste des efforts [{'t': 0, 'c': 0}, Vz, My, [Fc,90,d]] en N. Defaults to [0,0,0,[0,0]].
-            list_appuis (list, optional): Liste des appuis [N°, type d'appuis, position mm, longueur d'appuis mm]. Defaults to [""].
-
-        Returns:
-            list: Liste des objets crées pour la compression, traction, flexion, cisaillment et C90
-        """
-        self.b = b
-        self.h= h
-        self.long = long
-        self.section = section 
-        self.classe = classe
-        self.Hi = Hi
-        self.Hf = Hf
-        self.cs = cs
-        self.load_type = load_type
-        self.effort = effort
-        self.list_appuis = list_appuis
-  
-        self.taux_c_0_dy, self.taux_c_0_dz, self.taux_t_0_d = 0, 0, 0
-        self.Beam_C0, self.Beam_T0 = 0, 0
+    # def calcul_compression90(self):
+    #     i, appuis_zero = 0, 0
+    #     self.Beam_C90 = [0] * len(self.list_appuis)
         
-        if self.effort[0]['c'] > 0:
-                self.calcul_compression(l0_flamb, coeflf)
-
-        if self.effort[0]['t'] > 0:
-            self.calcul_traction()
-
-        if self.effort[1] > 0:
-            self.calcul_cisaillement()
-
-        if self.effort[2] > 0:
-            self.calcul_flexion(l0_dev, coeflef, pos)
-
-        if self.effort[3][0] > 0:
-            self.calcul_compression90()
-   
-  
-    def calcul_compression(self, l0_flamb:int, coeflf:float):
-        self.Beam_C0 = Compression(self.b, self.h, l0_flamb, coeflf, self.section, self.Hi, self.Hf, self.classe, self.cs)
-        self.Beam_C0.sigma_c_0_d(self.effort[0]['c'] * 10**3)
-        self.Beam_C0.f_type_d("fc0k", self.load_type, "Fondamentales")
-        self.Beam_C0.taux_c_0_d()
-        self.taux_c_0_dy = self.Beam_C0.taux_c_0_rd['equ6.23']
-        self.taux_c_0_dz = self.Beam_C0.taux_c_0_rd['equ6.24']
-  
-  
-    def calcul_traction(self):
-        self.Beam_T0 = Traction(self.b, self.h, self.section, self.Hi, self.Hf, self.classe, self.cs)
-        self.Beam_T0.sigma_t_0_d(self.effort[0]['t'] * 10**3)
-        self.Beam_T0.f_type_d("ft0k", self.load_type, "Fondamentales")
-        self.Beam_T0.taux_t_0_d()
-        self.taux_t_0_d = self.Beam_T0.taux_t_0_rd['equ6.1']
-  
-  
-    def calcul_flexion(self, l0_dev:int, coeflef:float, pos=Flexion.LOAD_POS):
-        self.Beam_flexion = Flexion(self.b, self.h, l0_dev, coeflef, pos, self.section, self.Hi, self.Hf, self.classe, self.cs)
-        self.Beam_flexion.sigma_m_d(self.effort[2])
-        self.Beam_flexion.f_type_d("fm0k", self.load_type, "Fondamentales")
-        self.Beam_flexion.taux_m_d(self.taux_c_0_dy, self.taux_c_0_dz, self.taux_t_0_d)
-
-
-    def calcul_cisaillement(self):
-        self.Beam_cisail = Cisaillement(self.b, self.h, self.section, self.Hi, self.Hf, self.classe, self.cs)
-        self.Beam_cisail.tau_d(self.effort[1] * 10**3)
-        self.Beam_cisail.f_type_d("fvk", self.load_type, "Fondamentales")
-        self.Beam_cisail.taux_tau_d()
-  
-  
-    def calcul_compression90(self):
-        i, appuis_zero = 0, 0
-        self.Beam_C90 = [0] * len(self.list_appuis)
-        
-        for appuis in self.list_appuis:
-            Fc90d = self.effort[3][i] * 10**3
+    #     for appuis in self.list_appuis:
+    #         Fc90d = self.effort[3][i] * 10**3
             
-            posl1g = 0
-            posl1d = 10**6
-            ag = ad = 0
+    #         posl1g = 0
+    #         posl1d = 10**6
+    #         ag = ad = 0
 
-            for pos in self.list_appuis:
-                if pos[2] == 0:
-                    appuis_zero = 1
-                if pos[2] < appuis[2] or pos[2] > appuis[2]:
-                    if posl1g < pos[2] < appuis[2]:
-                        posl1g = pos[2]
-                    if posl1d > pos[2] > appuis[2]:
-                        posl1d = pos[2]
+    #         for pos in self.list_appuis:
+    #             if pos[2] == 0:
+    #                 appuis_zero = 1
+    #             if pos[2] < appuis[2] or pos[2] > appuis[2]:
+    #                 if posl1g < pos[2] < appuis[2]:
+    #                     posl1g = pos[2]
+    #                 if posl1d > pos[2] > appuis[2]:
+    #                     posl1d = pos[2]
 
-            if posl1d != 10**6:
-                l1d = posl1d - appuis[2]
-            else:
-                l1d = 10**6
-            if posl1g or (appuis[2] != 0  and appuis_zero == 1):
-                l1g = appuis[2] - posl1g
-            else:
-                l1g = 10**6
+    #         if posl1d != 10**6:
+    #             l1d = posl1d - appuis[2]
+    #         else:
+    #             l1d = 10**6
+    #         if posl1g or (appuis[2] != 0  and appuis_zero == 1):
+    #             l1g = appuis[2] - posl1g
+    #         else:
+    #             l1g = 10**6
 
-            if appuis[2] == 0 or appuis[2] == self.long:
-                pass
-            else:
-                if l1g == 10**6 and appuis_zero == 0:
-                    ag = appuis[2]-(appuis[3]/2)
-                if l1d == 10**6:
-                    ad = self.long-appuis[2]-(appuis[3]/2)
+    #         if appuis[2] == 0 or appuis[2] == self.long:
+    #             pass
+    #         else:
+    #             if l1g == 10**6 and appuis_zero == 0:
+    #                 ag = appuis[2]-(appuis[3]/2)
+    #             if l1d == 10**6:
+    #                 ad = self.long-appuis[2]-(appuis[3]/2)
 
-            self.Beam_C90[i] = Compression_perpendiculaire(self.b, self.h, 1, self.section, self.Hi, self.Hf, self.classe, self.cs)
-            self.Beam_C90[i].sigma_c_90_d(Fc90d, appuis[3], l1d, l1g, ad, ag)
-            self.Beam_C90[i].f_type_d("fc90k", self.load_type, "Fondamentales")
-            self.Beam_C90[i].taux_c_90_d()
-            # print('carac c90:', l1d, l1g, ad, ag, self.Beam_C90[i].aef)
-            i += 1
-  
-    def get_object(self):
-        return [self.Beam_flexion, self.Beam_cisail, self.Beam_C90, self.Beam_C0, self.Beam_T0]
+    #         self.Beam_C90[i] = Compression_perpendiculaire(self.b, self.h, 1, self.section, self.Hi, self.Hf, self.classe, self.cs)
+    #         self.Beam_C90[i].sigma_c_90_d(Fc90d, appuis[3], l1d, l1g, ad, ag)
+    #         self.Beam_C90[i]._f_type_d("fc90k", self.load_type, "Fondamentales")
+    #         self.Beam_C90[i].taux_c_90_d()
+    #         # print('carac c90:', l1d, l1g, ad, ag, self.Beam_C90[i].aef)
+    #         i += 1
             
 
 if __name__=='__main__':
-    beam = Poutre(100,200,"Rectangulaire", classe="C24", cs=2)
-    comp = Compression._from_parent_class(beam, lo_y=2000, lo_z=2000, coeflf="Rotule - Rotule")
+    beam = Barre(100,200,"Rectangulaire", classe="C24", cs=2)
+    comp = Compression._from_parent_class(beam, lo_y=2000, lo_z=2000, type_appuis="Rotule - Rotule")
     c90 = Compression_perpendiculaire._from_parent_class(beam, b_appuis=100, l_appuis=100 , l1d=10000, l1g=10000, ad=0, ag=0, type_appuis="Appuis discret")
     calpha = Compression_inclinees._from_parent_class([comp,c90],alpha=45)
     print(calpha.sigma_c_alpha_d(10000))
     print(calpha.taux_c_alpha_d("Permanente", "Fondamentales"))
-    print(calpha.f_c_0_d("Permanente", "Fondamentales"),calpha.f_c_90_d("Permanente", "Fondamentales"), calpha.Kc_90)
+    print(calpha.f_c_0_d("Permanente", "Fondamentales"),calpha.f_c_90_d("Permanente", "Fondamentales"), calpha.K_c90)
