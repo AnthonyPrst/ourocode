@@ -148,6 +148,21 @@ class MEF(Combinaison, _Base_graph):
         return nodeList
     
 
+    def matrice_rotation_Z(self, angle_rad):
+        rotation_2d = np.array([
+            [np.cos(angle_rad), -np.sin(angle_rad)],
+            [np.sin(angle_rad), np.cos(angle_rad)]
+        ])
+        
+        rotation_3d = np.eye(3)
+        rotation_3d[:2, :2] = rotation_2d
+        
+        matrice_rotation = np.eye(6)
+        matrice_rotation[:3, :3] = rotation_3d
+        
+        return matrice_rotation
+
+    
     def _init_matrix_K(self, index: int|str, l: int) -> np.array:
         """Initialise la matrice K suivant la longueur de l'élément l en mm
         Args:
@@ -167,6 +182,12 @@ class MEF(Combinaison, _Base_graph):
                     [0, 0, 0, -self.gj/l, 0, 0, 0, 0, 0, self.gj/l, 0, 0],
                     [0, 0, -(6*self.eiy)/l**2, 0, (2*self.eiy)/l, 0, 0, 0, (6*self.eiy)/l**2, 0, (4*self.eiy)/l,0],
                     [0, (6*self.eiz)/l**2, 0, 0, 0, (2*self.eiz)/l, 0, -(6*self.eiz)/l**2, 0, 0, 0, (4*self.eiz)/l]])
+
+        # Ajout des matrices de rotation Z, Y et X
+        rotation_z = self.matrice_rotation_Z(self.alpha_R_tetaZ)
+        k[0:6, 0:6] = np.dot(rotation_z.T, np.dot(k[0:6, 0:6], rotation_z))
+        k[6:12, 6:12] = np.dot(rotation_z.T, np.dot(k[6:12, 6:12], rotation_z))
+
 
         self.k_local["ele"+str(index)] = {"k11_local": k[0:6,0:6], 
                                         "k12_local": k[0:6,6:12],
@@ -926,10 +947,11 @@ if __name__ == '__main__':
     a = b*h
     iy = (b*h**3)/12
     iz = (h*b**3)/12
-    test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=350, J=650, Iy=iy, Iz=iz, ele=node, alphaZ=0, alphaY=0, alphaX=0)
+    test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=350, J=650, Iy=iy, Iz=iz, ele=node, alphaZ=30, alphaY=0, alphaX=0)
 
     listdeplacement = [[1, "Rotule", 0, 40], [2, "Rotule", 2000, 40]]
     test.create_supports_by_list(listdeplacement)
     
     test.calcul_1D()
     test.graphique("ELU")
+

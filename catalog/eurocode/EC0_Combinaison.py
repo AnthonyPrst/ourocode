@@ -479,8 +479,10 @@ class Combinaison(Chargement):
 		"""
 		self.name_combination.sort()
 		return pd.DataFrame(self.name_combination, columns=['Combinaison'])
-
 	
+
+	def get_list_combination(self):
+		return self.name_combination
 	
 	
 	def _choice_combi_df(self):
@@ -492,19 +494,19 @@ class Combinaison(Chargement):
 
 			if self.elu and combi[0:7] == 'ELU_STR':
 				df_combi = self._return_combi_ELUSTR(combi)
-				df_combi = df_combi.drop('Combinaison', 1)
+				df_combi = df_combi.drop(labels=['Combinaison'], axis=1)
 				load_list_combi = df_combi.values.tolist()
 				dict_load_combi[combi] =  load_list_combi
 
 			if self.els_C and combi[0:5] == 'ELS_C':
 				df_combi = self._return_combi_ELScarac(combi)
-				df_combi = df_combi.drop('Combinaison', 1)
+				df_combi = df_combi.drop(labels=['Combinaison'], axis=1)
 				load_list_combi = df_combi.values.tolist()
 				dict_load_combi[combi] =  load_list_combi
 			
 			if self.els_QP and combi[0:6] == 'ELS_QP':
 				df_combi = self._return_combi_ELSqp(combi)
-				df_combi = df_combi.drop('Combinaison', 1)
+				df_combi = df_combi.drop(labels=['Combinaison'], axis=1)
 				load_list_combi = df_combi.values.tolist()
 				dict_load_combi[combi] =  load_list_combi
 		

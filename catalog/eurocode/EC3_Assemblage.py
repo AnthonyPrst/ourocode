@@ -131,19 +131,27 @@ class Tige(Element):
         """
         quali_1 = [4.6,5.6,8.8]
         if self.qualite in quali_1:
-            fvrd_filete = 0.6 * self.fub * self.As / __class__.GAMMA_M["gamma_M2"]
+            fvrd_filete = 0.6 * self.fub * self.As / self.GAMMA_M["gamma_M2"]
         else:
-            fvrd_filete = 0.5 * self.fub * self.As / __class__.GAMMA_M["gamma_M2"]
+            fvrd_filete = 0.5 * self.fub * self.As / self.GAMMA_M["gamma_M2"]
         
-        fvrd_lisse = 0.6 * self.fub * self.An / __class__.GAMMA_M["gamma_M2"]
+        fvrd_lisse = 0.6 * self.fub * self.An / self.GAMMA_M["gamma_M2"]
         return {"filetage": fvrd_filete * self.filetage_EN1090, "lisse": fvrd_lisse * self.filetage_EN1090}
     
     
     @property
     def FtRd(self) -> float:
-        """Retourne la résistance en traction du tige
+        """Retourne la résistance en traction de la tige en N
         """
-        return  0.9 * self.fub * self.As / __class__.GAMMA_M["gamma_M2"] * self.filetage_EN1090
+        f_ub = self.fub
+        A_s = self.As
+        gamma_M2 =  self.GAMMA_M["gamma_M2"]
+        coef_filetage_EN1090 = self.filetage_EN1090
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            F_t_Rd = 0.9 * f_ub * A_s /  gamma_M2 * coef_filetage_EN1090
+            return F_t_Rd
+        return val()
 
     
     #Combinaison des efforts
@@ -161,16 +169,16 @@ class Tige(Element):
         self.FtEd = FtEd * si.kN
         self.taux_bl = {}
 
-        self.taux_bl["taux_t_d"] = self.FtEd / self.FtRd
+        self.taux_bl["taux_t_d"] = self.FtEd / self.FtRd[1]
 
         self.taux_bl["taux_v_d_lisse"] = self.FvEd / self.FvRd["lisse"]
 
         if self.verif_filetage:
             self.taux_bl["taux_v_d_filetage"] = self.FvEd / self.FvRd["filetage"]
             if FvEd and FtEd:
-                self.taux_bl["taux_v_t_d"] = self.FvEd / min(self.FvRd["lisse"], self.FvRd["filetage"]) + self.FtEd / (1.4 * self.FtRd)
+                self.taux_bl["taux_v_t_d"] = self.FvEd / min(self.FvRd["lisse"], self.FvRd["filetage"]) + self.FtEd / (1.4 * self.FtRd[1])
         else:
-            self.taux_bl["taux_v_t_d"] = self.FvEd / self.FvRd["lisse"] + self.FtEd / (1.4 * self.FtRd)
+            self.taux_bl["taux_v_t_d"] = self.FvEd / self.FvRd["lisse"] + self.FtEd / (1.4 * self.FtRd[1])
             
         return self.taux_bl
     
