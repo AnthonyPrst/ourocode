@@ -46,20 +46,22 @@ class Projet(Objet):
 
 
 class Batiment(Projet):
-	def __init__(self, h_bat: float, d_bat: float, b_bat: float, alpha_toit:float, *args, **kwargs):
+	def __init__(self, h_bat: float, d_bat: float, b_bat: float, alpha_toit: float, alpha_toit2: float=0, *args, **kwargs):
 		"""Créer une classe Batiment héritée de Wind, cette classe défini les dimension du bâtiment
 
 		Args:
 			h_bat (float): hauteur du bâtiment en m.
 			d_bat (float): largeur du bâtiment en m.
 			b_bat (float): longueur du bâtiment en m.
-			alpha_toit (float): angle de toiture en °.
+			alpha_toit (float): angle de toiture en ° du versant 1.
+			alpha_toit2 (float): angle de toiture en ° du versant 2 si il existe sinon 0.
 		"""
 		super().__init__(*args, **kwargs)
 		self.h_bat = h_bat
 		self.d_bat = d_bat
 		self.b_bat = b_bat # coté perpendiculaire au vent longpant
 		self.alpha_toit = alpha_toit
+		self.alpha_toit2 = alpha_toit2 
   
 	def height_ref(self):
 		pass # 7.2.1 bâtiment de grande hauteur

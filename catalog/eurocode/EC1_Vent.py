@@ -78,7 +78,7 @@ class Vent(Batiment):
 		return __class__.CAT_ORO[self.oro]
 
 	@property
-	def _zone(self):
+	def zone_vent(self):
 		file = "carte_action_region.csv"
 		df = self._data_from_csv(file, index_col=1)
 		return int(df.loc[str(self.code_INSEE)]["Zone_vent"])
@@ -90,7 +90,7 @@ class Vent(Batiment):
 		Returns:
 			int: vitesse de référence du vent en m/s
 		"""
-		return self.VB0[str(self._zone)] * si.m/si.s
+		return self.VB0[str(self.zone_vent)] * si.m/si.s
 
 
 	@property
