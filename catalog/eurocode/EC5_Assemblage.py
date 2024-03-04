@@ -920,7 +920,7 @@ class Boulon(Assemblage):
         """
         rho_k = beam.rho_k
         d = self.d.value *10**3
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             f_h0k = 0.082 * (1 - 0.01 * d) * rho_k # MPa
             return f_h0k * si.MPa
