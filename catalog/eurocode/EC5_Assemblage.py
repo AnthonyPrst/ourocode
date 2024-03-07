@@ -5,6 +5,7 @@
 ############# Le but de ce fichier est de regrouper toute les fonctions d'assemblage par organe métalique dans l'EN-1995 #############
 import os
 import sys
+from copy import deepcopy
 
 import math as mt
 from math import sin, cos, radians, sqrt, pi
@@ -96,7 +97,29 @@ class Assemblage(Projet):
                 return int(self.beam_1.caract_meca.loc["rhomean"])
             else:
                 return int(self.beam_2.caract_meca.loc["rhomean"])
+           
             
+    def _min_nef(self, list_nef: list):
+        """Retourne le nef minimum entre les 2
+
+        Args:
+            list_nef (list): list des nef en format handcalcs
+
+        Returns:
+            _type_: _description_
+        """
+        nef_1 = list_nef[0]
+        nef_2 = list_nef[1]
+        
+        min_nef = min(self.nfile * nef_1[1], self.n * nef_2[1])
+        if min_nef == (self.nfile * nef_1[1]):
+            return list_nef[0]
+        else:
+            n_file = deepcopy(self.nfile)
+            self.nfile = self.n
+            self.n = n_file
+            return list_nef[1]
+        
         
     # 7.1 Glissement des assemblages
     def Kser(self, perc: bool=("False", "True")):
@@ -151,7 +174,7 @@ class Assemblage(Projet):
             he : la distance de rive chargée vis à vis du centre de l'organe le plus plus éloigné ou du bord de la plaque
             w : facteur de modification """
         h_e = he
-        @handcalc(override="short", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             F_90_Rk = 14 * b * w * sqrt(h_e / (1 - (h_e / h))) # N
             return F_90_Rk * si.N
@@ -171,11 +194,11 @@ class Assemblage(Projet):
         t_1 = self.t1.value * 10**3
         t_2 = self.t2.value * 10**3
         diam = self.d.value * 10**3
-        M_y_Rk = self.MyRk[1].value * 10**-6
+        M_y_Rk = self.MyRk[1].value * 10**3
 
         if self.nCis == 1:
             
-            @handcalc(override="long", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 beta = f_h2k / f_h1k
                 a = f_h1k * t_1 * diam # N
@@ -197,7 +220,7 @@ class Assemblage(Projet):
             F_v_Rk_johansen = min(a, b, c, d, e, f)
             mode_rupture = dicoRupture[F_v_Rk_johansen]
 
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
                 F_v_Rk_johansen = min(a, b, c, d, e, f)
                 mode_rupture
@@ -205,7 +228,7 @@ class Assemblage(Projet):
             calcul2 = val2()
 
         else:
-            @handcalc(override="long", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 beta = f_h2k / f_h1k
                 g = f_h1k * t_1 * diam # N
@@ -223,7 +246,7 @@ class Assemblage(Projet):
             dicoRupture = {g: "G", h: "H", j: "J", k: "K"}
             mode_rupture = dicoRupture[F_v_Rk_johansen]
 
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
                 F_v_Rk_johansen = min(g, h, j, k)
                 mode_rupture
@@ -240,7 +263,7 @@ class Assemblage(Projet):
             t2 : epaisseur de l'élément bois central en mm
             """
         diam = self.d.value * 10**3
-        M_y_Rk = self.MyRk[1].value * 10**-6
+        M_y_Rk = self.MyRk[1].value * 10**3
 
         if self._type_beam[0] == "Métal":
             f_h2k = self.fh2k[1].value * 10**-6
@@ -266,7 +289,7 @@ class Assemblage(Projet):
             print("ATTENTION interpolation linéaire à faire ! EC5-8.2.3.1")
 
         if self.type_plaque == "mince" and self.nCis == 1:
-            @handcalc(override="short", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 a = 0.4 * f_h1k * t_1 * diam # N
                 b = 1.15 * sqrt(2 * M_y_Rk * f_h1k * diam) # N
@@ -279,7 +302,7 @@ class Assemblage(Projet):
             F_v_Rk_johansen = min(a, b)
             mode_rupture = dicoRupture[F_v_Rk_johansen]
 
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
                 F_v_Rk_johansen = min(a, b)
                 mode_rupture
@@ -287,7 +310,7 @@ class Assemblage(Projet):
             calcul2 = val2()
 
         elif self.type_plaque == "epaisse" and self.nCis == 1:
-            @handcalc(override="short", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 c = f_h1k * t_1 * diam # N
                 d = c * (sqrt(2 + (4 * M_y_Rk) / (f_h1k * diam * t_1 ** 2)) - 1) # N
@@ -302,7 +325,7 @@ class Assemblage(Projet):
             F_v_Rk_johansen = min(c, d, e)
             mode_rupture = dicoRupture[F_v_Rk_johansen]
 
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
                 F_v_Rk_johansen = min(c, d, e)
                 mode_rupture
@@ -310,7 +333,7 @@ class Assemblage(Projet):
             calcul2 = val2()
 
         elif self.nCis == 2 and self.pos_plaq == "centrale":
-            @handcalc(override="short", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 f = f_h1k * t_1 * diam # N
                 g = f * (sqrt(2 + (4 * M_y_Rk) / (f_h1k * diam * t_1 ** 2)) - 1) # N
@@ -325,7 +348,7 @@ class Assemblage(Projet):
             F_v_Rk_johansen = min(f, g, h)
             mode_rupture = dicoRupture[F_v_Rk_johansen]
 
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
                 F_v_Rk_johansen = min(f, g, h)
                 mode_rupture
@@ -333,7 +356,7 @@ class Assemblage(Projet):
             calcul2 = val2()
 
         elif self.type_plaque == "mince" and self.nCis == 2 and self.pos_plaq != "centrale":
-            @handcalc(override="short", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 j = 0.5 * f_h2k * t_2 * diam # N
                 k = 1.15 * sqrt(2 * M_y_Rk * f_h2k * diam) # N
@@ -346,7 +369,7 @@ class Assemblage(Projet):
             F_v_Rk_johansen = min(j, k)
             mode_rupture = dicoRupture[F_v_Rk_johansen]
 
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
                 F_v_Rk_johansen = min(j, k)
                 mode_rupture
@@ -354,7 +377,7 @@ class Assemblage(Projet):
             calcul2 = val2()
 
         else:
-            @handcalc(override="short", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 l = 0.5 * f_h2k * t_2 * diam # N
                 m = 2.3 * sqrt(M_y_Rk * f_h2k * diam) # N
@@ -367,7 +390,7 @@ class Assemblage(Projet):
             F_v_Rk_johansen = min(l, m)
             mode_rupture = dicoRupture[F_v_Rk_johansen]
 
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
                 F_v_Rk_johansen = min(l, m)
                 mode_rupture
@@ -386,10 +409,11 @@ class Assemblage(Projet):
         if ass_bois and self.FvRk_Johansen[1] in ["C", "D", "E", "F", "J", "K"] or \
             not ass_bois and self.FvRk_Johansen[1] in ["B", "D", "E", "G", "H", "K", "M"]:
 
-            F_ax_Rk = self.Fax_Rk
+            print (self.FaxRk)
+            F_ax_Rk = self.FaxRk
             F_v_Rk_johansen = self.FvRk_Johansen[0]
 
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 F_ax_Rk_reel = min(F_ax_Rk / 4, coeflimit * F_v_Rk_johansen)
                 F_v_Rk = F_v_Rk_johansen + F_ax_Rk_reel
@@ -418,17 +442,17 @@ class Assemblage(Projet):
             latex, self.FvRk_Johansen = self._FvRk_BoisMetal_Johansen()
 
         if effet_corde:
-            FvRk_latex, self.Fv_Rk = self._FvRk_total(assemblage_bois)
+            FvRk_latex, self.FvRk = self._FvRk_total(assemblage_bois)
             latex = latex + FvRk_latex
 
         else:
             self.Fv_Rk = self.FvRk_Johansen[0]
 
-        F_v_Rk = self.Fv_Rk
+        F_v_Rk = self.FvRk
         n_file = self.nfile
         n_ef = self._nef
         n_cisaillement = self.nCis
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             F_v_Rk_ass = F_v_Rk * n_file * n_ef * n_cisaillement
             return F_v_Rk_ass
@@ -451,7 +475,7 @@ class Assemblage(Projet):
                 k_mod = self.beam_1.K_mod
         else:
             k_mod = sqrt(self.beam_1.K_mod * self.beam_2.K_mod)
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             F_rd = (F_rk * k_mod) /gamma_M # Valeur de calcul (design)
             return F_rd
@@ -502,7 +526,7 @@ class Assemblage(Projet):
         else:
             K_cr = Kcr
 
-        @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def l_net():
             l_v_i = a_1 - diam # Distance entre perçage dans le sens fil
             L_net_v = 2 * (l_v_i * (n - 1) + a_3_t - (diam_percage / 2)) # Longueur résiduelle de la surface de rupture en cisaillement
@@ -519,7 +543,7 @@ class Assemblage(Projet):
 
         
         if mode_rupture in ("C", "F", "J", "L", "K", "M"):
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def a_net_v():
                 A_net_v = L_net_v * (t_1 * K_cr)
                 return A_net_v
@@ -527,29 +551,29 @@ class Assemblage(Projet):
             latex = latex + tef_result[0] + a_net_v_result[0]
             A_net_v = a_net_v_result[1]
         else:
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def a_net_v(t_ef):
                 A_net_v = L_net_v / 2 * (L_net_t + 2 * (t_ef * K_cr))
                 return A_net_v
             
             match mode_rupture:
                 case "A":
-                    @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+                    @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                     def tef():
                         t_ef = 0.4*t_1 # Épaisseur efficace
                         return t_ef
                 case "B":
-                    @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+                    @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                     def tef():
                         t_ef = 1.4 * sqrt(M_y_Rk / (f_hk * diam)) # Épaisseur efficace
                         return t_ef
                 case "D"|"G":
-                    @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+                    @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                     def tef():
                         t_ef = t_1 * (sqrt(2 + (4 * M_y_Rk ) / (f_hk * diam * t_1**2)-1)) # Épaisseur efficace
                         return t_ef
                 case "E"|"H":
-                    @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+                    @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                     def tef():
                         t_ef = 2 * sqrt(M_y_Rk / (f_hk * diam)) # Épaisseur efficace
                         return t_ef
@@ -558,7 +582,7 @@ class Assemblage(Projet):
             latex = latex + tef_result[0] + a_net_v_result[0]
             A_net_v = a_net_v_result[1]
 
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def f_bs_Rk():
             A_net_t = L_net_t * t_1
             F_bs_Rk = max(0.7 * A_net_v * f_v_k, 1.5 * A_net_t * f_t0_k)
@@ -575,26 +599,29 @@ class Assemblage(Projet):
 class Pointe(Assemblage):
     """ Défini un objet pointe avec :
         d : diamètre de la pointe en mm (pour les pointe carrée = coté de la pointe)
+        d_tete : diamètre de la tête en mm
+        l : longueur sous la tête en mm
+        qualite = qualité de l'acier
         n : nombre d'organe dans une file 
-        fu : la résistance caractéristique en traction du fil d'acier en N/mm2
-        alpha : angle entre l'effort de l'organe et le fil du bois en °
-        pk : masse volumique caractéristique du bois en kg/m3
-        type_pointe : "Carrée" = False "Circulaire" = True
+        alpha1 : angle entre l'effort de l'organe et le fil du bois 1 en °
+        alpha2 : angle entre l'effort de l'organe et le fil du bois 2 en °
+        type_organe : "Carrée" = False "Circulaire" = True
+        percage : "False", "True"
         """
 
     TYPE_ASSEMBLAGE = ("Bois/Bois", ("CP", "Panneau dur", "PP/OSB"), "Bois/Métal")
     QUALITE_ACIER = ('6.8', '8.8', '9.8', '10.9', '12.9')
     TYPE_ORGANE = ("Pointe circulaire", "Pointe carrée", "Autres pointes")
 
-    def __init__(self, d:float, d_tete:int, l:float, qualite: str=QUALITE_ACIER, n: int=1, alpha: float=0, type_organe: str=TYPE_ORGANE, percage: bool=("False", "True"), *args, **kwargs):
+    def __init__(self, d:float, d_tete:int, l:float, qualite: str=QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, type_organe: str=TYPE_ORGANE, percage: bool=("False", "True"), *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.d = d * si.mm
         self.d_tete = d_tete * si.mm
         self.l = l * si.mm #longueur sous tête
         self.qualite = qualite
         self.n = n
-        self.fu = self.__qualite_acier.loc["fub"]
-        self.alpha = mt.radians(alpha)
+        self.fu = self.__qualite_acier.loc["fub"] *si.MPa
+        self.alpha = [alpha1, alpha2]
         self.percage = percage
         self.type_organe = type_organe
 
@@ -619,6 +646,10 @@ class Pointe(Assemblage):
     def __t1_t2(self):
         """Retourne t1 et t2 en mm suivant l'EN 1995 §8.3.1.1
         """
+        l_pointe = self.d #Longueur de la pointe à déduire
+        if self.type_organe == "Tirefond":
+            l_pointe = self.d_vis
+            
         if self.nCis == 1:
             if self._type_beam[0] in self.TYPE_BOIS_ASSEMBLAGE:
                 self.t1 = self.beam_1.b_calcul
@@ -626,11 +657,15 @@ class Pointe(Assemblage):
                 self.t1 = self.beam_1.t
 
             if self._type_beam[1] in self.TYPE_BOIS_ASSEMBLAGE:
-                self.t2 = self.l-self.t1
+                self.t2 = self.l - self.t1 - l_pointe
 
         else:
             if self._type_beam[0] in self.TYPE_BOIS_ASSEMBLAGE:
-                self.t1 = min(self.beam_1.b_calcul, self.l-self.beam_1.b_calcul)
+                if "Bois/Métal" in self.type_assemblage:
+                    b_beam_2 = self.beam_2.t + 2
+                else:
+                    b_beam_2 = self.beam_2.b_calcul
+                    self.t1 = min(self.beam_1.b_calcul, self.l - self.beam_1.b_calcul - b_beam_2 - l_pointe)
             else:
                 print("Il n'est pas possible sauf erreur d'avoir un assemblage double cisaillement avec une pointe !")
             if self._type_beam[1] in self.TYPE_BOIS_ASSEMBLAGE:
@@ -644,12 +679,20 @@ class Pointe(Assemblage):
         """ Défini le moment d'écoulement plastique d'une pointe en N.mm avec:
             d : diamètre de la pointe en mm (pour les pointe carrée = coté de la pointe)
             fu : la résistance caractéristique en traction du fil d'acier en N/mm2 """
+        f_u = self.fu.value * 10**-6
+        d = self.d.value * 10**3
         if self.fu >= 600:
             if self._type_circulaire == True:
-                MyRk = 0.3 * self.fu * self.d**2.6
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    M_y_Rk = 0.3 * f_u* d**2.6 # N.mm
+                    return M_y_Rk * si.N*si.mm
             else:
-                MyRk = 0.45 * self.fu * self.d**2.6
-            return MyRk
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    M_y_Rk = 0.45 * f_u* d**2.6 # N.mm
+                    return M_y_Rk * si.N*si.mm
+            return val()
         else:
             print("La résistance du fil en traction est inférieur à 600 MPa, vérifier vos données !")
 
@@ -657,11 +700,19 @@ class Pointe(Assemblage):
     def _fhk_bois(self, beam:object):
         """ Calcul la portance locale des pointes inférieur à 8mm dans le bois et le LVL en MPa
             """
+        d = self.d.value * 10**3
+        rho_k = beam.rho_k
         if self.percage:
-            fhk = 0.082 * (1 - 0.01 * self.d) * beam.rho_k
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                fhk = 0.082 * (1 - 0.01 * d) * rho_k # MPa
+                return fhk * si.MPa
         else:
-            fhk = 0.082 * beam.rho_k * self.d**(-0.3)
-        return fhk
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                fhk = 0.082 * rho_k * d**(-0.3) # MPa
+                return fhk * si.MPa
+        return val()
 
 
     def _fhk_panneau(self, beam:object):
@@ -674,16 +725,28 @@ class Pointe(Assemblage):
         Returns:
             float: portance locale en MPa
         """
-        if self.d_tete >= 2*self.d:
+        d = self.d.value * 10**3
+        b_calcul = beam.b_calcul
+        rho_k = beam.rho_k
+        if self.d_tete >= 2*d:
             if beam.type_bois == "CP":
-                fhk = 0.11 * beam.rho_k * self.d**-0.3
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    fhk = 0.11 * rho_k * d**-0.3 # MPa
+                    return fhk * si.MPa
             elif beam.type_bois == "Panneau dur":
-                fhk = 30 * self.d**-0.3 * beam.b_calcul**0.6
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    fhk = 30 * d**-0.3 * b_calcul**0.6 # MPa
+                    return fhk * si.MPa
             else:
-                fhk = 65 * self.d**-0.7 * beam.b_calcul**0.1
-            return fhk
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    fhk = 65 * d**-0.7 * b_calcul**0.1 # MPa
+                    return fhk * si.MPa
+            return val()
         else:
-            print(f"La tête de la pointe doit être au moins égale à {2*self.d} mm")
+            print(f"La tête de la pointe doit être au moins égale à {2*d} mm")
 
 
     def _fhik(self) -> tuple:
@@ -694,7 +757,6 @@ class Pointe(Assemblage):
         Returns:
             tuple: (fh1k, fh2k) en MPa
         """
-    
         dict_beam = {"1": {}, "2": {}}
         for i, beam in enumerate([self.beam_1, self.beam_2]):
             if self._type_beam[i] == "Bois":
@@ -722,8 +784,12 @@ class Pointe(Assemblage):
         """ coefficient donnée dans le tableau 8.1 fonction de a1 et du percage qui réduit le nombre efficace de pointe dans le sens 
             du fil avec :
                 a1 : l'espacement entre tige dans le sens du fil du bois """
-        listeTab = (self.d * 4, self.d * 7, self.d *
-                    10, self.d * 14, ("x", 0.7, 0.85, 1))
+        if self.type_organe == "Tirefond":
+            d = self.d_vis
+        else:
+            d = self.d
+        listeTab = (d * 4, d * 7, d *
+                    10, d * 14, ("x", 0.7, 0.85, 1))
 
         if a1 >= listeTab[3]:
             kef = 1
@@ -758,93 +824,112 @@ class Pointe(Assemblage):
         return self.kef
 
 
-    def nef(self, a1:int):
+    def nef(self, a1_beam1:int, a1_beam2:int):
         """Défini le nombre efficace d'organe dans une file avec :
-            n : nombre de boulons dans une file 
+            n : nombre de pointes dans une file 
             d : diamètre de la pointe en mm (pour les pointe carrée = coté de la pointe)
             percage : True or False
             kef : coefficient donnée dans le tableau 8.1 fonction de a1 et du percage """
-        self._nef = self.n**self._kef(a1)
-        return self._nef
-
-
-    def _pince(self, beam:object):
-        """Défini les différentes pinces minimales pour une pointe en mm"""
-
-        rho_k = beam.rho_k
-
-        if self.percage:
-            a1 = round((4 + mt.cos(self.alpha)) * self.d, 1)
-            a2 = round((3 + mt.sin(self.alpha)) * self.d, 1)
-            a3t = round((7 + 5 * mt.cos(self.alpha)) * self.d, 1)
-            a3c = round(7 * self.d, 1)
-            a4c = round(3 * self.d, 1)
-
-            if self.d < 5:
-                a4t = round((3 + 2 * mt.sin(self.alpha)) * self.d, 1)
+        nef_list = []
+        for i, _ in enumerate([self.beam_1, self.beam_2]):
+            if i:
+                a_1 = a1_beam2 * si.mm
+                n = self.nfile
             else:
-                a4t = round((3 + 4 * mt.sin(self.alpha)) * self.d, 1)
-        else:
-            if rho_k <= 420:
-                if self.d < 5:
-                    a1 = round((5 + 5 * mt.cos(self.alpha)) * self.d, 1)
-                    a4t = round((5 + 2 * mt.sin(self.alpha)) * self.d, 1)
-                else:
-                    a1 = round((3 + 7 * mt.cos(self.alpha)) * self.d, 1)
-                    a4t = round((5 + 5 * mt.sin(self.alpha)) * self.d, 1)
-
-                a2 = round(5 * self.d, 1)
-                a3t = round((10 + 5 * mt.cos(self.alpha)) * self.d, 1)
-                a3c = round(10 * self.d, 1)
-                a4c = a2
-
-            elif rho_k > 420 and rho_k <= 500:
-                a1 = round((7 + 8 * mt.cos(self.alpha)) * self.d, 1)
-                a2 = round(7 * self.d, 1)
-                a3t = round((15 + 5 * mt.cos(self.alpha)) * self.d, 1)
-                a3c = round(15 * self.d, 1)
-                a4c = a2
-
-                if self.d < 5:
-                    a4t = round((7 + 2 * mt.sin(self.alpha)) * self.d, 1)
-                else:
-                    a4t = round((7 + 5 * mt.sin(self.alpha)) * self.d, 1)
-            else:
-                print("Il faut absolument prépercer au dessus de rho,k: 500 kg/m3")
+                a_1 = a1_beam1 * si.mm
+                n = self.n
+                
+            k_ef = self._kef(a_1)
         
-        if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[0]: #Si assemblage bois bois
-            pass
-
-        elif self.type_assemblage == __class__.TYPE_ASSEMBLAGE[1]: #Si assemblage bois métal
-            a1 = round(a1 * 0.7, 1)
-            a2 = round(a2 * 0.7, 1)
-
-        else: #Si assemblage bois panneau
-            a1 = round(a1 * 0.85, 1)
-            a2 = round(a2 * 0.85, 1)
-            if beam.type_bois == "CP":
-                a3t = round((3 + 4 * mt.sin(self.alpha)) * self.d, 1)
-                a3c = round(3 * self.d, 1)
-                a4t = a3t
-                a4c = a3c
-
-        return {"a1": a1, "a2":a2, "a3t": a3t, "a3c": a3c, "a4t": a4t, "a4c": a4c}
-
+            if n == 1:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    n_ef =1
+                    return n_ef
+                nef_list.append(val())
+            else :
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    n_ef = n**k_ef
+                    return n_ef
+                nef_list.append(val())
+        result = self._min_nef(nef_list)
+        self._nef = result[1]
+        return result
 
     @property
-    def pince_ass(self):
-        pince = []
-        if self._type_beam[0] in self.TYPE_BOIS_ASSEMBLAGE:
-            pince.append(self._pince(self.beam_1))
-        else:
-            pince.append(None)
+    def pince(self):
+        """Défini les différentes pinces minimales pour une pointe en mm avec :
+            alpha : angle entre l'effort de l'organe et le fil du bois en °
+            d : diamètre efficace de la pointe ou du tire fond si d<=6mm en mm """
+            
+        dict_pince = {}
+        if self.type_organe == "Tirefond":
+            self.d = self.d_vis
+        for i, beam in enumerate([self.beam_1, self.beam_2]):
+            if not self._type_beam[i] in self.TYPE_BOIS_ASSEMBLAGE:
+                continue
+            
+            alpha = self.alpha[i]
+            rho_k = beam.rho_k
+            if self.percage == True:
+                a1 = round((4 + mt.cos(mt.radians(alpha))) * self.d, 1)
+                a2 = round((3 + mt.sin(mt.radians(alpha))) * self.d, 1)
+                a3t = round((7 + 5 * mt.cos(mt.radians(alpha))) * self.d, 1)
+                a3c = round(7 * self.d, 1)
+                a4c = round(3 * self.d, 1)
 
-        if self._type_beam[1] in self.TYPE_BOIS_ASSEMBLAGE:
-            pince.append(self._pince(self.beam_2))
-        else:
-            pince.append(None)
+                if self.d < 5:
+                    a4t = round((3 + 2 * mt.sin(mt.radians(alpha))) * self.d, 1)
+                else:
+                    a4t = round((3 + 4 * mt.sin(mt.radians(alpha))) * self.d, 1)
+            else:
+                if rho_k <= 420:
+                    if self.d < 5:
+                        print (mt.cos(mt.radians(alpha)))
+                        a1 = round((5 + 5 * mt.cos(mt.radians(alpha))) * self.d, 1)
+                        a4t = round((5 + 2 * mt.sin(mt.radians(alpha))) * self.d, 1)
+                    else:
+                        a1 = round((5 + 7 * mt.cos(mt.radians(alpha))) * self.d, 1)
+                        a4t = round((5 + 5 * mt.sin(mt.radians(alpha))) * self.d, 1)
 
-        return pince
+                    a2 = round(5 * self.d, 1)
+                    a3t = round((10 + 5 * mt.cos(mt.radians(alpha))) * self.d, 1)
+                    a3c = round(10 * self.d, 1)
+                    a4c = a2
+
+                elif rho_k > 420 and rho_k <= 500:
+                    a1 = round((7 + 8 * mt.cos(mt.radians(alpha))) * self.d, 1)
+                    a2 = round(7 * self.d, 1)
+                    a3t = round((15 + 5 * mt.cos(mt.radians(alpha))) * self.d, 1)
+                    a3c = round(15 * self.d, 1)
+                    a4c = a2
+
+                    if self.d < 5:
+                        a4t = round((7 + 2 * mt.sin(mt.radians(alpha))) * self.d, 1)
+                    else:
+                        a4t = round((7 + 5 * mt.sin(mt.radians(alpha))) * self.d, 1)
+                else:
+                    print("Il faut absolument prépercer au dessus de rho,k: 500 kg/m3")
+
+            if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[0]: #Si assemblage bois bois
+                pass
+
+            elif self.type_assemblage == __class__.TYPE_ASSEMBLAGE[1]: #Si assemblage bois métal
+                a1 = round(a1 * 0.7, 1)
+                a2 = round(a2 * 0.7, 1)
+
+            else: #Si assemblage bois panneau
+                a1 = round(a1 * 0.85, 1)
+                a2 = round(a2 * 0.85, 1)
+                if beam.type_bois == "CP":
+                    a3t = round((3 + 4 * mt.sin(mt.radians(alpha))) * self.d, 1)
+                    a3c = round(3 * self.d, 1)
+                    a4t = a3t
+                    a4c = a3c
+
+            dict_pince["barre "+str(i+1)] = {"a1": a1, "a2":a2, "a3t": a3t, "a3c": a3c, "a4t": a4t, "a4c": a4c}
+        return dict_pince
 
 
     def prepercage(self, sensible: bool=("False", "True")):
@@ -878,11 +963,12 @@ class Boulon(Assemblage):
         d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm
         fuk : la valeur caractéristique de résistance à la traction du boulon en N/mm2
         n : nombre de boulons dans une file
-        alpha : angle entre l'effort de l'organe et le fil du bois en ° par barre 
+        alpha 1 : angle entre l'effort de l'organe et le fil du bois en ° pour la barre 1
+        alpha 2 : angle entre l'effort de l'organe et le fil du bois en ° pour la barre 2
 
         t1 (int, optional): longueur de contact avec la tige  pour la pièce 1 en mm. 
-                                ATTENTION : Cette argument n'est pas obligatoire par défaut, il est calculer par le type de tige utilisé.
-                                Il n'est nécessaire de le remplir que si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
+                                ATTENTION : Cette argument n'est pas obligatoire par défaut, il est calculé par le type de tige utilisé.
+                                Il n'est nécessaire de le remplir uniquement si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
 
         t2 (int, optional): longueur de contact avec la tige  pour la pièce 2 en mm. 
                             ATTENTION : Même chose que pour t1 mais pour la pièce 2.
@@ -893,6 +979,8 @@ class Boulon(Assemblage):
     def __init__(self, d:float, qualite: str=QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, t1: int=0, t2: int=0, **kwargs):
         super().__init__(**kwargs)
         self.type_organe = "Boulon"
+        if "type_organe" in kwargs.keys():
+            self.type_organe = kwargs.pop("type_organe")
         self.d = d * si.mm
         self.qualite = qualite
         self.fuk = self.__qualite_acier.loc["fub"] *si.MPa
@@ -902,6 +990,7 @@ class Boulon(Assemblage):
         self.t1 = t1
         self.t2 = t2
 
+        self.__t1_t2()
         self._fhik()
     
     @property
@@ -913,6 +1002,43 @@ class Boulon(Assemblage):
         
     # 8.5.1 Boulons chargés latéralement
     # 8.5.1.1 Généralité et assemblage bois/bois
+    
+    def __t1_t2(self):
+        """Retourne t1 et t2 en mm suivant l'EN 1995 §8.3.1.1
+        """
+        for i, _ in enumerate([self.beam_1, self.beam_2]):
+            if self._type_beam[i] != "Métal":
+                if not i:
+                    if not self.t1:
+                        if self.type_organe == "Tirefond" and self.nCis == 2:
+                            if "Bois/Métal" in self.type_assemblage:
+                                b_beam_2 = self.beam_2.t + 2
+                            else:
+                                b_beam_2 = self.beam_2.b_calcul
+                            l_pointe = self.d_vis
+                            print(self.l , self.beam_1.b_calcul , b_beam_2 , l_pointe)
+                            self.t1 = min(self.beam_1.b_calcul, self.l - self.beam_1.b_calcul - b_beam_2 - l_pointe)
+                            continue
+                        self.t1 = self.beam_1.b_calcul
+                    else:
+                        self.t1 = self.t1 * si.mm
+                else:
+                    l_pointe = 0
+                    if self.type_organe == "Tirefond":
+                        l_pointe = self.d_vis
+                        l_vis = self.l  
+                        if i:
+                            if not self.t2:
+                                self.t2 = min(self.beam_2.b_calcul,l_vis-l_pointe-self.t1)
+                            else:
+                                self.t2 = self.t2 * si.mm
+                    else:
+                        if i:
+                            if not self.t2:
+                                self.t2 = self.beam_2.b_calcul
+                            else:
+                                self.t2 = self.t2 * si.mm
+                                
     
     def _fh0k(self, beam: object):
         """Calcul la portance locale d'un boulon bois/bois ou d'un tire fond si d>6mm avec :
@@ -954,7 +1080,7 @@ class Boulon(Assemblage):
             alpha : angle entre l'effort de l'organe et le fil du bois en °
             k90 : coef. de réduction de la portance locale quand un effort à un angle par rapport au fil du bois"""
         f_h0k = fh0k[1]
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             f_h_alpha_k = f_h0k / (k_90 * sin(radians(alpha)) ** 2 + cos(radians(alpha)) ** 2)
             return f_h_alpha_k
@@ -972,12 +1098,12 @@ class Boulon(Assemblage):
         ep = beam.b_calcul.value *10**3
         
         if beam.type_bois == "CP":
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 f_hk = 0.11 * (1 - 0.01 * d) * rho_k # MPa
                 return f_hk
         else:
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 f_hk = 50 * (d**(-0.6)) * (ep**0.2) # MPa
                 return f_hk
@@ -990,6 +1116,7 @@ class Boulon(Assemblage):
         """
     
         dict_beam = {"1": {}, "2": {}}
+            
         for i, beam in enumerate([self.beam_1, self.beam_2]):
             if self._type_beam[i] == "Bois":
                 dict_beam[str(i+1)]["fh0k"] = self._fh0k(beam)
@@ -1002,20 +1129,6 @@ class Boulon(Assemblage):
                 
             else:
                 dict_beam[str(i+1)]["fhik"] = 0
-
-        
-            if self._type_beam[i] != "Métal":
-                if i:
-                    if not self.t2:
-                        self.t2 = self.beam_2.b_calcul
-                    else:
-                        self.t2 = self.t2 * si.mm
-                else:
-                    if not self.t1:
-                        self.t1 = self.beam_1.b_calcul
-                    else:
-                        self.t1 = self.t1 * si.mm
-        
         
         self.fh1k = dict_beam["1"]["fhik"]
         self.fh2k = dict_beam["2"]["fhik"]
@@ -1027,12 +1140,12 @@ class Boulon(Assemblage):
         """Défini le moment d'écoulement plastique d'un boulon en N.mm avec:
             fuk : la valeur caractéristique de résistance à la traction du boulon en N/mm2
             d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm"""
-        f_uk = self.fuk
+        f_uk = self.fuk.value * 10**-6
         d = self.d.value * 10**3
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            M_y_Rk = 0.3 * f_uk * d ** 2.6
-            return M_y_Rk
+            M_y_Rk = 0.3 * f_uk * d ** 2.6 # N.mm
+            return M_y_Rk * si.N*si.mm
         return val()
 
 
@@ -1042,12 +1155,16 @@ class Boulon(Assemblage):
             alpha : angle entre l'effort de l'organe et le fil du bois en °
             d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm """
         dict_pince = {}
+        if self.type_organe == "Tirefond":
+            self.d = self.d_vis
         for i, alpha in enumerate(self.alpha):
+            if not self._type_beam[i] in self.TYPE_BOIS_ASSEMBLAGE:
+                continue
             a1 = round((4 + mt.cos(mt.radians(alpha))) * self.d, 1)
             a2 = round(4 * self.d, 1)
-            a3t = max(7 * self.d, 80*si.mm)
+            a3t = round(max(7 * self.d, 80*si.mm),1)
 
-            if alpha <= 150 and alpha < 210:
+            if alpha <= 30:
                 a3c = round(4 * self.d, 1)
             else:
                 a3c = round((1 + 6 * mt.sin(mt.radians(alpha))) * self.d, 1)
@@ -1056,23 +1173,50 @@ class Boulon(Assemblage):
             a4c = round(3 * self.d, 1)
             dict_pince["barre "+str(i+1)] = {"a1": a1, "a2":a2, "a3t": a3t, "a3c": a3c, "a4t": a4t, "a4c": a4c}
         return dict_pince
-
-
-    def nef(self, a1:int):
+    
+        
+    def nef(self, a1_beam1:int, a1_beam2:int):
         """Défini le nombre efficace d'organe (boulon) dans une file avec :
             a1 : l'espacement entre boulon dans le sens du fil du bois
             n : nombre de boulons dans une file 
             d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm"""
-        n = self.n
-        a1 = a1 * si.mm
         d = self.d
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
-        def val():
-            n_ef = min(n**0.9 * (a1/(13 * d))**(1/4), n)
-            return n_ef
-        value = val()
-        self._nef = value[1]
-        return value
+        if self.type_organe == "Tirefond":
+            d = self.d_vis
+            
+        nef_list = []
+        for i, alpha in enumerate(self.alpha):
+            if i:
+                a_1 = a1_beam2 * si.mm
+                n = self.nfile
+            else:
+                a_1 = a1_beam1 * si.mm
+                n = self.n
+                
+            if n == 1 or alpha == 90:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    n_ef = n
+                    return n_ef
+                nef_list.append(val())
+            else:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    n_ef = min(n**0.9 * (a_1/(13 * d))**(1/4), n)
+                    return n_ef
+                nef_list.append(val())
+            
+                if alpha > 0 and alpha < 90: 
+                    n_ef = nef_list[i][1]
+                    @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                    def nef_a():
+                        n_ef_a = n_ef + alpha * (n - n_ef)/90
+                        return n_ef_a
+                    value2 = nef_a()
+                    nef_list[i] = (nef_list[i][0] + value2[0] , value2[1])
+        result = self._min_nef(nef_list)
+        self._nef = result[1]
+        return result
 
 
     # 8.5.2 Boulons chargés axialement
@@ -1102,7 +1246,7 @@ class Boulon(Assemblage):
             fc_90_d = self.beam_1._f_type_d("fc90k", loadtype, typecombi)[1]
 
         Ft_Rd = FtRd[1]
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             A_int = pi * (d_int / 2)**2 
             A_rondelle = pi * (d_ext / 2)**2 - A_int
@@ -1112,7 +1256,7 @@ class Boulon(Assemblage):
             F_ax_Rk = min(F_c90_d, Ft_Rd)
             return F_ax_Rk
         FaxRk = val()
-        self.Fax_Rk = FaxRk[1]
+        self.FaxRk = FaxRk[1]
         return (FtRd[0] + FaxRk[0], FaxRk[1])
         
 
@@ -1140,7 +1284,7 @@ class Broche(Boulon):
 
     @property
     def FaxRk(self):
-        self.Fax_Rk = 0
+        return 0
         
     @property
     def pince(self):
@@ -1173,122 +1317,267 @@ class Broche(Boulon):
 class Tirefond(object):
     """ Défini un object tirefond avec :
         d : diamètre extérieur du filet en mm
-        d1 : diamètre du noyaux en mm
+        d1 : diamètre du noyau en mm
         dh : diamètre de la tête en mm
-        pa : masse volumique associée au tirefond en fax,k en kg/m3
+        rho_a : masse volumique associée au tirefond en fax,k en kg/m3
         fhead : valeur caractéristique de traversée de la tête du tirefond à l'EN14592 en Mpa
-        ftensk : valeur caractéristique en traction du tirefond en MPa
+        ftensk : valeur caractéristique en traction du tirefond en N
         n : nombre de boulons dans une file
-        alphaTirefond : angle formé entre l'axe du tirefond et le fil du bois, doit être supérieur à 30°"""
+        alpha1 : angle formé entre l'axe du tirefond et le fil du bois 1, doit être supérieur à 30°
+        alpha2 : angle formé entre l'axe du tirefond et le fil du bois 2"""
 
-    def __init__(self, d:float, d1:float, dh:float,  pa:float, fhead:float, ftensk:float, n, alphaTirefond: float=90, **kwargs):
-        self.d = d * si.mm
+    def __init__(self, d:float, d1:float, ds:float, dh:float, l:float, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
+        self.d_vis = d * si.mm
         self.d1 = d1 * si.mm
-        self.d_ef = d1*1.1
-        if self.d_ef <= 6:
-            super(Pointe, self).__init__(d=self.d_ef, d_tete=dh, **kwargs)
-        self.type_organe = "Tirefond"
-        
+        self.ds = ds * si.mm
         self.dh = dh * si.mm
-        self.pa = pa * si.kg/si.m**3
-        self.fhead = fhead * si.MPa
-        self.ftensk = ftensk * si.MPa
+        # self.d_ef = min(d1*1.1, ds) A valider !!!!!
+        self.d_ef = d1*1.1
+        self.l = l * si.mm #longueur sous tête
         self.n = n
-        self.alphaTirefond = mt.radians(alphaTirefond)
-
+        self.percage = percage
+        self.alpha = [alpha1, alpha2]
+        self.type_organe = "Tirefond"
+        self.rho_a = rho_a * si.kg/si.m**3
+        self.fhead = fhead * si.MPa
+        self.ftensk = ftensk * si.N
+        print (n, rho_a)
+    
 
     # 8.7.2 Tirefond chargés axialement
-    def pinceTirefondAxial(self, t: int):
+    def pince_tirefond_axial(self, t: int):
         """ Défini les pinces d'un tirefond en mm lorsqu'il est chargée axialement et l'epaisseur de bois supérieur à 12*d avec:
         d : diamètre extérieur du filet en mm
         t : epaisseur de bois en mm """
-        if t >= 12 * self.d:
+        if t >= 12 * self.d_vis:
 
-            a1 = 7 * self.d
-            a2 = 5 * self.d
-            a1CG = 10 * self.d
-            a2CG = 4 * self.d
-
+            a1 = 7 * self.d_vis
+            a2 = 5 * self.d_vis
+            a1CG = 10 * self.d_vis
+            a2CG = 4 * self.d_vis
         else:
-
             print("L'épaisseur de bois n'est pas suffisante, il faut un bois de {0} mm minimum !".format(
-                12*self.d))
+                12*self.d_vis))
         return {"a1": a1, "a2": a2, "a1CG": a1CG, "a2CG": a2CG}
 
 
+    @property
     def nefTraction(self):
-        """ Renvoie le nombre efficace de tirefond quand ils sont solicité par une composante parallèle à la partie lisse avec :
+        """ Renvoie le nombre efficace de tirefond quand ils sont solicités par une composante parallèle à la partie lisse avec :
             n = nombre de tirefond agissant conjointement dans l'assemblage """
-        if self.n > 1:
-
-            self._nefTraction = self.n**0.9
-
+        n = self.n * self.nfile
+        if n > 1:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                n_ef_traction = n**0.9
+                return n_ef_traction
         else:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                n_ef_traction = 1
+                return n_ef_traction
+        return val()
 
-            self._nefTraction = 1
 
-        return self._nefTraction
-
-
-    def faxk(self, lef: int, pk: int=350):
+    def faxk(self, l_ef: int, beam:str=["1", "2"]):
         """Calcul la valeur caractéristique de la résistance à l'arrachement perpendiculaire au fil en N/mm2 si 6mm<=d<=12mm
         et 0.6<=d1/d<=0.75 avec :
             d : diamètre extérieur du filet en mm
             d1 : diamètre du noyaux en mm
-            lef : longueur de pénétration de la partie filetée en mm
-            pk : masse volumique caractéristique en kg/m3"""
-        if 6 <= self.d <= 12 and 0.6 <= (self.d1 / self.d) <= 0.75:
-
-            faxk = 0.52 * (self.d ** -0.5) * (lef ** -0.1) * (pk ** 0.8)
-            return faxk
+            l_ef : longueur de pénétration de la partie filetée en mm
+            pk : masse volumique caractéristique en kg/m3
+            beam: poutre à calculer 1 ou 2"""
+        
+        d = self.d_vis.value*10**3
+        d1 = self.d1.value*10**3
+        if beam == "1":
+            rho_k  = self.beam_1.rho_k
+        else:
+            rho_k  = self.beam_2.rho_k
+            
+        if 6 <= d <= 12 and 0.6 <= d1 / d <= 0.75:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                f_axk = 0.52 * (d ** -0.5) * (l_ef ** -0.1) * (rho_k ** 0.8)
+                return f_axk
+            return val()
 
         else:
             print(
-                "le diamètre ne répond pas au spécification demandée en 8.7.2(4) de l'EN 1995 partie assemblage")
+                "le diamètre ne répond pas aux spécifications demandées en 8.7.2(4) de l'EN 1995 partie assemblage")
 
 
-    def FaxaRk(self, faxk:float, lef:int, pk: int=350):
+    def _FaxaRk(self, faxk:float, l_ef:int, alpha:int, beam:str=["1", "2"]):
         """Calcul la valeur caractéristique de la résistance à l'arrachement du tirefond à un angle alpha par rapport au fil en N avec :
-                _nef : nombre efficace de tirefond en traction compression
                 faxk : Valeur caractéristique de résistance à l'arrachement perpendiculaire au fil en N/mm2
-                d : diamètre extérieur du filet en mm
-                d1 : diamètre du noyaux en mm
-                lef : longueur de pénétration de la partie filetée en mm
-                pk : masse volumique caractéristique en kg/m3
-                pa : masse volumique associée au tirefond en fax,k en kg/m3
-                alpha : angle formé entre l'axe du tirefond et le fil du bois, doit être supérieur à 30°"""
-        if 6 <= self.d <= 12 and 0.6 <= (self.d1 / self.d) <= 0.75:
-
-            kd = min((self.d / 8), 1)
-            faxark = (self._nefTraction() * faxk * self.d * lef * kd) / (1.2 * mt.cos(self.alphaTirefond) ** 2 +
-                                                                           mt.sin(self.alphaTirefond) ** 2)
-
+                l_ef : longueur de pénétration de la partie filetée en mm
+                alpha : angle formé entre l'axe du tirefond et le fil du bois, doit être supérieur à 30°
+                beam: poutre à calculer 1 ou 2"""
+        d = self.d_vis.value*10**3
+        d_1 = self.d1
+        rho_a = self.rho_a.value
+        if beam == "1":
+            rho_k  = self.beam_1.rho_k
         else:
+            rho_k  = self.beam_2.rho_k
+            
+        if 6 <= d <= 12 and 0.6 <= (d_1 / d) <= 0.75:
+            @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                kd = min((d / 8), 1)
+                F_ax_a_Rk = (faxk * d * l_ef * kd) / (1.2 * cos(radians(alpha)) ** 2 + sin(radians(alpha)) ** 2)
+                return F_ax_a_Rk
+        else:
+            @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                F_ax_a_Rk = ((faxk * d * l_ef) / (1.2 * (cos(radians(alpha))) ** 2 + (sin(radians(alpha))) ** 2)) * ((rho_k / rho_a) ** 0.8) #N
+                return F_ax_a_Rk
+        return val()
 
-            faxark = ((self._nefTraction() * faxk * self.d * lef) / (1.2 * (mt.cos(self.alphaTirefond)) ** 2 +
-                                                                       (mt.sin(self.alphaTirefond)) ** 2)) * ((pk / self.pa) ** 0.8)
-
-        return faxark
-
-
-    def FaxaRkHead(self, pk:int):
+    def _FaxaRkHead(self):
         """Calcul la valeur caractéristique de résistance à la traversée de l'assemblage en N avec :
             _nef : nombre efficace de tirefond en traction compression
             fhead : valeur caractéristique de traversée de la tête du tirefond à l'EN14592 en Mpa
             dh : diamètre de la tête en mm
-            pk : masse volumique caractéristique en kg/m3
-            pa : masse volumique associée au tirefond en fax,k en kg/m3 """
-        FaxRkhead = self._nefTraction() * self.fhead * self.dh**2 * ((pk/self.pa)**0.8)
-        return FaxRkhead
+            rho_k : masse volumique caractéristique en kg/m3
+            rho_a : masse volumique associée au tirefond en fax,k en kg/m3 """
+        f_head = self.fhead.value*10**-6
+        d_h = self.dh.value*10**3
+        rho_a = self.rho_a.value
+        rho_k = self.beam_1.rho_k
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            F_axRkhead = f_head * d_h**2 * ((rho_k/rho_a)**0.8) #N
+            return F_axRkhead
+        return val()
+    
+    
+    def FaxRk(self, faxk:float, l_ef:int, alpha:int, beam:str=["1", "2"]):
+        F_ax_a_Rk_value = self._FaxaRk(faxk, l_ef, alpha, beam)
+        F_ax_a_Rk = F_ax_a_Rk_value[1]
+        F_ax_a_Rk_head_value = self._FaxaRkHead()
+        F_ax_a_Rk_head = F_ax_a_Rk_head_value[1]
+        
+        @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            f_ax_Rk = min(F_ax_a_Rk, F_ax_a_Rk_head) #N
+            return f_ax_Rk
+        FaxRk = val()
+        self.FaxRk = FaxRk[1]
+        return (F_ax_a_Rk_value[0] + F_ax_a_Rk_head_value[0] + FaxRk[0], FaxRk[1])
+   
+    
+    def FaxRkTraction(self, faxk:float, l_ef:int, alpha:int, beam:str=["1", "2"]):
+        F_ax_a_Rk_value = self._FaxaRk(faxk, l_ef, alpha, beam)
+        n_ef_traction = self.nefTraction[1]
+        F_ax_a_Rk = F_ax_a_Rk_value[1]
+        F_ax_a_Rk_head_value = self._FaxaRkHead()
+        F_ax_a_Rk_head = F_ax_a_Rk_head_value[1]
+        
+        @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            f_ax_Rk_traction = min(F_ax_a_Rk, F_ax_a_Rk_head) #N
+            f_ax_Rk_traction_ass = f_ax_Rk_traction * n_ef_traction
+            return f_ax_Rk_traction_ass
+        FaxRk = val()
+        self.FaxRkTraction = FaxRk[1]
+        return (F_ax_a_Rk_value[0] + F_ax_a_Rk_head_value[0] + FaxRk[0], FaxRk[1])
 
 
     def FtRk(self):
         """ Calcul la résistance caractéristique en traction du tirefond en N avec:
             _nef : nombre efficace de tirefond en traction compression
-            ftensk : valeur caractéristique en traction du tirefond en MPa """
-        ftRk = self._nefTraction() * self.ftensk
-        return ftRk
+            ftensk : valeur caractéristique en traction du tirefond en N """
+        n_ef_traction = self.nefTraction()
+        f_tens_k = self.ftensk.value
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            f_tRk = n_ef_traction * f_tens_k
+            return f_tRk
+        return val()
+    
 
+class Tirefond_inf_7(Tirefond, Pointe):
+    """ Défini un object tirefond avec :
+        d : diamètre extérieur du filet en mm
+        d1 : diamètre du noyaux en mm
+        dh : diamètre de la tête en mm
+        rho_a : masse volumique associée au tirefond en fax,k en kg/m3
+        fhead : valeur caractéristique de traversée de la tête du tirefond à l'EN14592 en Mpa
+        ftensk : valeur caractéristique en traction du tirefond en N
+        n : nombre de boulons dans une file
+        alpha1 : angle formé entre l'axe du tirefond et le fil du bois 1, doit être supérieur à 30°
+        alpha2 : angle formé entre l'axe du tirefond et le fil du bois 2"""
+
+    def __init__(self, d:float, d1:float, ds:float, dh:float, l:float, n:int, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
+        qualite = "6.8"
+        self.d_vis = d * si.mm
+        if "qualite" in kwargs.keys():
+            qualite = kwargs.pop("qualite")
+                
+        print(qualite, self.d_vis)
+                
+        if d1*1.1 <= 6:
+            Pointe.__init__(self, d=d1*1.1, d_tete=dh, l=l, qualite=qualite, n=n, alpha1=alpha1, alpha2=alpha2, type_organe="Tirefond", percage=percage, **kwargs)
+            Tirefond.__init__(self, d, d1, ds, dh, l, n, rho_a, fhead, ftensk, MyRk, alpha1, alpha2, percage)
+            
+        else:
+            raise "Erreur, le tirefond est considéré comme un boulon et non une pointe"
+        
+        if MyRk:
+            self._MyRk_fourni = MyRk * si.N*si.mm
+        
+    @property
+    def MyRk(self):
+        if hasattr(self, "_MyRk_fourni"):
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                MyRk = self._MyRk_fourni
+                return MyRk
+            return val()
+        else:
+            return super().MyRk
+
+
+class Tirefond_sup_6(Tirefond, Boulon):
+    """ Défini un object tirefond avec :
+        d : diamètre extérieur du filet en mm
+        d1 : diamètre du noyaux en mm
+        dh : diamètre de la tête en mm
+        rho_a : masse volumique associée au tirefond en fax,k en kg/m3
+        fhead : valeur caractéristique de traversée de la tête du tirefond à l'EN14592 en Mpa
+        ftensk : valeur caractéristique en traction du tirefond en N
+        n : nombre de boulons dans une file
+        alpha1 : angle formé entre l'axe du tirefond et le fil du bois 1, doit être supérieur à 30°
+        alpha2 : angle formé entre l'axe du tirefond et le fil du bois 2"""
+
+    def __init__(self, d:float, d1:float, ds:float, dh:float, l:float, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, **kwargs):
+        qualite = "6.8"
+        self.d_vis = d * si.mm
+        self.l = l * si.mm
+        if "qualite" in kwargs.keys():
+            qualite = kwargs.pop("qualite")
+                
+        if d1*1.1 > 6:
+            Boulon.__init__(self, d=d1*1.1, qualite=qualite, n=n, alpha1=alpha1, alpha2=alpha2, type_organe="Tirefond", **kwargs)
+            Tirefond.__init__(self, d, d1, ds, dh, l, n, rho_a, fhead, ftensk, MyRk, alpha1, alpha2)
+            
+        else:
+            print("Erreur, le tirefond est considéré comme une pointe et non un boulon")
+        
+        if MyRk:
+            self._MyRk_fourni = MyRk * si.N*si.mm
+        
+    @property
+    def MyRk(self):
+        if hasattr(self, "_MyRk_fourni"):
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                MyRk = self._MyRk_fourni
+                return MyRk
+            return val()
+        else:
+            return super().MyRk
 # ======================================================= ANNEAU =========================================================
 # 8.9 Assemblage par anneaux
 
