@@ -70,7 +70,8 @@ class For(Objet):
             self.counter += 1
             if self.counter > len(self.items)-1:
                 self.counter = 0
-            print(self.counter)
+                return False
+            print(self.counter, self.items[self.counter])
             return self.items[self.counter]
         else:
             selection
