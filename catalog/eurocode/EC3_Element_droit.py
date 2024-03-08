@@ -242,15 +242,30 @@ class Flexion(Element):
 
     @property
     def Mc_Rd(self):
-        """Calcul la résistance du moment fléchissant de la section transversale en N (équa 6.13, 6.14, et 6.15)
+        """Calcul la résistance du moment fléchissant de la section transversale en N.mm (équa 6.13, 6.14, et 6.15)
         """
+        gamma_M0 = self.GAMMA_M["gamma_M0"]
+        f_y = self.fy
         match self.classe_transv:
             case 1|2:
-                return (self.W* self.fy)/__class__.GAMMA_M["gamma_M0"] #(équa 6.13)
+                W_pl = self.W
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    M_pl_Rd = W_pl * f_y/ gamma_M0 #équa 6.13
+                    return M_pl_Rd
             case 3:
-                return (self.W * self.fy)/__class__.GAMMA_M["gamma_M0"] #(équa 6.14)
+                W_el_min = self.W
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    M_el_Rd = W_el_min * f_y/ gamma_M0 #équa 6.14
+                    return M_el_Rd
             case 4:
-                return (self.W * self.fy)/__class__.GAMMA_M["gamma_M0"] #(équa 6.15)
+                W_eff_min = self.W
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    M_c_Rd = W_eff_min * f_y/ gamma_M0 #équa 6.15
+                    return M_c_Rd
+        return val()
             
         
     def Mc_V_Rd(self, Av: float, V_Ed: float):
@@ -265,7 +280,7 @@ class Flexion(Element):
         V_Ed = V_Ed * si.kN
         cis = Cisaillement._from_parent_class(self, Av=Av)
         Vpl_Rd = cis.Vpl_Rd
-        Mc_Rd = self.Mc_Rd
+        Mc_Rd = self.Mc_Rd[1]
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
         def val():
             if V_Ed/Vpl_Rd > 0.5:
