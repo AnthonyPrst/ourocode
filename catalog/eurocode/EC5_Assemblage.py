@@ -122,35 +122,67 @@ class Assemblage(Projet):
         
         
     # 7.1 Glissement des assemblages
-    def Kser(self, perc: bool=("False", "True")):
+    @property
+    def Kser(self):
         """Calcul le kser du type d'un organe et de l'asssemblage en N/mm 
 
-        Args:
-            perc (bool, optional): True si pré perçage de fait (valable que pour les pointes). Defaults to False.
 
         Returns:
             list: retourne une liste du kser d'un organe par plan de cisaillement et celui de l'assemblage
         """
-        if self.type_organe == "Boulon" or self.type_organe == "Broche" or self.type_organe == "Tirefond":
-            kser = self.rho_mean_ass**1.5 * self.d / 23
-        elif self.type_organe == "Pointe circulaire" or self.type_organe == "Pointe carrée" or self.type_organe == "Autres pointes":
-            if perc:
-                kser = self.rho_mean_ass**1.5 * self.d / 23
-            else:
-                kser = self.rho_mean_ass**1.5 * self.d**0.8 / 30
-        elif self.type_organe == "Agrafe":
-            kser = self.rho_mean_ass**1.5 * self.d**0.8 / 80
-        elif self.type_organe == "Anneau" or self.type_organe == "Crampon C10/C11":
-            kser = self.rho_mean_ass * self.dc / 2
-        elif self.type_organe == "Crampon C1/C9":
-            kser = 1.5 * self.rho_mean_ass * self.d / 4
-        
-        ktype = 1
-        if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[1]:
-            ktype = 2
+        rho_mean = self.rho_mean_ass
+        if self.type_organe == "Anneau" or self.type_organe == "Crampon C10/C11":
+            dc = self.dc.value*10**3
+        else: 
+            d = self.d.value*10**3
             
-        kser_ass = kser * self.nfile * self.n * self.nCis * ktype
-        return kser, kser_ass
+        if self.type_organe == "Boulon" or self.type_organe == "Broche" or self.type_organe == "Tirefond":
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                K_ser = rho_mean**1.5 * d / 23
+                return K_ser
+        elif self.type_organe == "Pointe circulaire" or self.type_organe == "Pointe carrée" or self.type_organe == "Autres pointes":
+            if self.percage:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    K_ser = rho_mean**1.5 * d / 23
+                    return K_ser
+            else:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    K_ser = rho_mean**1.5 * d**0.8 / 30
+                    return K_ser
+        elif self.type_organe == "Agrafe":
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                K_ser = rho_mean**1.5 * self.d**0.8 / 80
+                return K_ser
+        elif self.type_organe == "Anneau" or self.type_organe == "Crampon C10/C11":
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                K_ser = rho_mean * dc / 2
+                return K_ser
+        elif self.type_organe == "Crampon C1/C9":
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                K_ser = 1.5 * rho_mean * d / 4
+                return K_ser
+        return val()
+    
+    @property
+    def Kser_ass(self):
+        n_file = self.nfile
+        K_ser = self.Kser[1]
+        n = self.n
+        n_Cis = self.nCis
+        k_type = 1
+        if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[1]:
+            k_type = 2
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():    
+            kser_ass = K_ser * n_file * n * n_Cis * k_type
+            return kser_ass
+        return val()
 
 
 
@@ -826,10 +858,8 @@ class Pointe(Assemblage):
 
     def nef(self, a1_beam1:int, a1_beam2:int):
         """Défini le nombre efficace d'organe dans une file avec :
-            n : nombre de pointes dans une file 
-            d : diamètre de la pointe en mm (pour les pointe carrée = coté de la pointe)
-            percage : True or False
-            kef : coefficient donnée dans le tableau 8.1 fonction de a1 et du percage """
+            a1_beam1 : espacement entre les organes dans la barre 1 en mm
+            a1_beam2 : espacement entre les organes dans la barre 2 en mm"""
         nef_list = []
         for i, _ in enumerate([self.beam_1, self.beam_2]):
             if i:
@@ -1323,8 +1353,8 @@ class Tirefond(object):
         fhead : valeur caractéristique de traversée de la tête du tirefond à l'EN14592 en Mpa
         ftensk : valeur caractéristique en traction du tirefond en N
         n : nombre de boulons dans une file
-        alpha1 : angle formé entre l'axe du tirefond et le fil du bois 1, doit être supérieur à 30°
-        alpha2 : angle formé entre l'axe du tirefond et le fil du bois 2"""
+        alpha1 : angle entre l'effort de l'organe et le fil du bois 1 en °
+        alpha2 : angle entre l'effort de l'organe et le fil du bois 2 en °"""
 
     def __init__(self, d:float, d1:float, ds:float, dh:float, l:float, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
         self.d_vis = d * si.mm
@@ -1341,7 +1371,6 @@ class Tirefond(object):
         self.rho_a = rho_a * si.kg/si.m**3
         self.fhead = fhead * si.MPa
         self.ftensk = ftensk * si.N
-        print (n, rho_a)
     
 
     # 8.7.2 Tirefond chargés axialement
@@ -1506,8 +1535,8 @@ class Tirefond_inf_7(Tirefond, Pointe):
         fhead : valeur caractéristique de traversée de la tête du tirefond à l'EN14592 en Mpa
         ftensk : valeur caractéristique en traction du tirefond en N
         n : nombre de boulons dans une file
-        alpha1 : angle formé entre l'axe du tirefond et le fil du bois 1, doit être supérieur à 30°
-        alpha2 : angle formé entre l'axe du tirefond et le fil du bois 2"""
+        alpha1 : angle entre l'effort de l'organe et le fil du bois 1 en °
+        alpha2 : angle entre l'effort de l'organe et le fil du bois 2 en °"""
 
     def __init__(self, d:float, d1:float, ds:float, dh:float, l:float, n:int, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
         qualite = "6.8"
@@ -1515,7 +1544,6 @@ class Tirefond_inf_7(Tirefond, Pointe):
         if "qualite" in kwargs.keys():
             qualite = kwargs.pop("qualite")
                 
-        print(qualite, self.d_vis)
                 
         if d1*1.1 <= 6:
             Pointe.__init__(self, d=d1*1.1, d_tete=dh, l=l, qualite=qualite, n=n, alpha1=alpha1, alpha2=alpha2, type_organe="Tirefond", percage=percage, **kwargs)
@@ -1548,8 +1576,8 @@ class Tirefond_sup_6(Tirefond, Boulon):
         fhead : valeur caractéristique de traversée de la tête du tirefond à l'EN14592 en Mpa
         ftensk : valeur caractéristique en traction du tirefond en N
         n : nombre de boulons dans une file
-        alpha1 : angle formé entre l'axe du tirefond et le fil du bois 1, doit être supérieur à 30°
-        alpha2 : angle formé entre l'axe du tirefond et le fil du bois 2"""
+        alpha1 : angle entre l'effort de l'organe et le fil du bois 1 en °
+        alpha2 : angle entre l'effort de l'organe et le fil du bois 2 en °"""
 
     def __init__(self, d:float, d1:float, ds:float, dh:float, l:float, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, **kwargs):
         qualite = "6.8"

@@ -7,6 +7,8 @@
 # élément droit.
 import os
 import sys
+from copy import deepcopy
+import matplotlib.pyplot as plt
 
 
 import math as mt
@@ -220,7 +222,7 @@ class Barre(Projet):
     
 
     def Emean_fin (self, psy2: float):
-        """renvoie le E,mean,fin en fonction du Kdef et du psy2"""
+        """Renvoie le E,mean,fin en fonction du Kdef et du psy2"""
         self.psy_2 = psy2
         psy_2 = self.psy_2
         E0_mean = int(self.caract_meca.loc["E0mean"]) * si.MPa
@@ -723,28 +725,31 @@ class Compression(Barre):
         else:
             taux_6_11 = 0
             taux_6_12 = 0
-
-        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-        def val():
-            taux_6_2 = sigma_c_0_d / f_c_0_d # equ6.2
-            taux_6_23 = (sigma_c_0_d / (f_c_0_d * K_c_y)) + taux_6_11 # equ6.23
-            taux_6_24 = sigma_c_0_d / (f_c_0_d * K_c_z) + taux_6_12 # equ6.24
-
-            if lamb_rel_y < 0.3 and lamb_rel_z < 0.3:
+        
+        if lamb_rel_y < 0.3 and lamb_rel_z < 0.3:
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                taux_6_2 = sigma_c_0_d / f_c_0_d # equ6.2
+                taux_6_23 = (sigma_c_0_d / (f_c_0_d * K_c_y)) + taux_6_11 # equ6.23
+                taux_6_24 = sigma_c_0_d / (f_c_0_d * K_c_z) + taux_6_12 # equ6.24
                 taux_6_19 = (sigma_c_0_d / (f_c_0_d * K_c_y))**2 + taux_6_11 # equ6.19
                 taux_6_20 = sigma_c_0_d / (f_c_0_d * K_c_z)**2 + taux_6_12 # equ6.20
                 return taux_6_2, taux_6_23, taux_6_24, taux_6_19, taux_6_20
-            
-            return taux_6_2, taux_6_23, taux_6_24
-        value = val()
+            value = val()
+            self.taux_c_0_rd['equ6.19'] = value[1][3]
+            self.taux_c_0_rd['equ6.20'] = value[1][4]
+        else:      
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                taux_6_2 = sigma_c_0_d / f_c_0_d # equ6.2
+                taux_6_23 = (sigma_c_0_d / (f_c_0_d * K_c_y)) + taux_6_11 # equ6.23
+                taux_6_24 = sigma_c_0_d / (f_c_0_d * K_c_z) + taux_6_12 # equ6.24
+                return taux_6_2, taux_6_23, taux_6_24
+            value = val()
 
         self.taux_c_0_rd['equ6.2'] = value[1][0]
         self.taux_c_0_rd['equ6.23'] = value[1][1]
         self.taux_c_0_rd['equ6.24'] = value[1][2]
-
-        if self.lamb_rel_Axe[1]['y'] < 0.3 and self.lamb_rel_Axe[1]['z'] < 0.3:
-            self.taux_c_0_rd['equ6.19'] = value[1][3]
-            self.taux_c_0_rd['equ6.20'] = value[1][4]
 
         return value
 
@@ -1092,159 +1097,281 @@ class Cisaillement(Barre):
 # ================================ Barre assemblées mécaniquement Annexe B ==================================
 
 class Poutre_assemblee_meca(Projet):
-    def __init__(self, beam_2:object, l: int|float, Kser: list=[0,None,0], entraxe: list=[1, None, 1], psy_2: int|float=0, **kwargs):
-         """Classe définissant une poutre composée d'au maximum 3 éléments connectés entre eux par liaisons mécanique 
-         suivant la théorie de HEIMESHOFF Annexe B de l'EN 1995
-         Args:
-             beam_2 (object): objet contenant l'élément centrale de la poutre i=2, cette objet doit être issu de la classe élément ou de son héritage
-             l (int | float): longueur de la poutre en mm
-             Kser (list, optional): Rigidité de liaison par connecteur entre les éléments entre i=1/2 et i=2/3, en N/mm. 
-                                     S'il n'y a que 2 éléments connectés, laisser l'index correspondant vide (ex: [0, 2000]). Defaults to [0,None,0].
-             entraxe (list, optional): Entraxe entre connecteur en mm suivant i=1 ou i=3. Defaults to [1, None, 1].
-             type_action (int | float, optional): Psy 2 qui permet de prendre en compte le fluage dans le temps,
-                                          si calcul en instantanée alors 0, 
-                                          si intermédiaire = voir dans data/coeff_psy.csv 
-                                          et enfin temps infini = 1. 
-                                          Defaults to 0.
-             **kwargs (object): beam_1 et ou beam_3
-         """
-         super().__init__(**kwargs)
-         self.beam = [None , beam_2, None]
-         self.l = l
-         for key, value in kwargs.items():
-             match key[0:4]:
-                 case "beam" if key[-1] == "2":
-                     print("L'attribut ne peut pas être nommé beam_2, il est déjà pris par l'élément centrale ! beam_1 ou beam_3 possible !")
-                 case "beam" if key[-1] != "2" and 1<= int(key[-1]) <=3 :
-                     self.beam[int(key[-1])-1] = value
-         for index, beam in enumerate(self.beam):
-             if beam is not None:
-                 beam.Emean_fin(psy_2)
-    
-         self.Kser = Kser
-         self.entraxe = entraxe
+    def __init__(self, beam_2:object, l: int|float, disposition: str=["Latérale", "Dessus / Dessous"], recouvrement: list=[0,0], Kser: list=[0,None,0], entraxe: list=[1, None, 1], psy_2: int|float=0, **kwargs):
+        """Classe définissant une poutre composée d'au maximum 3 éléments connectés entre eux par liaisons mécanique 
+        suivant la théorie de HEIMESHOFF Annexe B de l'EN 1995
+        Args:
+            beam_2 (object): objet contenant l'élément centrale de la poutre i=2, cette objet doit être issu de la classe élément ou de son héritage
+            l (int | float): longueur de la poutre en mm
+            disposition (str): Disposition des éléments supplémentaires à l'élément 2, "Latérale" ou "Dessus / Dessous"
+            recouvrement (int): Si disposition latérale alors donner un recouvrement en mm. 
+                                Cela correspond à la distance entre le centre géométrique de la pièce 2 et celui de la pièce i.
+                                ATTENTION z local est vers le bas quand vous donnez le recouvrement.
+                                
+            Kser (list, optional): Rigidité de liaison par connecteur entre les éléments entre i=1/2 et i=2/3, en N/mm. 
+                                    S'il n'y a que 2 éléments connectés, laisser l'index correspondant vide (ex: [0, 2000]). Defaults to [0,None,0].
+                                    
+            entraxe (list, optional): Entraxe entre connecteur en mm suivant i=1 ou i=3. Defaults to [1, None, 1].
+            type_action (int | float, optional): Psy 2 qui permet de prendre en compte le fluage dans le temps,
+                                        si calcul en instantanée alors 0, 
+                                        si intermédiaire = voir dans data/coeff_psy.csv 
+                                        et enfin temps infini = 1. 
+                                        Defaults to 0.
+                                        
+            **kwargs (object): beam_1 et ou beam_3
+        """
+        super().__init__(**kwargs)
+        self.beam = [None , beam_2, None]
+        self.l = l * si.mm
+        self.disposition = disposition
+        self.recouvrement = [recouvrement[0]*si.mm, recouvrement[1]*si.mm]
+        self.entraxe = []
+        for e in entraxe:
+            if e is not None:
+                self.entraxe.append(e * si.mm)
+            else:
+                self.entraxe.append(None)
+        for key, value in kwargs.items():
+            match key[0:4]:
+                case "beam" if key[-1] == "2":
+                    print("L'attribut ne peut pas être nommé beam_2, il est déjà pris par l'élément centrale ! beam_1 ou beam_3 possible !")
+                case "beam" if key[-1] != "2" and 1<= int(key[-1]) <=3 :
+                    self.beam[int(key[-1])-1] = value
+        for index, beam in enumerate(self.beam):
+            if beam is not None:
+                beam.Emean_fin(psy_2)    
+        self.Kser = Kser
    
     @property
     def Kser_fin(self):
-         """renvoie le Kser en fonction des Kdef des pièces assemblées et du psy2"""
-         kser_fin = [None] *3
-         for index, beam in enumerate(self.beam):
-             if beam is not None and index != 1:
-                 kser_fin[index] = self.Kser[index] / (1 + self.beam[1].psy_2 * (2 * (beam.K_def * self.beam[1].K_def)**0.5))
-         return kser_fin
+        """Renvoie le Kser en fonction des Kdef des pièces assemblées et du psy2"""
+        kser_fin = {}
+        for index, beam in enumerate(self.beam):
+            if beam is not None and index != 1:
+                K_ser = self.Kser[index] * si.N / si.mm
+                psy_2 = self.beam[1].psy_2
+                K_def_i = beam.K_def
+                K_def_2 = self.beam[1].K_def
+                
+                @handcalc(override="long", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    K_ser_fin = K_ser / (1 + psy_2 * 2 * sqrt(K_def_i * K_def_2))
+                    return K_ser_fin
+                
+                if index == 0:
+                    kser_fin["Kser fin 1-2"] = val()
+                else:
+                    kser_fin["Kser fin 2-3"] = val()
+        return kser_fin
+    
     @property
     def gamma_i(self):
-         """renvoie le gamma"""
-         gamma = [0, 1, 0]
-         for index, beam in enumerate(self.beam):
-             if beam is not None and index != 1:
-                 gamma[index] = (1 + mt.pi**(2) * beam.E_mean_fin * beam.aire * self.entraxe[index] / (self.Kser_fin[index] * self.l**(2)))**(-1)
-         return gamma
+        """Renvoie le gamma"""
+        gamma = [0, 1, 0]
+        gamma = {"gamma 1": None, "gamma 2": 1, "gamma 3": None}
+        for index, beam in enumerate(self.beam):
+            if beam is not None and index != 1:
+                E_mean_fin = beam.E_mean_fin.value * 10 ** -6
+                A = beam.aire.value * 10 ** 6
+                entraxe = self.entraxe[index].value*10**3
+                lo = self.l.value * 10 ** 3
+                if index == 0:
+                   K_ser_fin = self.Kser_fin["Kser fin 1-2"][1].value * 10**-3
+                else:
+                   K_ser_fin = self.Kser_fin["Kser fin 2-3"][1].value * 10**-3
+                
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    gamma_i = (1 + pi ** 2 * E_mean_fin * A * entraxe / (K_ser_fin * lo ** 2)) ** (-1)
+                    return gamma_i
+                gamma["gamma "+str(index+1)] = val()
+        return gamma
+
+    
     @property
     def distance_ai(self):
-         """renvoie la distance à l'axe neutre de la pièce 2"""
-         denominateur = 0
-         for index, beam in enumerate(self.beam):
-             if beam is not None:
-                 denominateur += (self.gamma_i[index] * beam.E_mean_fin * beam.aire)
-         denominateur = 2 * denominateur 
-         if self.beam[0] == None or self.beam[2] == None:
-             for index, beam in enumerate(self.beam):
-                 if beam is not None and index != 1:
-                     numerateur = self.gamma_i[index] * beam.E_mean_fin * beam.aire * (beam.h_calcul + self.beam[1].h_calcul)
-         else:
-             numerateur = (self.gamma_i[0] * self.beam[0].E_mean_fin * self.beam[0].aire * (self.beam[0].h_calcul + self.beam[1].h_calcul) 
-                         - self.gamma_i[2] * self.beam[2].E_mean_fin  * self.beam[2].aire * (self.beam[1].h_calcul + self.beam[2].h_calcul))
-         a2 =  numerateur / denominateur
-         ai = [None, a2, None]
-         for index, beam in enumerate(self.beam):
-             if beam is not None and index != 1:
-                 ai[index] = (beam.h_calcul + self.beam[1].h_calcul)/2 - (-a2)
-                 if a2 >= 0 and index == 0 :
-                     ai[index] -= a2
-                 elif a2 < 0 and index == 2:
-                     ai[index] -= a2
-                 else:
-                     ai[index] += a2
-         return ai
+        """Renvoie la distance à l'axe neutre de la pièce 2"""
+        denominateur = 0
+        if self.disposition == "Latérale":
+            d1 = self.recouvrement[0]
+            d3 = self.recouvrement[1]
+            
+        else:
+            h1 = self.beam[0].h_calcul
+            h2 = self.beam[1].h_calcul
+            h3 = self.beam[2].h_calcul
+            d1 = -(h1 + h2)/2
+            d3 = (h3 + h2)/2
+            
+        for index, beam in enumerate(self.beam):
+            if beam is not None:
+                if index == 1:
+                    gamma_i = self.gamma_i["gamma "+str(index+1)]
+                else:
+                    gamma_i = self.gamma_i["gamma "+str(index+1)][1]
+                    
+                denominateur = denominateur + (gamma_i * beam.E_mean_fin * beam.aire)
+                
+        if self.beam[0] == None or self.beam[2] == None:
+            di = [d1, None, d3]
+            for index, beam in enumerate(self.beam):
+                if beam is not None and index != 1:
+                    gamma_i = self.gamma_i["gamma "+str(index+1)][1]
+                    numerateur = gamma_i * beam.E_mean_fin * beam.aire * di[index]
+        else:
+            numerateur = (self.gamma_i["gamma 1"][1] * self.beam[0].E_mean_fin * self.beam[0].aire * d1 
+                        - self.gamma_i["gamma 3"][1] * self.beam[2].E_mean_fin  * self.beam[2].aire * d3)
+        a2 =  numerateur / denominateur
+        ai = [None, -a2, None]
+        for index, beam in enumerate(self.beam):
+            if beam is not None and index != 1:
+                di = [d1, None, d3]
+                ai[index] = di[index] - a2
+        return ai
        
     @property
     def EI_eff (self):
-         """renvoie la rigidité de la poutre connectée"""
-         ei_eff = 0
-         for index, beam in enumerate(self.beam):
-             if beam is not None:
-                 ei_eff += (beam.E_mean_fin * beam.inertie[0] + self.gamma_i[index] * beam.E_mean_fin * self.beam[index].aire * self.distance_ai[index]**2)
-         return ei_eff
+        """Renvoie la rigidité de la poutre connectée"""
+        EIeff_latex = ""
+        EIeff_value = 0
+        for index, beam in enumerate(self.beam):
+            if beam is not None:
+                if index == 1:
+                    gamma_i = self.gamma_i["gamma "+str(index+1)]
+                else:
+                    gamma_i = self.gamma_i["gamma "+str(index+1)][1]
+                    
+                E_mean_fin = beam.E_mean_fin
+                inertie = beam.inertie[0]
+                aire = self.beam[index].aire
+                distance_ai = self.distance_ai[index]
+                
+                @handcalc(override="long", precision=1, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():                    
+                    EI_eff_i = E_mean_fin * inertie + gamma_i * E_mean_fin * aire * distance_ai**2
+                    return EI_eff_i
+                inter = val()
+                EIeff_latex += f'EI eff {index+1}: '
+                EIeff_latex += inter[0]
+                EIeff_value = EIeff_value + inter[1]
+                
+        @handcalc(override="params", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def sum_EI(): 
+            EI_eff_global = EIeff_value # Somme des EI efficace
+            return EI_eff_global
+        sumEI = sum_EI()
+        return (EIeff_latex + sumEI[0], sumEI[1])
 
 
-    # def verif_cisaillement(self, qz, l, EIeff):
-    #     vz = qz * l / 2
-    #     h = self.beam[1].h_calcul / 2 + self.distance_ai[0]
-    #     kcr = 0.67
-    #     tau = vz * (self.g3 * self.E3 * self.A3 * self.a3 + 0.5 * self.E2 * self.Bois2.b * h**2) / ( self.Bois2.b * kcr *EIeff)
-    #     return tau  #fonctionne
+    def tau_2_max(self, Vz:float):
+        """Calcul de la contrainte de cisaillement maximale dans l'élément 2 selon Annexe B.4 de l'EN 1995
 
-
-    # def verif_flexion(self, qz, Ei, ai, EIeff, gammai, l, hi):
-    #     my = qz * l**2 / 8
-    #     sigma_i = my * gammai * Ei * ai / EIeff
-    #     sigma_mi = 0.5 * Ei * hi *my / EIeff
-    #     return sigma_i, sigma_mi #fonctionne
-
-
-    # def verif_els(self, qz_qp, qz_c, EIeff_inst, EIeff_fin, l):
-    #     u_inst_qp = 5 * qz_qp * l**4 / (384 * EIeff_inst)
-    #     u_fin_qp = 5 * qz_qp * l**4 / (384 * EIeff_fin)
-    #     u_creep = u_fin_qp - u_inst_qp
-    #     u_inst_c = u_inst_qp * qz_c / qz_qp
-    #     u_fin = u_inst_c + u_creep
-    #     return u_fin
-
-
-    # def calcul_compression90(self):
-    #     i, appuis_zero = 0, 0
-    #     self.Beam_C90 = [0] * len(self.list_appuis)
+        Args:
+            vz (float): Effort de cisaillement Vz en kN
+        """
         
-    #     for appuis in self.list_appuis:
-    #         Fc90d = self.effort[3][i] * 10**3
+        beam_2 = deepcopy(self.beam[1])
+        K_cr = Cisaillement._from_parent_class(beam_2).K_cr
+        
+        V_z = Vz * si.kN
+        h = self.beam[1].h_calcul / 2 + self.distance_ai[1]
+        gamma_3 = self.gamma_i["gamma 3"][1]
+        E_mean_fin_3 = self.beam[2].E_mean_fin
+        E_mean_fin_2 = self.beam[1].E_mean_fin
+        aire_3 = self.beam[2].aire
+        a_3 = self.distance_ai[2]
+        b_2 = self.beam[1].b_calcul
+        EI_eff = self.EI_eff[1]
+        
+        @handcalc(override="long", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            tau_2 = V_z * (gamma_3 * E_mean_fin_3 * aire_3 * a_3 + 0.5 * E_mean_fin_2 * b_2 * h**2) / (b_2 * K_cr * EI_eff)
+                
+            return tau_2
+        
+        return val()
+    
+
+    def sigma_i(self, My:float, beam: int=[1, 2, 3]):
+        """Contrainte de compression parallèle au fil selon Annexe B.3 de l'EN 1995
+
+        Args:
+            My (float): Moment selon l'axe y en kN.m
+            beam (int, optional): Beam 1 = Barre 1
+                                  Beam 2 = Barre 2 
+                                  Beam 3 = Barre 3.
+        """
+        Mf_z = My * si.kN*si.m
+        index = beam
+        if self.beam[index-1] is not None:
+            if index == 2:
+                gamma_i = self.gamma_i["gamma "+str(index)]
+            else:
+                gamma_i = self.gamma_i["gamma "+str(index)][1]
+            E_mean_fin = self.beam[index-1].E_mean_fin
+            distance_ai = self.distance_ai[index-1]
+            EI_eff = self.EI_eff[1]
             
-    #         posl1g = 0
-    #         posl1d = 10**6
-    #         ag = ad = 0
+            @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                sigma_i = Mf_z * gamma_i * E_mean_fin * distance_ai / EI_eff
+                
+                return sigma_i
+            return val()
+            
+    
+    def sigma_mi(self, My:float, beam: int=[1, 2, 3]):
+        """Contrainte de flexion selon l'axe y selon Annexe B.3 de l'EN 1995
 
-    #         for pos in self.list_appuis:
-    #             if pos[2] == 0:
-    #                 appuis_zero = 1
-    #             if pos[2] < appuis[2] or pos[2] > appuis[2]:
-    #                 if posl1g < pos[2] < appuis[2]:
-    #                     posl1g = pos[2]
-    #                 if posl1d > pos[2] > appuis[2]:
-    #                     posl1d = pos[2]
+        Args:
+            My (float): Moment selon l'axe y en kN.m
+            beam (int, optional): Beam 1 = Barre 1
+                                  Beam 2 = Barre 2 
+                                  Beam 3 = Barre 3.
+        """
+        M_y = My * si.kN*si.m
+        index = beam
+        if self.beam[index-1] is not None:
+            E_mean_fin = self.beam[index-1].E_mean_fin
+            h_i = self.beam[index-1].h_calcul
+            EI_eff = self.EI_eff[1]
+            
+            @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                sigma_m_i = 0.5 * M_y * E_mean_fin * h_i / EI_eff
+                
+                return sigma_m_i
+            return val()
+            
+            
+    def F_i(self, Vz:float, connecteur: int=[1,2]):
+        """Permet de calculer la charge à reprendre par organe d'assemblage selon Annexe B.5 de l'EN 1995
 
-    #         if posl1d != 10**6:
-    #             l1d = posl1d - appuis[2]
-    #         else:
-    #             l1d = 10**6
-    #         if posl1g or (appuis[2] != 0  and appuis_zero == 1):
-    #             l1g = appuis[2] - posl1g
-    #         else:
-    #             l1g = 10**6
+        Args:
+            Vz (float): Effort de cisaillement Vz en kN
+            connecteur (int, optional): Position des connecteurs:
+                        1 : connecteur entre les planches 1 et 2
+                        2 : connecteur entre les planches 2 et 3. 
+                        Defaults to [1,2].
+        """
+        V_z = Vz * si.kN
+        if connecteur == 1 :
+            connecteur = 0
+        gamma_i = self.gamma_i["gamma "+str(connecteur + 1)][1]
+        E_mean_fin = self.beam[connecteur].E_mean_fin
+        aire = self.beam[connecteur].aire
+        distance_ai = self.distance_ai[connecteur]
+        entraxe = self.entraxe[connecteur]
+        EI_eff = self.EI_eff[1]
+        
+        @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            F_i = gamma_i * E_mean_fin * aire * distance_ai * entraxe * V_z / EI_eff
+            return F_i
+        return val()
 
-    #         if appuis[2] == 0 or appuis[2] == self.long:
-    #             pass
-    #         else:
-    #             if l1g == 10**6 and appuis_zero == 0:
-    #                 ag = appuis[2]-(appuis[3]/2)
-    #             if l1d == 10**6:
-    #                 ad = self.long-appuis[2]-(appuis[3]/2)
 
-    #         self.Beam_C90[i] = Compression_perpendiculaire(self.b, self.h, 1, self.section, self.Hi, self.Hf, self.classe, self.cs)
-    #         self.Beam_C90[i].sigma_c_90_d(Fc90d, appuis[3], l1d, l1g, ad, ag)
-    #         self.Beam_C90[i]._f_type_d("fc90k", self.load_type, "Fondamentales")
-    #         self.Beam_C90[i].taux_c_90_d()
-    #         # print('carac c90:', l1d, l1g, ad, ag, self.Beam_C90[i].aef)
-    #         i += 1
+
             
 
 if __name__=='__main__':
