@@ -908,30 +908,33 @@ class MEF(Combinaison, _Base_graph):
 
 if __name__ == '__main__':
     from EC0_Combinaison import Chargement
-    _list_loads = [[1, '', 'Permanente G', 'Linéique', -10, '0/6000', 'Z'],
-                 [0, 'Poids propre', 'Permanente G', 'Linéique', -36, '0/6000', 'Z'],
-                 [2, '', 'Neige normale Sn', 'Linéique', -200, '0/6000', 'Z'],
-                 [3, '', 'Exploitation Q', 'Linéique', -150, '0/6000', 'Z']]
+    _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, '0/6000', 'Z'],
+                 [0, 'Poids propre', 'Permanente G', 'Linéique', -360, '0/6000', 'Z'],
+                 [2, '', "Neige normale Sn", 'Linéique', -200, '0/6000', 'Z'],
+                 [3, '', 'Exploitation Q', 'Linéique', -150, '0/6000', 'Z'],
+                 [4, '', 'Vent dépression W-', 'Linéique', 175, '0/6000', 'Z']]
     chargement = Chargement(pays="Japon")
     chargement.create_load_by_list(_list_loads)
     c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation", kdef=0.6)
     print(c1.list_combination)
-    rcombi = "W_net_fin ELS_C G + Q + 0.5Sn & ELS_QP G + 0.3Q"
+    rcombi = "W_inst W-"
     # W_inst Q + 0.5Sn
-    # W_net_fin ELS_C G + Q + 0.5Sn / ELS_QP G + 0.3Q
+    # W_inst Sn + 0.7Q
+    # W_net_fin ELS_C G + Sn + 0.7Q & ELS_QP G + 0.3Q
+    # W_net_fin ELS_C G + Q + 0.5Sn & ELS_QP G + 0.3Q
     print(c1.get_combi_list_load(rcombi))
     print(c1.df_W_net_fin)
     long = 6000
     node = int(round(long/100))
     
     b = 140
-    h = 600
+    h = 200
     a = b*h
     iy = (b*h**3)/12
     iz = (h*b**3)/12
     test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=350, J=650, Iy=iy, Iz=iz, ele=node, alphaZ=0, alphaY=0, alphaX=0)
 
-    listdeplacement = [[1, "Rotule", 0, 40], [2, "Rotule", 2000, 40]]
+    listdeplacement = [[1, "Rotule", 0, 40], [2, "Rotule", 3000, 40], [3, "Rotule", 6000, 40]]
     test.create_supports_by_list(listdeplacement)
     
     test.calcul_1D()
