@@ -525,7 +525,7 @@ class Combinaison(Chargement):
 		for name_combi_C, val in combi_c.items():
 			position = list_of_value.index(val)
 			name_combi_QP = list_of_key[position]
-			name_combi = "W_net_fin "+ name_combi_C + " / " + name_combi_QP
+			name_combi = "W_net_fin "+ name_combi_C + " & " + name_combi_QP
 
 			df_c = self.df_load_ELScarac[self.df_load_ELScarac["Combinaison"] == name_combi_C]
 			df_qp = self.df_load_ELSqp[self.df_load_ELSqp["Combinaison"] == name_combi_QP]
@@ -540,9 +540,11 @@ class Combinaison(Chargement):
 				if len(df_qp[df_qp["Index"] == index_c]):
 					valeur_qp = df_qp[df_qp["Index"] == index_c].iloc[0,5]
 					valeur = valeur_c + valeur_qp
-					load = np.array([name_combi, index_c, name_load, action_load, type_load, valeur, position, axe], dtype=object)
-					array_load = np.append(array_load,[load],axis= 0)
-					self._create_list_combination(name_combi)
+				else:
+					valeur = valeur_c
+				load = np.array([name_combi, index_c, name_load, action_load, type_load, valeur, position, axe], dtype=object)
+				array_load = np.append(array_load,[load],axis= 0)
+				self._create_list_combination(name_combi)
 
 		array_load = array_load[array_load[:, 0].argsort()]
 		self.df_W_net_fin = self._create_dataframe_load(array_load)
@@ -550,7 +552,7 @@ class Combinaison(Chargement):
  
 
 	def _return_combi_W_inst_Q(self, combi):
-		return self.df_W_net_fin.loc[self.df_W_net_fin['Combinaison']==combi]
+		return self.df_W_inst_Q.loc[self.df_W_inst_Q['Combinaison']==combi]
 	
 	def _return_combi_W_net_fin(self, combi):
 		return self.df_W_net_fin.loc[self.df_W_net_fin['Combinaison']==combi]

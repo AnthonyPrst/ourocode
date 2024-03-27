@@ -908,17 +908,20 @@ class MEF(Combinaison, _Base_graph):
 
 if __name__ == '__main__':
     from EC0_Combinaison import Chargement
-    _list_loads = [[1, '', 'Permanente G', 'Linéique', -10, '0/2000', 'Z'],
-                 [0, 'Poids propre', 'Permanente G', 'Linéique', -36, '0/2000', 'Z'],
-                 [2, '', 'Neige normale Sn', 'Linéique', -200, '0/2000', 'Z'],
-                 [3, '', 'Exploitation Q', 'Linéique', -150, '0/2000', 'Z']]
+    _list_loads = [[1, '', 'Permanente G', 'Linéique', -10, '0/6000', 'Z'],
+                 [0, 'Poids propre', 'Permanente G', 'Linéique', -36, '0/6000', 'Z'],
+                 [2, '', 'Neige normale Sn', 'Linéique', -200, '0/6000', 'Z'],
+                 [3, '', 'Exploitation Q', 'Linéique', -150, '0/6000', 'Z']]
     chargement = Chargement(pays="Japon")
     chargement.create_load_by_list(_list_loads)
-    c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation")
+    c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation", kdef=0.6)
     print(c1.list_combination)
-    rcombi = "ELU_STR 1.35G + 1.5Sn + 1.05Q"
+    rcombi = "W_net_fin ELS_C G + Q + 0.5Sn & ELS_QP G + 0.3Q"
+    # W_inst Q + 0.5Sn
+    # W_net_fin ELS_C G + Q + 0.5Sn / ELS_QP G + 0.3Q
     print(c1.get_combi_list_load(rcombi))
-    long = 2000
+    print(c1.df_W_net_fin)
+    long = 6000
     node = int(round(long/100))
     
     b = 140
