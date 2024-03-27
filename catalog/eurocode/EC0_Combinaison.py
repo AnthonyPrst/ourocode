@@ -162,7 +162,7 @@ class Combinaison(Chargement):
 			list_psy.append([None, None, None])
 		
 		for i in range(3):
-			if self.alt>1000: 
+			if self.alt.value>1000: 
 				listval.append(data_csv_psy.loc["Neige > 1000m"].loc["psy"+str(i)])
 			else:
 				listval.append(data_csv_psy.loc["Neige < 1000m"].loc["psy"+str(i)])
@@ -472,7 +472,7 @@ class Combinaison(Chargement):
 
 	@property
 	def list_combination(self):
-		"""Retourne un data frame avec toute les combinaison créer
+		"""Retourne un data frame avec toutes les combinaisons créées
 
 		Returns:
 			_type_: _description_
@@ -542,10 +542,10 @@ class Combinaison(Chargement):
 
 
 	def get_combi_list_load(self, nom: str):
-		"""Retourne la liste des charges combinées pour la combinaison sélectionné
+		"""Retourne la liste des charges combinées pour la combinaison sélectionnée
 
 		Args:
-			nom (str): nom des la combinaison à récupérer. Defaults to "Sélectionner tout".
+			nom (str): nom de la combinaison à récupérer. Defaults to "Sélectionner tout".
 		"""
 		self.list_loads = self._choice_combi_df()[nom]
 		return self.list_loads
@@ -571,7 +571,7 @@ class Combinaison(Chargement):
 			if action:
 				indexAction = name_combi[8:].find(action)
 				if indexAction > -1 :
-					if action == "Sn" and self.alt >= 1000 :
+					if action == "Sn" and self.alt.value >= 1000 :
 						name_load_type = dictName["Q"]
 					elif action == "Sn" and self.cat == "Cat H : toits":
 						name_load_type = dictName["Sn"]

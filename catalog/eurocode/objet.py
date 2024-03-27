@@ -70,7 +70,7 @@ class Objet(object):
             # Si un argument utilise forallpeople on récupère que la valeur pour ne pas multiplier l'unité par elle même
             for key, val in dictionnary.items():
                 if isinstance(val, si.Physical):
-                    physical = val.split(base_value=False)
+                    physical = val.split(base_value=True)
                     dict_physical[key] = physical[0]
 
             dict_objet.update(dict_physical)

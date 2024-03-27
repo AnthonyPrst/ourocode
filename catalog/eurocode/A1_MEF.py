@@ -92,7 +92,7 @@ class MEF(Combinaison, _Base_graph):
             J (float): Module de torsion
             Iy (float): Inertie quadratique autour de y en mm4
             Iz (float): Inertie quadratique autour de z en mm4
-            ele (int): Nombre d'élément MEF
+            ele (int): Nombre d'élément fini (mesh)
             alphaZ (float): Angle d'application des charges entre un repère local et global autour de Z
             alphaY (float): Angle d'application des charges entre un repère local et global autour de y
             alphaX (float): Angle d'application des charges entre un repère local et global autour de x
@@ -640,27 +640,27 @@ class MEF(Combinaison, _Base_graph):
 
         nx_max = max(self.ei_coor[0])
         nx_max_index = self.ei_coor[0].index(nx_max)
-        nx_max_coor = [self.node_coor[nx_max_index,0], nx_max]
+        nx_max_coor = {"Position": self.node_coor[nx_max_index,0], "Effort": nx_max}
 
         nx_min = min(self.ei_coor[0])
         nx_min_index = self.ei_coor[0].index(nx_min)
-        nx_min_coor = [self.node_coor[nx_min_index,0], nx_min]
+        nx_min_coor = {"Position": self.node_coor[nx_min_index,0], "Effort": nx_min}
 
         vz_max = max(self.ei_coor[1])
         vz_max_index = self.ei_coor[1].index(vz_max)
-        vz_max_coor = [self.node_coor[vz_max_index,0], vz_max]
+        vz_max_coor = {"Position": self.node_coor[vz_max_index,0], "Effort": vz_max}
 
         vz_min = min(self.ei_coor[1])
         vz_min_index = self.ei_coor[1].index(vz_min)
-        vz_min_coor = [self.node_coor[vz_min_index,0], vz_min]
+        vz_min_coor = {"Position": self.node_coor[vz_min_index,0], "Effort": vz_min}
 
         my_max = max(self.ei_coor[2])
         my_max_index = self.ei_coor[2].index(my_max)
-        my_max_coor = [self.node_coor[my_max_index,0], my_max]
+        my_max_coor = {"Position": self.node_coor[my_max_index,0], "Effort": my_max}
 
         my_min = min(self.ei_coor[2])
         my_min_index = self.ei_coor[2].index(my_min)
-        my_min_coor = [self.node_coor[my_min_index,0], my_min]
+        my_min_coor = {"Position": self.node_coor[my_min_index,0], "Effort": my_min}
 
         return {"Nx_max": nx_max_coor,"Nx_min": nx_min_coor, 
                 "Vz_max": vz_max_coor, "Vz_min": vz_min_coor, 
@@ -759,8 +759,8 @@ class MEF(Combinaison, _Base_graph):
         self.y_values = self.ei_coor[0]
         
         dictEiMinMax = self.effort_interne_max()
-        self.max_XY_values = (dictEiMinMax["Nx_max"][0], dictEiMinMax["Nx_max"][1])
-        self.min_XY_values = (dictEiMinMax["Nx_min"][0], dictEiMinMax["Nx_min"][1])
+        self.max_XY_values = (dictEiMinMax["Nx_max"]["Position"], dictEiMinMax["Nx_max"]["Effort"])
+        self.min_XY_values = (dictEiMinMax["Nx_min"]["Position"], dictEiMinMax["Nx_min"]["Effort"])
         self.excent_X = 100
         self.excent_Y = 0.05
         self.fill_between = True
@@ -785,8 +785,8 @@ class MEF(Combinaison, _Base_graph):
         self.y_values = self.ei_coor[1]
         
         dictEiMinMax = self.effort_interne_max()
-        self.max_XY_values = (dictEiMinMax["Vz_max"][0], dictEiMinMax["Vz_max"][1])
-        self.min_XY_values = (dictEiMinMax["Vz_min"][0], dictEiMinMax["Vz_min"][1])
+        self.max_XY_values = (dictEiMinMax["Vz_max"]["Position"], dictEiMinMax["Vz_max"]["Effort"])
+        self.min_XY_values = (dictEiMinMax["Vz_min"]["Position"], dictEiMinMax["Vz_min"]["Effort"])
         self.excent_X = 50
         self.excent_Y = 1
         self.fill_between = True
@@ -813,8 +813,8 @@ class MEF(Combinaison, _Base_graph):
         self.y_values = self.ei_coor[2]
         
         dictEiMinMax = self.effort_interne_max()
-        self.max_XY_values = (dictEiMinMax["My_max"][0], dictEiMinMax["My_max"][1])
-        self.min_XY_values = (dictEiMinMax["My_min"][0], dictEiMinMax["My_min"][1])
+        self.max_XY_values = (dictEiMinMax["My_max"]["Position"], dictEiMinMax["My_max"]["Effort"])
+        self.min_XY_values = (dictEiMinMax["My_min"]["Position"], dictEiMinMax["My_min"]["Effort"])
         self.excent_X = 1
         self.excent_Y = 1
         self.fill_between = True
@@ -916,8 +916,8 @@ if __name__ == '__main__':
     chargement.create_load_by_list(_list_loads)
     c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation")
     print(c1.list_combination)
-    rcombi = "ELU_STR 1.35G + 1.5Sn"
-    c1.get_combi_list_load(rcombi)
+    rcombi = "ELU_STR 1.35G + 1.5Sn + 1.05Q"
+    print(c1.get_combi_list_load(rcombi))
     long = 2000
     node = int(round(long/100))
     
@@ -932,4 +932,4 @@ if __name__ == '__main__':
     test.create_supports_by_list(listdeplacement)
     
     test.calcul_1D()
-    test.graphique("ELU")
+    test.graphique(rcombi)
