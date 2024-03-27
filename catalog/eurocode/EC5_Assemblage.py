@@ -474,13 +474,13 @@ class Assemblage(Projet):
             latex, self.FvRk_Johansen = self._FvRk_BoisMetal_Johansen()
 
         if effet_corde:
-            FvRk_latex, self.FvRk = self._FvRk_total(assemblage_bois)
+            FvRk_latex, self.Fv_Rk = self._FvRk_total(assemblage_bois)
             latex = latex + FvRk_latex
 
         else:
             self.Fv_Rk = self.FvRk_Johansen[0]
 
-        F_v_Rk = self.FvRk
+        F_v_Rk = self.Fv_Rk
         n_file = self.nfile
         n_ef = self._nef
         n_cisaillement = self.nCis
