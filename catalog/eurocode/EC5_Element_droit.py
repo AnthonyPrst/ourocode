@@ -36,7 +36,7 @@ class Barre(Projet):
     TYPE_BAT = ("Batiments courants", "Batiments agricoles et similaires")
     TYPE_ELE = tuple(Projet._data_from_csv(Projet, "limite_fleche.csv").index.unique())
 
-    def __init__(self, b:int, h:int, section: str=LIST_SECTION, Hi: int=12, Hf: int=12, classe: str=CLASSE_WOOD, cs: int=CS, effet_systeme: bool=("False", "True"), **kwargs):
+    def __init__(self, b:si.mm, h:si.mm, section: str=LIST_SECTION, Hi: int=12, Hf: int=12, classe: str=CLASSE_WOOD, cs: int=CS, effet_systeme: bool=("False", "True"), **kwargs):
         """Classe qui définis les caractéristiques d'un élément droit. 
         Cette classe est hérité de la classe Projet du module A0_Projet.py.
 
@@ -51,6 +51,8 @@ class Barre(Projet):
             effet_systeme: Détermine si l'effet système s'applique.
         """
         super().__init__(**kwargs)
+        # if isinstance(b, si.Physical):
+        #     self.b = b.value * 10**3
         self.b = b * si.mm
         self.h = h * si.mm
         self.section = section
@@ -297,7 +299,7 @@ class Flexion(Barre):
                 "Porte à faux": [0.5, 0.8]}
     LOAD_POS =  {"Charge sur fibre comprimée": 0, "Charge sur fibre neutre": 1, "Charge sur fibre tendu" : 2}
 
-    def __init__(self, lo:int, coeflef: float=COEF_LEF['Appuis simple'][1], pos: str=LOAD_POS, *args, **kwargs):
+    def __init__(self, lo:si.mm, coeflef: float=COEF_LEF['Appuis simple'][1], pos: str=LOAD_POS, *args, **kwargs):
         """Claasse permettant le calcul de la flexion d'une poutre bois selon l'EN 1995 §6.1.6, §6.2.3, §6.2.4 et §6.3.3.
         Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
 
@@ -579,7 +581,7 @@ class Compression(Barre):
                 "Encastré - Rotule" : 0.7,
                 "Encastré - Encastré" : 0.5,
                 "Encastré - Rouleau" : 1}
-    def __init__(self, lo_y: int, lo_z: int, type_appuis: str=COEF_LF, *args, **kwargs):
+    def __init__(self, lo_y: si.mm, lo_z: si.mm, type_appuis: str=COEF_LF, *args, **kwargs):
         """ 
         lo : Longueur de flambement suivant l'axe de rotation (y ou z) en mm
 
@@ -760,7 +762,7 @@ class Compression(Barre):
 class Compression_perpendiculaire(Barre):
     """ Classe intégrant les formules de compression perpendiculaire selon l'EN 1995 §6.1.5"""
     TYPE_APPUIS = ("Appuis discret", "Appuis continu")
-    def __init__(self, b_appuis:int, l_appuis: int, l1d: int=10000, l1g: int=10000, ad: int=0, ag: int=0, type_appuis: str=TYPE_APPUIS, *args, **kwargs):
+    def __init__(self, b_appuis:si.mm, l_appuis: si.mm, l1d: si.mm=10000, l1g: si.mm=10000, ad: si.mm=0, ag: si.mm=0, type_appuis: str=TYPE_APPUIS, *args, **kwargs):
         """ 
         b_appuis(int): largeur d'appuis en mm.
         l_appuis(int): longeur de l'appuis en mm.
@@ -1097,7 +1099,7 @@ class Cisaillement(Barre):
 # ================================ Barre assemblées mécaniquement Annexe B ==================================
 
 class Poutre_assemblee_meca(Projet):
-    def __init__(self, beam_2:object, l: int|float, disposition: str=["Latérale", "Dessus / Dessous"], recouvrement: list=[0,0], Kser: list=[0,None,0], entraxe: list=[1, None, 1], psy_2: int|float=0, **kwargs):
+    def __init__(self, beam_2:object, l: si.mm, disposition: str=["Latérale", "Dessus / Dessous"], recouvrement: list=[0,0], Kser: list=[0,None,0], entraxe: list=[1, None, 1], psy_2: int|float=0, **kwargs):
         """Classe définissant une poutre composée d'au maximum 3 éléments connectés entre eux par liaisons mécanique 
         suivant la théorie de HEIMESHOFF Annexe B de l'EN 1995
         Args:

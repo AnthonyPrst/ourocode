@@ -21,7 +21,7 @@ class Element(Projet):
     E = 210000 * si.MPa
     CLASSE_STEEL = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_acier.csv").index)
              
-    def __init__(self, t: float=0, h: float=0, classe_acier: str=CLASSE_STEEL, classe_transv: int=("1","2","3","4"), **kwargs):
+    def __init__(self, t: si.mm=0, h: si.mm=0, classe_acier: str=CLASSE_STEEL, classe_transv: int=("1","2","3","4"), **kwargs):
         """Configure un objet Element pour vérifier un élément acier suivant l'EN 1993-1-1. 
 
         Args:
@@ -75,7 +75,7 @@ class Element(Projet):
 
 
 class Traction(Element):
-    def __init__(self, A: float, Anet: float=0, ass_cat_C: bool=("False", "True"), *args, **kwargs):
+    def __init__(self, A: si.mm*2, Anet: si.mm*2=0, ass_cat_C: bool=("False", "True"), *args, **kwargs):
         """Défini une classe traction permettant le calcul d'un élément métallique à l'EN 1993-1-1 §6.2.3.
         Cette classe est hérité de la classe Element du module EC3_Element_droit.py.
 
@@ -127,7 +127,7 @@ class Compression(Element):
     """
 
     FACTEUR_ALPHA = {"a0": 0.13, "a": 0.21, "b": 0.34, "c": 0.49, "d": 0.76}
-    def __init__(self, A: float, lo: dict="{'y':0, 'z':0}", courbe_flamb: dict="{'y':'c', 'z':'c'}", coeflf: float=1, *args, **kwargs):
+    def __init__(self, A: si.mm**2, lo: dict="{'y':0, 'z':0}", courbe_flamb: dict="{'y':'c', 'z':'c'}", coeflf: float=1, *args, **kwargs):
         """
         Args:
             A (float | int): Aire brute si classe 1,2 ou 3 et Aeff si classe 4 en mm²
@@ -209,7 +209,7 @@ class Compression(Element):
 
 
 class Cisaillement(Element):
-    def __init__(self, Av: float, *args, **kwargs):
+    def __init__(self, Av: si.mm**2, *args, **kwargs):
         """Defini une classe permettant le calcul d'un élément métalique en cisaillement selon l'EN 1993-1-1 §6.2.6.
         Cette classe est hérité de la classe Element du module E3_Element_droit.py.
 
@@ -228,7 +228,7 @@ class Cisaillement(Element):
 
 
 class Flexion(Element):
-    def __init__(self, W: float, *args, **kwargs):
+    def __init__(self, W: si.mm**3, *args, **kwargs):
         """Defini une classe permettant le calcul en flexion d'un élément acier suivant l'EN 1993-1-1 §6.2.5.
         Cette classe est hérité de la classe Element du module EC3_Element_droit.py.
 

@@ -20,7 +20,7 @@ from EC3_Element_droit import Element
 class Tige(Element):
     QUALITE_ACIER = tuple(str(key) for key in Element._data_from_csv(Element, "qualite_acier.csv").index)
 
-    def __init__(self, d:float, d0:float, qualite: str=QUALITE_ACIER, verif_filetage: bool=("False", "True"), filetage_EN1090: bool=("True", "False"), *args, **kwargs):
+    def __init__(self, d:si.mm, d0:si.mm, qualite: str=QUALITE_ACIER, verif_filetage: bool=("False", "True"), filetage_EN1090: bool=("True", "False"), *args, **kwargs):
         """Configure un objet Tige permettant les vérification suivant l'EN 1993-1-8. Cette classe est hérité de la classe Element du fichier EC3_Element_droit.py.
 
         Args:
@@ -49,10 +49,8 @@ class Tige(Element):
             self.An = self.__section_boulon.loc["An"] * si.mm**2
         else:
             self.As = 0 * si.mm**2
-            self.An = pi * (self.d/2)**2 * si.mm**2
-        
+            self.An = pi * (self.d.value*10**3/2)**2 * si.mm**2
             
-
 
     @property
     def __qualite_acier(self):
@@ -299,7 +297,7 @@ class Tige(Element):
 
 
 class Soudure(Element):
-    def __init__(self, t2: float, gorge: int, l: int, retour_soudure: bool=("False", "True"), alpha: float=90, *args, **kwargs):
+    def __init__(self, t2: si.mm, gorge: si.mm, l: si.mm, retour_soudure: bool=("False", "True"), alpha: float=90, *args, **kwargs):
         """Configure un objet soudure permettant les vérification suivant l'EN 1993-1-8. Cette classe est hérité de la classe Element du fichier EC3_Element_droit.py.  
 
         Args:

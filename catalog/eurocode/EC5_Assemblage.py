@@ -441,8 +441,8 @@ class Assemblage(Projet):
         if ass_bois and self.FvRk_Johansen[1] in ["C", "D", "E", "F", "J", "K"] or \
             not ass_bois and self.FvRk_Johansen[1] in ["B", "D", "E", "G", "H", "K", "M"]:
 
-            print (self.FaxRk)
             F_ax_Rk = self.FaxRk
+            print (F_ax_Rk)
             F_v_Rk_johansen = self.FvRk_Johansen[0]
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -493,12 +493,13 @@ class Assemblage(Projet):
         return (latex, self.Fv_Rk_ass)
 
 
-    def F_Rd(self, F_rk: float):
+    def F_Rd(self, F_Rk: float):
         """Calcul la valeur de calcul (design) de résistance de l'assemblage en N avec :
 
         Args:
-            F_rk (float): capacité résistante caractéristique de l'organe en N
+            F_rk (float): capacité résistante caractéristique de l'organe en kN
             num_beam (int, optional): numéro de l'élément à vérifier. Defaults to 1."""
+        F_Rk = F_Rk * si.kN
         gamma_M = self.GAMMA_M_ASS
         if "Métal" in self._type_beam:
             if self._type_beam[0] == "Métal":
@@ -509,8 +510,8 @@ class Assemblage(Projet):
             k_mod = sqrt(self.beam_1.K_mod * self.beam_2.K_mod)
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            F_rd = (F_rk * k_mod) /gamma_M # Valeur de calcul (design)
-            return F_rd
+            F_Rd = (F_Rk * k_mod) /gamma_M # Valeur de calcul (design)
+            return F_Rd
         return val()
     
     
@@ -624,6 +625,20 @@ class Assemblage(Projet):
         self.F_bs_Rk = result[1]
         return (latex + result[0], self.F_bs_Rk)
     
+    def taux_cisaillement(self, Fv_Ed: float):
+        """Détermine le taux de cisaillement de l'assemblage
+
+        Args:
+            Fv_Ed (float): effort de cisaillement à reprendre en kN
+        """
+        Fv_Rd_ass = self.F_Rd(self.Fv_Rk_ass.value*10**-3)[1]
+        Fv_Ed = abs(Fv_Ed) * si.kN
+        @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            taux_cisaillement = Fv_Ed / Fv_Rd_ass
+            return taux_cisaillement
+        return val()
+    
 
 # ======================================================= POINTE =========================================================
 # 8.3 Assemblage par pointes
@@ -645,7 +660,7 @@ class Pointe(Assemblage):
     QUALITE_ACIER = ('6.8', '8.8', '9.8', '10.9', '12.9')
     TYPE_ORGANE = ("Pointe circulaire", "Pointe carrée", "Autres pointes")
 
-    def __init__(self, d:float, d_tete:int, l:float, qualite: str=QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, type_organe: str=TYPE_ORGANE, percage: bool=("False", "True"), *args, **kwargs):
+    def __init__(self, d:si.mm, d_tete:si.mm, l:si.mm, qualite: str=QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, type_organe: str=TYPE_ORGANE, percage: bool=("False", "True"), *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.d = d * si.mm
         self.d_tete = d_tete * si.mm
@@ -1006,7 +1021,7 @@ class Boulon(Assemblage):
         
     QUALITE_ACIER = tuple(Assemblage._data_from_csv(Assemblage, "qualite_acier.csv").index)
     
-    def __init__(self, d:float, qualite: str=QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, t1: int=0, t2: int=0, **kwargs):
+    def __init__(self, d:si.mm, qualite: str=QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, t1: int=0, t2: int=0, **kwargs):
         super().__init__(**kwargs)
         self.type_organe = "Boulon"
         if "type_organe" in kwargs.keys():
@@ -1356,7 +1371,7 @@ class Tirefond(object):
         alpha1 : angle entre l'effort de l'organe et le fil du bois 1 en °
         alpha2 : angle entre l'effort de l'organe et le fil du bois 2 en °"""
 
-    def __init__(self, d:float, d1:float, ds:float, dh:float, l:float, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
+    def __init__(self, d:si.mm, d1:si.mm, ds:si.mm, dh:si.mm, l:si.mm, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
         self.d_vis = d * si.mm
         self.d1 = d1 * si.mm
         self.ds = ds * si.mm
@@ -1538,7 +1553,7 @@ class Tirefond_inf_7(Tirefond, Pointe):
         alpha1 : angle entre l'effort de l'organe et le fil du bois 1 en °
         alpha2 : angle entre l'effort de l'organe et le fil du bois 2 en °"""
 
-    def __init__(self, d:float, d1:float, ds:float, dh:float, l:float, n:int, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
+    def __init__(self, d:si.mm, d1:float, ds:float, dh:float, l:float, n:int, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
         qualite = "6.8"
         self.d_vis = d * si.mm
         if "qualite" in kwargs.keys():
@@ -1579,7 +1594,7 @@ class Tirefond_sup_6(Tirefond, Boulon):
         alpha1 : angle entre l'effort de l'organe et le fil du bois 1 en °
         alpha2 : angle entre l'effort de l'organe et le fil du bois 2 en °"""
 
-    def __init__(self, d:float, d1:float, ds:float, dh:float, l:float, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, **kwargs):
+    def __init__(self, d:si.mm, d1:float, ds:float, dh:float, l:si.mm, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, **kwargs):
         qualite = "6.8"
         self.d_vis = d * si.mm
         self.l = l * si.mm
