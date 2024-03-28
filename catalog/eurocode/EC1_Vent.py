@@ -54,7 +54,7 @@ class Vent(Batiment):
 	CAT_ORO = {"Aucun": 1, "Cas 1": "1", "Cas 2": "2"}
 	CFR = {"Lisse": 0.01, "Rugueuse": 0.02, "Très rugueuse": 0.04}
 
-	def __init__(self, z:float, terrain:str=CAT_TERRAIN, oro: str=CAT_ORO, CsCd: float= 1, **kwargs):
+	def __init__(self, z:si.m, terrain:str=CAT_TERRAIN, oro: str=CAT_ORO, CsCd: float= 1, **kwargs):
 		"""
 		Args:
 			z (float): hauteur en m sur le bâtiment ou est étudié le vent (Ze suivant EN 1991-1-4 §7.2.2).
@@ -65,7 +65,7 @@ class Vent(Batiment):
 		super().__init__(**kwargs)
 		self.terrain = terrain
 		self.oro = oro
-		self.z = z *si.m
+		self.z = z * si.m
 		self.CsCd = CsCd
 
 
