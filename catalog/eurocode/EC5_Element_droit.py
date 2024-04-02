@@ -343,7 +343,6 @@ class Flexion(Barre):
     @property
     def sigma_m_crit(self):
         """ Retourne sigma m,crit pour la prise en compte du déversement d'une poutre """
-
         self.l_ef = self.lo * self.coeflef
         if self.pos == 0:
             self.l_ef = self.l_ef + 2 * self.h_calcul
