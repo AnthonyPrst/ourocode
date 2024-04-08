@@ -97,7 +97,7 @@ class MEF(Combinaison, _Base_graph):
             alphaY (float): Angle d'application des charges entre un repère local et global autour de y
             alphaX (float): Angle d'application des charges entre un repère local et global autour de x
         """
-        super(Combinaison, self).__init__( **kwargs)
+        super(Combinaison, self).__init__(**kwargs)
         _Base_graph.__init__(self)
         self.long = long
         self.A = A
@@ -212,7 +212,7 @@ class MEF(Combinaison, _Base_graph):
         
         self.matriceK = (coo_matrix(Assembleur_COO_K.data, shape=((self.ele+1)*6, (self.ele+1)*6))).tocsr() 
              
-        #print("\n Matrice de rigidité K  : \n", self.matriceK, "\n")
+        # print("\n Matrice de rigidité K  : \n", self.matriceK, "\n")
         return self.matriceK 
 
 
@@ -254,7 +254,7 @@ class MEF(Combinaison, _Base_graph):
                 self.matriceU[index_min[2] + 2,0] = False
                 self.matriceU[index_min[2] + 3,0] = False
 
-        #print("\n Matrice de déplacement U : \n",self.matriceU, "\n")
+        # print("\n Matrice de déplacement U : \n",self.matriceU, "\n")
         return self.matriceU
 
 
@@ -287,17 +287,19 @@ class MEF(Combinaison, _Base_graph):
                 end_index = self._nearest_node(end_pos)
                 index_min = [[start_index, start_pos], [end_index, end_pos]]
                 
-                
+                # print(index_min)
+                # print(start_index, end_index)
                 if listFext[i][6] == 'Z' or listFext[i][6] == 'Z local' :
                     j = 0
                     listFlocal[1,0] = listFext[i][4] * (l/1000) * 10
                     for ind in index_min:
                         force = listFext[i][4] * (l/1000) * 10
+                        # print("index", ind[1], ind[0][1])
                         if ind[1] == ind[0][1]:
                             continue
                         
                         # Formule tirée de l'aide mémoire page 113 cas 3 et cas 1 pour RA et RB
-                        # Cas dans le quel la force est aprés le noeud le plus proche
+                        # Cas dans lequel la force est aprés le noeud le plus proche
                         elif ind[1] > ind[0][1]:
                             
                             if j:
@@ -362,14 +364,13 @@ class MEF(Combinaison, _Base_graph):
             
             elif listFext[i][3] == 'Nodale':
                 index_min = self._nearest_node(int(listFext[i][5]))
-                print(index_min)
                 force = listFext[i][4] * 10
                 
                 if listFext[i][6] == 'Z' or listFext[i][6] == 'Z local' :
                     if listFext[i][5] == index_min[1]:
                         listFlocal[1,0] = force
                     
-                    # Cas dans le quel la force est aprés le noeud le plus proche
+                    # Cas dans lequel la force est aprés le noeud le plus proche
                     elif listFext[i][5] > index_min[1]:
                         
                         a = listFext[i][5] - index_min[1]
@@ -387,7 +388,7 @@ class MEF(Combinaison, _Base_graph):
                         
                         #print("La force est situé après le noeud le plus proche à: ", a,b)
                     
-                    # Cas dans le quelle la force est avant le noeud le plus proche
+                    # Cas dans lequel la force est avant le noeud le plus proche
                     else:
                         b = index_min[1] - listFext[i][5]
                         a = listFext[i][5] - self.node_coor[index_min[0]-1][0]
@@ -415,9 +416,9 @@ class MEF(Combinaison, _Base_graph):
                 Assembleur_COO_F.append(index_min[2]+2, 0, listFlocal[1,0])
                 Assembleur_COO_F.append(index_min[2]+4, 0, listFlocal[2,0])
                 
-        print(len(Assembleur_COO_F.data[0])) 
+        # print(len(Assembleur_COO_F.data[0])) 
         self.matriceF = coo_matrix(Assembleur_COO_F.data, shape=((self.ele+1)*6, 1)).tocsr()
-        # print("\n Matrice des forces extérieurs Fext : \n",self.matriceF, self.matriceF.shape, "\n")
+        # print("\n Matrice des forces extérieurs Fext : \n",self.matriceF, self.matriceF.shape, Assembleur_COO_F.data, "\n")
         
         return self.matriceF
 
@@ -444,7 +445,7 @@ class MEF(Combinaison, _Base_graph):
         self.matriceK_CL = csr_matrix(self.matriceK_CL)
         self.matriceF_CL = csr_matrix(self.matriceF_CL)
         
-        #print("\n Matrice des forces extérieure Fext au condition limite: \n", self.matriceF_CL,"\n")
+        # print("\n Matrice des forces extérieure Fext au condition limite: \n", self.matriceF_CL,"\n")
         # print("\n Matrice de rigidité K au condition limite: \n", self.matriceK_CL,"\n")
         
 
@@ -456,7 +457,7 @@ class MEF(Combinaison, _Base_graph):
             if self.matriceU[i]:
                 self.matriceU[i] = ui[j]
                 j += 1
-        #print("\n Solution Déplacement : \n", self.matriceU.shape, "\n")
+        # print("\n Solution Déplacement : \n", self.matriceU, "\n")
         return self.matriceU
 
 
@@ -908,34 +909,29 @@ class MEF(Combinaison, _Base_graph):
 
 if __name__ == '__main__':
     from EC0_Combinaison import Chargement
-    _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, '0/6000', 'Z'],
-                 [0, 'Poids propre', 'Permanente G', 'Linéique', -360, '0/6000', 'Z'],
-                 [2, '', "Neige normale Sn", 'Linéique', -200, '0/6000', 'Z'],
-                 [3, '', 'Exploitation Q', 'Linéique', -150, '0/6000', 'Z'],
-                 [4, '', 'Vent dépression W-', 'Linéique', 175, '0/6000', 'Z']]
+    # _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/6000", 'Z'],
+    #              [2, '', "Neige normale Sn", 'Linéique', -200, "0/6000", 'Z']]
+    _list_loads = [[1, '', 'Permanente G', 'Nodale', -100, 3000, 'Z'],
+                [2, '', "Neige normale Sn", 'Nodale', -200, 3000, 'Z']]
     chargement = Chargement(pays="Japon")
     chargement.create_load_by_list(_list_loads)
     c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation", kdef=0.6)
-    print(c1.list_combination)
-    rcombi = "W_inst W-"
-    # W_inst Q + 0.5Sn
-    # W_inst Sn + 0.7Q
-    # W_net_fin ELS_C G + Sn + 0.7Q & ELS_QP G + 0.3Q
-    # W_net_fin ELS_C G + Q + 0.5Sn & ELS_QP G + 0.3Q
+    # print(c1.list_combination)
+    rcombi = "ELU_STR 1.35G + 1.5Sn"
     print(c1.get_combi_list_load(rcombi))
-    print(c1.df_W_net_fin)
     long = 6000
-    node = int(round(long/100))
+    ele = 3
     
-    b = 140
+    b = 60
     h = 200
     a = b*h
     iy = (b*h**3)/12
     iz = (h*b**3)/12
-    test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=350, J=650, Iy=iy, Iz=iz, ele=node, alphaZ=0, alphaY=0, alphaX=0)
+    test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=350, J=650, Iy=iy, Iz=iz, ele=ele, alphaZ=0, alphaY=0, alphaX=0)
 
-    listdeplacement = [[1, "Rotule", 0, 40], [2, "Rotule", 3000, 40], [3, "Rotule", 6000, 40]]
+    listdeplacement = [[1, "Rotule", 0, 0], [2, "Rotule", 6000, 0]]
     test.create_supports_by_list(listdeplacement)
     
     test.calcul_1D()
     test.graphique(rcombi)
+    test.show_graphique_fleche(rcombi)

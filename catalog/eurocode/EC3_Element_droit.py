@@ -5,6 +5,7 @@ import os
 import sys
 
 import math as mt
+from math import sqrt
 import pandas as pd
 
 import forallpeople as si
@@ -127,11 +128,11 @@ class Compression(Element):
     """
 
     FACTEUR_ALPHA = {"a0": 0.13, "a": 0.21, "b": 0.34, "c": 0.49, "d": 0.76}
-    def __init__(self, A: si.mm**2, lo: dict="{'y':0, 'z':0}", courbe_flamb: dict="{'y':'c', 'z':'c'}", coeflf: float=1, *args, **kwargs):
+    def __init__(self, A: si.mm**2, lo_y: si.mm=0, lo_z: si.mm=0, courbe_flamb: dict="{'y':'c', 'z':'c'}", coeflf: float=1, *args, **kwargs):
         """
         Args:
             A (float | int): Aire brute si classe 1,2 ou 3 et Aeff si classe 4 en mm²
-            lo (dict, optional): Longueur de flambement suivant l'axe de rotation (y ou z) en mm. Defaults to {'y':0, 'z':0}.
+            lo (int, optional): Longueur de flambement suivant l'axe de rotation (y ou z) en mm. Defaults to {'y':0, 'z':0}.
             coeflf (float, optional): Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
                                     fonction des du type d'appuis :
                                                 Encastré 1 côté : 2
@@ -142,7 +143,7 @@ class Compression(Element):
         """
         super().__init__(*args, **kwargs)
         self.A = A * si.mm**2
-        self.lo ={'y': lo["y"]*si.mm, 'z': lo["z"]*si.mm}
+        self.lo ={'y': lo_y*si.mm, 'z': lo_z*si.mm}
         self.courbe_flamb = courbe_flamb
         self.coeflf = coeflf
 
@@ -223,8 +224,14 @@ class Cisaillement(Element):
     def Vpl_Rd(self):
         """Calcul la résistance du cisaillment plastique en N (équa 6.18)
         """
-        return (self.Av * (self.fy/mt.sqrt(3)))/__class__.GAMMA_M["gamma_M0"] #(équa 6.18)    
-
+        A_v = self.Av
+        f_y = self.fy
+        gamma_M0 = self.GAMMA_M["gamma_M0"]
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            Vpl_Rd = (A_v * f_y/sqrt(3)) / gamma_M0 #(équa 6.18)
+            return Vpl_Rd
+        return val() 
 
 
 class Flexion(Element):
@@ -279,7 +286,7 @@ class Flexion(Element):
         A_v = Av * si.mm**2
         V_Ed = V_Ed * si.kN
         cis = Cisaillement._from_parent_class(self, Av=Av)
-        Vpl_Rd = cis.Vpl_Rd
+        Vpl_Rd = cis.Vpl_Rd[1]
         Mc_Rd = self.Mc_Rd[1]
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
         def val():

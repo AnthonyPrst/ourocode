@@ -74,55 +74,47 @@ class Objet(object):
                 si_unit (si.Physical): unité si de base
                 unit_to_convert (si.Physical): unité dans la quelle convertir
             """
+            si_unit, unit_to_convert = str(si_unit), str(unit_to_convert)
             if si_unit != unit_to_convert:
-                if si_unit == si.m:
-                    if unit_to_convert == si.mm:
+                if si_unit == str(si.m):
+                    if unit_to_convert == str(si.mm):
                         return value * 10**3
-                elif si_unit == si.m*2:
-                    if unit_to_convert == si.mm*2:
+                elif si_unit == str(si.m**2):
+                    if unit_to_convert == str(si.mm**2):
                         return value * 10**6
-                elif si_unit == si.m*3:
-                    if unit_to_convert == si.mm*3:
+                elif si_unit == str(si.m**3):
+                    if unit_to_convert == str(si.mm**3):
                         return value * 10**9
-                elif si_unit == si.N:
-                    if unit_to_convert == si.kN:
+                elif si_unit == str(si.N):
+                    if unit_to_convert == str(si.kN):
                         return value * 10**-3
             return value
                     
-            
-            
-        def reset_physical(dictionnary):
+        def reset_physical(objet: object):
             dict_physical = {}
+            dictionnary = objet.__dict__
             # Si un argument utilise forallpeople on récupère que la valeur pour ne pas multiplier l'unité par elle même
             for key, val in dictionnary.items():
                 if isinstance(val, si.Physical):
                     physical = val.split(base_value=True)
                     mro = type(objet).mro()
-                    # print(mro)
                     for objt in mro:
                         spec = inspect.getfullargspec(objt.__init__).annotations
-                        # print(spec)
                         if spec.get(key):
                             unit = spec[key]
                             value = convert_unit_physical(physical[0], physical[1], unit)
                             dict_physical[key] = value
-                        else:
-                            continue
-                else:
-                    value = val
-                dict_physical[key] = value
-            dict_objet.update(dict_physical)
-
+                            break
+            return dict_physical
 
         dict_objet = {}
-        
         if isinstance(objet, list):
             for obj in objet:
                 dict_objet.update(obj.__dict__)
-                reset_physical(obj.__dict__)
+                dict_objet.update(reset_physical(obj))
         else:
             dict_objet = objet.__dict__
-            reset_physical(dict_objet)
+            dict_objet.update(reset_physical(objet))
             
         # print("dict_objet :", dict_objet)
         return cls(**dict_objet, **kwargs)

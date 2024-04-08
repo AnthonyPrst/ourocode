@@ -165,6 +165,7 @@ G = float(barre2.caract_meca.Gmoy)
 
 dict_combi = {}
 dict_taux_max = {type_verif: {"combinaison": "", "taux": 0} for type_verif in ("cisaillement", "Winst(Q)", "Wnet,fin")}
+dict_taux_max_flexion = {dim_barre:{"combinaison": "", "taux": 0} for dim_barre in ("planche basse", "planche intermédiaire")}
         
 for i, barre in enumerate([barre2,barre3]):
     index_barre = i+2
@@ -173,7 +174,6 @@ for i, barre in enumerate([barre2,barre3]):
     else:
         dim_barre = "planche intermédiaire"
         
-    dict_taux_max_flexion = {dim_barre:{"combinaison": "", "taux": 0}}
         
     for combi in combinaison.get_list_combination():
         combinaison.get_combi_list_load(combi)
@@ -210,14 +210,18 @@ for i, barre in enumerate([barre2,barre3]):
                 fc0d = dict_combi[combi]["compression"].f_c_0_d(action, "Fondamentales")
                 dict_combi[combi]["compression"].sigma_c_0_rd = abs(sigma_i[1])
                 taux_compression = dict_combi[combi]["compression"].taux_c_0_d()
-                taux_flexion = dict_combi[combi]["flexion"].taux_m_d(compression=dict_combi[combi]["compression"])
+                compression=dict_combi[combi]["compression"]
+                traction=None
             else:
                 dict_combi[combi]["traction"] = EC5_Ele.Traction._from_parent_class(barre)
                 ft0d = dict_combi[combi]["traction"].f_t_0_d(action, "Fondamentales")
                 dict_combi[combi]["traction"].sigma_t_0_rd = sigma_i[1]
                 taux_traction = dict_combi[combi]["traction"].taux_t_0_d()
-                taux_flexion = dict_combi[combi]["flexion"].taux_m_d(traction=dict_combi[combi]["traction"])
+                traction=dict_combi[combi]["traction"]
+                compression=None
                 
+            taux_flexion = dict_combi[combi]["flexion"].taux_m_d(compression=compression, traction=traction)
+            print(taux_flexion)
             dict_combi[combi]["cisaillement"] = EC5_Ele.Cisaillement._from_parent_class(barre)
             dict_combi[combi]["cisaillement"].tau_rd = tau_2[1]
             fmd = dict_combi[combi]["cisaillement"].f_v_d(action, "Fondamentales")

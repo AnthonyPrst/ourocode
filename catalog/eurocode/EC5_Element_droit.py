@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 
 import math as mt
 from math import sqrt, pi, cos, sin, radians
+import numpy as np
 import pandas as pd
 
 import forallpeople as si
@@ -33,7 +34,7 @@ class Barre(Projet):
     CARACTERISTIQUE = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").columns)
     LOAD_TIME = tuple(Projet._data_from_csv(Projet, "kmod.csv").columns)[1:]
     TYPE_ACTION = ("Fondamentales" ,"Accidentelles")
-    TYPE_BAT = ("Batiments courants", "Batiments agricoles et similaires")
+    TYPE_BAT = ("Bâtiments courants", "Bâtiments agricoles et similaires")
     TYPE_ELE = tuple(Projet._data_from_csv(Projet, "limite_fleche.csv").index.unique())
 
     def __init__(self, b:si.mm, h:si.mm, section: str=LIST_SECTION, Hi: int=12, Hf: int=12, classe: str=CLASSE_WOOD, cs: int=CS, effet_systeme: bool=("False", "True"), **kwargs):
@@ -51,8 +52,6 @@ class Barre(Projet):
             effet_systeme: Détermine si l'effet système s'applique.
         """
         super().__init__(**kwargs)
-        # if isinstance(b, si.Physical):
-        #     self.b = b.value * 10**3
         self.b = b * si.mm
         self.h = h * si.mm
         self.section = section
@@ -61,14 +60,8 @@ class Barre(Projet):
         self.classe = classe
         self.cs = cs
         self.effet_systeme = effet_systeme
-
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-            
         self._sectionCalcul()
-    
-    
-
+        
     def _sectionCalcul(self, B90=0.25):
         """ Retourne la section de calcul en fonction de l'humidité de pose et celle d'utilisation avec pour argument:
                 Hi : Humidité de pose en %
@@ -222,7 +215,7 @@ class Barre(Projet):
                 kh[cle] = 1
         return kh       
     
-
+    
     def Emean_fin (self, psy2: float):
         """Renvoie le E,mean,fin en fonction du Kdef et du psy2"""
         self.psy_2 = psy2
@@ -240,12 +233,12 @@ class Barre(Projet):
         return value   
     
 
-    def fleche(self, long:int, Ed_WinstQ:float, Ed_Wnetfin:float, Ed_Wfin:float, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
+    def fleche(self, long:int, Ed_WinstQ:float=0, Ed_Wnetfin:float=0, Ed_Wfin:float=0, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
         """ Retourne le taux de travail de la flèche en % avec pour argument:
             """
         data_csv_fleche = self._data_from_csv("limite_fleche.csv")
         self.data_fleche= data_csv_fleche.loc[type_ele]
-        self.data_fleche = self.data_fleche.loc[self.data_fleche["Type batiment"]==type_bat]
+        self.data_fleche = self.data_fleche.loc[self.data_fleche["Type bâtiment"]==type_bat]
         self.taux_ELS = {}
 
         long = long * si.mm
@@ -256,14 +249,20 @@ class Barre(Projet):
         limit_W_inst_Q = self.data_fleche['Winst(Q)'].iloc[0]
         limit_W_net_fin = int(self.data_fleche['Wnet,fin'].iloc[0])
         limit_W_fin = int(self.data_fleche['Wfin'].iloc[0])
+        limit_U_fin_max = self.data_fleche['Ufin,max'].iloc[0]
+        
+        if np.isnan(limit_U_fin_max):
+            limit_U_fin_max = long / limit_W_fin
+        else:
+            limit_U_fin_max = int(limit_U_fin_max)
 
-        if limit_W_inst_Q != "None":
+        if not np.isnan(limit_W_inst_Q):
             limit_W_inst_Q = int(limit_W_inst_Q)
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 Rd_W_inst_Q = long / limit_W_inst_Q
                 Rd_W_net_fin = long / limit_W_net_fin
-                Rd_W_fin = long / limit_W_fin
+                Rd_W_fin = min(long / limit_W_fin, limit_U_fin_max)
 
                 taux_W_inst_Q = Ed_W_inst_Q / Rd_W_inst_Q
                 taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin
@@ -279,7 +278,7 @@ class Barre(Projet):
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 Rd_W_net_fin = long / limit_W_net_fin
-                Rd_W_fin = long / limit_W_fin
+                Rd_W_fin = min(long / limit_W_fin, limit_U_fin_max)
 
                 taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin
                 taux_W_fin = Ed_W_fin / Rd_W_fin
@@ -343,7 +342,6 @@ class Flexion(Barre):
     @property
     def sigma_m_crit(self):
         """ Retourne sigma m,crit pour la prise en compte du déversement d'une poutre """
-
         self.l_ef = self.lo * self.coeflef
         if self.pos == 0:
             self.l_ef = self.l_ef + 2 * self.h_calcul
@@ -1141,9 +1139,47 @@ class Poutre_assemblee_meca(Projet):
                     self.beam[int(key[-1])-1] = value
         for index, beam in enumerate(self.beam):
             if beam is not None:
-                beam.Emean_fin(psy_2)    
+                beam.Emean_fin(psy_2)   
         self.Kser = Kser
    
+    @property
+    def K_def(self):
+        for index, beam in enumerate(self.beam):
+            if beam is not None and index != 1:
+                K_def_i = beam.K_def
+                K_def_2 = self.beam[1].K_def
+                if K_def_i != K_def_2:
+                    @handcalc(override="short", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                    def val():
+                        K_def = 2 * sqrt(K_def_i * K_def_2)
+                        return K_def
+                else:
+                    @handcalc(override="params", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                    def val():
+                        K_def= K_def_2
+                        return K_def
+        return val()
+    
+    
+    # def Emean_fin (self, psy2: float):
+    #     """Renvoie le E,mean,fin en fonction du Kdef et du psy2"""
+    #     E_mean_fin = {}
+    #     self.psy_2 = psy2
+    #     psy_2 = self.psy_2
+    #     K_def = self.K_def[1]
+        
+    #     for index, beam in enumerate(self.beam):
+    #         if beam is not None:
+    #             E0_mean = int(beam.caract_meca.loc["E0mean"]) * si.MPa
+    #             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+    #             def val():
+    #                 E_mean_fin = E0_mean / (1 + psy_2 * K_def)
+    #                 return E_mean_fin
+    #             E_mean_fin["Emean,fin " + str(index+1)] = val()
+    #             beam.E_mean_fin = E_mean_fin["Emean,fin " + str(index+1)][1]
+    #     return E_mean_fin
+    
+        
     @property
     def Kser_fin(self):
         """Renvoie le Kser en fonction des Kdef des pièces assemblées et du psy2"""
@@ -1151,13 +1187,12 @@ class Poutre_assemblee_meca(Projet):
         for index, beam in enumerate(self.beam):
             if beam is not None and index != 1:
                 K_ser = self.Kser[index] * si.N / si.mm
-                psy_2 = self.beam[1].psy_2
-                K_def_i = beam.K_def
-                K_def_2 = self.beam[1].K_def
+                psy_2 = beam.psy_2
+                K_def = self.K_def[1]
                 
                 @handcalc(override="long", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    K_ser_fin = K_ser / (1 + psy_2 * 2 * sqrt(K_def_i * K_def_2))
+                    K_ser_fin = K_ser / (1 + psy_2 * K_def)
                     return K_ser_fin
                 
                 if index == 0:
@@ -1165,6 +1200,7 @@ class Poutre_assemblee_meca(Projet):
                 else:
                     kser_fin["Kser fin 2-3"] = val()
         return kser_fin
+    
     
     @property
     def gamma_i(self):
@@ -1288,9 +1324,7 @@ class Poutre_assemblee_meca(Projet):
         @handcalc(override="long", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             tau_2 = V_z * (gamma_3 * E_mean_fin_3 * aire_3 * a_3 + 0.5 * E_mean_fin_2 * b_2 * h**2) / (b_2 * K_cr * EI_eff)
-                
             return tau_2
-        
         return val()
     
 
