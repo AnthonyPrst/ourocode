@@ -108,7 +108,7 @@ class Combinaison(Chargement):
 			ELS_C (bool): combiner les charges à l'ELS carctéristique, si vrai -> True, sinon False.
 			ELS_QP (bool): combiner les charges à l'ELS quasi permananent, si vrai -> True, sinon False.
 			cat (str): catégorie d'exploitation de la zone considéré. Defaults to "Aucune".
-			kdef (float): Coéfficient permettant de prendre en compte le fluage du bois en fonction de sa classe de service.
+			kdef (float): Coefficient permettant de prendre en compte le fluage du bois en fonction de sa classe de service.
 				Si le matériaux est autre que du bois laisser vide.
 		"""
 		super(Chargement, self).__init__(**kwargs)
@@ -673,10 +673,17 @@ class Combinaison(Chargement):
 		for i in range(shape):
 			combi = self.list_combination.iloc[i,0]
 
+<<<<<<< HEAD
+			if self.elu_STR_ACC and combi[0:11] == 'ELU_STR_ACC':
+				df_combi = self._return_combi_ELU_STR_ACC(combi)
+
+			elif self.elu_STR and combi[0:7] == 'ELU_STR':
+=======
 			if self.elu and combi[0:11] == 'ELU_STR_ACC':
 				df_combi = self._return_combi_ELU_STR_ACC(combi)
 
 			elif self.elu and combi[0:7] == 'ELU_STR':
+>>>>>>> 3150fd9ff2060acf349ddd97bc6358ec0c886304
 				df_combi = self._return_combi_ELUSTR(combi)
 
 			elif self.els_C and combi[0:5] == 'ELS_C':
@@ -723,7 +730,6 @@ class Combinaison(Chargement):
 					"Sx": "Instantanee",
 					"Ae": "Instantanee"
 					}
-
 		for action in self.combiActionVariable:
 			if action:
 				indexAction = name_combi[8:].find(action)
@@ -754,6 +760,10 @@ if __name__== "__main__":
 	rcombi = "ELS_QP G + 0.3Q"
 	# print(c1._return_combi_ELUSTR(rcombi))
 	print(pd.DataFrame(c1.coef_psy))
+<<<<<<< HEAD
+	print(projet.alt)
+=======
+>>>>>>> 3150fd9ff2060acf349ddd97bc6358ec0c886304
 	# print(c1.df_load_ELScarac)
 	# print(c1.df_load_ELSqp)
 	# print(c1.df_W_inst_Q)

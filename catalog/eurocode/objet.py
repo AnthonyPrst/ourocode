@@ -74,7 +74,10 @@ class Objet(object):
                 si_unit (si.Physical): unité si de base
                 unit_to_convert (si.Physical): unité dans la quelle convertir
             """
+<<<<<<< HEAD
+=======
             print(value)
+>>>>>>> 3150fd9ff2060acf349ddd97bc6358ec0c886304
             si_unit, unit_to_convert = str(si_unit), str(unit_to_convert)
             if si_unit != unit_to_convert:
                 if si_unit == str(si.m):
@@ -94,16 +97,21 @@ class Objet(object):
         def reset_physical(objet: object):
             dict_physical = {}
             dictionnary = objet.__dict__
+<<<<<<< HEAD
+=======
             print("reset:", dictionnary)
+>>>>>>> 3150fd9ff2060acf349ddd97bc6358ec0c886304
             # Si un argument utilise forallpeople on récupère que la valeur pour ne pas multiplier l'unité par elle même
             for key, val in dictionnary.items():
                 if isinstance(val, si.Physical):
                     physical = val.split(base_value=True)
                     mro = type(objet).mro()
+<<<<<<< HEAD
+=======
                     print(mro)
+>>>>>>> 3150fd9ff2060acf349ddd97bc6358ec0c886304
                     for objt in mro:
                         spec = inspect.getfullargspec(objt.__init__).annotations
-                        # print(spec)
                         if spec.get(key):
                             unit = spec[key]
                             value = convert_unit_physical(physical[0], physical[1], unit)
