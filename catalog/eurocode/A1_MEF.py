@@ -108,7 +108,11 @@ class MEF(Combinaison, _Base_graph):
         self.eiy = E*self.Iy
         self.eiz = E*self.Iz
         self.gj = G*J
-        self.ele = ele
+
+        if (self.long / ele) < (self.long/20):
+            self.ele = round(self.long / 20)
+        else:
+            self.ele = ele
         self.alpha_R_tetaZ = np.radians(alphaZ)
         self.alpha_R_tetaY = np.radians(alphaY)
         self.alpha_R_tetaX = np.radians(alphaX)
@@ -179,13 +183,13 @@ class MEF(Combinaison, _Base_graph):
         # Agrégation de la matrice global
         for i in range(-6,0):
                 for j in range(-6,0):
-                    assembleur_COO_K.append(n1+i, n1+j, k[i+6,j+6]+0.001) # ajout de bruit pour éviter les singularité (+0.001)
-                    assembleur_COO_K.append(n2+i, n2+j, k[i+12,j+12]+0.001) # ajout de bruit pour éviter les singularité (+0.001)
+                    assembleur_COO_K.append(n1+i, n1+j, k[i+6,j+6]) # ajout de bruit pour éviter les singularité (+0.001)
+                    assembleur_COO_K.append(n2+i, n2+j, k[i+12,j+12]) # ajout de bruit pour éviter les singularité (+0.001)
                     if k[i+6,j+12]:
                         assembleur_COO_K.append(n1+i, n2+j, k[i+6,j+12])
                         
                     if k[i+12,j+6]:
-                        assembleur_COO_K.append(n2+i, n1+j, k[i+12,j+6]+0.001) # ajout de bruit pour éviter les singularité (+0.001)
+                        assembleur_COO_K.append(n2+i, n1+j, k[i+12,j+6]) # ajout de bruit pour éviter les singularité (+0.001)
         
 
     
@@ -195,7 +199,8 @@ class MEF(Combinaison, _Base_graph):
             numpy.array: la matrice de rigidité assemblée
         """
         self.k_local = {}
-        l = abs(int(self.node_coor[1,0]))
+        # l = abs(int(self.node_coor[1,0]))
+        l = abs((self.long/ self.ele))
         
         # matrice de rigidité K
         k = self._init_matrix_K("ALL", l)
@@ -258,7 +263,6 @@ class MEF(Combinaison, _Base_graph):
         return self.matriceU
 
 
-
     def _matrice_Fext_1D(self, listFext):
         """ Donner en entrée la liste type des efforts extérieurs en daN, 
         ressort une matrice acceptable pour le calcul MEF """
@@ -272,10 +276,12 @@ class MEF(Combinaison, _Base_graph):
                     [-np.sin(self.alpha_R_tetaX), np.cos(self.alpha_R_tetaX), 0],
                     [0, 0, 1]])
         
-        l = abs(int(self.node_coor[1,0]))
-        
+        # l = abs(int(self.node_coor[1,0]))
+        l = abs((self.long/ self.ele))
+
         for i in range(len(listFext)):
             listFlocal = np.zeros((3,1))
+            listFlocal2 = np.zeros((3,1))
             
             if listFext[i][3] == 'Linéique':
             
@@ -286,81 +292,90 @@ class MEF(Combinaison, _Base_graph):
                 end_pos = int(listFext[i][5][slash_pos+1:])
                 end_index = self._nearest_node(end_pos)
                 index_min = [[start_index, start_pos], [end_index, end_pos]]
-                
-                # print(index_min)
-                # print(start_index, end_index)
-                if listFext[i][6] == 'Z' or listFext[i][6] == 'Z local' :
-                    j = 0
-                    listFlocal[1,0] = listFext[i][4] * (l/1000) * 10
-                    for ind in index_min:
-                        force = listFext[i][4] * (l/1000) * 10
-                        # print("index", ind[1], ind[0][1])
-                        if ind[1] == ind[0][1]:
-                            continue
-                        
-                        # Formule tirée de l'aide mémoire page 113 cas 3 et cas 1 pour RA et RB
-                        # Cas dans lequel la force est aprés le noeud le plus proche
-                        elif ind[1] > ind[0][1]:
-                            
-                            if j:
-                            
-                                a = ind[1] - ind[0][1]
-                                b = self.node_coor[ind[0][0]+1][0]-ind[1]
-                                Mya = ((force * a**2)/12) * (6-8*(a/l) + 3*(a/l)**2)
-                                Myb = -((force * a**2)/l) * (4*(a/l) + 3*(a/l)**2)
-                                force = force * b
-                                a = a/2 
-                                b = a + b 
-                                Rza = (force * b**2 * (3 * a + b))/l**3
-                                Rzb = (force * a**2 * (3 * b + a))/l**3
-                                
-                                listFlocal[1,0] = Rza
-                                listFlocal[2,0] = Mya
-                                
-                                Assembleur_COO_F.append(ind[0][2]+2, 0, listFlocal[1,0])
-                                Assembleur_COO_F.append(ind[0][2]+4, 0, listFlocal[2,0])
-                                Assembleur_COO_F.append(ind[0][2]+6+2, 0, Rzb)
-                                Assembleur_COO_F.append(ind[0][2]+6+4, 0, Myb)
-                                
-                                
-                            
-                        # Cas dans le quelle la force est avant le noeud le plus proche
-                        else:
-                            if not j:
-                                
-                                a = ind[0][1] - ind[1]
-                                b = ind[1] - self.node_coor[ind[0][0]-1][0]
-                                Mya = ((force * b**2)/l) * (4*(b/l) + 3*(b/l)**2)
-                                Myb = -((force * b**2)/12) * (6-8*(b/l) + 3*(b/l)**2)
-                                force = force * b
-                                b = b/2 
-                                a = a + b 
-                                Rza = (force * b**2 * (3 * a + b))/l**3
-                                Rzb = (force * a**2 * (3 * b + a))/l**3
-                                
-                                listFlocal[1,0] = Rzb
-                                listFlocal[2,0] = Myb
-                                
-                                Assembleur_COO_F.append(ind[0][2]+2, 0, listFlocal[1,0])
-                                Assembleur_COO_F.append(ind[0][2]+4, 0, listFlocal[2,0])
-                                Assembleur_COO_F.append(ind[0][2]-6+2, 0, Rza)
-                                Assembleur_COO_F.append(ind[0][2]-6+4, 0, Mya)
-                        
-                        j += 1   
-                    
-                elif listFext[i][6] == 'X':
-                    listFlocal[0,0] = listFext[i][4] * (l/1000) * 10
-                
-                if listFext[i][6] == 'Z local':
-                    pass
-                else:
-                    listFlocal= np.dot(base_global_R_tetaY, listFlocal)
-                
+
+                # print("Longueur élément:", l, " mm")
                 for index in range(start_index[2], end_index[2]+6, 6):
-                    Assembleur_COO_F.append(index, 0, listFlocal[0,0])
-                    if index != start_index[2] or index != end_index[2]+6:
-                       Assembleur_COO_F.append(index+2, 0, listFlocal[1,0])
-            
+                    listFlocal = np.zeros((3,1))
+                    listFlocal2 = np.zeros((3,1))
+
+                    if listFext[i][6] == 'Z' or listFext[i][6] == 'Z local' :
+                        force = listFext[i][4] * (l/1000) * 10
+
+                        listFlocal[1,0] = listFext[i][4] * 10 * (l/1000) / 2 # Rza et Rzb
+                        listFlocal2[1,0] = listFlocal[1,0]
+                        listFlocal[2,0] = listFext[i][4] * 10 * (l/1000) **2 / 12 # Mya et Myb
+                        listFlocal2[2,0] = listFlocal[2,0]
+
+                        if index in (start_index[2], end_index[2]):
+                            calc_formulaire = False
+                            if index != end_index[2]:
+                                ind = index_min[0]
+
+                                # Cas dans le quelle la force est avant le noeud le plus proche
+                                if ind[1] < ind[0][1]:
+                                    a = ind[0][1] - ind[1]
+                                    b = ind[1] - self.node_coor[ind[0][0]-1][0]
+                                    Mya = ((force * b**2)/l) * (4*(b/l) + 3*(b/l)**2)
+                                    Myb = -((force * b**2)/12) * (6-8*(b/l) + 3*(b/l)**2)
+                                    force = force * b
+                                    b = b/2 
+                                    a = a + b 
+                                    Rza = (force * b**2 * (3 * a + b))/l**3
+                                    Rzb = (force * a**2 * (3 * b + a))/l**3
+                                    
+                                    listFlocal[1,0] = Rza
+                                    listFlocal[2,0] = Mya
+                                    listFlocal2[1,0] = Rzb
+                                    listFlocal2[2,0] = Myb
+                                    calc_formulaire = True
+                            
+                            else:
+                                ind = index_min[1]
+                                # Formule tirée de l'aide mémoire page 113 cas 3 et cas 1 pour RA et RB
+                                # Cas dans lequel la force est aprés le noeud le plus proche
+                                if ind[1] > ind[0][1]:
+                                    a = ind[1] - ind[0][1]
+                                    b = self.node_coor[ind[0][0]+1][0]-ind[1]
+                                    Mya = ((force * a**2)/12) * (6-8*(a/l) + 3*(a/l)**2)
+                                    Myb = -((force * a**2)/l) * (4*(a/l) + 3*(a/l)**2)
+                                    force = force * b
+                                    a = a/2 
+                                    b = a + b 
+                                    Rza = (force * b**2 * (3 * a + b))/l**3
+                                    Rzb = (force * a**2 * (3 * b + a))/l**3
+                                    
+                                    listFlocal[1,0] = Rza
+                                    listFlocal[2,0] = Mya
+                                    listFlocal2[1,0] = Rzb
+                                    listFlocal2[2,0] = Myb
+                                    calc_formulaire = True
+
+                            if calc_formulaire:
+                                if listFext[i][6] == 'Z':
+                                    listFlocal= np.dot(base_global_R_tetaY, listFlocal)
+                                    listFlocal2= np.dot(base_global_R_tetaY, listFlocal2)
+
+                                for i_index in range(3):
+                                    j_index = i_index * 2
+                                    Assembleur_COO_F.append(index+j_index, 0, listFlocal[i_index,0])
+                                    Assembleur_COO_F.append(index+6+j_index, 0, listFlocal2[i_index,0])
+                                continue
+
+                        if listFext[i][6] == 'Z':
+                            listFlocal= np.dot(base_global_R_tetaY, listFlocal)
+                            listFlocal2= np.dot(base_global_R_tetaY, listFlocal2)
+                            
+                    elif listFext[i][6] == 'X':
+                        listFlocal[0,0] = listFext[i][4] * (l/1000) * 10 / 2
+                        listFlocal2[0,0] = listFlocal[0,0]
+                        listFlocal= np.dot(base_global_R_tetaY, listFlocal)
+
+                    if index != end_index[2]:
+                        for i_index in range(3):
+                            j_index = i_index * 2
+                            Assembleur_COO_F.append(index+j_index, 0, listFlocal[i_index,0])
+                            Assembleur_COO_F.append(index+6+j_index, 0, listFlocal2[i_index,0])
+
             
             elif listFext[i][3] == 'Nodale':
                 index_min = self._nearest_node(int(listFext[i][5]))
@@ -416,10 +431,8 @@ class MEF(Combinaison, _Base_graph):
                 Assembleur_COO_F.append(index_min[2]+2, 0, listFlocal[1,0])
                 Assembleur_COO_F.append(index_min[2]+4, 0, listFlocal[2,0])
                 
-        # print(len(Assembleur_COO_F.data[0])) 
         self.matriceF = coo_matrix(Assembleur_COO_F.data, shape=((self.ele+1)*6, 1)).tocsr()
-        # print("\n Matrice des forces extérieurs Fext : \n",self.matriceF, self.matriceF.shape, Assembleur_COO_F.data, "\n")
-        
+        # print("\n Matrice des forces extérieurs Fext : \n",self.matriceF, self.matriceF.shape,"\n")
         return self.matriceF
 
 
@@ -911,25 +924,26 @@ if __name__ == '__main__':
     from EC0_Combinaison import Chargement
     # _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/6000", 'Z'],
     #              [2, '', "Neige normale Sn", 'Linéique', -200, "0/6000", 'Z']]
-    _list_loads = [[1, '', 'Permanente G', 'Nodale', -100, 3000, 'Z'],
-                [2, '', "Neige normale Sn", 'Nodale', -200, 3000, 'Z']]
+    _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/6000", 'Z'],
+                [2, '', "Neige normale Sn", 'Linéique', -200, "2000/6000", 'Z'],
+                [2, '', "Neige normale Sn", 'Linéique', -150, "2000/6000", 'Z']]
     chargement = Chargement(pays="Japon")
     chargement.create_load_by_list(_list_loads)
     c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation", kdef=0.6)
-    # print(c1.list_combination)
+    print(c1.list_combination)
     rcombi = "ELU_STR 1.35G + 1.5Sn"
     print(c1.get_combi_list_load(rcombi))
     long = 6000
-    ele = 3
+    ele = 800
     
     b = 60
     h = 200
     a = b*h
     iy = (b*h**3)/12
     iz = (h*b**3)/12
-    test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=350, J=650, Iy=iy, Iz=iz, ele=ele, alphaZ=0, alphaY=0, alphaX=0)
+    test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=690, J=690, Iy=iy, Iz=iz, ele=ele, alphaZ=0, alphaY=45, alphaX=0)
 
-    listdeplacement = [[1, "Rotule", 0, 0], [2, "Rotule", 6000, 0]]
+    listdeplacement = [[1, "Simple", 0, 0],  [2, "Rotule", 6000, 0]]
     test.create_supports_by_list(listdeplacement)
     
     test.calcul_1D()

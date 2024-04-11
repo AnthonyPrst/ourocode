@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import math as mt
 from math import sqrt, pi, cos, sin, radians
 import numpy as np
-import pandas as pd
+import statistics
 
 import forallpeople as si
 si.environment("structural")
@@ -159,6 +159,14 @@ class Barre(Projet):
         
         return type_b
 
+
+    def __convert_latex_ftyped(self, latex: str, type_caract: str):
+        end_index_rk = type_caract.find("k")
+        type_caract = type_caract[1:end_index_rk]
+        latex = latex.replace("f_{type_{Rd}", "f_{"+type_caract+"_{"+"d}")
+        latex = latex.replace("f_{type_{k}", "f_{"+type_caract+"_{"+"k}")
+        return latex
+
     
     def _f_type_d(self,typeCarac=CARACTERISTIQUE[0:6], loadtype=LOAD_TIME, typecombi=TYPE_ACTION):
         """Méthode donnant la résistance de calcul de l'élément fonction de la vérification
@@ -190,8 +198,9 @@ class Barre(Projet):
                 f_type_Rd = (f_type_k * K_mod) / gamma_M
                 return f_type_Rd
         value = val()
+        latex = self.__convert_latex_ftyped(value[0], typeCarac)
         self.f_type_rd = value[1]
-        return value
+        return (latex, value[1])
     
 
     def _K_h(self):
@@ -462,44 +471,59 @@ class Flexion(Barre):
         K_m = self.K_m
         K_crit = self.K_crit[1]
 
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def base():
+            taux_6_11 = sigma_my_d / (f_m_d * K_h_y) + K_m * sigma_mz_d / (f_m_d * K_h_z) # equ6.11
+            taux_6_12 = K_m * sigma_my_d / (f_m_d * K_h_y) + sigma_mz_d / (f_m_d * K_h_z) # equ6.12
+            taux_6_33y = sigma_my_d / (f_m_d * K_h_y * K_crit) # equ6.33
+            taux_6_33z = sigma_mz_d / (f_m_d * K_h_z * K_crit) # equ6.33
+            return taux_6_11, taux_6_12, taux_6_33y, taux_6_33z
+        
+        base_val = base()
+        latex = base_val[0]
+        self.taux_m_rd['equ6.11'] = base_val[1][0]
+        self.taux_m_rd['equ6.12'] = base_val[1][1]
+        self.taux_m_rd['equ6.33y'] = base_val[1][2]
+        self.taux_m_rd['equ6.33z'] = base_val[1][3]
+        
+
         if compression and isinstance(compression, Compression):
+            taux_6_2 = compression.taux_c_0_rd['equ6.2']
             taux_6_23 = compression.taux_c_0_rd['equ6.23']
             taux_6_24 = compression.taux_c_0_rd['equ6.24']
-        else:
-            taux_6_23 = 0
-            taux_6_24 = 0
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def comp(taux_6_11, taux_6_12, taux_6_2, taux_6_23, taux_6_24, taux_6_33y, taux_6_33z):
+                taux_6_19 = taux_6_2**2 + taux_6_11 # equ6.19
+                taux_6_20 = taux_6_2**2 + taux_6_12 # equ6.20
+                taux_6_35zyz = taux_6_33y** 2 + (sigma_mz_d / (f_m_d * K_h_z)) + taux_6_24 # equ6.35
+                taux_6_35yzz = taux_6_33y  + (sigma_mz_d / (f_m_d * K_h_z)) ** 2 + taux_6_24 # equ6.35 interprétation
+                taux_6_35yzy = taux_6_33z** 2 + (sigma_my_d / (f_m_d * K_h_y)) + taux_6_23 # equ6.35
+                taux_6_35zyy = taux_6_33z + (sigma_my_d / (f_m_d * K_h_y)) ** 2 + taux_6_23 # equ6.35 interprétation
+                return taux_6_19, taux_6_20, taux_6_35zyz, taux_6_35yzz, taux_6_35yzy, taux_6_35zyy
+            
+            compression_val = comp(self.taux_m_rd['equ6.11'], self.taux_m_rd['equ6.12'], taux_6_2, taux_6_23, taux_6_24, self.taux_m_rd['equ6.33y'], self.taux_m_rd['equ6.33z'])
+            latex = latex + compression_val[0]
+            self.taux_m_rd['equ6.19'] = compression_val[1][0]
+            self.taux_m_rd['equ6.20'] = compression_val[1][1]
+            self.taux_m_rd['equ6.35zyz'] = compression_val[1][2] # 1er item axe de flexion pas au carré, 2eme item axe de flexion au carré, 3eme axe de compression
+            self.taux_m_rd['equ6.35yzz'] = compression_val[1][3]
+            self.taux_m_rd['equ6.35yzy'] = compression_val[1][4]
+            self.taux_m_rd['equ6.35zyy'] = compression_val[1][5]
 
         if traction and isinstance(traction, Traction):
             taux_6_1 = traction.taux_t_0_rd['equ6.1']
-        else:
-            taux_6_1 = 0
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def tract(taux_6_11, taux_6_12):
+                taux_6_17 = taux_6_11 + taux_6_1 # equ6.17
+                taux_6_18 = taux_6_12 + taux_6_1 # equ6.18
+                return taux_6_17, taux_6_18
+            
+            traction_val = tract(self.taux_m_rd['equ6.11'], self.taux_m_rd['equ6.12'])
+            latex = latex + traction_val[0]
+            self.taux_m_rd['equ6.11'] = traction_val[1][0]
+            self.taux_m_rd['equ6.12'] = traction_val[1][1]
 
-        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-        def val():
-            taux_6_11 = sigma_my_d / (f_m_d * K_h_y) + K_m * sigma_mz_d / (f_m_d * K_h_z) # equ6.11
-            taux_6_12 = K_m * sigma_my_d / (f_m_d * K_h_y) + sigma_mz_d / (f_m_d * K_h_z) # equ6.12
-            taux_6_17 = taux_6_11 + taux_6_1 # equ6.17
-            taux_6_18 = taux_6_12 + taux_6_1 # equ6.18
-            taux_6_33y = sigma_my_d / (f_m_d * K_h_y * K_crit) # equ6.33
-            taux_6_33z = sigma_mz_d / (f_m_d * K_h_z * K_crit) # equ6.33
-            taux_6_35zyz = taux_6_33y** 2 + (sigma_mz_d / (f_m_d * K_h_z)) + taux_6_24 # equ6.35
-            taux_6_35yzz = taux_6_33y  + (sigma_mz_d / (f_m_d * K_h_z)) ** 2 + taux_6_24 # equ6.35 interprétation
-            taux_6_35yzy = taux_6_33z** 2 + (sigma_my_d / (f_m_d * K_h_y)) + taux_6_23 # equ6.35
-            taux_6_35zyy = taux_6_33z + (sigma_my_d / (f_m_d * K_h_y)) ** 2 + taux_6_23 # equ6.35 interprétation
-            return taux_6_11, taux_6_12, taux_6_33y, taux_6_33z, taux_6_17, taux_6_18, taux_6_35zyz, taux_6_35yzz, taux_6_35yzy, taux_6_35zyy
-        
-        value = val()
-        self.taux_m_rd['equ6.11'] = value[1][0]
-        self.taux_m_rd['equ6.12'] = value[1][1]
-        self.taux_m_rd['equ6.33y'] = value[1][2]
-        self.taux_m_rd['equ6.33z'] = value[1][3]
-        self.taux_m_rd['equ6.17'] = value[1][4]
-        self.taux_m_rd['equ6.18'] = value[1][5]
-        self.taux_m_rd['equ6.35zyz'] = value[1][6] # 1er item axe de flexion pas au carré, 2eme item axe de flexion au carré, 3eme axe de compression
-        self.taux_m_rd['equ6.35yzz'] = value[1][7]
-        self.taux_m_rd['equ6.35yzy'] = value[1][8]
-        self.taux_m_rd['equ6.35zyy'] = value[1][9]
-        return value
+        return (latex, self.taux_m_rd)
 
 
 
@@ -730,11 +754,9 @@ class Compression(Barre):
             @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 taux_6_2 = sigma_c_0_d / f_c_0_d # equ6.2
-                taux_6_23 = (sigma_c_0_d / (f_c_0_d * K_c_y)) + taux_6_11 # equ6.23
-                taux_6_24 = sigma_c_0_d / (f_c_0_d * K_c_z) + taux_6_12 # equ6.24
                 taux_6_19 = (sigma_c_0_d / (f_c_0_d * K_c_y))**2 + taux_6_11 # equ6.19
                 taux_6_20 = sigma_c_0_d / (f_c_0_d * K_c_z)**2 + taux_6_12 # equ6.20
-                return taux_6_2, taux_6_23, taux_6_24, taux_6_19, taux_6_20
+                return taux_6_2, taux_6_19, taux_6_20
             value = val()
             self.taux_c_0_rd['equ6.19'] = value[1][3]
             self.taux_c_0_rd['equ6.20'] = value[1][4]
@@ -746,11 +768,10 @@ class Compression(Barre):
                 taux_6_24 = sigma_c_0_d / (f_c_0_d * K_c_z) + taux_6_12 # equ6.24
                 return taux_6_2, taux_6_23, taux_6_24
             value = val()
+            self.taux_c_0_rd['equ6.23'] = value[1][1]
+            self.taux_c_0_rd['equ6.24'] = value[1][2]
 
         self.taux_c_0_rd['equ6.2'] = value[1][0]
-        self.taux_c_0_rd['equ6.23'] = value[1][1]
-        self.taux_c_0_rd['equ6.24'] = value[1][2]
-
         return value
 
     
@@ -898,7 +919,7 @@ class Compression_perpendiculaire(Barre):
         def val():
             taux_6_3 = sigma_c_90_d / (K_c90 * f_c_90_d) # equ6.3
             return taux_6_3
-         
+        
         value = val()
         self.taux_c_90_rd['equ6.3'] = value[1]
         return value
@@ -1085,8 +1106,8 @@ class Cisaillement(Barre):
         value = val()
         self.taux_tau_rd['equ6.13'] = value[1][0]
         self.taux_tau_rd['equ6.60'] = value[1][1]
-        
         return value
+    
     
     def show_Kv(self):
         """Affiche l'image des caractéristiques d'une entaille au cisaillement
@@ -1126,11 +1147,17 @@ class Poutre_assemblee_meca(Projet):
         self.disposition = disposition
         self.recouvrement = [recouvrement[0]*si.mm, recouvrement[1]*si.mm]
         self.entraxe = []
-        for e in entraxe:
-            if e is not None:
-                self.entraxe.append(e * si.mm)
+        self.Kser = []
+        for i in range(3):
+            if entraxe[i]:
+                self.entraxe.append(entraxe[i] * si.mm)
             else:
                 self.entraxe.append(None)
+            if Kser[i]:
+                self.Kser.append(Kser[i] * si.N / si.mm)
+            else:
+                self.Kser.append(None)
+            
         for key, value in kwargs.items():
             match key[0:4]:
                 case "beam" if key[-1] == "2":
@@ -1139,11 +1166,12 @@ class Poutre_assemblee_meca(Projet):
                     self.beam[int(key[-1])-1] = value
         for index, beam in enumerate(self.beam):
             if beam is not None:
-                beam.Emean_fin(psy_2)   
-        self.Kser = Kser
+                beam.Emean_fin(psy_2)
+
    
     @property
     def K_def(self):
+        kdef = (None, 0)
         for index, beam in enumerate(self.beam):
             if beam is not None and index != 1:
                 K_def_i = beam.K_def
@@ -1158,26 +1186,10 @@ class Poutre_assemblee_meca(Projet):
                     def val():
                         K_def= K_def_2
                         return K_def
-        return val()
-    
-    
-    # def Emean_fin (self, psy2: float):
-    #     """Renvoie le E,mean,fin en fonction du Kdef et du psy2"""
-    #     E_mean_fin = {}
-    #     self.psy_2 = psy2
-    #     psy_2 = self.psy_2
-    #     K_def = self.K_def[1]
-        
-    #     for index, beam in enumerate(self.beam):
-    #         if beam is not None:
-    #             E0_mean = int(beam.caract_meca.loc["E0mean"]) * si.MPa
-    #             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-    #             def val():
-    #                 E_mean_fin = E0_mean / (1 + psy_2 * K_def)
-    #                 return E_mean_fin
-    #             E_mean_fin["Emean,fin " + str(index+1)] = val()
-    #             beam.E_mean_fin = E_mean_fin["Emean,fin " + str(index+1)][1]
-    #     return E_mean_fin
+                value = val()
+                if value[1] > kdef[1]:
+                    kdef = value
+        return kdef
     
         
     @property
@@ -1186,7 +1198,7 @@ class Poutre_assemblee_meca(Projet):
         kser_fin = {}
         for index, beam in enumerate(self.beam):
             if beam is not None and index != 1:
-                K_ser = self.Kser[index] * si.N / si.mm
+                K_ser = self.Kser[index]
                 psy_2 = beam.psy_2
                 K_def = self.K_def[1]
                 
@@ -1405,16 +1417,294 @@ class Poutre_assemblee_meca(Projet):
             F_i = gamma_i * E_mean_fin * aire * distance_ai * entraxe * V_z / EI_eff
             return F_i
         return val()
+    
+
+class Poteau_assemble_meca(Poutre_assemblee_meca):
+    def __init__(self, lo_y: si.mm, lo_z: si.mm, type_appuis: str=Compression.COEF_LF, **kwargs):
+        super(Poutre_assemblee_meca, self).__init__(**kwargs)
+        self.lo_comp = {"y":lo_y * si.mm, "z":lo_z * si.mm}
+        self.pole = []
+        if not isinstance(self.l, si.Physical):
+            self.l = self.l * si.mm
+        for i, beam in enumerate(self.beam):
+            if beam is not None:
+                compression = Compression._from_parent_class(beam, lo_y=lo_y, lo_z=lo_z, type_appuis=type_appuis)
+                self.pole.append(compression)
+            else:
+                self.pole.append(None)
+    
+    @property
+    def aire(self):
+        """Détermine la surface total du poteau assemblé mécaniquement
+        """
+        aire = 0
+        for beam in self.beam:
+            if beam is not None:
+                aire = aire + beam.aire
+        return aire
+    
+    @property
+    def Ief(self):
+        """Détermine l'inertie efficace à partir d'un module d'élasticité moyen Emean et 
+        de la rigidité équivalente en flexion EIef d'une poutre assemblée mécaniquement.
+        """
+        E_mean_beams = []
+        for pole in self.pole:
+            if pole is not None:
+                E_mean_beams.append(pole.E_mean_fin)
+        E_mean = np.mean(E_mean_beams)
+        EI_ef = self.EI_eff[1]
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def inertie_ef():
+            I_ef = EI_ef / E_mean # equC.4
+            return I_ef
+        return inertie_ef()
+    
+    @property
+    def lamb_ef(self):
+        """ Retourne l'élancement d'un poteau assemblé mécaniquement en compression avec risque de flambement suivant l'axe de rotation z donc une direction de flèche suivant y"""
+        lo_z = self.lo_comp['z'].value * 10**3
+        I_z_ef = self.Ief[1]
+        A_tot = self.aire
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            lamb_z_ef = lo_z * sqrt(A_tot / I_z_ef) # equC.3
+            return lamb_z_ef
+        return val()
+    
+
+    @property
+    def lamb(self):
+        """ Retourne l'élancement d'un poteau en compression avec risque de flambement suivant son axe de rotation """
+        dict_lamb = {"lamb,ef,z": self.lamb_ef}
+        for i, pole in enumerate(self.pole):
+            if pole is not None:
+                lo_y = self.lo_comp['y'].value * 10**3
+                coef_lef = pole.coef_lef
+                I_y = pole.inertie[0].value * 10**12
+                A = pole.aire.value * 10**6
+
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    lamb_y = (lo_y * coef_lef) / sqrt(I_y / A)
+                    return lamb_y
+                dict_lamb["Pole"+str(i+1) + " lamb,y"] = val()
+        return dict_lamb
+    
+
+    @property
+    def lamb_rel_Axe(self):
+        """ Retourne l'élancement relatif d'un poteau en compression avec risque de flambement suivant son axe de rotation """
+        lamb_ef_z = self.lamb['lamb,ef,z'][1]
+        E_0_05_beams, f_c0k_beams = [], []
+        for pole in self.pole:
+            if pole is not None:
+                f_c0k_beams.append(float(pole.caract_meca.loc['fc0k'])* si.MPa)
+                E_0_05_beams.append(float(pole.caract_meca.loc['E005'])* si.MPa)
+        f_c0k_mean = np.mean(f_c0k_beams)
+        E_0_05_mean = np.mean(E_0_05_beams)
+
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def lamb_rel_z():
+            lamb_rel_ef_z = (lamb_ef_z / pi) * sqrt(f_c0k_mean / E_0_05_mean)
+            return lamb_rel_ef_z
+        dict_lamb_rel = {"lamb,rel,ef,z": lamb_rel_z()}
+
+        for i, pole in enumerate(self.pole):
+            if pole is not None:
+                f_c0k = float(pole.caract_meca.loc['fc0k']) * si.MPa
+                E_0_05 = int(pole.caract_meca.loc['E005']) * si.MPa
+                lamb_y = self.lamb["Pole"+str(i+1) + " lamb,y"][1]
+
+                @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    lamb_rel_y = (lamb_y / pi) * sqrt(f_c0k / E_0_05)
+                    return lamb_rel_y
+                dict_lamb_rel["Pole"+str(i+1) + " lamb,rel,y"] = val()
+        return dict_lamb_rel
+    
+
+    @property
+    def k_Axe(self):
+        """ Retourne le facteur Ky ou Kz (fonction de l'axe de flambement) """
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def ky(beta_C:float, lamb_rel_y:float):
+            k_y = 0.5 * (1 + beta_C * (lamb_rel_y - 0.3) + lamb_rel_y ** 2)
+            return k_y
+        
+        dict_k_axe = {}
+        beta_C_poles = 0
+        lamb_rel_ef_z = self.lamb_rel_Axe["lamb,rel,ef,z"][1]
+        
+        for i, pole in enumerate(self.pole):
+            if pole is not None:
+                beta_C = pole.beta_C
+                if beta_C > beta_C_poles:
+                    beta_C_poles = beta_C
+                lamb_rel_y = self.lamb_rel_Axe["Pole"+str(i+1) + " lamb,rel,y"][1]
+                dict_k_axe["Pole"+str(i+1) + " ky"] =  ky(beta_C, lamb_rel_y)
+
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def kz():
+            k_ef_y = 0.5 * (1 + beta_C_poles * (lamb_rel_ef_z - 0.3) + lamb_rel_ef_z ** 2)
+            return k_ef_y
+        dict_k_axe["k,ef,z"] =  kz()
+        return dict_k_axe
+    
+
+    @property
+    def kc_Axe(self):
+        """ Retourne le coefficient multiplicateur KcAxe  (axe = y ou z suivant axe de rotation en flambement) de fc,0,d """
+        lamb_rel_ef_z = self.lamb_rel_Axe["lamb,rel,ef,z"][1]
+        k_ef_z = self.k_Axe["k,ef,z"][1]
+
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def kcz():
+            k_c_ef_z = 1 / (k_ef_z + sqrt(k_ef_z** 2 - lamb_rel_ef_z ** 2))
+            return k_c_ef_z
+
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def kcy(k_y, lamb_rel_y):
+            k_c_y = 1 / (k_y + sqrt(k_y** 2 - lamb_rel_y ** 2))
+            return k_c_y
+        
+        dict_kc_axe = {"kc,ef,z": kcz()}
+        for i, pole in enumerate(self.pole):
+            if pole is not None:
+                k_y = self.k_Axe["Pole"+str(i+1) + " ky"][1]
+                lamb_rel_y = self.lamb_rel_Axe["Pole"+str(i+1) + " lamb,rel,y"][1]
+                dict_kc_axe["Pole"+str(i+1) + " kc,y"] =  kcy(k_y, lamb_rel_y)
+        return dict_kc_axe
+    
+    
+    def sigma_c_0_d(self, Fc0d: float):
+        """ Retourne la contrainte de compression axial en MPa avec:
+            Fc0d : la charge en kN de compression """
+        self.Fc_0_d = Fc0d * si.kN
+        Fc_0_d = self.Fc_0_d
+        A_tot = self.aire
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            sigma_c_0_d = Fc_0_d / A_tot # equC.2
+            return sigma_c_0_d
+        value = val()
+        self.sigma_c_0_rd = value[1]
+        return value
+    
+
+    def Vd_organe(self, Fc0d: float):
+        """ Retourne l'effort de cisaillement à prendr en compte sur un organe d'assemblage suivant l'annexe C §C.2.2 avec:
+            Fc0d : la charge en kN de compression """
+        self.Fc_0_d = Fc0d * si.kN
+        Fc_0_d = self.Fc_0_d
+        K_c_eff_z = self.kc_Axe["kc,ef,z"][1]
+        lamb_ef_z = self.lamb_ef[1]
+
+        if lamb_ef_z < 30:
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def vd():
+                V_d = Fc_0_d / (120 * K_c_eff_z)
+                return V_d
+        elif 30 <= lamb_ef_z < 60:
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def vd():
+                V_d = Fc_0_d * lamb_ef_z / (3600 * K_c_eff_z)
+                return V_d
+        else:
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def vd():
+                V_d = Fc_0_d / (60 * K_c_eff_z)
+                return V_d
+        return vd()
 
 
+    def f_c_0_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
+        """Retourne le dictionnaire des résistances f,c,0,d de l'élément assemblé mécaniquement en MPa
 
-            
+        Args:
+            loadtype (str): chargement de plus courte durée sur l'élément.
+            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+
+        Returns:
+            float: f,c,0,d en MPa
+        """
+        self.dict_fc0d = {}
+        for i, pole in enumerate(self.pole):
+            if pole is not None:
+                self.dict_fc0d["Pole"+str(i+1) + " fc,0,d"] = pole._f_type_d("fc0k", loadtype, typecombi)
+        self.dict_fc0d["fc,0,ef,d"] = np.mean([value[1] for value in self.dict_fc0d.values()])
+        return self.dict_fc0d
+    
+
+    def taux_c_0_d(self, flexion: object=None):
+        """Retourne les taux de travaux de la compression axial.
+        Si l'élement est un poteau (donc avec un travail principalement en compression) et de la flexion combinée (EN 1995-1-1 §6.3.2), 
+        il est possible d'ajouter l'objet flexion et de vérifier cette combinaison.
+
+        Args:
+            flexion (object, optional): L'objet Flexion avec ces taux de travaux préalablement calculés. Default to None.
+
+        Returns:
+            list: retourne la liste des taux de travaux en %
+        """
+        self.taux_c_0_rd = {}
+        sigma_c_0_d = self.sigma_c_0_rd
+
+        f_c_0_ef_d = self.dict_fc0d["fc,0,ef,d"]
+        f_c0_d_tot = sum([value[1] for key, value in self.dict_fc0d.items() if key != "fc,0,ef,d"])
+        f_c0d_tot_Kcy = 0
+        for i, pole in enumerate(self.pole):
+            if pole is not None:
+                kcy = self.kc_Axe["Pole"+str(i+1) + " kc,y"][1]
+                fcod_y = self.dict_fc0d["Pole"+str(i+1) + " fc,0,d"][1]
+                f_c0d_tot_Kcy = f_c0d_tot_Kcy + kcy * fcod_y
+        
+        lamb_rel_y  = max([value[1] for key, value in self.lamb_rel_Axe.items() if key != "lamb,rel,ef,z"])
+        lamb_rel_z  = self.lamb_rel_Axe["lamb,rel,ef,z"][1]
+
+        K_c_eff_z = self.kc_Axe["kc,ef,z"][1]
+
+        if flexion and isinstance(flexion, Flexion):
+            taux_6_11 = flexion.taux_m_rd["equ6.11"]
+            taux_6_12 = flexion.taux_m_rd["equ6.12"]
+        else:
+            taux_6_11 = 0
+            taux_6_12 = 0
+        
+        if lamb_rel_y < 0.3 and lamb_rel_z < 0.3:
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                taux_6_2 = sigma_c_0_d / f_c0_d_tot # equ6.2
+                taux_6_19 = (sigma_c_0_d / (f_c0_d_tot))**2 + taux_6_11 # equ6.19
+                taux_6_20 = sigma_c_0_d / (f_c0_d_tot)**2 + taux_6_12 # equ6.20
+                return taux_6_2, taux_6_19, taux_6_20
+            value = val()
+            self.taux_c_0_rd['equ6.19'] = value[1][3]
+            self.taux_c_0_rd['equ6.20'] = value[1][4]
+        else:      
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                taux_6_2 = sigma_c_0_d / f_c0_d_tot # equ6.2
+                taux_6_23 = (sigma_c_0_d / (f_c0d_tot_Kcy)) + taux_6_11 # equ6.23
+                taux_6_24 = sigma_c_0_d / (f_c_0_ef_d * K_c_eff_z) + taux_6_12 # equC.1
+                return taux_6_2, taux_6_23, taux_6_24
+            value = val()
+            self.taux_c_0_rd['equ6.23'] = value[1][1]
+            self.taux_c_0_rd['equ6.24'] = value[1][2]
+
+        self.taux_c_0_rd['equ6.2'] = value[1][0]
+        return value
+
+
 
 if __name__=='__main__':
-    beam = Barre(100,200,"Rectangulaire", classe="C24", cs=2)
-    comp = Compression._from_parent_class(beam, lo_y=2000, lo_z=2000, type_appuis="Rotule - Rotule")
-    c90 = Compression_perpendiculaire._from_parent_class(beam, b_appuis=100, l_appuis=100 , l1d=10000, l1g=10000, ad=0, ag=0, type_appuis="Appuis discret")
-    calpha = Compression_inclinees._from_parent_class([comp,c90],alpha=45)
-    print(calpha.sigma_c_alpha_d(10000))
-    print(calpha.taux_c_alpha_d("Permanente", "Fondamentales"))
-    print(calpha.f_c_0_d("Permanente", "Fondamentales"),calpha.f_c_90_d("Permanente", "Fondamentales"), calpha.K_c90)
+    beam2 = Barre(60,200,"Rectangulaire", classe="C24", cs=1)
+    beam3 = Barre(60,100,"Rectangulaire", classe="C24", cs=1)
+    beam_ass = Poutre_assemblee_meca(beam_2=beam2, l=5000, disposition="Latérale", recouvrement=[0,120], Kser=[None,None,700], entraxe=[None,None,250], psy_2=0, beam_3=beam3)
+    pole_ass = Poteau_assemble_meca._from_parent_class(beam_ass, lo_y=5000, lo_z=5000, type_appuis="Rotule - Rotule")
+    # print(pole_ass.__dict__)
+    # print(pole_ass.lamb)
+    print(pole_ass.kc_Axe)

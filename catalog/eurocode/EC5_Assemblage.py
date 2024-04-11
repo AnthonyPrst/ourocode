@@ -139,34 +139,34 @@ class Assemblage(Projet):
         if self.type_organe == "Boulon" or self.type_organe == "Broche" or self.type_organe == "Tirefond":
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                K_ser = rho_mean**1.5 * d / 23
-                return K_ser
+                K_ser = rho_mean**1.5 * d / 23 # N/mm
+                return K_ser * si.N / si.mm
         elif self.type_organe == "Pointe circulaire" or self.type_organe == "Pointe carrée" or self.type_organe == "Autres pointes":
             if self.percage:
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    K_ser = rho_mean**1.5 * d / 23
-                    return K_ser
+                    K_ser = rho_mean**1.5 * d / 23 # N/mm
+                    return K_ser * si.N / si.mm
             else:
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    K_ser = rho_mean**1.5 * d**0.8 / 30
-                    return K_ser
+                    K_ser = rho_mean**1.5 * d**0.8 / 30 # N/mm
+                    return K_ser * si.N / si.mm
         elif self.type_organe == "Agrafe":
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                K_ser = rho_mean**1.5 * self.d**0.8 / 80
-                return K_ser
+                K_ser = rho_mean**1.5 * self.d**0.8 / 80 # N/mm
+                return K_ser * si.N / si.mm
         elif self.type_organe == "Anneau" or self.type_organe == "Crampon C10/C11":
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                K_ser = rho_mean * dc / 2
-                return K_ser
+                K_ser = rho_mean * dc / 2 # N/mm
+                return K_ser * si.N / si.mm
         elif self.type_organe == "Crampon C1/C9":
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                K_ser = 1.5 * rho_mean * d / 4
-                return K_ser
+                K_ser = 1.5 * rho_mean * d / 4 # N/mm
+                return K_ser * si.N / si.mm
         return val()
     
     @property
@@ -178,7 +178,7 @@ class Assemblage(Projet):
         k_type = 1
         if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[1]:
             k_type = 2
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():    
             kser_ass = K_ser * n_file * n * n_Cis * k_type
             return kser_ass

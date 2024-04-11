@@ -62,7 +62,8 @@ class For(Objet):
         return self.items
     
     def set_selection(cls, *items):
-        cls.SELECTION = ["Tous", *items]
+        for item in items:
+            cls.SELECTION.append(item)
         print(cls.SELECTION)
 
     def get_item(self, selection: str=SELECTION):

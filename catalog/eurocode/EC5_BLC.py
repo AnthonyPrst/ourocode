@@ -22,10 +22,10 @@ class Poutre_simple_decroissance(Flexion):
 
 
     def km_alpha(self, type_contrainte=("Traction", "Compression"), loadtype=Flexion.LOAD_TIME, typecombi=Flexion.TYPE_ACTION):
-        fvd = self.f_type_d("fvk", loadtype, typecombi)
-        ft90d = self.f_type_d("ft90k", loadtype, typecombi)
-        fc90d = self.f_type_d("fc90k", loadtype, typecombi)
-        fmd = self.f_m_d(loadtype, typecombi)
+        fvd = self.f_type_d("fvk", loadtype, typecombi)[1]
+        ft90d = self.f_type_d("ft90k", loadtype, typecombi)[1]
+        fc90d = self.f_type_d("fc90k", loadtype, typecombi)[1]
+        fmd = self.f_m_d(loadtype, typecombi)[1]
 
         if type_contrainte == "Traction":
             self.Km_alpha = 1 / mt.sqrt(1 + ((fmd / (0.75 * fvd)) * mt.tan(mt.radians(self.alpha)))**2 + ((fmd / ft90d) * mt.tan(mt.radians(self.alpha))**2)**2)
@@ -33,7 +33,7 @@ class Poutre_simple_decroissance(Flexion):
             self.Km_alpha = 1 / mt.sqrt(1 + ((fmd / (1.5 * fvd)) * mt.tan(mt.radians(self.alpha)))**2 + ((fmd / fc90d) * mt.tan(mt.radians(self.alpha))**2)**2)
         return self.Km_alpha
     
-
+    # N'est plus à jour à modifier !
     def taux_m_alpha_d(self, taux_c_0_dy: float=0, taux_c_0_dz: float=0, taux_t_0_d: float=0):
         """ Retourne le taux de travail de la compression perpendiculaire """
         self.f_type_rd = self.Km_alpha * self.f_type_rd
