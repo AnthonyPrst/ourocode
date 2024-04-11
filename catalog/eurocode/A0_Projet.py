@@ -34,7 +34,6 @@ class Projet(Objet):
 		self.code_INSEE = code_INSEE
 		self.pays = pays
 		self.alt = alt * si.m
-		print(self.alt)
 		for key, val in kwargs.items():
 			setattr(self, key, val)
         

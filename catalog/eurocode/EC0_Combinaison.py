@@ -673,17 +673,10 @@ class Combinaison(Chargement):
 		for i in range(shape):
 			combi = self.list_combination.iloc[i,0]
 
-<<<<<<< HEAD
 			if self.elu_STR_ACC and combi[0:11] == 'ELU_STR_ACC':
 				df_combi = self._return_combi_ELU_STR_ACC(combi)
 
 			elif self.elu_STR and combi[0:7] == 'ELU_STR':
-=======
-			if self.elu and combi[0:11] == 'ELU_STR_ACC':
-				df_combi = self._return_combi_ELU_STR_ACC(combi)
-
-			elif self.elu and combi[0:7] == 'ELU_STR':
->>>>>>> 3150fd9ff2060acf349ddd97bc6358ec0c886304
 				df_combi = self._return_combi_ELUSTR(combi)
 
 			elif self.els_C and combi[0:5] == 'ELS_C':
@@ -760,10 +753,6 @@ if __name__== "__main__":
 	rcombi = "ELS_QP G + 0.3Q"
 	# print(c1._return_combi_ELUSTR(rcombi))
 	print(pd.DataFrame(c1.coef_psy))
-<<<<<<< HEAD
-	print(projet.alt)
-=======
->>>>>>> 3150fd9ff2060acf349ddd97bc6358ec0c886304
 	# print(c1.df_load_ELScarac)
 	# print(c1.df_load_ELSqp)
 	# print(c1.df_W_inst_Q)
