@@ -488,20 +488,26 @@ class Flexion(Barre):
         
 
         if compression and isinstance(compression, Compression):
+            sigma_c_0_d = compression.sigma_c_0_rd
+            f_c_0_d = compression.f_type_rd
+            K_c_y = compression.kc_Axe[1]['y']
+            K_c_z = compression.kc_Axe[1]['z']
             taux_6_2 = compression.taux_c_0_rd['equ6.2']
-            taux_6_23 = compression.taux_c_0_rd['equ6.23']
-            taux_6_24 = compression.taux_c_0_rd['equ6.24']
+            # taux_6_23 = compression.taux_c_0_rd['equ6.23']
+            # taux_6_24 = compression.taux_c_0_rd['equ6.24']
             @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def comp(taux_6_11, taux_6_12, taux_6_2, taux_6_23, taux_6_24, taux_6_33y, taux_6_33z):
+            def comp(taux_6_11, taux_6_12, taux_6_2, taux_6_33y, taux_6_33z):
                 taux_6_19 = taux_6_2**2 + taux_6_11 # equ6.19
                 taux_6_20 = taux_6_2**2 + taux_6_12 # equ6.20
+                taux_6_23 = (sigma_c_0_d / (f_c_0_d * K_c_y)) # equ6.23
+                taux_6_24 = sigma_c_0_d / (f_c_0_d * K_c_z) #equ6.24
                 taux_6_35zyz = taux_6_33y** 2 + (sigma_mz_d / (f_m_d * K_h_z)) + taux_6_24 # equ6.35
                 taux_6_35yzz = taux_6_33y  + (sigma_mz_d / (f_m_d * K_h_z)) ** 2 + taux_6_24 # equ6.35 interprétation
                 taux_6_35yzy = taux_6_33z** 2 + (sigma_my_d / (f_m_d * K_h_y)) + taux_6_23 # equ6.35
                 taux_6_35zyy = taux_6_33z + (sigma_my_d / (f_m_d * K_h_y)) ** 2 + taux_6_23 # equ6.35 interprétation
                 return taux_6_19, taux_6_20, taux_6_35zyz, taux_6_35yzz, taux_6_35yzy, taux_6_35zyy
             
-            compression_val = comp(self.taux_m_rd['equ6.11'], self.taux_m_rd['equ6.12'], taux_6_2, taux_6_23, taux_6_24, self.taux_m_rd['equ6.33y'], self.taux_m_rd['equ6.33z'])
+            compression_val = comp(self.taux_m_rd['equ6.11'], self.taux_m_rd['equ6.12'], taux_6_2, self.taux_m_rd['equ6.33y'], self.taux_m_rd['equ6.33z'])
             latex = latex + compression_val[0]
             self.taux_m_rd['equ6.19'] = compression_val[1][0]
             self.taux_m_rd['equ6.20'] = compression_val[1][1]
@@ -605,7 +611,7 @@ class Compression(Barre):
                 "Encastré - Rouleau" : 1}
     def __init__(self, lo_y: si.mm, lo_z: si.mm, type_appuis: str=COEF_LF, *args, **kwargs):
         """ 
-        lo : Longueur de flambement suivant l'axe de rotation (y ou z) en mm
+        lo : Longueur de flambement suivant l'axe de rotation (y ou z) en mm si pas de flambement alors 0
 
         type_appuis : Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
                     fonction des du type d'appuis :
@@ -691,7 +697,7 @@ class Compression(Barre):
         def val():
             k_c_y = 1 / (k_y + sqrt(k_y** 2 - lamb_rel_y ** 2))
             k_c_z = 1 / (k_z + sqrt(k_z** 2 - lamb_rel_z ** 2))
-            return {'y': k_c_y, 'z': k_c_z}
+            return {'y': min(k_c_y, 1), 'z': min(k_c_z, 1)}
         return val()
 
 
@@ -758,8 +764,8 @@ class Compression(Barre):
                 taux_6_20 = sigma_c_0_d / (f_c_0_d * K_c_z)**2 + taux_6_12 # equ6.20
                 return taux_6_2, taux_6_19, taux_6_20
             value = val()
-            self.taux_c_0_rd['equ6.19'] = value[1][3]
-            self.taux_c_0_rd['equ6.20'] = value[1][4]
+            self.taux_c_0_rd['equ6.19'] = value[1][1]
+            self.taux_c_0_rd['equ6.20'] = value[1][2]
         else:      
             @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
@@ -1118,7 +1124,7 @@ class Cisaillement(Barre):
 # ================================ Barre assemblées mécaniquement Annexe B ==================================
 
 class Poutre_assemblee_meca(Projet):
-    def __init__(self, beam_2:object, l: si.mm, disposition: str=["Latérale", "Dessus / Dessous"], recouvrement: list=[0,0], Kser: list=[0,None,0], entraxe: list=[1, None, 1], psy_2: int|float=0, **kwargs):
+    def __init__(self, beam_2:object, l: si.mm, disposition: str=["Latérale", "Dessus / Dessous"], recouvrement: list=[0,0], Ki: list=[0,None,0], entraxe: list=[1, None, 1], psy_2: int|float=0, **kwargs):
         """Classe définissant une poutre composée d'au maximum 3 éléments connectés entre eux par liaisons mécanique 
         suivant la théorie de HEIMESHOFF Annexe B de l'EN 1995
         Args:
@@ -1129,7 +1135,7 @@ class Poutre_assemblee_meca(Projet):
                                 Cela correspond à la distance entre le centre géométrique de la pièce 2 et celui de la pièce i.
                                 ATTENTION z local est vers le bas quand vous donnez le recouvrement.
                                 
-            Kser (list, optional): Rigidité de liaison par connecteur entre les éléments entre i=1/2 et i=2/3, en N/mm. 
+            Ki (list, optional): Rigidité de liaison par connecteur entre les éléments entre i=1/2 et i=2/3, en N/mm. Soit Kser soit Ku en fonction du type de vérification
                                     S'il n'y a que 2 éléments connectés, laisser l'index correspondant vide (ex: [0, 2000]). Defaults to [0,None,0].
                                     
             entraxe (list, optional): Entraxe entre connecteur en mm suivant i=1 ou i=3. Defaults to [1, None, 1].
@@ -1147,16 +1153,16 @@ class Poutre_assemblee_meca(Projet):
         self.disposition = disposition
         self.recouvrement = [recouvrement[0]*si.mm, recouvrement[1]*si.mm]
         self.entraxe = []
-        self.Kser = []
+        self.Ki = []
         for i in range(3):
             if entraxe[i]:
                 self.entraxe.append(entraxe[i] * si.mm)
             else:
                 self.entraxe.append(None)
-            if Kser[i]:
-                self.Kser.append(Kser[i] * si.N / si.mm)
+            if Ki[i]:
+                self.Ki.append(Ki[i] * si.N / si.mm)
             else:
-                self.Kser.append(None)
+                self.Ki.append(None)
             
         for key, value in kwargs.items():
             match key[0:4]:
@@ -1193,25 +1199,25 @@ class Poutre_assemblee_meca(Projet):
     
         
     @property
-    def Kser_fin(self):
-        """Renvoie le Kser en fonction des Kdef des pièces assemblées et du psy2"""
-        kser_fin = {}
+    def Ki_fin(self):
+        """Renvoie le Ki en fonction des Kdef des pièces assemblées et du psy2"""
+        ki_fin = {}
         for index, beam in enumerate(self.beam):
             if beam is not None and index != 1:
-                K_ser = self.Kser[index]
+                K_i = self.Ki[index]
                 psy_2 = beam.psy_2
                 K_def = self.K_def[1]
                 
                 @handcalc(override="long", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    K_ser_fin = K_ser / (1 + psy_2 * K_def)
-                    return K_ser_fin
+                    K_i_fin = K_i / (1 + psy_2 * K_def)
+                    return K_i_fin
                 
                 if index == 0:
-                    kser_fin["Kser fin 1-2"] = val()
+                    ki_fin["Ki fin 1-2"] = val()
                 else:
-                    kser_fin["Kser fin 2-3"] = val()
-        return kser_fin
+                    ki_fin["Ki fin 2-3"] = val()
+        return ki_fin
     
     
     @property
@@ -1226,13 +1232,13 @@ class Poutre_assemblee_meca(Projet):
                 entraxe = self.entraxe[index].value*10**3
                 lo = self.l.value * 10 ** 3
                 if index == 0:
-                   K_ser_fin = self.Kser_fin["Kser fin 1-2"][1].value * 10**-3
+                   K_i_fin = self.Ki_fin["Ki fin 1-2"][1].value * 10**-3
                 else:
-                   K_ser_fin = self.Kser_fin["Kser fin 2-3"][1].value * 10**-3
+                   K_i_fin = self.Ki_fin["Ki fin 2-3"][1].value * 10**-3
                 
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    gamma_i = (1 + pi ** 2 * E_mean_fin * A * entraxe / (K_ser_fin * lo ** 2)) ** (-1)
+                    gamma_i = (1 + pi ** 2 * E_mean_fin * A * entraxe / (K_i_fin * lo ** 2)) ** (-1)
                     return gamma_i
                 gamma["gamma "+str(index+1)] = val()
         return gamma
