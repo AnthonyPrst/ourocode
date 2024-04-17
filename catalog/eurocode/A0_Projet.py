@@ -27,6 +27,8 @@ class Projet(Objet):
 			alt (int, optional): altitude du projet en m. Defaults to 0.
 		"""
 		super().__init__()
+		for key, val in kwargs.items():
+			setattr(self, key, val)
 		self.ingenieur = ingenieur
 		self.num_project = num_project
 		self.name = name
@@ -34,9 +36,7 @@ class Projet(Objet):
 		self.code_INSEE = code_INSEE
 		self.pays = pays
 		self.alt = alt * si.m
-		for key, val in kwargs.items():
-			setattr(self, key, val)
-        
+		
 	def __str__(self) -> str:
 		return "Créer une classe Projet hérité de la classe Objet du fichier objet.py. Cette classe défini le projet, d'ou découle l'ensemble des objets du catalogue."
 

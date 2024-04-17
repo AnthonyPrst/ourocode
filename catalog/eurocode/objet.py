@@ -115,7 +115,6 @@ class Objet(object):
         else:
             dict_objet = objet.__dict__
             dict_objet.update(reset_physical(objet))
-        # print("salut", dict_objet)
         return cls(**dict_objet, **kwargs)
 
     
@@ -150,6 +149,10 @@ class Objet(object):
             return data
     
     @classmethod
-    def _open_object(cls):
-        with filedialog.askopenfile('rb', filetypes=(("Ourea catalog object", "*.oco"), ('Text Document', '*.txt')), defaultextension='.oco') as f:
-            return pickle.load(f)
+    def _open_object(cls, path: str=None):
+        if not path:
+            with filedialog.askopenfile('rb', filetypes=(("Ourea catalog object", "*.oco"), ('Text Document', '*.txt')), defaultextension='.oco') as f:
+                return pickle.load(f)
+        else:
+            with open(path, mode="rb") as f:
+                return pickle.load(f)

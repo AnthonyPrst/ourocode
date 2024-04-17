@@ -613,7 +613,6 @@ class MEF(Combinaison, _Base_graph):
         ni = []
         vi = []
         myi = []
-
         for i in range(self.ele):
             n1 = int(self.elementList[i,0])*6
             n2 = int(self.elementList[i,1])*6
@@ -621,20 +620,16 @@ class MEF(Combinaison, _Base_graph):
             u1 = self.matriceU[n1-6:n1,0]
             u2 = self.matriceU[n2-6:n2,0]
 
-            efforinterneN1 = np.dot(self.k_local["eleALL"]["k11_local"],u1) + np.dot(self.k_local["eleALL"]["k12_local"], u2)
-            efforinterneN2 = np.dot(self.k_local["eleALL"]["k21_local"],u1) + np.dot(self.k_local["eleALL"]["k22_local"], u2)
-
+            effortinterneN1 = np.dot(self.k_local["eleALL"]["k11_local"],u1) + np.dot(self.k_local["eleALL"]["k12_local"], u2)
+            effortinterneN2 = np.dot(self.k_local["eleALL"]["k21_local"],u1) + np.dot(self.k_local["eleALL"]["k22_local"], u2)
             if n1 == 6:
-                ni.append(efforinterneN2[0]/10**3)
-                ni.append(efforinterneN2[0]/10**3)
-                vi.append(efforinterneN2[2]/10**3)
-                vi.append(efforinterneN2[2]/10**3)
-                myi.append(efforinterneN1[4]/10**6)
-                myi.append(efforinterneN2[4]/10**6)
-            else:
-                ni.append(efforinterneN2[0]/10**3)
-                vi.append(efforinterneN2[2]/10**3)
-                myi.append(efforinterneN2[4]/10**6)
+                ni.append(effortinterneN2[0]/10**3)
+                vi.append(effortinterneN2[2]/10**3)
+                myi.append(effortinterneN1[4]/10**6)
+                
+            ni.append(effortinterneN2[0]/10**3)
+            vi.append(effortinterneN2[2]/10**3)
+            myi.append(effortinterneN2[4]/10**6)
                 
         self.ei_coor = [ni, vi, myi]
         return self.ei_coor
@@ -924,28 +919,29 @@ if __name__ == '__main__':
     from EC0_Combinaison import Chargement
     # _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/6000", 'Z'],
     #              [2, '', "Neige normale Sn", 'Linéique', -200, "0/6000", 'Z']]
-    _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/6000", 'Z'],
-                [2, '', "Neige normale Sn", 'Linéique', -200, "2000/6000", 'Z'],
-                [2, '', "Neige normale Sn", 'Linéique', -150, "2000/6000", 'Z']]
+    _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/14000", 'Z'],
+                [2, '', "Neige normale Sn", 'Linéique', -200, "0/14000", 'Z'],
+                [3, '', "Neige normale Sn", 'Linéique', -150, "0/14000", 'Z']]
     chargement = Chargement(pays="Japon")
     chargement.create_load_by_list(_list_loads)
     c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation", kdef=0.6)
     print(c1.list_combination)
     rcombi = "ELU_STR 1.35G + 1.5Sn"
     print(c1.get_combi_list_load(rcombi))
-    long = 6000
-    ele = 800
+    long = 14000
+    ele = 6000
     
     b = 60
     h = 200
     a = b*h
     iy = (b*h**3)/12
     iz = (h*b**3)/12
-    test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=690, J=690, Iy=iy, Iz=iz, ele=ele, alphaZ=0, alphaY=45, alphaX=0)
+    test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=690, J=690, Iy=iy, Iz=iz, ele=ele, alphaZ=0, alphaY=0, alphaX=0)
 
-    listdeplacement = [[1, "Simple", 0, 0],  [2, "Rotule", 6000, 0]]
+    listdeplacement = [[1, "Simple", 0, 0],  [2, "Rotule", long, 0]]
     test.create_supports_by_list(listdeplacement)
     
     test.calcul_1D()
+    print(test.reaction_max())
     test.graphique(rcombi)
     test.show_graphique_fleche(rcombi)
