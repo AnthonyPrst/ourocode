@@ -98,7 +98,7 @@ class Combinaison(Chargement):
 	COEF_G = (1, 1.35) # Ginf, Gsup
 	COEF_Q= (1.5)  # Qsup
 
-	def __init__(self, ELU_STR: bool=("True", "False"), ELU_STR_ACC: bool=("True", "False"), ELS_C: bool=("True", "False"), ELS_QP: bool=("True", "False"), cat: str=CAT_TYPE, kdef: float=None, **kwargs):
+	def __init__(self, ELU_STR: bool=("True", "False"), ELU_STR_ACC: bool=("True", "False"), ELS_C: bool=("True", "False"), ELS_QP: bool=("True", "False"), cat: str=CAT_TYPE, kdef: str=["Court terme", "Moyen terme", "Long terme"], **kwargs):
 		"""Créer une classe Combinaison qui génère les combinaisons d'action suivant les actions données.
 		Cette classe est hérité de la classe Chargement du module EC0_Combinaison.py
 
@@ -749,12 +749,12 @@ if __name__== "__main__":
 	projet = Projet("AP", "6018.0", "", "", 73215, "France", 1200)
 	chargement = Chargement._from_parent_class(projet)
 	chargement.create_load_by_list(_list_init_loads)
-	c1 = Combinaison._from_parent_class(chargement, ELU_STR=False, ELU_STR_ACC=True, ELS_C=False, ELS_QP=False, cat="Cat A : habitation", kdef=0.6)
+	c1 = Combinaison._from_parent_class(chargement, ELU_STR=False, ELU_STR_ACC=True, ELS_C=True, ELS_QP=True, cat="Cat A : habitation", kdef=0.6)
 	rcombi = "ELS_QP G + 0.3Q"
 	# print(c1._return_combi_ELUSTR(rcombi))
 	print(pd.DataFrame(c1.coef_psy))
 	# print(c1.df_load_ELScarac)
-	# print(c1.df_load_ELSqp)
+	print(c1.df_load_ELSqp)
 	# print(c1.df_W_inst_Q)
 	# print(c1.df_load_ELU_STR_ACC)
 
