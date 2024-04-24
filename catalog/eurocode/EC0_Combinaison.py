@@ -672,7 +672,7 @@ class Combinaison(Chargement):
 
 				array_load = array_load[array_load[:, 0].argsort()]
 				self.df_W_net_fin = self._create_dataframe_load(array_load)
-				print(self.df_W_net_fin)
+				# print(self.df_W_net_fin)
  
 
 	def _return_combi_W_inst_Q(self, combi):
