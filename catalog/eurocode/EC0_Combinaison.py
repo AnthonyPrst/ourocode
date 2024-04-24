@@ -98,7 +98,7 @@ class Combinaison(Chargement):
 	COEF_G = (1, 1.35) # Ginf, Gsup
 	COEF_Q= (1.5)  # Qsup
 
-	def __init__(self, ELU_STR: bool=("True", "False"), ELU_STR_ACC: bool=("True", "False"), ELS_C: bool=("True", "False"), ELS_QP: bool=("True", "False"), cat: str=CAT_TYPE, kdef: str=["Court terme", "Moyen terme", "Long terme"], **kwargs):
+	def __init__(self, ELU_STR: bool=("True", "False"), ELU_STR_ACC: bool=("True", "False"), ELS_C: bool=("True", "False"), ELS_QP: bool=("True", "False"), cat: str=CAT_TYPE, kdef: float=None, type_psy_2: str=["Court terme", "Moyen terme", "Long terme"], **kwargs):
 		"""Créer une classe Combinaison qui génère les combinaisons d'action suivant les actions données.
 		Cette classe est hérité de la classe Chargement du module EC0_Combinaison.py
 
@@ -110,6 +110,8 @@ class Combinaison(Chargement):
 			cat (str): catégorie d'exploitation de la zone considéré. Defaults to "Aucune".
 			kdef (float): Coefficient permettant de prendre en compte le fluage du bois en fonction de sa classe de service.
 				Si le matériaux est autre que du bois laisser vide.
+			type_psy_2: détermine le type de psy 2 à récupérer notamment pour le calcul de la flèche dans le bois. 
+				Court terme = 0, Moyen terme = calcul du psy en fonction de l'action donnant le psy le plus élevé, Long terme = 1.
 		"""
 		super(Chargement, self).__init__(**kwargs)
 		self.elu_STR = ELU_STR
@@ -120,6 +122,7 @@ class Combinaison(Chargement):
 		self.name_combination = []
 		self._generate_combinaison()
 		if kdef:
+			self.type_psy_2 = type_psy_2
 			self._els_fleche_bois(kdef)
 		
 
@@ -566,6 +569,29 @@ class Combinaison(Chargement):
 		return self.df_load_ELSqp.loc[self.df_load_ELSqp['Combinaison']==combi]
 	
 
+	def get_psy_2_by_combination(self, name: str):
+		"""Récupère le psy 2 en fonction de l'action la plus défavorable soit le psy2 le plus élevé
+
+		Args:
+			name (str): nom de la combinaison
+		"""
+		match self.type_psy_2:
+			case 'Court terme':
+				psy_2 = 0
+			case 'Long terme':
+				psy_2 = 1
+			case _:
+				psy_2 = 0
+				if name[0:6] == "ELS_QP":
+					for action in ["Q", "S"]:
+						try:
+							if name[8:].index(action):
+								key_psy = self._key_action_psy(action)
+								psy_2 = max(psy_2, self.coef_psy[key_psy]["psy2"])
+						except ValueError:
+							pass
+		return psy_2
+	
 
 	def _els_fleche_bois(self, kdef: float):
 		"""Génère l'association des combinaisons ELS caractéristique + quasi permanente (fluage, intégrant le Kdef) pour le calcul d'un élément en bois.
@@ -586,8 +612,7 @@ class Combinaison(Chargement):
 				combi_c = {}
 				value_search = ["Q", "S"]
 
-				# On multiplie les combinaisons quasi permanente par Kdef pour trouver Wcreep
-				self.df_load_ELSqp["Valeur"] = self.df_load_ELSqp["Valeur"] * kdef
+				
 
 				for name in self.name_combination:
 					if name[0:6] == "ELS_QP":
@@ -623,6 +648,7 @@ class Combinaison(Chargement):
 					position = list_of_value.index(val)
 					name_combi_QP = list_of_key[position]
 					name_combi = "W_net_fin "+ name_combi_C + " & " + name_combi_QP
+					psy_2 = self.get_psy_2_by_combination(name_combi_QP)
 
 					df_c = self.df_load_ELScarac[self.df_load_ELScarac["Combinaison"] == name_combi_C]
 					df_qp = self.df_load_ELSqp[self.df_load_ELSqp["Combinaison"] == name_combi_QP]
@@ -635,7 +661,8 @@ class Combinaison(Chargement):
 						position = df_c.iloc[index, 6]
 						axe = df_c.iloc[index, 7]
 						if len(df_qp[df_qp["Index"] == index_c]):
-							valeur_qp = df_qp[df_qp["Index"] == index_c].iloc[0,5]
+							# On multiplie les combinaisons quasi permanente par Kdef pour trouver Wcreep et par la formule 2.3.2.2 equ 2.7/2.10 pour modifier artificiellement E,mean en E,mean,fin
+							valeur_qp = df_qp[df_qp["Index"] == index_c].iloc[0,5] * (1 + kdef * psy_2) * kdef
 							valeur = valeur_c + valeur_qp
 						else:
 							valeur = valeur_c
@@ -645,7 +672,7 @@ class Combinaison(Chargement):
 
 				array_load = array_load[array_load[:, 0].argsort()]
 				self.df_W_net_fin = self._create_dataframe_load(array_load)
-				# print(self.df_W_net_fin)
+				print(self.df_W_net_fin)
  
 
 	def _return_combi_W_inst_Q(self, combi):
@@ -740,16 +767,13 @@ class Combinaison(Chargement):
 if __name__== "__main__":
 
 	_list_init_loads = [[1, 'G', 'Permanente G', 'Linéique', -10, '0/100', 'Z'],
-				 [0, 'Ae', "Sismique Ae", 'Linéique', -50, '0/100', 'Z'],
 				 [2, '', 'Neige normale Sn', 'Linéique', -200, '0/100', 'Z'],
-				 [3, '', 'Exploitation Q', 'Linéique', -100, '0/100', 'Z'],
-				 [4, '', "Vent dépression W-", 'Linéique', 300, '0/100', 'Z'],
-				 [5, '', "Vent pression W+", 'Linéique', -300, '0/100', 'Z'],
+				 [3, '', 'Exploitation Q', 'Linéique', -100, '0/100', 'Z']
 				 ]
 	projet = Projet("AP", "6018.0", "", "", 73215, "France", 1200)
 	chargement = Chargement._from_parent_class(projet)
 	chargement.create_load_by_list(_list_init_loads)
-	c1 = Combinaison._from_parent_class(chargement, ELU_STR=False, ELU_STR_ACC=True, ELS_C=True, ELS_QP=True, cat="Cat A : habitation", kdef=0.6)
+	c1 = Combinaison._from_parent_class(chargement, ELU_STR=False, ELU_STR_ACC=False, ELS_C=True, ELS_QP=True, cat="Cat A : habitation", kdef=0.6, type_psy_2= "Moyen terme")
 	rcombi = "ELS_QP G + 0.3Q"
 	# print(c1._return_combi_ELUSTR(rcombi))
 	print(pd.DataFrame(c1.coef_psy))
