@@ -86,7 +86,7 @@ class MEF(Combinaison, _Base_graph):
         Args:
             combinaison (Combinaison): L'objet créer à partir de la classe Combinaison du module EC0_Combinaison.py
             long (int): Longueur de l'élément en mm
-            E (int): Module de young en MPa
+            E (int): Module de young en MPa, ce E est le E,mean. Il ne faut absolument pas donner le E,mean,fin sous peine de réaliser le calcul EC5 §2.3.2.2 equ2.7 deux fois !
             A (float): Section en mm²
             G (float): Module de cisaillement en MPa
             J (float): Module de torsion
