@@ -499,7 +499,7 @@ class Flexion(Barre):
             def comp(taux_6_11, taux_6_12, taux_6_2, taux_6_33y, taux_6_33z):
                 taux_6_19 = taux_6_2**2 + taux_6_11 # equ6.19
                 taux_6_20 = taux_6_2**2 + taux_6_12 # equ6.20
-                taux_6_23 = (sigma_c_0_d / (f_c_0_d * K_c_y)) # equ6.23
+                taux_6_23 = sigma_c_0_d / (f_c_0_d * K_c_y) # equ6.23
                 taux_6_24 = sigma_c_0_d / (f_c_0_d * K_c_z) #equ6.24
                 taux_6_35zyz = taux_6_33y** 2 + (sigma_mz_d / (f_m_d * K_h_z)) + taux_6_24 # equ6.35
                 taux_6_35yzz = taux_6_33y  + (sigma_mz_d / (f_m_d * K_h_z)) ** 2 + taux_6_24 # equ6.35 interprétation
@@ -761,7 +761,7 @@ class Compression(Barre):
             def val():
                 taux_6_2 = sigma_c_0_d / f_c_0_d # equ6.2
                 taux_6_19 = (sigma_c_0_d / (f_c_0_d * K_c_y))**2 + taux_6_11 # equ6.19
-                taux_6_20 = sigma_c_0_d / (f_c_0_d * K_c_z)**2 + taux_6_12 # equ6.20
+                taux_6_20 = (sigma_c_0_d / (f_c_0_d * K_c_z))**2 + taux_6_12 # equ6.20
                 return taux_6_2, taux_6_19, taux_6_20
             value = val()
             self.taux_c_0_rd['equ6.19'] = value[1][1]
@@ -770,7 +770,7 @@ class Compression(Barre):
             @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 taux_6_2 = sigma_c_0_d / f_c_0_d # equ6.2
-                taux_6_23 = (sigma_c_0_d / (f_c_0_d * K_c_y)) + taux_6_11 # equ6.23
+                taux_6_23 = sigma_c_0_d / (f_c_0_d * K_c_y) + taux_6_11 # equ6.23
                 taux_6_24 = sigma_c_0_d / (f_c_0_d * K_c_z) + taux_6_12 # equ6.24
                 return taux_6_2, taux_6_23, taux_6_24
             value = val()
