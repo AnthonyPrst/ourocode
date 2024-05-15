@@ -836,6 +836,54 @@ class MEF(Combinaison, _Base_graph):
         self._graphique_My(name_combi)
         plt.show()
 
+    
+    def show_graph_loads_and_supports(self):
+        """Affiche le graphique des charges et des appuis du MEF
+        """
+        # Conversion des positions en valeurs numériques
+        def parse_position(position, charge):
+            position = str(position)
+            charge = -charge
+            parts = position.split("/")
+            if len(parts) == 1:
+                return [int(parts[0])]*2, [0,charge]
+            elif len(parts) == 2:
+                return [pos for pos in range(int(parts[0]), int(parts[1]), 1)], [charge for _ in range(int(parts[0]), int(parts[1]), 1)]
+            else:
+                return None
+
+        # Création du graphique
+        plt.figure(figsize=(12, 4))
+        for i, load in enumerate(self.list_loads):
+            charge = load[4]
+            parser = parse_position(load[5], charge)
+            charge = round(-charge,2)
+            nom = " / ".join([load[1], load[2], load[3], load[6]])
+            if len(parser[1]) != 2:
+                unit_load = "daN/m"
+                plt.plot(parser[0], parser[1], label=nom)
+                plt.fill_between(parser[0], parser[1], alpha=0.3)
+            else:
+                unit_load = "daN"
+                plt.plot(parser[0], parser[1], marker="o",label=nom)
+            plt.text(parser[0][1]+1000, charge+2, f'{charge} {unit_load}', ha='right')
+
+        for support in self.list_supports:
+            if support[1] == "Rotule":
+                support_type = "o"
+            elif support[1] == "Encastrement":
+                support_type = "s"
+            else:
+                support_type = "^"
+            plt.plot(support[2], 0, marker=support_type, markersize=10, color="red", label=f"Appui {support[0]} / {support[1]}")
+
+        plt.title('Schématisation des charges')
+        plt.xlabel('Position (m)')
+        plt.ylabel('Charge (daN ou daN/m)')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
 
     def get_supports(self):
         """Retourne la liste des appuis définis.
@@ -865,6 +913,7 @@ class MEF(Combinaison, _Base_graph):
             self.list_supports.append(support)
         return self.list_supports
 
+
     def del_support(self, index_load: int):
         """Supprime une charge de l'attribut list_supports par son index
 
@@ -872,6 +921,7 @@ class MEF(Combinaison, _Base_graph):
             index_load (int): index de la charge à supprimer.
         """
         return self.list_supports.pop(index_load-1)
+    
 
 
     def calcul_1D(self):
@@ -943,5 +993,6 @@ if __name__ == '__main__':
     
     test.calcul_1D()
     print(test.reaction_max())
-    test.graphique(rcombi)
-    test.show_graphique_fleche(rcombi)
+    # test.graphique(rcombi)
+    # test.show_graphique_fleche(rcombi)
+    test.show_graph_loads_and_supports()
