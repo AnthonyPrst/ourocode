@@ -17,7 +17,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     package_data={
-        'ourocode': ['data/*.csv', 'data/*.json', 'data/*.png', 'data/vent/*.csv', 'data/vent/*.json', 'data/vent/*.png'],
+        'ourocode': ['data/*', 'data/vent/*', 'data/screenshot/*'],
     },
     classifiers=[
         "Programming Language :: Python :: 3",
