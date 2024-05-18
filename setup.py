@@ -2,11 +2,11 @@ from setuptools import setup, find_packages
 
 # Lire le fichier __version__.py
 version = {}
-with open("OUREA-EasyCode/__version__.py") as fp:
+with open("ourocode/__version__.py") as fp:
     exec(fp.read(), version)
 
 setup(
-    name="OUREA-EasyCode",
+    name="ourocode",
     version=version['__version__'],
     author="Anthony PARISOT",
     author_email="ourea.engineering@gmail.com",
