@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 from scipy.sparse import coo_matrix, csr_matrix
 from scipy.sparse.linalg import spsolve
 
-from EC0_Combinaison import Combinaison
+from ourocode.eurocode.EC0_Combinaison import Combinaison
 
 class _Base_graph(object): 
     """ Retourne un diagramme de base """
