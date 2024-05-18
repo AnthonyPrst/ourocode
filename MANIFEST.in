@@ -1,1 +1,1 @@
-include ourocode/data *.csv *.json *.png
+include ourocode/data/*
