@@ -1,6 +1,4 @@
-import api.base.constants as cts
-from catalog.eurocode.objet import Objet
-
+from ourocode.eurocode.objet import Objet
     
 class And(Objet):
     def __init__(self):

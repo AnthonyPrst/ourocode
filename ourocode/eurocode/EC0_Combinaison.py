@@ -1,14 +1,9 @@
 # coding in UTF-8 
 # by Anthony PARISOT
-
-import os
-import sys
-
 import numpy as np
 import pandas as pd
 
-sys.path.append(os.path.join(os.getcwd(), "eurocode"))
-from A0_Projet import Projet
+from ourocode.eurocode.A0_Projet import Projet
 
 
 class Chargement(Projet):
