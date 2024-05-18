@@ -1,8 +1,6 @@
 #! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
-
 import os
-import sys
 from PIL import Image
 
 import math as mt
@@ -13,10 +11,7 @@ import pandas as pd
 import forallpeople as si
 from handcalcs.decorator import handcalc
 
-sys.path.append(os.path.join(os.getcwd(),"catalog", "eurocode"))
-from A0_Projet import Batiment
-
-
+from ourocode.eurocode.A0_Projet import Batiment
 
 si.environment("structural")
 

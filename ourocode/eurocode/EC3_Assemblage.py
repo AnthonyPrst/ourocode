@@ -1,10 +1,6 @@
 # coding in UTF-8 
 
 ############# Le but de ce fichier est de regrouper toute les fonctions d'assemblage par organe métalique dans l'EN-1993 #############
-
-import os
-import sys
-
 from math import *
 import pandas as pd
 
@@ -12,8 +8,7 @@ import forallpeople as si
 si.environment("structural")
 from handcalcs.decorator import handcalc
 
-sys.path.append(os.path.join(os.getcwd(), "eurocode"))
-from EC3_Element_droit import Element
+from ourocode.eurocode.EC3_Element_droit import Element
 
 #======================================================= Tige =========================================================
 

@@ -5,23 +5,18 @@
 
 # Code permettant le calcul des principaux coef. EC5 (EN 1995) ainsi que les calculs simple de vérification au
 # élément droit.
-import os
-import sys
 from copy import deepcopy
 import matplotlib.pyplot as plt
-
 
 import math as mt
 from math import sqrt, pi, cos, sin, radians
 import numpy as np
-import statistics
 
 import forallpeople as si
 si.environment("structural")
 from handcalcs.decorator import handcalc
 
-sys.path.append(os.path.join(os.getcwd(), "catalog", "eurocode"))
-from A0_Projet import Projet
+from ourocode.eurocode.A0_Projet import Projet
 
 
 # ================================ GLOBAL ==================================

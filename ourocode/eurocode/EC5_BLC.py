@@ -2,13 +2,9 @@
 # by Anthony PARISOT
 
 ############# Le but de ce fichier est de regrouper toute les fonctions du BLC dans l'EN-1995 #############
-import os
-import sys
-
 import math as mt
 
-sys.path.append(os.path.join(os.getcwd(), "eurocode"))
-from EC5_Element_droit import Flexion
+from ourocode.eurocode.EC5_Element_droit import Flexion
 
 
 class Poutre_simple_decroissance(Flexion):

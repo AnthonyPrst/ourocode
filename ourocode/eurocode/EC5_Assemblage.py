@@ -3,10 +3,7 @@
 # under Python  3.9.4
 
 ############# Le but de ce fichier est de regrouper toute les fonctions d'assemblage par organe métalique dans l'EN-1995 #############
-import os
-import sys
 from copy import deepcopy
-
 import math as mt
 from math import sin, cos, radians, sqrt, pi
 
@@ -14,9 +11,8 @@ import forallpeople as si
 si.environment("structural")
 from handcalcs.decorator import handcalc
 
-sys.path.append(os.path.join(os.getcwd(), "eurocode"))
-from A0_Projet import Projet
-from EC5_Element_droit import Barre, Cisaillement
+from ourocode.eurocode.A0_Projet import Projet
+from ourocode.eurocode.EC5_Element_droit import Barre, Cisaillement
 
 def interpolationLineaire(x, xa, xb, ya, yb):
     """Fait une interpolation linéaire pour trouver un résultat y entre deux valeur xa et xb """
