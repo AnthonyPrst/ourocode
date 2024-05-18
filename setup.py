@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 # Lire le fichier __version__.py
 version = {}
-with open("catalog/__version__.py") as fp:
+with open("OUREA-EasyCode/__version__.py") as fp:
     exec(fp.read(), version)
 
 setup(
