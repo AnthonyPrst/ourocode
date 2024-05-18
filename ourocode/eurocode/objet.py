@@ -2,6 +2,7 @@
 # by Anthony PARISOT
 
 import os
+import importlib.resources as pkg_resources
 from PIL import Image
 import pandas as pd
 import pickle
@@ -9,23 +10,27 @@ import inspect
 from tkinter import filedialog
 
 import forallpeople as si
+import ourocode
 si.environment("structural")
+
+
+
+
+def get_package_path(package):
+    # Obtenir le chemin du fichier principal du module
+    package_path = os.path.dirname(package.__file__)
+    return package_path
 
 
 class Objet(object):
     """Classe permetant la sauvegarde ou l'ouverture d'un objet ou de plusieur sous un fichier .ec
     """
-    try:
-        from api.base.constants import EXECUTABLE_PATH
-        PATH_CATALOG = os.path.join(EXECUTABLE_PATH, "catalog")
-    except:
-        PATH_CATALOG = os.path.join(os.getcwd(), "catalog")
-    def __init__(self) -> None:
-        pass
+    PATH_CATALOG = os.path.join(get_package_path(ourocode))
 
     def _data_from_csv(self, data_file: str, index_col=0):
             """ Retourne un dataframe d'un fichier CSV """
-            repertory = os.path.join(__class__.PATH_CATALOG, "data", data_file)
+            print(self.PATH_CATALOG)
+            repertory = os.path.join(self.PATH_CATALOG, "data", data_file)
             data_csv = pd.read_csv(repertory, sep=';', header=0, index_col=index_col)
             return data_csv
     
