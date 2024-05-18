@@ -29,7 +29,6 @@ class Objet(object):
 
     def _data_from_csv(self, data_file: str, index_col=0):
             """ Retourne un dataframe d'un fichier CSV """
-            print(self.PATH_CATALOG)
             repertory = os.path.join(self.PATH_CATALOG, "data", data_file)
             data_csv = pd.read_csv(repertory, sep=';', header=0, index_col=index_col)
             return data_csv
