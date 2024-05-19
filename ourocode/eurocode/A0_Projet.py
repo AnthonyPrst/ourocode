@@ -1,7 +1,11 @@
 #! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
+import os, sys
 import forallpeople as si
 from handcalcs.decorator import handcalc
+
+# sys.path.append(os.path.join(os.getcwd(), "ourocode"))
+# from objet import Objet
 from ourocode.eurocode.objet import Objet
 
 

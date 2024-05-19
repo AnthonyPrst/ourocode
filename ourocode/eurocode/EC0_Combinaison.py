@@ -1,8 +1,11 @@
 # coding in UTF-8 
 # by Anthony PARISOT
+import os, sys
 import numpy as np
 import pandas as pd
 
+# sys.path.append(os.path.join(os.getcwd(), "ourocode"))
+# from A0_Projet import Projet
 from ourocode.eurocode.A0_Projet import Projet
 
 

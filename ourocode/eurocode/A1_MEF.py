@@ -2,19 +2,20 @@
 #! env/scripts/python.exe
 #coding in UTF8
 
-import os
+import os, sys
 
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.sparse import coo_matrix, csr_matrix
 from scipy.sparse.linalg import spsolve
 
+# sys.path.append(os.path.join(os.getcwd(), "ourocode"))
+# from eurocode.EC0_Combinaison import Combinaison
+
 from ourocode.eurocode.EC0_Combinaison import Combinaison
 
 class _Base_graph(object): 
     """ Retourne un diagramme de base """
-    SAVE_PATH = os.path.join(os.getcwd(), "catalog", "data","screenshot")
-
     def __init__(self):
         self.name = "name_combi"
         self.title = ""
@@ -81,6 +82,7 @@ class _Triplets(object):
     
         
 class MEF(Combinaison, _Base_graph):
+    SAVE_PATH = os.path.join(Combinaison.PATH_CATALOG, "data","screenshot")
     def __init__(self, long: int, E: int, A: float, G: float, J: float, Iy: float, Iz: float, ele: int=500, alphaZ: float=0, alphaY: float=0, alphaX: float=0,**kwargs):
         """Classe permettant de créer des poutres MEF et de les calculer. Cette classe est hérité de l'objet Combinaison du module EC0_Combinaison.py
         Args:
@@ -614,24 +616,58 @@ class MEF(Combinaison, _Base_graph):
         vi = []
         myi = []
         for i in range(self.ele):
+            print(i)
             n1 = int(self.elementList[i,0])*6
             n2 = int(self.elementList[i,1])*6
+
+            print("noeud 1: ", n1)
+            print("noeud 2: ", n2, "\n")
             
             u1 = self.matriceU[n1-6:n1,0]
             u2 = self.matriceU[n2-6:n2,0]
 
-            effortinterneN1 = np.dot(self.k_local["eleALL"]["k11_local"],u1) + np.dot(self.k_local["eleALL"]["k12_local"], u2)
-            effortinterneN2 = np.dot(self.k_local["eleALL"]["k21_local"],u1) + np.dot(self.k_local["eleALL"]["k22_local"], u2)
+            matriceF = self.matriceF.toarray()
+            f1 = matriceF[n1-6:n1,0]
+            f2 = matriceF[n2-6:n2,0]
+
+            print("force f1: ", f1)
+            print("force f2: ", f2, "\n")
+
+            # # l = abs(int(self.node_coor[1,0]))
+            # l = abs((self.long/ self.ele))
+            
+            # # matrice de rigidité K
+            # k = self._init_matrix_K("ALL", l)
+
+            
+
+            print("déplacement noeud 1: ", u1)
+            print("déplacement noeud 2: ", u2, "\n")
+
+            effortinterneN1 = np.dot(self.k_local["eleALL"]["k11_local"],u1) + np.dot(self.k_local["eleALL"]["k12_local"], u2) - f1
+            effortinterneN2 = -(np.dot(self.k_local["eleALL"]["k21_local"],u1) + np.dot(self.k_local["eleALL"]["k22_local"], u2) - f2)
+            print(effortinterneN1)
+            print(effortinterneN2)
+
             if n1 == 6:
-                ni.append(effortinterneN2[0]/10**3)
-                vi.append(effortinterneN2[2]/10**3)
+                ni.append(effortinterneN1[0]/10**3)
+                vi.append(effortinterneN1[2]/10**3)
                 myi.append(effortinterneN1[4]/10**6)
                 
+            # else:
+            #     if round(ni[-1],3) != round(effortinterneN1[0]/10**3,3):
+            #         ni[-1] = [ni[-1], effortinterneN1[0]/10**3]
+            #     if round(vi[-1],2) != round(effortinterneN1[0]/10**3,2):
+            #         vi[-1] = [vi[-1], effortinterneN1[2]/10**3]
+            #     if round(myi[-1],6) != round(effortinterneN1[0]/10**3,6):
+            #         myi[-1] = [myi[-1], effortinterneN1[4]/10**6]
+            
             ni.append(effortinterneN2[0]/10**3)
             vi.append(effortinterneN2[2]/10**3)
             myi.append(effortinterneN2[4]/10**6)
                 
         self.ei_coor = [ni, vi, myi]
+        print(vi, myi)
         return self.ei_coor
     
 
@@ -643,30 +679,73 @@ class MEF(Combinaison, _Base_graph):
     #     print(f"la position la plus proche est {position_index[1]} mm", {"Nx": nx, "Vz": vz, "My": my})
     #     return {"Nx": nx, "Vz": vz, "My": my}
 
+    def _flatten_list_with_paths(self, nested_list, current_path=[]):
+        """
+        Aplatit une liste potentiellement imbriquée et enregistre les chemins des valeurs.
+
+        Args:
+            nested_list (list): Une liste potentiellement imbriquée de valeurs.
+            current_path (list): Le chemin actuel dans la liste imbriquée.
+
+        Returns:
+            list: Une liste de tuples contenant les valeurs et leurs chemins respectifs.
+        """
+        flat_list_with_paths = []
+        for index, item in enumerate(nested_list):
+            new_path = current_path + [index]
+            if isinstance(item, list):
+                flat_list_with_paths.extend(self._flatten_list_with_paths(item, new_path))
+            else:
+                flat_list_with_paths.append((item, new_path))
+        return flat_list_with_paths
 
     def effort_interne_max(self):
         """ Retourne les efforts min et max d'une liste d'effort interne """
 
+        def max_min_list_load(get_max: bool=True, nested_list=[]):
+            item_value = 0
+            index_item_value = 0
+            for index, item in enumerate(nested_list):
+                if isinstance(item, list):
+                    if get_max:
+                        item = max(item)
+                    else:
+                        item = min(item)
+                if get_max and (item > item_value):
+                    item_max = item
+                    index_item_value = index
+                elif not get_max and (item < item_value):
+                    item_max = item
+                    index_item_value = index
+            return item_value, index_item_value
+                
+
+        # nx_max, nx_max_index = max_min_list_load(get_max=True, nested_list=self.ei_coor[0])
         nx_max = max(self.ei_coor[0])
         nx_max_index = self.ei_coor[0].index(nx_max)
         nx_max_coor = {"Position": self.node_coor[nx_max_index,0], "Effort": nx_max}
 
+        # nx_min, nx_min_index = max_min_list_load(get_max=False, nested_list=self.ei_coor[0])
         nx_min = min(self.ei_coor[0])
         nx_min_index = self.ei_coor[0].index(nx_min)
         nx_min_coor = {"Position": self.node_coor[nx_min_index,0], "Effort": nx_min}
 
+        # vz_max, vz_max_index = max_min_list_load(get_max=True, nested_list=self.ei_coor[1])
         vz_max = max(self.ei_coor[1])
         vz_max_index = self.ei_coor[1].index(vz_max)
         vz_max_coor = {"Position": self.node_coor[vz_max_index,0], "Effort": vz_max}
 
+        # vz_min, vz_min_index = max_min_list_load(get_max=False, nested_list=self.ei_coor[1])
         vz_min = min(self.ei_coor[1])
         vz_min_index = self.ei_coor[1].index(vz_min)
         vz_min_coor = {"Position": self.node_coor[vz_min_index,0], "Effort": vz_min}
 
+        # my_max, my_max_index = max_min_list_load(get_max=True, nested_list=self.ei_coor[2])
         my_max = max(self.ei_coor[2])
         my_max_index = self.ei_coor[2].index(my_max)
         my_max_coor = {"Position": self.node_coor[my_max_index,0], "Effort": my_max}
 
+        # my_min, my_min_index = max_min_list_load(get_max=False, nested_list=self.ei_coor[2])
         my_min = min(self.ei_coor[2])
         my_min_index = self.ei_coor[2].index(my_min)
         my_min_coor = {"Position": self.node_coor[my_min_index,0], "Effort": my_min}
@@ -790,8 +869,18 @@ class MEF(Combinaison, _Base_graph):
         self.name = name_combi
         self.title = 'Efforts tranchants Vz : '
         self.color = 'b'
+        # self.x_values = []
         self.x_values = self.node_coor
         self.y_values = self.ei_coor[1]
+        # self.y_values = []
+        # for index, value in enumerate(self.ei_coor[1]):
+        #     if isinstance(value, list):
+        #         for i in range(len(value)):
+        #             self.x_values.append(self.node_coor[index,0])
+        #             self.y_values.append(value[i])
+        #     else:
+        #         self.x_values.append(self.node_coor[index,0])
+        #         self.y_values.append(value[i])
         
         dictEiMinMax = self.effort_interne_max()
         self.max_XY_values = (dictEiMinMax["Vz_max"]["Position"], dictEiMinMax["Vz_max"]["Effort"])
@@ -969,30 +1058,29 @@ if __name__ == '__main__':
     from EC0_Combinaison import Chargement
     # _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/6000", 'Z'],
     #              [2, '', "Neige normale Sn", 'Linéique', -200, "0/6000", 'Z']]
-    _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/14000", 'Z'],
-                [2, '', "Neige normale Sn", 'Linéique', -200, "0/14000", 'Z'],
-                [3, '', "Neige normale Sn", 'Linéique', -150, "0/14000", 'Z']]
+    _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/5000", 'Z'],
+                [2, '', "Neige normale Sn", 'Linéique', -200, "0/5000", 'Z']]
     chargement = Chargement(pays="Japon")
     chargement.create_load_by_list(_list_loads)
     c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation", kdef=0.6)
-    print(c1.list_combination)
-    rcombi = "ELU_STR 1.35G + 1.5Sn"
+    # print(c1.list_combination)
+    rcombi = "ELU_STR G"
     print(c1.get_combi_list_load(rcombi))
-    long = 14000
-    ele = 6000
+    long = 5000
+    ele = 200
     
     b = 60
-    h = 200
+    h = 100
     a = b*h
     iy = (b*h**3)/12
     iz = (h*b**3)/12
     test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=690, J=690, Iy=iy, Iz=iz, ele=ele, alphaZ=0, alphaY=0, alphaX=0)
 
-    listdeplacement = [[1, "Simple", 0, 0],  [2, "Rotule", long, 0]]
+    listdeplacement = [[1, "Simple", 0, 0], [2, "Rotule", long, 0]]
     test.create_supports_by_list(listdeplacement)
     
     test.calcul_1D()
-    print(test.reaction_max())
-    # test.graphique(rcombi)
-    # test.show_graphique_fleche(rcombi)
-    test.show_graph_loads_and_supports()
+    # print(test.reaction_max())
+    test.graphique(rcombi)
+    test.show_graphique_fleche(rcombi)
+    # test.show_graph_loads_and_supports()

@@ -10,10 +10,7 @@ import inspect
 from tkinter import filedialog
 
 import forallpeople as si
-import ourocode
 si.environment("structural")
-
-
 
 
 def get_package_path(package):
@@ -25,7 +22,11 @@ def get_package_path(package):
 class Objet(object):
     """Classe permetant la sauvegarde ou l'ouverture d'un objet ou de plusieur sous un fichier .ec
     """
-    PATH_CATALOG = os.path.join(get_package_path(ourocode))
+    try:
+        import ourocode
+        PATH_CATALOG = os.path.join(get_package_path(ourocode))
+    except:
+        PATH_CATALOG = os.path.join(os.getcwd(), "ourocode")
 
     def _data_from_csv(self, data_file: str, index_col=0):
             """ Retourne un dataframe d'un fichier CSV """
