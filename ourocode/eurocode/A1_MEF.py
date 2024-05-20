@@ -616,12 +616,11 @@ class MEF(Combinaison, _Base_graph):
         vi = []
         myi = []
         for i in range(self.ele):
-            print(i)
             n1 = int(self.elementList[i,0])*6
             n2 = int(self.elementList[i,1])*6
 
-            print("noeud 1: ", n1)
-            print("noeud 2: ", n2, "\n")
+            # print("noeud 1: ", n1)
+            # print("noeud 2: ", n2, "\n")
             
             u1 = self.matriceU[n1-6:n1,0]
             u2 = self.matriceU[n2-6:n2,0]
@@ -630,8 +629,8 @@ class MEF(Combinaison, _Base_graph):
             f1 = matriceF[n1-6:n1,0]
             f2 = matriceF[n2-6:n2,0]
 
-            print("force f1: ", f1)
-            print("force f2: ", f2, "\n")
+            # print("force f1: ", f1)
+            # print("force f2: ", f2, "\n")
 
             # # l = abs(int(self.node_coor[1,0]))
             # l = abs((self.long/ self.ele))
@@ -641,13 +640,13 @@ class MEF(Combinaison, _Base_graph):
 
             
 
-            print("déplacement noeud 1: ", u1)
-            print("déplacement noeud 2: ", u2, "\n")
+            # print("déplacement noeud 1: ", u1)
+            # print("déplacement noeud 2: ", u2, "\n")
 
             effortinterneN1 = np.dot(self.k_local["eleALL"]["k11_local"],u1) + np.dot(self.k_local["eleALL"]["k12_local"], u2) - f1
             effortinterneN2 = -(np.dot(self.k_local["eleALL"]["k21_local"],u1) + np.dot(self.k_local["eleALL"]["k22_local"], u2) - f2)
-            print(effortinterneN1)
-            print(effortinterneN2)
+            # print(effortinterneN1)
+            # print(effortinterneN2)
 
             if n1 == 6:
                 ni.append(effortinterneN1[0]/10**3)
@@ -667,7 +666,6 @@ class MEF(Combinaison, _Base_graph):
             myi.append(effortinterneN2[4]/10**6)
                 
         self.ei_coor = [ni, vi, myi]
-        print(vi, myi)
         return self.ei_coor
     
 
@@ -1067,7 +1065,7 @@ if __name__ == '__main__':
     rcombi = "ELU_STR G"
     print(c1.get_combi_list_load(rcombi))
     long = 5000
-    ele = 200
+    ele = 500
     
     b = 60
     h = 100
