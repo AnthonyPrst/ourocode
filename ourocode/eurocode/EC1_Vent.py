@@ -683,7 +683,7 @@ class Toiture_2_pants(Vent):
 							}
 			case "90°":
 				geometrie = {"F": {"Longueur": self.e/4, "Largeur": self.e/10, "Surface": (self.e/10) * (self.e/4) / mt.cos(mt.radians(self.alpha_toit))},
-							"G": {"Longueur": self.b_bat - (self.e/4 * 2) / 2, "Largeur": self.e/10, "Surface": (self.e/10) * (self.b_bat - (self.e/4 * 2) / 2) / mt.cos(mt.radians(self.alpha_toit))},
+							"G": {"Longueur": (self.b_bat - (self.e/4 * 2)) / 2, "Largeur": self.e/10, "Surface": (self.e/10) * (self.b_bat - (self.e/4 * 2) / 2) / mt.cos(mt.radians(self.alpha_toit))},
 							"H": {"Longueur": self.b_bat / 2, "Largeur": self.e/2 - self.e/10, "Surface": (self.e/2 - self.e/10) * (self.b_bat / 2) / mt.cos(mt.radians(self.alpha_toit))},
 							"I": {"Longueur": self.b_bat / 2, "Largeur": self.d_bat - self.e/2, "Surface": (self.d_bat - self.e/2) * (self.b_bat / 2) / mt.cos(mt.radians(self.alpha_toit))}
 							}
