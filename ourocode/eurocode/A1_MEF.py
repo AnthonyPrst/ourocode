@@ -669,53 +669,35 @@ class MEF(Combinaison, _Base_graph):
         return self.ei_coor
     
 
-    # def effort_interne_position(self, position: int):
-    #     position_index = self._nearest_node(position)
-    #     nx = self.ei_coor[0][position_index[0]]
-    #     vz = self.ei_coor[1][position_index[0]]
-    #     my = self.ei_coor[2][position_index[0]]
-    #     print(f"la position la plus proche est {position_index[1]} mm", {"Nx": nx, "Vz": vz, "My": my})
-    #     return {"Nx": nx, "Vz": vz, "My": my}
+    def effort_interne_position(self, position: int):
+        position_index = self._nearest_node(position)
+        nx = self.ei_coor[0][position_index[0]]
+        vz = self.ei_coor[1][position_index[0]]
+        my = self.ei_coor[2][position_index[0]]
+        print(f"la position la plus proche est {position_index[1]} mm", {"Nx": nx, "Vz": vz, "My": my})
+        return {"Nx": nx, "Vz": vz, "My": my}
+    
 
-    def _flatten_list_with_paths(self, nested_list, current_path=[]):
-        """
-        Aplatit une liste potentiellement imbriquée et enregistre les chemins des valeurs.
-
-        Args:
-            nested_list (list): Une liste potentiellement imbriquée de valeurs.
-            current_path (list): Le chemin actuel dans la liste imbriquée.
-
-        Returns:
-            list: Une liste de tuples contenant les valeurs et leurs chemins respectifs.
-        """
-        flat_list_with_paths = []
-        for index, item in enumerate(nested_list):
-            new_path = current_path + [index]
-            if isinstance(item, list):
-                flat_list_with_paths.extend(self._flatten_list_with_paths(item, new_path))
-            else:
-                flat_list_with_paths.append((item, new_path))
-        return flat_list_with_paths
-
+    
     def effort_interne_max(self):
         """ Retourne les efforts min et max d'une liste d'effort interne """
 
-        def max_min_list_load(get_max: bool=True, nested_list=[]):
-            item_value = 0
-            index_item_value = 0
-            for index, item in enumerate(nested_list):
-                if isinstance(item, list):
-                    if get_max:
-                        item = max(item)
-                    else:
-                        item = min(item)
-                if get_max and (item > item_value):
-                    item_max = item
-                    index_item_value = index
-                elif not get_max and (item < item_value):
-                    item_max = item
-                    index_item_value = index
-            return item_value, index_item_value
+        # def max_min_list_load(get_max: bool=True, nested_list=[]):
+        #     item_value = 0
+        #     index_item_value = 0
+        #     for index, item in enumerate(nested_list):
+        #         if isinstance(item, list):
+        #             if get_max:
+        #                 item = max(item)
+        #             else:
+        #                 item = min(item)
+        #         if get_max and (item > item_value):
+        #             item_max = item
+        #             index_item_value = index
+        #         elif not get_max and (item < item_value):
+        #             item_max = item
+        #             index_item_value = index
+        #     return item_value, index_item_value
                 
 
         # nx_max, nx_max_index = max_min_list_load(get_max=True, nested_list=self.ei_coor[0])
