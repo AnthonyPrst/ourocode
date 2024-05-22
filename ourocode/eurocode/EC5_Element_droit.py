@@ -428,14 +428,16 @@ class Flexion(Barre):
 
         if axe == 'y':
             I = self.inertie[0]
+            h_calcul = self.h_calcul
         elif axe == 'z':
             I = self.inertie[1]
+            h_calcul = self.b_calcul
         #prend en compte une section circulaire si aucun des deux axes
         else: 
             I = self.inertie
         
         M_d = self.Md[axe]
-        h_calcul = self.h_calcul
+        
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             sigma_m_d = M_d * h_calcul / (I * 2)
