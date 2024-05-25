@@ -4,8 +4,10 @@
 
 import os, sys
 
+import time
 import numpy as np
 from matplotlib import pyplot as plt
+import math as mt
 from scipy.sparse import coo_matrix, csr_matrix
 from scipy.sparse.linalg import spsolve
 
@@ -111,56 +113,198 @@ class MEF(Combinaison, _Base_graph):
         self.eiz = E*self.Iz
         self.gj = G*J
 
-        if (self.long / ele) < (self.long/20):
-            self.ele = round(self.long / 20)
-        else:
-            self.ele = ele
-        self.alpha_R_tetaZ = np.radians(alphaZ)
-        self.alpha_R_tetaY = np.radians(alphaY)
-        self.alpha_R_tetaX = np.radians(alphaX)
-        self.node_coor = self.node_coord()
-        self.elementList = self.element_list()
-        self.list_supports = []
+        self.beams = {}
+        self.list_supports = {}
+        self.bi_connected = 0
 
 
-    def node_coord(self):
-        nodeCoor = np.zeros((self.ele+1, 1))
-        for i in range(self.ele + 1) :
-            # l0 = 6
-            # if i == 1 or i == self.ele-1:
-            #     if i == 1:
-            #         nodeCoor[i,0]= l0
-            #     else:
-            #         nodeCoor[i,0]= round(self.long - l0)
-            # elif i == 0:
-            #     nodeCoor[i,0]= 0
-            # elif i == self.ele:
-            #     nodeCoor[i,0]= round(self.long)
-            # else:
-            #     nodeCoor[i,0]= round(((self.long- l0) / (self.ele-2)) + nodeCoor[i-1,0])
-            nodeCoor[i,0]= round(self.long/ self.ele * i)
+    def _get_angle_of_beam(self, v1: tuple):
+        """Retourne un angle entre deux points celon le cercle trigo
 
-        # print("\n Liste des coordonnées des éléments : \n", nodeCoor, "\n")
-        return nodeCoor
-
-
-    def element_list(self):
-        nodeList = np.zeros((self.ele,2))
-        for i in range(self.ele):
-            nodeList[i,0] = i+1
-            nodeList[i,1] = i+2
-        
-        # print("\n Liste des éléments : \n",nodeList, "\n")
-        return nodeList
+        Args:
+            v1 (tuple): vecteur dans le cercle trigonométrique
+        """
+        ang1 = np.arctan2(*v1[::-1])
+        return np.rad2deg(ang1 % (2 * np.pi))
     
 
-    def _init_matrix_K(self, index: int|str, l: int) -> np.array:
+    def add_beam(self, x1: int, y1: int, x2: int, y2: int):
+        """Ajoute une poutre au model MEF
+
+        Args:
+            x1 (int): position de départ en x en mm
+            y1 (int): position de départ en y en mm
+            x2 (int): position de fin en x en mm
+            y2 (int): position de fin en y en mm
+        """
+        i_beam = len(self.beams) + 1
+        v1 = (x2-x1, y2-y1)
+        print(v1)
+        length = mt.sqrt(abs(v1[0])**2 + abs(v1[1])**2)
+        angle = self._get_angle_of_beam(v1)
+        self.beams[str(i_beam)] = {"elements": [], "length": length,
+                                    "angle": angle, 
+                                    "x1": x1, "y1": y1, "x2": x2, "y2": y2}
+        self._create_elements_and_nodes(self.beams[str(i_beam)])
+        print("Poutre crée: ", self.beams)
+        
+        
+    def _create_elements_and_nodes(self, beam: dict):
+        if beam["length"] < 5000:
+            nb_ele = int(mt.ceil(beam["length"]/1000))
+        else:
+            nb_ele = int(mt.ceil(beam["length"]/1000))
+
+        shape = (0,0)
+        if hasattr(self, "element_list"):
+            shape = (self.element_list.shape[0] + 1 - self.bi_connected, self.element_list.shape[1])
+
+        # On crée une  node list et une coordonée list et on itère
+        nodeCoor = np.zeros((nb_ele+1, 2))
+        nodeList = np.zeros((nb_ele,2))
+        
+        node_coor_to_del = []
+        bi_connect = False
+        j = 0
+        for i in range(nb_ele+1):
+            length = beam["length"] / nb_ele * i
+            x = round(beam["x1"] + length * mt.cos(mt.radians(beam["angle"])),3)
+            y = round(beam["y1"] + length * mt.sin(mt.radians(beam["angle"])),3)
+            if not x:
+                x = 0
+            if not y:
+                y = 0
+            if shape[0]>1:
+                find_array = np.where((self.node_coor == [x,y]).all(axis=1))[0]
+                print(find_array, [x,y], i, j, shape[0])
+                if find_array.shape[0]:
+                    # print(self.element_list[find_array[0]])
+                    val = 0
+                    if find_array[0] != 0:
+                        find_array[0] = find_array[0]-1
+                        val = 1
+                    if i < nb_ele:
+                        nodeList[i,0] = self.element_list[find_array[0]][val]
+                        nodeList[i,1] = shape[0]+i+1-j
+                    else:
+                        nodeList[i-1,0] = shape[0]+i-j
+                        nodeList[i-1,1] = self.element_list[find_array[0]][val] + self.bi_connected
+                        # on test si on a déja rattacher un premier noeud de la barre à un noeud existant si oui on incrémente le compteur
+                        if j == 1:
+                            self.bi_connected += 1
+                            bi_connect = True
+
+                    j += 1
+                    node_coor_to_del.append(i)
+                    if not bi_connect:
+                        beam["elements"].append(shape[0]+i-j+self.bi_connected)
+                    print("salu",shape[0],i,j)
+                    
+                    continue
+            nodeCoor[i,0] = x
+            nodeCoor[i,1] = y
+            
+            if i < nb_ele:
+                nodeList[i,0] = shape[0]+i+1 - j
+                nodeList[i,1] = shape[0]+i+2 - j
+                print(shape[0],i,j)
+                beam["elements"].append(shape[0]+i-j+self.bi_connected)
+
+        # print("noeud à supprimer", node_coor_to_del, nodeCoor, nodeCoor.shape)
+        j = 0
+        for i_del in node_coor_to_del:
+            nodeCoor = np.delete(nodeCoor, i_del - j, 0)
+            j += 1
+        # for i in range(shape[0], shape[0]+nb_ele):
+        #     nodeList[i-shape[0],0] = i+1
+        #     nodeList[i-shape[0],1] = i+2
+        #     beam["elements"].append(i)
+        
+        
+      
+        if shape[0]:
+            self.node_coor = np.concatenate((self.node_coor, nodeCoor), axis=0)
+            self.element_list = np.concatenate((self.element_list, nodeList), axis=0)
+        else:
+            self.element_list = nodeList
+            self.node_coor = nodeCoor
+        print(self.element_list, "\n", self.node_coor)
+        
+
+    # def node_coord(self):
+    #     nodeCoor = np.zeros((self.ele+1, 1))
+    #     for i in range(self.ele + 1):
+    #         # l0 = 6
+    #         # if i == 1 or i == self.ele-1:
+    #         #     if i == 1:
+    #         #         nodeCoor[i,0]= l0
+    #         #     else:
+    #         #         nodeCoor[i,0]= round(self.long - l0)
+    #         # elif i == 0:
+    #         #     nodeCoor[i,0]= 0
+    #         # elif i == self.ele:
+    #         #     nodeCoor[i,0]= round(self.long)
+    #         # else:
+    #         #     nodeCoor[i,0]= round(((self.long- l0) / (self.ele-2)) + nodeCoor[i-1,0])
+    #         nodeCoor[i,0]= round(self.long/ self.ele * i)
+
+    #     # print("\n Liste des coordonnées des éléments : \n", nodeCoor, "\n")
+    #     return nodeCoor
+
+
+    # def element_list(self):
+    #     nodeList = np.zeros((self.ele,2))
+    #     for i in range(self.ele):
+    #         nodeList[i,0] = i+1
+    #         nodeList[i,1] = i+2
+        
+    #     # print("\n Liste des éléments : \n",nodeList, "\n")
+    #     return nodeList
+    
+
+    def _transformation_matrix(self, angle: float):
+        """Matrice de transformation pour un élément barre 3D dans un plan perpendiculaire à un axe.
+        Si la barre est réellement dans un espace 3D il faut alors calcul les produits scalaire de chaque axe dans une matrice lambda.
+        Voir la video youtube https://www.youtube.com/watch?v=J2MwWFcY3NI&list=PLmw2x4fCMxg6Yw-7FqwBNSobXZR6fQ3Sm&index=16
+        Args:
+            angle (float): angle en degré de la barre par rapport à X
+        """
+        Assembleur_COO_T = _Triplets()
+        rad_angle = mt.radians(angle)
+        # lambda_matrix = np.array([[mt.cos(rad_angle), 1, mt.sin(rad_angle)],
+        #                         [-mt.sin(rad_angle), 1, mt.cos(rad_angle)],
+        #                         [0, 0, 1]])
+        lambda_matrix = np.array([[mt.cos(rad_angle), 0, mt.sin(rad_angle)],
+                                [0, 1, 0],
+                                [-mt.sin(rad_angle), 0, mt.cos(rad_angle)]])
+        transformation_matrix = np.zeros((12,12))
+        index = 0
+        for _ in range(0,4):
+            for i in range(0,3):
+                for j in range(0,3):
+                    Assembleur_COO_T.append(index+i, index+j, lambda_matrix[i,j])
+            index += 3
+
+        transformation_matrix = (coo_matrix(Assembleur_COO_T.data, shape=(12, 12))).tocsr()
+        # print("Matrice de transformation locale/globale: ",transformation_matrix)
+        return transformation_matrix
+    
+
+    def _init_matrix_K(self, index: int|str) -> np.array:
         """Initialise la matrice K suivant la longueur de l'élément l en mm
         Args:
             l (int): longueur de l'élément MEF en mm
         Returns:
             numpy.array: matrice de rigidité K
         """
+        for key, beam in self.beams.items():
+            if index in beam["elements"]:
+                angle = beam["angle"]
+                l = beam["length"] / len(beam["elements"])
+                print(l)
+                print(f"J'ai retrouvé la poutre {key} qui est associé à l'élément {index}, son angle est de {angle} degrés.")
+                break
+        
         k = np.array([[(self.ea)/l, 0, 0, 0, 0, 0, -(self.ea)/l, 0, 0, 0, 0, 0],
                     [0, (12*self.eiz)/l**3, 0, 0, 0, (6*self.eiz)/l**2, 0, -(12*self.eiz)/l**3, 0, 0, 0, (6*self.eiz)/l**2],
                     [0, 0, (12*self.eiy)/l**3, 0, -(6*self.eiy)/l**2, 0, 0, 0, -(12*self.eiy)/l**3, 0, -(6*self.eiy)/l**2, 0],
@@ -173,25 +317,24 @@ class MEF(Combinaison, _Base_graph):
                     [0, 0, 0, -self.gj/l, 0, 0, 0, 0, 0, self.gj/l, 0, 0],
                     [0, 0, -(6*self.eiy)/l**2, 0, (2*self.eiy)/l, 0, 0, 0, (6*self.eiy)/l**2, 0, (4*self.eiy)/l,0],
                     [0, (6*self.eiz)/l**2, 0, 0, 0, (2*self.eiz)/l, 0, -(6*self.eiz)/l**2, 0, 0, 0, (4*self.eiz)/l]])
+        
+        # self.T_matrix = self._transformation_matrix(angle)
+        T_matrix = self._transformation_matrix(angle)
 
-        self.k_local["ele"+str(index)] = {"k11_local": k[0:6,0:6], 
-                                        "k12_local": k[0:6,6:12],
-                                        "k21_local": k[6:12,0:6],
-                                        "k22_local": k[6:12,6:12]}
-        return k
+        self.k_local["ele"+str(index)] = {"k_local": k, "T_global": T_matrix}
+        return np.dot(np.dot(T_matrix.T.toarray(), k), T_matrix.toarray())
 
-    
+
     def _agregation_matrix_K(self, assembleur_COO_K: list, k: np.array, n1: int, n2: int):
         # Agrégation de la matrice global
         for i in range(-6,0):
-                for j in range(-6,0):
-                    assembleur_COO_K.append(n1+i, n1+j, k[i+6,j+6]) # ajout de bruit pour éviter les singularité (+0.001)
-                    assembleur_COO_K.append(n2+i, n2+j, k[i+12,j+12]) # ajout de bruit pour éviter les singularité (+0.001)
-                    if k[i+6,j+12]:
-                        assembleur_COO_K.append(n1+i, n2+j, k[i+6,j+12])
-                        
-                    if k[i+12,j+6]:
-                        assembleur_COO_K.append(n2+i, n1+j, k[i+12,j+6]) # ajout de bruit pour éviter les singularité (+0.001)
+            for j in range(-6,0):
+                assembleur_COO_K.append(n1+i, n1+j, k[i+6,j+6]) # ajout de bruit pour éviter les singularité (+0.001)
+                assembleur_COO_K.append(n2+i, n2+j, k[i+12,j+12]) # ajout de bruit pour éviter les singularité (+0.001)
+                if k[i+6,j+12]:
+                    assembleur_COO_K.append(n1+i, n2+j, k[i+6,j+12])
+                if k[i+12,j+6]:
+                    assembleur_COO_K.append(n2+i, n1+j, k[i+12,j+6]) # ajout de bruit pour éviter les singularité (+0.001)
         
 
     
@@ -200,26 +343,20 @@ class MEF(Combinaison, _Base_graph):
         Returns:
             numpy.array: la matrice de rigidité assemblée
         """
-        self.k_local = {}
-        # l = abs(int(self.node_coor[1,0]))
-        l = abs((self.long/ self.ele))
-        
-        # matrice de rigidité K
-        k = self._init_matrix_K("ALL", l)
-        
-        # Agrégation de la matrice global
-        
         Assembleur_COO_K = _Triplets()
-        
-        for i in range(self.ele):
-            n1 = int(self.elementList[i,0])*6
-            n2 = int(self.elementList[i,1])*6
+        self.k_local = {}
+
+        for i in range(len(self.element_list)):
+            # matrice de rigidité K
+            k = self._init_matrix_K(i)
+            n1 = int(self.element_list[i,0])*6
+            n2 = int(self.element_list[i,1])*6
             
             self._agregation_matrix_K(Assembleur_COO_K , k, n1, n2)
         
-        self.matriceK = (coo_matrix(Assembleur_COO_K.data, shape=((self.ele+1)*6, (self.ele+1)*6))).tocsr() 
+        self.matriceK = (coo_matrix(Assembleur_COO_K.data, shape=((len(self.element_list)+1)*6, (len(self.element_list)+1)*6))).tocsr() 
              
-        # print("\n Matrice de rigidité K  : \n", self.matriceK, "\n")
+        # print("\n Matrice de rigidité K  : \n", self.matriceK.toarray(), "\n")
         return self.matriceK 
 
 
@@ -233,9 +370,10 @@ class MEF(Combinaison, _Base_graph):
         
         # find the index of minimum element from the array
         index = difference_array.argmin()
+        print("nearest", index)
         nearest_distance = self.node_coor[index][0]
         index_I_matrice = ((index+1) * 6) - 6
-        element_coor = self.elementList[index-1]
+        element_coor = self.element_list[index-1]
         
         #print("Nearest element to the given values is : ", nearest_distance)
         #print("Index of nearest value is : ", index)
@@ -245,7 +383,7 @@ class MEF(Combinaison, _Base_graph):
     def _matrice_U_1D(self, listDepla):
         """ Donner en entrée la liste type des appuis extérieurs, 
         ressort une matrice acceptable pour le calcul MEF """
-        self.matriceU = np.ones(((self.ele+1)*6,1))
+        self.matriceU = np.ones(((len(self.element_list)+1)*6,1))
         
         for i in range(len(listDepla)):
             index_min = self._nearest_node(int(listDepla[i][2]))
@@ -270,16 +408,13 @@ class MEF(Combinaison, _Base_graph):
         ressort une matrice acceptable pour le calcul MEF """
         Assembleur_COO_F = _Triplets()
         
+        self.alpha_R_tetaY = 0
         base_global_R_tetaY = np.array([[np.cos(self.alpha_R_tetaY), np.sin(self.alpha_R_tetaY), 0],
                     [-np.sin(self.alpha_R_tetaY), np.cos(self.alpha_R_tetaY), 0],
                     [0, 0, 1]])
         
-        base_global_R_tetaX = np.array([[np.cos(self.alpha_R_tetaX), np.sin(self.alpha_R_tetaX), 0],
-                    [-np.sin(self.alpha_R_tetaX), np.cos(self.alpha_R_tetaX), 0],
-                    [0, 0, 1]])
-        
         # l = abs(int(self.node_coor[1,0]))
-        l = abs((self.long/ self.ele))
+        l = abs((self.long/ len(self.element_list)))
 
         for i in range(len(listFext)):
             listFlocal = np.zeros((3,1))
@@ -433,8 +568,8 @@ class MEF(Combinaison, _Base_graph):
                 Assembleur_COO_F.append(index_min[2]+2, 0, listFlocal[1,0])
                 Assembleur_COO_F.append(index_min[2]+4, 0, listFlocal[2,0])
                 
-        self.matriceF = coo_matrix(Assembleur_COO_F.data, shape=((self.ele+1)*6, 1)).tocsr()
-        # print("\n Matrice des forces extérieurs Fext : \n",self.matriceF, self.matriceF.shape,"\n")
+        self.matriceF = coo_matrix(Assembleur_COO_F.data, shape=((len(self.element_list)+1)*6, 1)).tocsr()
+        print("\n Matrice des forces extérieurs Fext : \n",self.matriceF, self.matriceF.shape,"\n")
         return self.matriceF
 
 
@@ -472,13 +607,13 @@ class MEF(Combinaison, _Base_graph):
             if self.matriceU[i]:
                 self.matriceU[i] = ui[j]
                 j += 1
-        # print("\n Solution Déplacement : \n", self.matriceU, "\n")
+        print("\n Solution Déplacement : \n", self.matriceU, "\n")
         return self.matriceU
 
 
     def _equa_reaction(self):
         self.ri = np.dot(self.matriceK.toarray(), self.matriceU) - self.matriceF.toarray()
-        #print("\n Solution Réaction : \n", self.ri, "\n")
+        print("\n Solution Réaction : \n", self.ri, "\n")
         return self.ri
 
 
@@ -491,25 +626,21 @@ class MEF(Combinaison, _Base_graph):
         rmy = []
         rmz = []
         
-        for i in range(self.ele):
-            n1 = int(self.elementList[i,0])*6
-            n2 = int(self.elementList[i,1])*6
+        for i in range(len(self.element_list)):
+            n1 = int(self.element_list[i,0])*6
+            n2 = int(self.element_list[i,1])*6
 
             r1 = self.ri[n1-6:n1,0]
             r2 = self.ri[n2-6:n2,0]
             
             if n1 == 6:
-                
                 rx.append(r1[0]/10**3)
-                rx.append(r2[0]/10**3)
                 rz.append(r1[2]/10**3)
-                rz.append(r2[2]/10**3)
                 rmy.append(r1[4]/10**6)
-                rmy.append(r2[4]/10**6)
-            else:
-                rx.append(r2[0]/10**3)
-                rz.append(r2[2]/10**3)
-                rmy.append(r2[4]/10**6)
+
+            rx.append(r2[0]/10**3)
+            rz.append(r2[2]/10**3)
+            rmy.append(r2[4]/10**6)
 
         self.react_coor = [rx, rz, rmy]
         return self.react_coor
@@ -553,9 +684,9 @@ class MEF(Combinaison, _Base_graph):
         uz = []
         tetay = []
 
-        for i in range(self.ele):
-            n1 = int(self.elementList[i,0])*6
-            n2 = int(self.elementList[i,1])*6
+        for i in range(len(self.element_list)):
+            n1 = int(self.element_list[i,0])*6
+            n2 = int(self.element_list[i,1])*6
 
             u1 = self.matriceU[n1-6:n1,0]
             u2 = self.matriceU[n2-6:n2,0]
@@ -615,58 +746,40 @@ class MEF(Combinaison, _Base_graph):
         ni = []
         vi = []
         myi = []
-        for i in range(self.ele):
-            n1 = int(self.elementList[i,0])*6
-            n2 = int(self.elementList[i,1])*6
+        for i in range(len(self.element_list)):
+            n1 = int(self.element_list[i,0])*6
+            n2 = int(self.element_list[i,1])*6
 
             # print("noeud 1: ", n1)
             # print("noeud 2: ", n2, "\n")
             
-            u1 = self.matriceU[n1-6:n1,0]
-            u2 = self.matriceU[n2-6:n2,0]
+            u_global = self.matriceU[n1-6:n2,0]
 
             matriceF = self.matriceF.toarray()
-            f1 = matriceF[n1-6:n1,0]
-            f2 = matriceF[n2-6:n2,0]
+            f_0 = matriceF[n1-6:n2,0]
 
-            # print("force f1: ", f1)
-            # print("force f2: ", f2, "\n")
-
-            # # l = abs(int(self.node_coor[1,0]))
-            # l = abs((self.long/ self.ele))
-            
-            # # matrice de rigidité K
-            # k = self._init_matrix_K("ALL", l)
-
-            
-
-            # print("déplacement noeud 1: ", u1)
-            # print("déplacement noeud 2: ", u2, "\n")
-
-            effortinterneN1 = np.dot(self.k_local["eleALL"]["k11_local"],u1) + np.dot(self.k_local["eleALL"]["k12_local"], u2) - f1
-            effortinterneN2 = -(np.dot(self.k_local["eleALL"]["k21_local"],u1) + np.dot(self.k_local["eleALL"]["k22_local"], u2) - f2)
-            # print(effortinterneN1)
-            # print(effortinterneN2)
+            # effortinterneN1 = np.dot(self.k_local["eleALL"]["k11_local"],u1) + np.dot(self.k_local["eleALL"]["k12_local"], u2) - f1
+            # effortinterneN2 = -(np.dot(self.k_local["eleALL"]["k21_local"],u1) + np.dot(self.k_local["eleALL"]["k22_local"], u2) - f2)
+            internal_forces = np.dot(np.dot(self.k_local["eleALL"], self.T_matrix.toarray()), u_global) - np.dot(self.T_matrix.toarray(), f_0)
+            # print("effort interne: ", internal_forces)
 
             if n1 == 6:
-                ni.append(effortinterneN1[0]/10**3)
-                vi.append(effortinterneN1[2]/10**3)
-                myi.append(effortinterneN1[4]/10**6)
-                
-            # else:
-            #     if round(ni[-1],3) != round(effortinterneN1[0]/10**3,3):
-            #         ni[-1] = [ni[-1], effortinterneN1[0]/10**3]
-            #     if round(vi[-1],2) != round(effortinterneN1[0]/10**3,2):
-            #         vi[-1] = [vi[-1], effortinterneN1[2]/10**3]
-            #     if round(myi[-1],6) != round(effortinterneN1[0]/10**3,6):
-            #         myi[-1] = [myi[-1], effortinterneN1[4]/10**6]
+                ni.append(internal_forces[0]/10**3)
+                vi.append(internal_forces[2]/10**3)
+                myi.append(internal_forces[4]/10**6)
             
-            ni.append(effortinterneN2[0]/10**3)
-            vi.append(effortinterneN2[2]/10**3)
-            myi.append(effortinterneN2[4]/10**6)
+            # else:
+            #     ni[-1] = ni[-1] + internal_forces[0]/10**3
+            #     vi[-1] = vi[-1] + internal_forces[2]/10**3
+            #     myi[-1] = myi[-1] + internal_forces[4]/10**6
+            
+            ni.append(-internal_forces[6]/10**3)
+            vi.append(-internal_forces[8]/10**3)
+            myi.append(-internal_forces[10]/10**6)
                 
         self.ei_coor = [ni, vi, myi]
         return self.ei_coor
+    
     
 
     def effort_interne_position(self, position: int):
@@ -923,6 +1036,11 @@ class MEF(Combinaison, _Base_graph):
 
         # Création du graphique
         plt.figure(figsize=(12, 4))
+
+        plt.arrow(0, 0, 0, 350, width=15, color="blue")
+        plt.text(150, -100, "X", ha='right')
+        plt.arrow(0, 0, 350, 0, width=15, color="red")
+        plt.text(-50, 150, "Z", ha='right')
         for i, load in enumerate(self.list_loads):
             charge = load[4]
             parser = parse_position(load[5], charge)
@@ -934,21 +1052,35 @@ class MEF(Combinaison, _Base_graph):
                 plt.fill_between(parser[0], parser[1], alpha=0.3)
             else:
                 unit_load = "daN"
-                plt.plot(parser[0], parser[1], marker="o",label=nom)
+                plt.plot(parser[0], parser[1], marker="X",label=nom)
             plt.text(parser[0][1]+1000, charge+2, f'{charge} {unit_load}', ha='right')
 
-        for support in self.list_supports:
-            if support[1] == "Rotule":
+        for key, beam in self.beams.items():
+            x, y = [], []
+            for element in beam["elements"]:
+                for i, node in enumerate(self.element_list[element]):
+                    coor = self.node_coor[int(node)-1]
+                    x.append(coor[0])
+                    y.append(coor[1])
+            plt.plot(x, y, label=f"Poutre N°{key}")
+            plt.plot(x[0], y[0], marker='o', mec='gray', mfc="gray")
+            plt.plot(x[-1], y[-1], marker='o', mec='gray', mfc="gray")
+
+        for key, support in self.list_supports.items():
+            if support["Type d'appui"] == "Rotule":
                 support_type = "o"
-            elif support[1] == "Encastrement":
+            elif support["Type d'appui"] == "Encastrement":
                 support_type = "s"
             else:
                 support_type = "^"
-            plt.plot(support[2], 0, marker=support_type, markersize=10, color="red", label=f"Appui {support[0]} / {support[1]}")
+            x = mt.cos(mt.radians(self.beams[str(support["N° poutre"])]["angle"])) * support["Position de l'appui"] + self.beams[str(support["N° poutre"])]["x1"]
+            y = mt.sin(mt.radians(self.beams[str(support["N° poutre"])]["angle"])) * support["Position de l'appui"] + self.beams[str(support["N° poutre"])]["y1"]
+            plt.plot(x, y, marker=support_type, markersize=10, color="red", label=f"Appui {key} / {support["Type d'appui"]}")
 
-        plt.title('Schématisation des charges')
-        plt.xlabel('Position (m)')
-        plt.ylabel('Charge (daN ou daN/m)')
+
+        plt.title('Schématisation de la structure et des charges')
+        plt.xlabel('Longueur (mm)')
+        plt.ylabel('Hauteur (mm')
         plt.legend()
         plt.grid(True)
         plt.show()
@@ -959,7 +1091,7 @@ class MEF(Combinaison, _Base_graph):
         """
         return self.list_supports
 
-    def create_support(self, type_appuis: str=("Simple", 'Rotule', 'Encastrement'), pos: int=0, l_appuis: int=0):
+    def create_support(self, beam_number: int, type_appuis: str=("Simple", 'Rotule', 'Encastrement'), pos: int=0, l_appuis: int=0):
         """Ajoute un appuis dans la liste d'appuis de la classe MEF
 
         Args:
@@ -967,9 +1099,11 @@ class MEF(Combinaison, _Base_graph):
             pos (int, optional): position de l'appuis sur la poutre en mm. Defaults to 0.
             l_appuis (int, optional): longueur d'appuis sur la poutre en mm. Defaults to 0.
         """
-        load = (len(self.list_supports)+1, type_appuis, pos, l_appuis)
-        self.list_supports.append(load)
-        return load
+        self.list_supports[str(len(self.list_supports)+1)] = {"N° poutre": beam_number, 
+                                                              "Type d'appui": type_appuis, 
+                                                              "Position de l'appui": pos, 
+                                                              "Longueur d'appui": l_appuis}
+        return self.list_supports[str(len(self.list_supports)+1)]
 
     
     def create_supports_by_list(self, list_supports: list):
@@ -979,17 +1113,20 @@ class MEF(Combinaison, _Base_graph):
             list_supports (list): liste de charge.
         """
         for support in list_supports:
-            self.list_supports.append(support)
+            self.list_supports[str(len(self.list_supports)+1)] = {"N° poutre": support[0], 
+                                                                  "Type d'appui": support[1], 
+                                                                  "Position de l'appui": support[2], 
+                                                                  "Longueur d'appui": support[3]}
         return self.list_supports
 
 
     def del_support(self, index_load: int):
-        """Supprime une charge de l'attribut list_supports par son index
+        """Supprime un appui de l'attribut list_supports par son index
 
         Args:
-            index_load (int): index de la charge à supprimer.
+            index_load (int): index de l'appui à supprimer.
         """
-        return self.list_supports.pop(index_load-1)
+        return f"L'appui ci-joint à été supprimé: {self.list_supports.pop(str(index_load))}"
     
 
 
@@ -999,7 +1136,7 @@ class MEF(Combinaison, _Base_graph):
         Args:
             list_loads (list): liste des charges combinées sur la poutre MEF.
         """
-        #start = time.time()
+        start = time.time()
         self._matrice_K_1D()
         self._matrice_Fext_1D(self.list_loads)
         self._matrice_U_1D(self.list_supports)
@@ -1012,9 +1149,9 @@ class MEF(Combinaison, _Base_graph):
         self.effort_interne()
         self.deplacement()
         
-        # end = time.time()
-        # elapsed = end - start
-        # print(f'Temps d\'exécution : {elapsed:.2}s')
+        end = time.time()
+        elapsed = end - start
+        print(f'Temps d\'exécution : {elapsed:.2}s')
     
     def graphique(self, name_combi:str):
         """Affiche le graphique des efforts internes, des réactions d'appuis et de la flèche,
@@ -1038,7 +1175,7 @@ if __name__ == '__main__':
     from EC0_Combinaison import Chargement
     # _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/6000", 'Z'],
     #              [2, '', "Neige normale Sn", 'Linéique', -200, "0/6000", 'Z']]
-    _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/5000", 'Z'],
+    _list_loads = [[1, '', 'Permanente G', "Nodale", -500, 2500, 'X'],
                 [2, '', "Neige normale Sn", 'Linéique', -200, "0/5000", 'Z']]
     chargement = Chargement(pays="Japon")
     chargement.create_load_by_list(_list_loads)
@@ -1047,7 +1184,7 @@ if __name__ == '__main__':
     rcombi = "ELU_STR G"
     print(c1.get_combi_list_load(rcombi))
     long = 5000
-    ele = 500
+    ele = 6
     
     b = 60
     h = 100
@@ -1056,11 +1193,15 @@ if __name__ == '__main__':
     iz = (h*b**3)/12
     test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=690, J=690, Iy=iy, Iz=iz, ele=ele, alphaZ=0, alphaY=0, alphaX=0)
 
-    listdeplacement = [[1, "Simple", 0, 0], [2, "Rotule", long, 0]]
+    listdeplacement = [[1, "Rotule", 0, 0], [1, "Rotule", 3000, 0]]
     test.create_supports_by_list(listdeplacement)
     
-    test.calcul_1D()
+    test.add_beam(0,0,5000,0)
+    test.add_beam(0,0,2500,4000)
+    test.add_beam(5000,0,2500,4000)
+    test.show_graph_loads_and_supports()
+    # test.calcul_1D()
     # print(test.reaction_max())
-    test.graphique(rcombi)
-    test.show_graphique_fleche(rcombi)
+    # test.graphique(rcombi)
+    # test.show_graphique_fleche(rcombi)
     # test.show_graph_loads_and_supports()
