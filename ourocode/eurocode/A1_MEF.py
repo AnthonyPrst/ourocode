@@ -85,183 +85,20 @@ class _Triplets(object):
         
 class MEF(Combinaison, _Base_graph):
     SAVE_PATH = os.path.join(Combinaison.PATH_CATALOG, "data","screenshot")
-    def __init__(self, long: int, E: int, A: float, G: float, J: float, Iy: float, Iz: float, ele: int=500, alphaZ: float=0, alphaY: float=0, alphaX: float=0,**kwargs):
+    def __init__(self, A: float,**kwargs):
         """Classe permettant de créer des poutres MEF et de les calculer. Cette classe est hérité de l'objet Combinaison du module EC0_Combinaison.py
         Args:
-            combinaison (Combinaison): L'objet créer à partir de la classe Combinaison du module EC0_Combinaison.py
-            long (int): Longueur de l'élément en mm
-            E (int): Module de young en MPa, ce E est le E,mean. Il ne faut absolument pas donner le E,mean,fin sous peine de réaliser le calcul EC5 §2.3.2.2 equ2.7 deux fois !
             A (float): Section en mm²
-            G (float): Module de cisaillement en MPa
-            J (float): Module de torsion
-            Iy (float): Inertie quadratique autour de y en mm4
-            Iz (float): Inertie quadratique autour de z en mm4
-            ele (int): Nombre d'élément fini (mesh)
-            alphaZ (float): Angle d'application des charges entre un repère local et global autour de Z
-            alphaY (float): Angle d'application des charges entre un repère local et global autour de y
-            alphaX (float): Angle d'application des charges entre un repère local et global autour de x
         """
         super(Combinaison, self).__init__(**kwargs)
         _Base_graph.__init__(self)
-        self.long = long
         self.A = A
-        self.Iy = Iy
-        self.Iz = Iz
 
         self.ea = E*self.A
         self.eiy = E*self.Iy
         self.eiz = E*self.Iz
         self.gj = G*J
-
-        self.beams = {}
-        self.list_supports = {}
-        self.bi_connected = 0
-
-
-    def _get_angle_of_beam(self, v1: tuple):
-        """Retourne un angle entre deux points celon le cercle trigo
-
-        Args:
-            v1 (tuple): vecteur dans le cercle trigonométrique
-        """
-        ang1 = np.arctan2(*v1[::-1])
-        return np.rad2deg(ang1 % (2 * np.pi))
     
-
-    def add_beam(self, x1: int, y1: int, x2: int, y2: int):
-        """Ajoute une poutre au model MEF
-
-        Args:
-            x1 (int): position de départ en x en mm
-            y1 (int): position de départ en y en mm
-            x2 (int): position de fin en x en mm
-            y2 (int): position de fin en y en mm
-        """
-        i_beam = len(self.beams) + 1
-        v1 = (x2-x1, y2-y1)
-        print(v1)
-        length = mt.sqrt(abs(v1[0])**2 + abs(v1[1])**2)
-        angle = self._get_angle_of_beam(v1)
-        self.beams[str(i_beam)] = {"elements": [], "length": length,
-                                    "angle": angle, 
-                                    "x1": x1, "y1": y1, "x2": x2, "y2": y2}
-        self._create_elements_and_nodes(self.beams[str(i_beam)])
-        print("Poutre crée: ", self.beams)
-        
-        
-    def _create_elements_and_nodes(self, beam: dict):
-        if beam["length"] < 5000:
-            nb_ele = int(mt.ceil(beam["length"]/1000))
-        else:
-            nb_ele = int(mt.ceil(beam["length"]/1000))
-
-        shape = (0,0)
-        if hasattr(self, "element_list"):
-            shape = (self.element_list.shape[0] + 1 - self.bi_connected, self.element_list.shape[1])
-
-        # On crée une  node list et une coordonée list et on itère
-        nodeCoor = np.zeros((nb_ele+1, 2))
-        nodeList = np.zeros((nb_ele,2))
-        
-        node_coor_to_del = []
-        bi_connect = False
-        j = 0
-        for i in range(nb_ele+1):
-            length = beam["length"] / nb_ele * i
-            x = round(beam["x1"] + length * mt.cos(mt.radians(beam["angle"])),3)
-            y = round(beam["y1"] + length * mt.sin(mt.radians(beam["angle"])),3)
-            if not x:
-                x = 0
-            if not y:
-                y = 0
-            if shape[0]>1:
-                find_array = np.where((self.node_coor == [x,y]).all(axis=1))[0]
-                print(find_array, [x,y], i, j, shape[0])
-                if find_array.shape[0]:
-                    # print(self.element_list[find_array[0]])
-                    val = 0
-                    if find_array[0] != 0:
-                        find_array[0] = find_array[0]-1
-                        val = 1
-                    if i < nb_ele:
-                        nodeList[i,0] = self.element_list[find_array[0]][val]
-                        nodeList[i,1] = shape[0]+i+1-j
-                    else:
-                        nodeList[i-1,0] = shape[0]+i-j
-                        nodeList[i-1,1] = self.element_list[find_array[0]][val] + self.bi_connected
-                        # on test si on a déja rattacher un premier noeud de la barre à un noeud existant si oui on incrémente le compteur
-                        if j == 1:
-                            self.bi_connected += 1
-                            bi_connect = True
-
-                    j += 1
-                    node_coor_to_del.append(i)
-                    if not bi_connect:
-                        beam["elements"].append(shape[0]+i-j+self.bi_connected)
-                    print("salu",shape[0],i,j)
-                    
-                    continue
-            nodeCoor[i,0] = x
-            nodeCoor[i,1] = y
-            
-            if i < nb_ele:
-                nodeList[i,0] = shape[0]+i+1 - j
-                nodeList[i,1] = shape[0]+i+2 - j
-                print(shape[0],i,j)
-                beam["elements"].append(shape[0]+i-j+self.bi_connected)
-
-        # print("noeud à supprimer", node_coor_to_del, nodeCoor, nodeCoor.shape)
-        j = 0
-        for i_del in node_coor_to_del:
-            nodeCoor = np.delete(nodeCoor, i_del - j, 0)
-            j += 1
-        # for i in range(shape[0], shape[0]+nb_ele):
-        #     nodeList[i-shape[0],0] = i+1
-        #     nodeList[i-shape[0],1] = i+2
-        #     beam["elements"].append(i)
-        
-        
-      
-        if shape[0]:
-            self.node_coor = np.concatenate((self.node_coor, nodeCoor), axis=0)
-            self.element_list = np.concatenate((self.element_list, nodeList), axis=0)
-        else:
-            self.element_list = nodeList
-            self.node_coor = nodeCoor
-        print(self.element_list, "\n", self.node_coor)
-        
-
-    # def node_coord(self):
-    #     nodeCoor = np.zeros((self.ele+1, 1))
-    #     for i in range(self.ele + 1):
-    #         # l0 = 6
-    #         # if i == 1 or i == self.ele-1:
-    #         #     if i == 1:
-    #         #         nodeCoor[i,0]= l0
-    #         #     else:
-    #         #         nodeCoor[i,0]= round(self.long - l0)
-    #         # elif i == 0:
-    #         #     nodeCoor[i,0]= 0
-    #         # elif i == self.ele:
-    #         #     nodeCoor[i,0]= round(self.long)
-    #         # else:
-    #         #     nodeCoor[i,0]= round(((self.long- l0) / (self.ele-2)) + nodeCoor[i-1,0])
-    #         nodeCoor[i,0]= round(self.long/ self.ele * i)
-
-    #     # print("\n Liste des coordonnées des éléments : \n", nodeCoor, "\n")
-    #     return nodeCoor
-
-
-    # def element_list(self):
-    #     nodeList = np.zeros((self.ele,2))
-    #     for i in range(self.ele):
-    #         nodeList[i,0] = i+1
-    #         nodeList[i,1] = i+2
-        
-    #     # print("\n Liste des éléments : \n",nodeList, "\n")
-    #     return nodeList
-    
-
     def _transformation_matrix(self, angle: float):
         """Matrice de transformation pour un élément barre 3D dans un plan perpendiculaire à un axe.
         Si la barre est réellement dans un espace 3D il faut alors calcul les produits scalaire de chaque axe dans une matrice lambda.
@@ -794,51 +631,27 @@ class MEF(Combinaison, _Base_graph):
     
     def effort_interne_max(self):
         """ Retourne les efforts min et max d'une liste d'effort interne """
-
-        # def max_min_list_load(get_max: bool=True, nested_list=[]):
-        #     item_value = 0
-        #     index_item_value = 0
-        #     for index, item in enumerate(nested_list):
-        #         if isinstance(item, list):
-        #             if get_max:
-        #                 item = max(item)
-        #             else:
-        #                 item = min(item)
-        #         if get_max and (item > item_value):
-        #             item_max = item
-        #             index_item_value = index
-        #         elif not get_max and (item < item_value):
-        #             item_max = item
-        #             index_item_value = index
-        #     return item_value, index_item_value
                 
-
-        # nx_max, nx_max_index = max_min_list_load(get_max=True, nested_list=self.ei_coor[0])
         nx_max = max(self.ei_coor[0])
         nx_max_index = self.ei_coor[0].index(nx_max)
         nx_max_coor = {"Position": self.node_coor[nx_max_index,0], "Effort": nx_max}
 
-        # nx_min, nx_min_index = max_min_list_load(get_max=False, nested_list=self.ei_coor[0])
         nx_min = min(self.ei_coor[0])
         nx_min_index = self.ei_coor[0].index(nx_min)
         nx_min_coor = {"Position": self.node_coor[nx_min_index,0], "Effort": nx_min}
 
-        # vz_max, vz_max_index = max_min_list_load(get_max=True, nested_list=self.ei_coor[1])
         vz_max = max(self.ei_coor[1])
         vz_max_index = self.ei_coor[1].index(vz_max)
         vz_max_coor = {"Position": self.node_coor[vz_max_index,0], "Effort": vz_max}
 
-        # vz_min, vz_min_index = max_min_list_load(get_max=False, nested_list=self.ei_coor[1])
         vz_min = min(self.ei_coor[1])
         vz_min_index = self.ei_coor[1].index(vz_min)
         vz_min_coor = {"Position": self.node_coor[vz_min_index,0], "Effort": vz_min}
 
-        # my_max, my_max_index = max_min_list_load(get_max=True, nested_list=self.ei_coor[2])
         my_max = max(self.ei_coor[2])
         my_max_index = self.ei_coor[2].index(my_max)
         my_max_coor = {"Position": self.node_coor[my_max_index,0], "Effort": my_max}
 
-        # my_min, my_min_index = max_min_list_load(get_max=False, nested_list=self.ei_coor[2])
         my_min = min(self.ei_coor[2])
         my_min_index = self.ei_coor[2].index(my_min)
         my_min_coor = {"Position": self.node_coor[my_min_index,0], "Effort": my_min}
@@ -1018,117 +831,6 @@ class MEF(Combinaison, _Base_graph):
         self._graphique_My(name_combi)
         plt.show()
 
-    
-    def show_graph_loads_and_supports(self):
-        """Affiche le graphique des charges et des appuis du MEF
-        """
-        # Conversion des positions en valeurs numériques
-        def parse_position(position, charge):
-            position = str(position)
-            charge = -charge
-            parts = position.split("/")
-            if len(parts) == 1:
-                return [int(parts[0])]*2, [0,charge]
-            elif len(parts) == 2:
-                return [pos for pos in range(int(parts[0]), int(parts[1]), 1)], [charge for _ in range(int(parts[0]), int(parts[1]), 1)]
-            else:
-                return None
-
-        # Création du graphique
-        plt.figure(figsize=(12, 4))
-
-        plt.arrow(0, 0, 0, 350, width=15, color="blue")
-        plt.text(150, -100, "X", ha='right')
-        plt.arrow(0, 0, 350, 0, width=15, color="red")
-        plt.text(-50, 150, "Z", ha='right')
-        for i, load in enumerate(self.list_loads):
-            charge = load[4]
-            parser = parse_position(load[5], charge)
-            charge = round(-charge,2)
-            nom = " / ".join([load[1], load[2], load[3], load[6]])
-            if len(parser[1]) != 2:
-                unit_load = "daN/m"
-                plt.plot(parser[0], parser[1], label=nom)
-                plt.fill_between(parser[0], parser[1], alpha=0.3)
-            else:
-                unit_load = "daN"
-                plt.plot(parser[0], parser[1], marker="X",label=nom)
-            plt.text(parser[0][1]+1000, charge+2, f'{charge} {unit_load}', ha='right')
-
-        for key, beam in self.beams.items():
-            x, y = [], []
-            for element in beam["elements"]:
-                for i, node in enumerate(self.element_list[element]):
-                    coor = self.node_coor[int(node)-1]
-                    x.append(coor[0])
-                    y.append(coor[1])
-            plt.plot(x, y, label=f"Poutre N°{key}")
-            plt.plot(x[0], y[0], marker='o', mec='gray', mfc="gray")
-            plt.plot(x[-1], y[-1], marker='o', mec='gray', mfc="gray")
-
-        for key, support in self.list_supports.items():
-            if support["Type d'appui"] == "Rotule":
-                support_type = "o"
-            elif support["Type d'appui"] == "Encastrement":
-                support_type = "s"
-            else:
-                support_type = "^"
-            x = mt.cos(mt.radians(self.beams[str(support["N° poutre"])]["angle"])) * support["Position de l'appui"] + self.beams[str(support["N° poutre"])]["x1"]
-            y = mt.sin(mt.radians(self.beams[str(support["N° poutre"])]["angle"])) * support["Position de l'appui"] + self.beams[str(support["N° poutre"])]["y1"]
-            plt.plot(x, y, marker=support_type, markersize=10, color="red", label=f"Appui {key} / {support["Type d'appui"]}")
-
-
-        plt.title('Schématisation de la structure et des charges')
-        plt.xlabel('Longueur (mm)')
-        plt.ylabel('Hauteur (mm')
-        plt.legend()
-        plt.grid(True)
-        plt.show()
-
-
-    def get_supports(self):
-        """Retourne la liste des appuis définis.
-        """
-        return self.list_supports
-
-    def create_support(self, beam_number: int, type_appuis: str=("Simple", 'Rotule', 'Encastrement'), pos: int=0, l_appuis: int=0):
-        """Ajoute un appuis dans la liste d'appuis de la classe MEF
-
-        Args:
-            type_appuis (str, optional): type d'appuis à créer. Defaults to ("Simple", 'Rotule', 'Encastrement').
-            pos (int, optional): position de l'appuis sur la poutre en mm. Defaults to 0.
-            l_appuis (int, optional): longueur d'appuis sur la poutre en mm. Defaults to 0.
-        """
-        self.list_supports[str(len(self.list_supports)+1)] = {"N° poutre": beam_number, 
-                                                              "Type d'appui": type_appuis, 
-                                                              "Position de l'appui": pos, 
-                                                              "Longueur d'appui": l_appuis}
-        return self.list_supports[str(len(self.list_supports)+1)]
-
-    
-    def create_supports_by_list(self, list_supports: list):
-        """Ajoute les charges d'une liste pré-défini dans la liste de chargement
-
-        Args:
-            list_supports (list): liste de charge.
-        """
-        for support in list_supports:
-            self.list_supports[str(len(self.list_supports)+1)] = {"N° poutre": support[0], 
-                                                                  "Type d'appui": support[1], 
-                                                                  "Position de l'appui": support[2], 
-                                                                  "Longueur d'appui": support[3]}
-        return self.list_supports
-
-
-    def del_support(self, index_load: int):
-        """Supprime un appui de l'attribut list_supports par son index
-
-        Args:
-            index_load (int): index de l'appui à supprimer.
-        """
-        return f"L'appui ci-joint à été supprimé: {self.list_supports.pop(str(index_load))}"
-    
-
 
     def calcul_1D(self):
         """Calcul une poutre MEF 1D
@@ -1152,6 +854,7 @@ class MEF(Combinaison, _Base_graph):
         end = time.time()
         elapsed = end - start
         print(f'Temps d\'exécution : {elapsed:.2}s')
+
     
     def graphique(self, name_combi:str):
         """Affiche le graphique des efforts internes, des réactions d'appuis et de la flèche,
@@ -1193,13 +896,8 @@ if __name__ == '__main__':
     iz = (h*b**3)/12
     test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=690, J=690, Iy=iy, Iz=iz, ele=ele, alphaZ=0, alphaY=0, alphaX=0)
 
-    listdeplacement = [[1, "Rotule", 0, 0], [1, "Rotule", 3000, 0]]
-    test.create_supports_by_list(listdeplacement)
     
-    test.add_beam(0,0,5000,0)
-    test.add_beam(0,0,2500,4000)
-    test.add_beam(5000,0,2500,4000)
-    test.show_graph_loads_and_supports()
+    
     # test.calcul_1D()
     # print(test.reaction_max())
     # test.graphique(rcombi)
