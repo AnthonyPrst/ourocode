@@ -88,6 +88,27 @@ class Beam_generator(Projet):
         self.beams = {}
         self.list_supports = {}
         self.bi_connected = 0
+
+
+    def aire(self, b: int, h: int, section: str=LIST_SECTION):
+        if section == self.LIST_SECTION[0]:
+            return b * h
+        else:
+            return mt.pi * (b/2)**2
+        
+    
+    def inertie(self, b: int, h: int, section: str=LIST_SECTION):
+        """ Retourne le moment quadratique d'une section rectangulaire en mm4 avec pour argument :
+            b ou d : Largeur ou diamètre de la poutre en mm
+            h : Hauteur de la poutre en mm """
+        if section == "Rectangulaire":
+            I_y = (b * h**3)/12
+            I_z = (h * b**3)/12
+        else:
+            I_y = (mt.pi * b ** 4) / 64
+            I_z = I_y
+        return [I_y, I_z]
+        
         
     def _get_angle_of_beam(self, v1: tuple):
         """Retourne un angle entre deux points celon le cercle trigo
@@ -207,8 +228,14 @@ class Beam_generator(Projet):
         print("Poutre crée: ", self.beams)
 
 
-    def add_material_by_class(self, beam_number: int, classe: str=CLASSE_WOOD):
-        pass
+    def add_material_by_class(self, beam_number: int, Iy: float, Iz: float, classe: str=CLASSE_WOOD):
+        data_csv_meca = self._data_from_csv("caracteristique_meca_bois.csv")
+        material_properties = data_csv_meca.loc[classe]
+        E = material_properties.loc["E0mean"]
+        G = material_properties.loc["Gmoy"]
+        J = 0
+        self.beams[str(beam_number)]["material"] = {"classe": classe, "E": E, "G": G, "J": J, "Iy": Iy, "Iz": Iz}
+
 
     def add_material_by_mechanical_properties(self, beam_number: int, E: int, G: float, J: float, Iy: float, Iz: float):
         """Ajoute un matériau à une barre par ces caractéristiques mécaniques.
@@ -300,7 +327,7 @@ class Beam_generator(Projet):
                     coor = self.node_coor[int(node)-1]
                     x.append(coor[0])
                     y.append(coor[1])
-            plt.plot(x, y, label=f"Barre N°{key}")
+            plt.plot(x, y, label=f"Barre N°{key}", marker="o")
             plt.plot(x[0], y[0], marker='o', mec='gray', mfc="gray")
             plt.plot(x[-1], y[-1], marker='o', mec='gray', mfc="gray")
 
@@ -344,9 +371,13 @@ if __name__ == "__main__":
     # building = Batiment(h_bat=5, d_bat=15, b_bat=13.1, alpha_toit=15)
     # print(building.h_bat)
     beam_gen = Beam_generator()
-    beam_gen.add_beam(0,0,0,5000)
-    beam_gen.add_beam(0,5000,5000,5000)
-    beam_gen.add_beam(5000,0,5000,5000)
+    beam_gen.add_beam(0,0,2500,0)
+    beam_gen.add_beam(2500,0,5000,0)
+    beam_gen.add_beam(0,0,2500,4000)
+    beam_gen.add_beam(5000,0,2500,4000)
+    beam_gen.add_beam(2500,0,2500,4000)
+    beam_gen.add_material_by_class(1, 60000, 60000, "C24")
+    print(beam_gen.beams["1"])
 
     listdeplacement = [[1, "Rotule", 0, 0], [1, "Rotule", 3000, 0]]
     beam_gen.create_supports_by_list(listdeplacement)
