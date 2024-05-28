@@ -86,7 +86,7 @@ class Beam_generator(Projet):
         """
         super().__init__(*args, **kwargs)
         self.beams = {}
-        self.list_supports = {}
+        self._dict_supports = {}
         self.bi_connected = 0
 
 
@@ -256,15 +256,16 @@ class Beam_generator(Projet):
         """Ajoute un appuis dans la liste d'appuis de la classe MEF
 
         Args:
+            beam_number (int): Numéro de la barre sur laquelle positionner l'appuis.
             type_appuis (str, optional): type d'appuis à créer. Defaults to ("Simple", 'Rotule', 'Encastrement').
             pos (int, optional): position de l'appuis sur la barre en mm. Defaults to 0.
             l_appuis (int, optional): longueur d'appuis sur la poutre en mm. Defaults to 0.
         """
-        self.list_supports[str(len(self.list_supports)+1)] = {"N° barre": beam_number, 
+        self._dict_supports[str(len(self._dict_supports)+1)] = {"N° barre": beam_number, 
                                                               "Type d'appui": type_appuis, 
                                                               "Position de l'appui": pos, 
                                                               "Longueur d'appui": l_appuis}
-        return self.list_supports[str(len(self.list_supports)+1)]
+        return self._dict_supports[str(len(self._dict_supports)+1)]
 
     
     def create_supports_by_list(self, list_supports: list):
@@ -274,26 +275,26 @@ class Beam_generator(Projet):
             list_supports (list): liste de charge.
         """
         for support in list_supports:
-            self.list_supports[str(len(self.list_supports)+1)] = {"N° barre": support[0], 
+            self._dict_supports[str(len(self._dict_supports)+1)] = {"N° barre": support[0], 
                                                                   "Type d'appui": support[1], 
                                                                   "Position de l'appui": support[2], 
                                                                   "Longueur d'appui": support[3]}
-        return self.list_supports
+        return self._dict_supports
 
 
-    def del_support(self, index_load: int):
+    def del_support(self, index_support: int):
         """Supprime un appui de l'attribut list_supports par son index
 
         Args:
             index_load (int): index de l'appui à supprimer.
         """
-        return f"L'appui ci-joint à été supprimé: {self.list_supports.pop(str(index_load))}"
+        return f"L'appui ci-joint à été supprimé: {self._dict_supports.pop(str(index_support))}"
     
 
     def get_supports(self):
         """Retourne la liste des appuis définis.
         """
-        return self.list_supports
+        return self._dict_supports
     
 
     def show_graph_loads_and_supports(self):
