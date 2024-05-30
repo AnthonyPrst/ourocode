@@ -206,7 +206,7 @@ class Beam_generator(Projet):
         print(self.element_list, "\n", self.node_coor)
 
 
-    def add_beam(self, x1: int, y1: int, x2: int, y2: int):
+    def add_beam(self, x1: int, y1: int, x2: int, y2: int, aire: float):
         """Ajoute une poutre au model MEF
 
         Args:
@@ -214,6 +214,7 @@ class Beam_generator(Projet):
             y1 (int): position de départ en y en mm
             x2 (int): position de fin en x en mm
             y2 (int): position de fin en y en mm
+            aire (float): aire en mm²
         """
         i_beam = len(self.beams) + 1
         v1 = (x2-x1, y2-y1)
@@ -222,6 +223,7 @@ class Beam_generator(Projet):
         angle = self._get_angle_of_beam(v1)
         self.beams[str(i_beam)] = {"elements": [], 
                                    "length": length,
+                                   "section": aire,
                                    "angle": angle, 
                                    "x1": x1, "y1": y1, "x2": x2, "y2": y2}
         self._create_elements_and_nodes(self.beams[str(i_beam)])
@@ -231,8 +233,8 @@ class Beam_generator(Projet):
     def add_material_by_class(self, beam_number: int, Iy: float, Iz: float, classe: str=CLASSE_WOOD):
         data_csv_meca = self._data_from_csv("caracteristique_meca_bois.csv")
         material_properties = data_csv_meca.loc[classe]
-        E = material_properties.loc["E0mean"]
-        G = material_properties.loc["Gmoy"]
+        E = int(material_properties.loc["E0mean"])
+        G = int(material_properties.loc["Gmoy"])
         J = 0
         self.beams[str(beam_number)]["material"] = {"classe": classe, "E": E, "G": G, "J": J, "Iy": Iy, "Iz": Iz}
 
@@ -348,7 +350,7 @@ class Beam_generator(Projet):
         #     plt.text(parser[0][1]+1000, charge+2, f'{charge} {unit_load}', ha='right')
 
         # On génère les appuis
-        for key, support in self.list_supports.items():
+        for key, support in self._dict_supports.items():
             if support["Type d'appui"] == "Rotule":
                 support_type = "o"
             elif support["Type d'appui"] == "Encastrement":
@@ -372,15 +374,11 @@ if __name__ == "__main__":
     # building = Batiment(h_bat=5, d_bat=15, b_bat=13.1, alpha_toit=15)
     # print(building.h_bat)
     beam_gen = Beam_generator()
-    beam_gen.add_beam(0,0,2500,0)
-    beam_gen.add_beam(2500,0,5000,0)
-    beam_gen.add_beam(0,0,2500,4000)
-    beam_gen.add_beam(5000,0,2500,4000)
-    beam_gen.add_beam(2500,0,2500,4000)
+    beam_gen.add_beam(0,0,2500,4000,20000)
     beam_gen.add_material_by_class(1, 60000, 60000, "C24")
     print(beam_gen.beams["1"])
 
-    listdeplacement = [[1, "Rotule", 0, 0], [1, "Rotule", 3000, 0]]
+    listdeplacement = [[1, "Rotule", 0, 0], [1, "Rotule", beam_gen.beams["1"]["length"], 0]]
     beam_gen.create_supports_by_list(listdeplacement)
 
     beam_gen.show_graph_loads_and_supports()

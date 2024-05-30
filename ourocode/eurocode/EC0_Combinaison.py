@@ -368,7 +368,7 @@ class Combinaison(Chargement):
 									array_load = self._create_array_load(name, index_load, value, load, array_load)
 									
 							elif load["Action"] == "Permanente G":
-								array_load = self._create_array_load(name, load["Charge"], load, array_load)
+								array_load = self._create_array_load(name, index_load, load["Charge"], load, array_load)
 						
 						for index in range(1,4):
 							if action != self.combiActionVariable[index]:

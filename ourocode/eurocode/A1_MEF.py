@@ -11,10 +11,12 @@ import math as mt
 from scipy.sparse import coo_matrix, csr_matrix
 from scipy.sparse.linalg import spsolve
 
-# sys.path.append(os.path.join(os.getcwd(), "ourocode"))
-# from eurocode.EC0_Combinaison import Combinaison
+sys.path.append(os.path.join(os.getcwd(), "ourocode"))
+from eurocode.A0_Projet import Beam_generator
+from eurocode.EC0_Combinaison import Combinaison
 
-from ourocode.eurocode.EC0_Combinaison import Combinaison
+# from ourocode.eurocode.EC0_Combinaison import Combinaison
+# from ourocode.eurocode.A0_Projet import Beam_generator
 
 class _Base_graph(object): 
     """ Retourne un diagramme de base """
@@ -83,21 +85,16 @@ class _Triplets(object):
     
     
         
-class MEF(Combinaison, _Base_graph):
+class MEF(Beam_generator, _Base_graph):
     SAVE_PATH = os.path.join(Combinaison.PATH_CATALOG, "data","screenshot")
-    def __init__(self, A: float,**kwargs):
+    def __init__(self, combinaison: Combinaison, **kwargs):
         """Classe permettant de créer des poutres MEF et de les calculer. Cette classe est hérité de l'objet Combinaison du module EC0_Combinaison.py
         Args:
             A (float): Section en mm²
         """
-        super(Combinaison, self).__init__(**kwargs)
+        super(Beam_generator, self).__init__(**kwargs)
         _Base_graph.__init__(self)
-        self.A = A
 
-        self.ea = E*self.A
-        self.eiy = E*self.Iy
-        self.eiz = E*self.Iz
-        self.gj = G*J
     
     def _transformation_matrix(self, angle: float):
         """Matrice de transformation pour un élément barre 3D dans un plan perpendiculaire à un axe.
@@ -138,22 +135,26 @@ class MEF(Combinaison, _Base_graph):
             if index in beam["elements"]:
                 angle = beam["angle"]
                 l = beam["length"] / len(beam["elements"])
-                print(l)
+                E = beam["material"]["E"]
+                EA = E * beam["section"] 
+                EIy = E * beam["material"]["Iy"]
+                EIz = E * beam["material"]["Iz"]
+                GJ = beam["material"]["G"] * beam["material"]["J"]
                 print(f"J'ai retrouvé la poutre {key} qui est associé à l'élément {index}, son angle est de {angle} degrés.")
                 break
         
-        k = np.array([[(self.ea)/l, 0, 0, 0, 0, 0, -(self.ea)/l, 0, 0, 0, 0, 0],
-                    [0, (12*self.eiz)/l**3, 0, 0, 0, (6*self.eiz)/l**2, 0, -(12*self.eiz)/l**3, 0, 0, 0, (6*self.eiz)/l**2],
-                    [0, 0, (12*self.eiy)/l**3, 0, -(6*self.eiy)/l**2, 0, 0, 0, -(12*self.eiy)/l**3, 0, -(6*self.eiy)/l**2, 0],
-                    [0, 0, 0, self.gj/l, 0, 0, 0, 0, 0, -self.gj/l, 0, 0],
-                    [0, 0, -(6*self.eiy)/l**2, 0, (4*self.eiy)/l, 0, 0, 0, (6*self.eiy)/l**2, 0, (2*self.eiy)/l, 0],
-                    [0, (6*self.eiz)/l**2, 0, 0, 0, (4*self.eiz)/l, 0, -(6*self.eiz)/l**2, 0, 0, 0, (2*self.eiz)/l],
-                    [-(self.ea)/l, 0, 0, 0, 0, 0, (self.ea)/l, 0, 0, 0, 0, 0],
-                    [0, -(12*self.eiz)/l**3, 0, 0, 0, -(6*self.eiz)/l**2, 0, (12*self.eiz)/l**3, 0, 0, 0, -(6*self.eiz)/l**2],
-                    [0, 0, -(12*self.eiy)/l**3, 0, (6*self.eiy)/l**2, 0, 0, 0, (12*self.eiy)/l**3, 0, (6*self.eiy)/l**2, 0],
-                    [0, 0, 0, -self.gj/l, 0, 0, 0, 0, 0, self.gj/l, 0, 0],
-                    [0, 0, -(6*self.eiy)/l**2, 0, (2*self.eiy)/l, 0, 0, 0, (6*self.eiy)/l**2, 0, (4*self.eiy)/l,0],
-                    [0, (6*self.eiz)/l**2, 0, 0, 0, (2*self.eiz)/l, 0, -(6*self.eiz)/l**2, 0, 0, 0, (4*self.eiz)/l]])
+        k = np.array([[(EA)/l, 0, 0, 0, 0, 0, -(EA)/l, 0, 0, 0, 0, 0],
+                    [0, (12*EIz)/l**3, 0, 0, 0, (6*EIz)/l**2, 0, -(12*EIz)/l**3, 0, 0, 0, (6*EIz)/l**2],
+                    [0, 0, (12*EIy)/l**3, 0, -(6*EIy)/l**2, 0, 0, 0, -(12*EIy)/l**3, 0, -(6*EIy)/l**2, 0],
+                    [0, 0, 0, GJ/l, 0, 0, 0, 0, 0, -GJ/l, 0, 0],
+                    [0, 0, -(6*EIy)/l**2, 0, (4*EIy)/l, 0, 0, 0, (6*EIy)/l**2, 0, (2*EIy)/l, 0],
+                    [0, (6*EIz)/l**2, 0, 0, 0, (4*EIz)/l, 0, -(6*EIz)/l**2, 0, 0, 0, (2*EIz)/l],
+                    [-(EA)/l, 0, 0, 0, 0, 0, (EA)/l, 0, 0, 0, 0, 0],
+                    [0, -(12*EIz)/l**3, 0, 0, 0, -(6*EIz)/l**2, 0, (12*EIz)/l**3, 0, 0, 0, -(6*EIz)/l**2],
+                    [0, 0, -(12*EIy)/l**3, 0, (6*EIy)/l**2, 0, 0, 0, (12*EIy)/l**3, 0, (6*EIy)/l**2, 0],
+                    [0, 0, 0, -GJ/l, 0, 0, 0, 0, 0, GJ/l, 0, 0],
+                    [0, 0, -(6*EIy)/l**2, 0, (2*EIy)/l, 0, 0, 0, (6*EIy)/l**2, 0, (4*EIy)/l,0],
+                    [0, (6*EIz)/l**2, 0, 0, 0, (2*EIz)/l, 0, -(6*EIz)/l**2, 0, 0, 0, (4*EIz)/l]])
         
         # self.T_matrix = self._transformation_matrix(angle)
         T_matrix = self._transformation_matrix(angle)
@@ -878,28 +879,35 @@ if __name__ == '__main__':
     from EC0_Combinaison import Chargement
     # _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/6000", 'Z'],
     #              [2, '', "Neige normale Sn", 'Linéique', -200, "0/6000", 'Z']]
-    _list_loads = [[1, '', 'Permanente G', "Nodale", -500, 2500, 'X'],
-                [2, '', "Neige normale Sn", 'Linéique', -200, "0/5000", 'Z']]
+    _list_loads = [[1, '', 'Permanente G', -500, 2500, 'X'],
+                [2, '', "Neige normale Sn", -200, "0/5000", 'Z']]
     chargement = Chargement(pays="Japon")
     chargement.create_load_by_list(_list_loads)
     c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation", kdef=0.6)
     # print(c1.list_combination)
     rcombi = "ELU_STR G"
     print(c1.get_combi_list_load(rcombi))
-    long = 5000
-    ele = 6
-    
+
+
     b = 60
     h = 100
     a = b*h
     iy = (b*h**3)/12
     iz = (h*b**3)/12
-    test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=690, J=690, Iy=iy, Iz=iz, ele=ele, alphaZ=0, alphaY=0, alphaX=0)
 
+    beam_gen = Beam_generator()
+    beam_gen.add_beam(0,0,2500,4000,a)
+    beam_gen.add_material_by_class(1, iy, iz, "C24")
+
+    listdeplacement = [[1, "Rotule", 0, 0], [1, "Rotule", beam_gen.beams["1"]["length"], 0]]
+    beam_gen.create_supports_by_list(listdeplacement)
+    beam_gen.show_graph_loads_and_supports()
+   
     
+    mef = MEF._from_parent_class(beam_gen, combinaison=c1)
     
-    # test.calcul_1D()
-    # print(test.reaction_max())
-    # test.graphique(rcombi)
-    # test.show_graphique_fleche(rcombi)
-    # test.show_graph_loads_and_supports()
+    mef.calcul_1D()
+    # print(mef.reaction_max())
+    # mef.graphique(rcombi)
+    # mef.show_graphique_fleche(rcombi)
+    # mef.show_graph_loads_and_supports()
