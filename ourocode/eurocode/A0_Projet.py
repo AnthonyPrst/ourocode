@@ -69,7 +69,7 @@ class Batiment(Projet):
 
 
 
-class Beam_generator(Projet):
+class Bar_generator(Projet):
     LIST_SECTION = ["Rectangulaire","Circulaire"]
     CLASSE_WOOD = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").index)[2:]
     def __init__(self, *args, **kwargs):
@@ -85,7 +85,7 @@ class Beam_generator(Projet):
             6) Et voilà, plus cas siroter un thé glacé le temps du calcul ! :)
         """
         super().__init__(*args, **kwargs)
-        self.beams = {}
+        self.bar_info = {}
         self._dict_supports = {}
         self.bi_connected = 0
 
@@ -110,7 +110,7 @@ class Beam_generator(Projet):
         return [I_y, I_z]
         
         
-    def _get_angle_of_beam(self, v1: tuple):
+    def _get_angle_of_bar(self, v1: tuple):
         """Retourne un angle entre deux points celon le cercle trigo
 
         Args:
@@ -120,25 +120,25 @@ class Beam_generator(Projet):
         return np.rad2deg(ang1 % (2 * np.pi))
     
     
-    def __add_element_to_beam(self, beam: dict):
+    def __add_element_to_beam(self, bar: dict):
         """On récupère le dernier élément crée et on l'incrémente pour ajouter un nouvel élément"""
-        elements = self.beams[str(list(self.beams)[-1])]["elements"]
+        elements = self.bar_info[list(self.bar_info)[-1]]["elements"]
         # On récupère le dernière index
         if elements:
             last_element = elements[-1]
-        elif len(self.beams) > 1:
-            elements = self.beams[str(list(self.beams)[-2])]["elements"]
+        elif len(self.bar_info) > 1:
+            elements = self.bar_info[list(self.bar_info)[-2]]["elements"]
             last_element = elements[-1]
         else:
             last_element = -1
-        beam["elements"].append(last_element + 1)
+        bar["elements"].append(last_element + 1)
 
         
-    def _create_elements_and_nodes(self, beam: dict):
-        if beam["length"] < 5000:
-            nb_ele = int(mt.ceil(beam["length"]/1000))
+    def _create_elements_and_nodes(self, bar: dict):
+        if bar["length"] < 5000:
+            nb_ele = int(mt.ceil(bar["length"]/100))
         else:
-            nb_ele = int(mt.ceil(beam["length"]/1000))
+            nb_ele = int(mt.ceil(bar["length"]/100))
 
         shape = (0,0)
         if hasattr(self, "element_list"):
@@ -152,9 +152,9 @@ class Beam_generator(Projet):
         bi_connect = False
         j = 0
         for i in range(nb_ele+1):
-            length = beam["length"] / nb_ele * i
-            x = round(beam["x1"] + length * mt.cos(mt.radians(beam["angle"])),3)
-            y = round(beam["y1"] + length * mt.sin(mt.radians(beam["angle"])),3)
+            length = bar["length"] / nb_ele * i
+            x = round(bar["x1"] + length * mt.cos(mt.radians(bar["angle"])),3)
+            y = round(bar["y1"] + length * mt.sin(mt.radians(bar["angle"])),3)
             if not x:
                 x = 0
             if not y:
@@ -183,7 +183,7 @@ class Beam_generator(Projet):
                     j += 1
                     node_coor_to_del.append(i)
                     if not bi_connect and i < nb_ele:
-                        self.__add_element_to_beam(beam)
+                        self.__add_element_to_beam(bar)
                     continue
             nodeCoor[i,0] = x
             nodeCoor[i,1] = y
@@ -191,7 +191,7 @@ class Beam_generator(Projet):
             if i < nb_ele:
                 nodeList[i,0] = shape[0]+i+1 - j
                 nodeList[i,1] = shape[0]+i+2 - j
-                self.__add_element_to_beam(beam)
+                self.__add_element_to_beam(bar)
         j = 0
         for i_del in node_coor_to_del:
             nodeCoor = np.delete(nodeCoor, i_del - j, 0)
@@ -206,7 +206,7 @@ class Beam_generator(Projet):
         print(self.element_list, "\n", self.node_coor)
 
 
-    def add_beam(self, x1: int, y1: int, x2: int, y2: int, aire: float):
+    def add_bar(self, x1: int, y1: int, x2: int, y2: int, aire: float):
         """Ajoute une poutre au model MEF
 
         Args:
@@ -216,34 +216,34 @@ class Beam_generator(Projet):
             y2 (int): position de fin en y en mm
             aire (float): aire en mm²
         """
-        i_beam = len(self.beams) + 1
+        bar_id = len(self.bar_info) + 1
         v1 = (x2-x1, y2-y1)
-        print(v1)
         length = mt.sqrt(abs(v1[0])**2 + abs(v1[1])**2)
-        angle = self._get_angle_of_beam(v1)
-        self.beams[str(i_beam)] = {"elements": [], 
+        angle = self._get_angle_of_bar(v1)
+        self.bar_info[bar_id] = {"elements": [], 
                                    "length": length,
                                    "section": aire,
                                    "angle": angle, 
-                                   "x1": x1, "y1": y1, "x2": x2, "y2": y2}
-        self._create_elements_and_nodes(self.beams[str(i_beam)])
-        print("Poutre crée: ", self.beams)
+                                   "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+                                   "relaxation": []}
+        self._create_elements_and_nodes(self.bar_info[bar_id])
+        print("Poutre crée: ", self.bar_info)
 
 
-    def add_material_by_class(self, beam_number: int, Iy: float, Iz: float, classe: str=CLASSE_WOOD):
+    def add_material_by_class(self, bar_id: int, Iy: float, Iz: float, classe: str=CLASSE_WOOD):
         data_csv_meca = self._data_from_csv("caracteristique_meca_bois.csv")
         material_properties = data_csv_meca.loc[classe]
         E = int(material_properties.loc["E0mean"])
         G = int(material_properties.loc["Gmoy"])
         J = 0
-        self.beams[str(beam_number)]["material"] = {"classe": classe, "E": E, "G": G, "J": J, "Iy": Iy, "Iz": Iz}
+        self.bar_info[bar_id]["material"] = {"classe": classe, "E": E, "G": G, "J": J, "Iy": Iy, "Iz": Iz}
 
 
-    def add_material_by_mechanical_properties(self, beam_number: int, E: int, G: float, J: float, Iy: float, Iz: float):
+    def add_material_by_mechanical_properties(self, bar_id: int, E: int, G: float, J: float, Iy: float, Iz: float):
         """Ajoute un matériau à une barre par ces caractéristiques mécaniques.
         
         Args:
-            beam_number (int): Le numéro de la barre à laquelle ajouter le matériaux
+            bar_id (int): Le numéro de la barre à laquelle ajouter le matériaux
             E (int): Module de young en MPa, ce E est le E,mean. Il ne faut absolument pas donner le E,mean,fin sous peine de réaliser le calcul EC5 §2.3.2.2 equ2.7 deux fois !
             A (float): Section en mm²
             G (float): Module de cisaillement en MPa
@@ -251,23 +251,47 @@ class Beam_generator(Projet):
             Iy (float): Inertie quadratique autour de y en mm4
             Iz (float): Inertie quadratique autour de z en mm4
         """
-        self.beams[str(beam_number)]["material"] = {"classe": "Manuel", "E": E, "G": G, "J": J, "Iy": Iy, "Iz": Iz}
+        self.bar_info[bar_id]["material"] = {"classe": "Manuel", "E": E, "G": G, "J": J, "Iy": Iy, "Iz": Iz}
+
+    
+    def add_relaxation(self, bar_id: int, position: str=("start", "end"), u: bool=False, v: bool=False, w: bool=False, teta_x: bool=False, teta_y: bool=True, teta_z: bool=True):
+        """Ajoute une relaxation dans notre barre soit au début de la barre, soit à la fin.
+        Ceci est considéré dans les MEF par une matrice de rigidité spécifique avec les éléments relaché égale à 0.
+
+        Args:
+            bar_id (int): numéro de la barre à relacher
+            position (str, optional): position du relachement sur la barre soit au début soit à la fin. Defaults to ("start", "end").
+            u (bool, optional): relachement de l'axe x local, si oui alors True. Defaults to False.
+            v (bool, optional): relachement de l'axe y local, si oui alors True. Defaults to False.
+            w (bool, optional): relachement de l'axe z local, si oui alors True. Defaults to False.
+            teta_x (bool, optional): relachement de l'axe de rotation x local, si oui alors True. Attention de base cette rotation doit toujours être fixé. Defaults to False.
+            teta_y (bool, optional): relachement de l'axe de rotation y local, si oui alors True. Defaults to True.
+            teta_z (bool, optional): relachement de l'axe de rotation z local, si oui alors True. Defaults to True.
+        """
+        self.bar_info[bar_id]["relaxation"].append({"position": position, 
+                                               "u": u, 
+                                               "v": v, 
+                                               "w": w, 
+                                               "teta_x": teta_x, 
+                                               "teta_y": teta_y, 
+                                               "teta_z": teta_z
+                                               })
 
 
-    def create_support(self, beam_number: int, type_appuis: str=("Simple", 'Rotule', 'Encastrement'), pos: int=0, l_appuis: int=0):
+    def create_support(self, bar_id: int, type_appuis: str=("Simple", 'Rotule', 'Encastrement'), pos: int=0, l_appuis: int=0):
         """Ajoute un appuis dans la liste d'appuis de la classe MEF
 
         Args:
-            beam_number (int): Numéro de la barre sur laquelle positionner l'appuis.
+            bar_id (int): Numéro de la barre sur laquelle positionner l'appuis.
             type_appuis (str, optional): type d'appuis à créer. Defaults to ("Simple", 'Rotule', 'Encastrement').
             pos (int, optional): position de l'appuis sur la barre en mm. Defaults to 0.
             l_appuis (int, optional): longueur d'appuis sur la poutre en mm. Defaults to 0.
         """
-        self._dict_supports[str(len(self._dict_supports)+1)] = {"N° barre": beam_number, 
+        self._dict_supports[len(self._dict_supports)+1] = {"N° barre": bar_id, 
                                                               "Type d'appui": type_appuis, 
                                                               "Position de l'appui": pos, 
                                                               "Longueur d'appui": l_appuis}
-        return self._dict_supports[str(len(self._dict_supports)+1)]
+        return self._dict_supports[len(self._dict_supports)+1]
 
     
     def create_supports_by_list(self, list_supports: list):
@@ -277,7 +301,7 @@ class Beam_generator(Projet):
             list_supports (list): liste de charge.
         """
         for support in list_supports:
-            self._dict_supports[str(len(self._dict_supports)+1)] = {"N° barre": support[0], 
+            self._dict_supports[len(self._dict_supports)+1] = {"N° barre": support[0], 
                                                                   "Type d'appui": support[1], 
                                                                   "Position de l'appui": support[2], 
                                                                   "Longueur d'appui": support[3]}
@@ -290,7 +314,7 @@ class Beam_generator(Projet):
         Args:
             index_load (int): index de l'appui à supprimer.
         """
-        return f"L'appui ci-joint à été supprimé: {self._dict_supports.pop(str(index_support))}"
+        return f"L'appui ci-joint à été supprimé: {self._dict_supports.pop(index_support)}"
     
 
     def get_supports(self):
@@ -300,56 +324,32 @@ class Beam_generator(Projet):
     
 
     def show_graph_loads_and_supports(self):
-        """Affiche le graphique des charges et des appuis du MEF
-        """
-        # Conversion des positions en valeurs numériques
-        def parse_position(position, charge):
-            position = str(position)
-            charge = -charge
-            parts = position.split("/")
-            if len(parts) == 1:
-                return [int(parts[0])]*2, [0,charge]
-            elif len(parts) == 2:
-                return [pos for pos in range(int(parts[0]), int(parts[1]), 1)], [charge for _ in range(int(parts[0]), int(parts[1]), 1)]
-            else:
-                return None
+        """Affiche le graphique des charges et des appuis du MEF"""
+        # Calcul des efforts internes
+        ei_coor = self.effort_interne()
+        
+        # Création de la figure et des sous-graphique
+        fig, axs = plt.subplots(2, 2, figsize=(14, 10))
+        
+        # Tracé de la structure globale sur le premier sous-graphe
+        axs[0, 0].arrow(0, 0, 0, 350, width=15, color="blue")
+        axs[0, 0].text(150, -100, "X", ha='right')
+        axs[0, 0].arrow(0, 0, 350, 0, width=15, color="red")
+        axs[0, 0].text(-50, 150, "Z", ha='right')
 
-        # Création du graphique
-        plt.figure(figsize=(12, 4))
-
-        plt.arrow(0, 0, 0, 350, width=15, color="blue")
-        plt.text(150, -100, "X", ha='right')
-        plt.arrow(0, 0, 350, 0, width=15, color="red")
-        plt.text(-50, 150, "Z", ha='right')
-
-        # On dessine les barres
-        for key, beam in self.beams.items():
+        for key, beam in self.bar_info.items():
             x, y = [], []
             for element in beam["elements"]:
                 for i, node in enumerate(self.element_list[element]):
                     coor = self.node_coor[int(node)-1]
                     x.append(coor[0])
                     y.append(coor[1])
-            plt.plot(x, y, label=f"Barre N°{key}", marker="o")
-            plt.plot(x[0], y[0], marker='o', mec='gray', mfc="gray")
-            plt.plot(x[-1], y[-1], marker='o', mec='gray', mfc="gray")
 
-        # On génère les charges
-        # for i, load in enumerate(self.list_loads):
-        #     charge = load[4]
-        #     parser = parse_position(load[5], charge)
-        #     charge = round(-charge,2)
-        #     nom = " / ".join([load[1], load[2], load[3], load[6]])
-        #     if len(parser[1]) != 2:
-        #         unit_load = "daN/m"
-        #         plt.plot(parser[0], parser[1], label=nom)
-        #         plt.fill_between(parser[0], parser[1], alpha=0.3)
-        #     else:
-        #         unit_load = "daN"
-        #         plt.plot(parser[0], parser[1], marker="X",label=nom)
-        #     plt.text(parser[0][1]+1000, charge+2, f'{charge} {unit_load}', ha='right')
-
-        # On génère les appuis
+            for subplot in ([0,0], [0,1], [1,0], [1,1]):
+                axs[subplot[0], subplot[1]].plot(x, y, label=f"Barre N°{key}")
+                axs[subplot[0], subplot[1]].plot(x[0], y[0], marker='o', mec='gray', mfc="gray")
+                axs[subplot[0], subplot[1]].plot(x[-1], y[-1], marker='o', mec='gray', mfc="gray")
+        
         for key, support in self._dict_supports.items():
             if support["Type d'appui"] == "Rotule":
                 support_type = "o"
@@ -357,28 +357,156 @@ class Beam_generator(Projet):
                 support_type = "s"
             else:
                 support_type = "^"
-            x = mt.cos(mt.radians(self.beams[str(support["N° barre"])]["angle"])) * support["Position de l'appui"] + self.beams[str(support["N° barre"])]["x1"]
-            y = mt.sin(mt.radians(self.beams[str(support["N° barre"])]["angle"])) * support["Position de l'appui"] + self.beams[str(support["N° barre"])]["y1"]
-            plt.plot(x, y, marker=support_type, markersize=10, color="red", label=f"Appui {key} / {support["Type d'appui"]}")
+            x = mt.cos(mt.radians(self.bar_info[support["N° barre"]]["angle"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["x1"]
+            y = mt.sin(mt.radians(self.bar_info[support["N° barre"]]["angle"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["y1"]
+            for subplot in ([0,0], [0,1], [1,0], [1,1]):
+                axs[subplot[0], subplot[1]].plot(x, y, marker=support_type, markersize=10, color="red", label=f"Appui {key} / {support['Type d\'appui']}")
 
-        plt.title('Schématisation de la structure et des charges')
-        plt.xlabel('Longueur (mm)')
-        plt.ylabel('Hauteur (mm')
-        plt.legend()
-        plt.grid(True)
+        axs[0, 0].set_title('Schématisation de la structure et des charges')
+        axs[0, 0].set_xlabel('Longueur (mm)')
+        axs[0, 0].set_ylabel('Hauteur (mm)')
+        axs[0, 0].legend()
+        axs[0, 0].grid(True)
+
+        x_coords = [coor[0] for coor in self.node_coor]
+
+        # Tracé des efforts internes
+        def get_local_to_global_list(list):
+            def get_local_to_global(y_local, angle, x, y):
+                angle = np.radians(angle)
+                X = x - y_local * np.sin(angle)
+                Y = y + y_local * np.cos(angle)
+                return X, Y
+
+            # Initialisation des listes pour stocker les coordonnées X et Y
+            X_coords = []
+            Y_coords = []
+
+            for index_ele, ele in enumerate(self.element_list):
+                node1 = int(ele[0])-1
+                node2 = int(ele[1])-1
+                x1, y1 = self.node_coor[node1]
+                x2, y2 = self.node_coor[node2]
+                v1 = (x2-x1, y2-y1)
+                angle = self._get_angle_of_bar(v1)
+                for node in (node1, node2):
+                    y_local = list[node] * 100
+                    x, y = self.node_coor[node]
+                    X, Y = get_local_to_global(y_local, angle, x, y)
+                    # Ajouter les coordonnées X et Y à la liste correspondante
+                    X_coords.append(X)
+                    Y_coords.append(Y)
+            return X_coords, Y_coords
+        
+        Nx_coor = get_local_to_global_list(ei_coor[0])
+        # Tracer l'effort normal en fonction de la position
+        axs[0, 1].plot(Nx_coor[0], Nx_coor[1], label="Effort Normal (N)", color='orange')
+        axs[0, 1].set_title('Effort Normal (N)')
+        axs[0, 1].set_xlabel('Position X (mm)')
+        axs[0, 1].set_ylabel('Position Y (mm)')
+        axs[0, 1].legend()
+        axs[0, 1].grid(True)
+
+        Vz_coor = get_local_to_global_list(ei_coor[1])
+        axs[1, 0].plot(Vz_coor[0], Vz_coor[1], label="Effort Tranchant (V)", color='green')
+        axs[1, 0].set_title('Effort Tranchant (V)')
+        axs[1, 0].set_xlabel('Position (mm)')
+        axs[1, 0].set_ylabel('Effort (kN)')
+        axs[1, 0].legend()
+        axs[1, 0].grid(True)
+
+        My_coor = get_local_to_global_list(ei_coor[2])
+        axs[1, 1].plot(My_coor[0], My_coor[1], label="Moment Fléchissant (M_y)", color='purple')
+        axs[1, 1].set_title('Moment Fléchissant (M_y)')
+        axs[1, 1].set_xlabel('Position (mm)')
+        axs[1, 1].set_ylabel('Moment (kNm)')
+        axs[1, 1].legend()
+        axs[1, 1].grid(True)
+
+        plt.tight_layout()
         plt.show()
+        
+
+    # def show_graph_loads_and_supports(self):
+    #     """Affiche le graphique des charges et des appuis du MEF
+    #     """
+    #     # Conversion des positions en valeurs numériques
+    #     def parse_position(position, charge):
+    #         position = str(position)
+    #         charge = -charge
+    #         parts = position.split("/")
+    #         if len(parts) == 1:
+    #             return [int(parts[0])]*2, [0,charge]
+    #         elif len(parts) == 2:
+    #             return [pos for pos in range(int(parts[0]), int(parts[1]), 1)], [charge for _ in range(int(parts[0]), int(parts[1]), 1)]
+    #         else:
+    #             return None
+
+    #     # Création du graphique
+    #     plt.figure(figsize=(12, 4))
+
+    #     plt.arrow(0, 0, 0, 350, width=15, color="blue")
+    #     plt.text(150, -100, "X", ha='right')
+    #     plt.arrow(0, 0, 350, 0, width=15, color="red")
+    #     plt.text(-50, 150, "Z", ha='right')
+
+    #     # On dessine les barres
+    #     for key, beam in self.bar_info.items():
+    #         x, y = [], []
+    #         for element in beam["elements"]:
+    #             for i, node in enumerate(self.element_list[element]):
+    #                 coor = self.node_coor[int(node)-1]
+    #                 x.append(coor[0])
+    #                 y.append(coor[1])
+    #         plt.plot(x, y, label=f"Barre N°{key}", marker="o")
+    #         plt.plot(x[0], y[0], marker='o', mec='gray', mfc="gray")
+    #         plt.plot(x[-1], y[-1], marker='o', mec='gray', mfc="gray")
+
+    #     # # On génère les charges
+    #     # for i, load in enumerate(self.list_loads):
+    #     #     charge = load[4]
+    #     #     parser = parse_position(load[5], charge)
+    #     #     charge = round(-charge,2)
+    #     #     nom = " / ".join([load[1], load[2], load[3], load[6]])
+    #     #     if len(parser[1]) != 2:
+    #     #         unit_load = "daN/m"
+    #     #         plt.plot(parser[0], parser[1], label=nom)
+    #     #         plt.fill_between(parser[0], parser[1], alpha=0.3)
+    #     #     else:
+    #     #         unit_load = "daN"
+    #     #         plt.plot(parser[0], parser[1], marker="X",label=nom)
+    #     #     plt.text(parser[0][1]+1000, charge+2, f'{charge} {unit_load}', ha='right')
+
+    #     # On génère les appuis
+    #     for key, support in self._dict_supports.items():
+    #         if support["Type d'appui"] == "Rotule":
+    #             support_type = "o"
+    #         elif support["Type d'appui"] == "Encastrement":
+    #             support_type = "s"
+    #         else:
+    #             support_type = "^"
+    #         x = mt.cos(mt.radians(self.bar_info[support["N° barre"]]["angle"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["x1"]
+    #         y = mt.sin(mt.radians(self.bar_info[support["N° barre"]]["angle"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["y1"]
+    #         plt.plot(x, y, marker=support_type, markersize=10, color="red", label=f"Appui {key} / {support["Type d'appui"]}")
+
+    #     plt.title('Schématisation de la structure et des charges')
+    #     plt.xlabel('Longueur (mm)')
+    #     plt.ylabel('Hauteur (mm')
+    #     plt.legend()
+    #     plt.grid(True)
+    #     plt.show()
 
 
 if __name__ == "__main__":
     # projet = Projet(num_project="6006.0", commmentaire="c'est mon premier projet")
     # building = Batiment(h_bat=5, d_bat=15, b_bat=13.1, alpha_toit=15)
     # print(building.h_bat)
-    beam_gen = Beam_generator()
-    beam_gen.add_beam(0,0,2500,4000,20000)
+    beam_gen = Bar_generator()
+    beam_gen.add_bar(0,0,2500,4000,20000)
     beam_gen.add_material_by_class(1, 60000, 60000, "C24")
-    print(beam_gen.beams["1"])
+    print(beam_gen.bar_info[1])
 
-    listdeplacement = [[1, "Rotule", 0, 0], [1, "Rotule", beam_gen.beams["1"]["length"], 0]]
+    listdeplacement = [[1, "Rotule", 0, 0], [1, "Rotule", beam_gen.bar_info[1]["length"], 0]]
     beam_gen.create_supports_by_list(listdeplacement)
 
     beam_gen.show_graph_loads_and_supports()
