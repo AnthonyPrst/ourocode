@@ -139,7 +139,7 @@ class MEF(Bar_generator, _Base_graph):
         # print("Matrice de transformation locale/globale: ",transformation_matrix)
         return transformation_matrix
     
-    def _apply_relaxation(self, k, relaxation, position):
+    def _apply_relaxation_to_k(self, k, relaxation, position):
         indices = {
             "start": [0, 1, 2, 3, 4, 5],
             "end": [6, 7, 8, 9, 10, 11]
@@ -167,6 +167,29 @@ class MEF(Bar_generator, _Base_graph):
                 k[dof_indices[index], :] = 0
                 k[:, dof_indices[index]] = 0
         return k
+    
+
+    def _apply_relaxation_to_U(self, element: list, relaxation):
+        dof_map = {
+            "u": 0,
+            "v": 1,
+            "w": 2,
+            "teta_x": 3,
+            "teta_y": 4,
+            "teta_z": 5
+        }
+
+        if relaxation["position"] == "start":
+            index_U = (int(element[0])-1) * 6
+        elif relaxation["position"] == "end":
+            index_U = (int(element[1])-1) * 6
+        else:
+            raise ValueError("Position must be 'start' or 'end'")
+        print(element)
+        print(index_U)
+        for key, rel in relaxation.items():
+            if key != "position" and rel:
+                self.matriceU[index_U+dof_map[key], 0] = True
     
 
     def _init_matrix_K(self, index: int|str) -> np.array:
@@ -213,8 +236,9 @@ class MEF(Bar_generator, _Base_graph):
                             change_matrix_k = True
 
                 if change_matrix_k:       
-                    k = self._apply_relaxation(k, relaxation, relaxation["position"])
-                    # print("Matrice k local modifiée avec la relaxation: ", k)
+                    k = self._apply_relaxation_to_k(k, relaxation, relaxation["position"])
+                    # self._apply_relaxation_to_U(self.element_list[index], relaxation)
+                    print("Matrice k local modifiée avec la relaxation: ", k)
                     break 
 
 
@@ -228,12 +252,12 @@ class MEF(Bar_generator, _Base_graph):
         # Agrégation de la matrice global
         for i in range(-6,0):
             for j in range(-6,0):
-                assembleur_COO_K.append(n1+i, n1+j, k[i+6,j+6]+0.001) # ajout de bruit pour éviter les singularité (+0.001)
-                assembleur_COO_K.append(n2+i, n2+j, k[i+12,j+12]+0.001) # ajout de bruit pour éviter les singularité (+0.001)
+                assembleur_COO_K.append(n1+i, n1+j, k[i+6,j+6]+0.00001) # ajout de bruit pour éviter les singularité (+0.001)
+                assembleur_COO_K.append(n2+i, n2+j, k[i+12,j+12]+0.00001) # ajout de bruit pour éviter les singularité (+0.001)
                 if k[i+6,j+12]:
                     assembleur_COO_K.append(n1+i, n2+j, k[i+6,j+12])
                 if k[i+12,j+6]:
-                    assembleur_COO_K.append(n2+i, n1+j, k[i+12,j+6]+0.001) # ajout de bruit pour éviter les singularité (+0.001)
+                    assembleur_COO_K.append(n2+i, n1+j, k[i+12,j+6]+0.00001) # ajout de bruit pour éviter les singularité (+0.001)
         
 
     
@@ -256,6 +280,7 @@ class MEF(Bar_generator, _Base_graph):
         self.matriceK = (coo_matrix(Assembleur_COO_K.data, shape=((len(self.element_list)+1)*6, (len(self.element_list)+1)*6))).tocsr() 
              
         # print("\n Matrice de rigidité K  : \n", self.matriceK.toarray(), "\n")
+        print("\n Matrice de déplacement U après relaxation : \n",self.matriceU, "\n")
         return self.matriceK
     
 
@@ -319,25 +344,6 @@ class MEF(Bar_generator, _Base_graph):
                 "element": element, 
                 "position": position}
 
-    # def _nearest_node(self, value: int) -> list:
-    #     """Find the nearest node of the beam in function of the value"""
-    #     # element to which nearest value is to be found
-    #     #print("Value to which nearest element is to be found: ", value)
-        
-    #     # calculate the difference array
-    #     difference_array = np.absolute(self.node_coor-value)
-        
-    #     # find the index of minimum element from the array
-    #     index = difference_array.argmin()
-    #     print("nearest", index)
-    #     nearest_distance = self.node_coor[index][0]
-    #     index_I_matrice = ((index+1) * 6) - 6
-    #     element_coor = self.element_list[index-1]
-        
-    #     #print("Nearest element to the given values is : ", nearest_distance)
-    #     #print("Index of nearest value is : ", index)
-    #     return index, nearest_distance, index_I_matrice, element_coor
-
 
     def _matrice_U_1D(self, dict_supports: dict):
         """ Donner en entrée le dictionnaire type des appuis extérieurs, 
@@ -360,8 +366,17 @@ class MEF(Bar_generator, _Base_graph):
             elif support["Type d'appui"] == 'Encastrement':
                 for i in range(0,6):
                     self.matriceU[nearest_node['index matrice'] + i,0] = False
-            else:
+
+            elif support["Type d'appui"] == 'Simple Z':
                 self.matriceU[nearest_node['index matrice'] + 2,0] = False
+                self.matriceU[nearest_node['index matrice'] + 3,0] = False
+
+            elif support["Type d'appui"] == 'Simple Y':
+                self.matriceU[nearest_node['index matrice'] + 1,0] = False
+                self.matriceU[nearest_node['index matrice'] + 3,0] = False
+
+            elif support["Type d'appui"] == 'Simple X':
+                self.matriceU[nearest_node['index matrice'],0] = False
                 self.matriceU[nearest_node['index matrice'] + 3,0] = False
 
         print("\n Matrice de déplacement U : \n",self.matriceU, "\n")
@@ -652,9 +667,10 @@ class MEF(Bar_generator, _Base_graph):
 
     
     def deplacement(self):
-        ux = []
-        uz = []
-        tetay = []
+        uX = []
+        uY = []
+        uZ = []
+        tetaY = []
 
         for i in range(len(self.element_list)):
             n1 = int(self.element_list[i,0])*6
@@ -665,59 +681,45 @@ class MEF(Bar_generator, _Base_graph):
 
             if n1 == 6:
 
-                ux.append(u1[0])
-                ux.append(u2[0])
-                uz.append(u1[2])
-                uz.append(u2[2])
-                tetay.append(u1[4])
-                tetay.append(u2[4])
+                uX.append(u1[0])
+                uX.append(u2[0])
+                uY.append(u1[1])
+                uY.append(u2[1])
+                uZ.append(u1[2])
+                uZ.append(u2[2])
+                tetaY.append(u1[4])
+                tetaY.append(u2[4])
             else:
-                ux.append(u2[0])
-                uz.append(u2[2])
-                tetay.append(u2[4])
+                uX.append(u2[0])
+                uY.append(u2[1])
+                uZ.append(u2[2])
+                tetaY.append(u2[4])
 
-        self.u_coor = [ux, uz, tetay]
+        self.u_coor = {"uX": uX, "uY": uY, "uZ": uZ, "teta_Y": tetaY}
         return self.u_coor
         
 
     def deplacement_max(self):
+        depl_min_max = {}
+        for depl_type in self.u_coor.keys():
 
-        ux_max = max(self.u_coor[0])
-        ux_max_index = self.u_coor[0].index(ux_max)
-        ux_max_coor = [self.node_coor[ux_max_index,0], ux_max]
+            depl_max = max(self.u_coor[depl_type])
+            depl_max_index = self.u_coor[0].index(depl_max)
+            depl_max_coor = [self.node_coor[depl_max_index,0], depl_max]
 
-        ux_min = min(self.u_coor[0])
-        ux_min_index = self.u_coor[0].index(ux_min)
-        ux_min_coor = [self.node_coor[ux_min_index,0], ux_min]
+            depl_min = min(self.u_coor[depl_type])
+            depl_min_index = self.u_coor[0].index(depl_min)
+            depl_min_coor = [self.node_coor[depl_min_index,0], depl_min]
 
-        uz_max = max(self.u_coor[1])
-        uz_max_index = self.u_coor[1].index(uz_max)
-        uz_max_coor = [self.node_coor[uz_max_index,0], uz_max]
-
-        uz_min = min(self.u_coor[1])
-        uz_min_index = self.u_coor[1].index(uz_min)
-        uz_min_coor = [self.node_coor[uz_min_index,0], uz_min]
-
-        tetay_max = max(self.u_coor[2])
-        tetay_max_index = self.u_coor[2].index(tetay_max)
-        tetay_max_coor = [self.node_coor[tetay_max_index,0], tetay_max]
-
-        tetay_min = min(self.u_coor[2])
-        tetay_min_index = self.u_coor[2].index(tetay_min)
-        tetay_min_coor = [self.node_coor[tetay_min_index,0], tetay_min]
-
-        listMinMax = {"Ux_max": ux_max_coor, "Ux_min": ux_min_coor, 
-                      "Uz_max": uz_max_coor, "Uz_min": uz_min_coor, 
-                      "tetay_max": tetay_max_coor, "tetay_min": tetay_min_coor}
-
-        return listMinMax
+            depl_min_max[depl_type + "_max"] = depl_max_coor
+            depl_min_max[depl_type + "_min"] = depl_min_coor
+        return depl_min_max
 
 
     def effort_interne(self):
 
-        ni = []
-        vi = []
-        myi = []
+        ni, vyi, vzi, myi, mzi = [], [], [], [], []
+        
         for i in range(len(self.element_list)):
             n1 = int(self.element_list[i,0])*6
             n2 = int(self.element_list[i,1])*6
@@ -738,8 +740,10 @@ class MEF(Bar_generator, _Base_graph):
 
             if n1 == 6:
                 ni.append(internal_forces[0]/10**3)
-                vi.append(internal_forces[2]/10**3)
+                vyi.append(internal_forces[1]/10**3)
+                vzi.append(internal_forces[2]/10**3)
                 myi.append(internal_forces[4]/10**6)
+                mzi.append(internal_forces[5]/10**6)
             
             # else:
             #     ni[-1] = ni[-1] + internal_forces[0]/10**3
@@ -747,56 +751,43 @@ class MEF(Bar_generator, _Base_graph):
             #     myi[-1] = myi[-1] + internal_forces[4]/10**6
             
             ni.append(-internal_forces[6]/10**3)
-            vi.append(-internal_forces[8]/10**3)
+            vyi.append(-internal_forces[7]/10**3)
+            vzi.append(-internal_forces[8]/10**3)
             myi.append(-internal_forces[10]/10**6)
+            mzi.append(-internal_forces[11]/10**6)
                 
-        self.ei_coor = [ni, vi, myi]
-        print(self.ei_coor)
+        self.ei_coor = {"Nx": ni, "Vy": vyi, "Vz": vzi, "My": myi, "Mz": mzi}
         return self.ei_coor
     
     
 
     def effort_interne_position(self, position: int):
         position_index = self._nearest_node(position)
-        nx = self.ei_coor[0][position_index[0]]
-        vz = self.ei_coor[1][position_index[0]]
-        my = self.ei_coor[2][position_index[0]]
-        print(f"la position la plus proche est {position_index[1]} mm", {"Nx": nx, "Vz": vz, "My": my})
-        return {"Nx": nx, "Vz": vz, "My": my}
+        nx = self.ei_coor["Nx"][position_index[0]]
+        vy = self.ei_coor["Vy"][position_index[0]]
+        vz = self.ei_coor["Vz"][position_index[0]]
+        my = self.ei_coor["My"][position_index[0]]
+        mz = self.ei_coor["Mz"][position_index[0]]
+        print(f"la position la plus proche est {position_index[1]} mm", {"Nx": nx, "Vy": vy, "Vz": vz, "My": my, "Mz": mz})
+        return {"Nx": nx, "Vy": vy, "Vz": vz, "My": my, "Mz": mz}
     
 
     
     def effort_interne_max(self):
         """ Retourne les efforts min et max d'une liste d'effort interne """
-                
-        nx_max = max(self.ei_coor[0])
-        nx_max_index = self.ei_coor[0].index(nx_max)
-        nx_max_coor = {"Position": self.node_coor[nx_max_index,0], "Effort": nx_max}
+        ei_min_max = {}
+        for force_type in self.ei_coor.keys():
+            force_max = max(self.ei_coor[force_type])
+            force_max_index = self.ei_coor[force_type].index(force_max)
+            force_max_coor = {"Position": self.node_coor[force_max_index,0], "Effort": force_max}
+            
+            force_min = min(self.ei_coor[force_type])
+            force_min_index = self.ei_coor[force_type].index(force_min)
+            force_min_coor = {"Position": self.node_coor[force_min_index,0], "Effort": force_min}
 
-        nx_min = min(self.ei_coor[0])
-        nx_min_index = self.ei_coor[0].index(nx_min)
-        nx_min_coor = {"Position": self.node_coor[nx_min_index,0], "Effort": nx_min}
-
-        vz_max = max(self.ei_coor[1])
-        vz_max_index = self.ei_coor[1].index(vz_max)
-        vz_max_coor = {"Position": self.node_coor[vz_max_index,0], "Effort": vz_max}
-
-        vz_min = min(self.ei_coor[1])
-        vz_min_index = self.ei_coor[1].index(vz_min)
-        vz_min_coor = {"Position": self.node_coor[vz_min_index,0], "Effort": vz_min}
-
-        my_max = max(self.ei_coor[2])
-        my_max_index = self.ei_coor[2].index(my_max)
-        my_max_coor = {"Position": self.node_coor[my_max_index,0], "Effort": my_max}
-
-        my_min = min(self.ei_coor[2])
-        my_min_index = self.ei_coor[2].index(my_min)
-        my_min_coor = {"Position": self.node_coor[my_min_index,0], "Effort": my_min}
-
-        return {"Nx_max": nx_max_coor,"Nx_min": nx_min_coor, 
-                "Vz_max": vz_max_coor, "Vz_min": vz_min_coor, 
-                "My_max": my_max_coor, "My_min": my_min_coor}
-
+            ei_min_max[force_type + "_max"] = force_max_coor
+            ei_min_max[force_type + "_min"] = force_min_coor
+        return ei_min_max
 
 
     def _graphique_reaction_Z(self, name_combi: str):
@@ -861,7 +852,7 @@ class MEF(Bar_generator, _Base_graph):
         self.y_label = "Déplacement \n(mm)"
         self.unit = " mm"
         self.x_values = self.node_coor
-        self.y_values = self.u_coor[1]
+        self.y_values = self.u_coor["uz"]
         
         dictUMinMax = self.deplacement_max()
         self.max_XY_values = (dictUMinMax["Uz_max"][0], dictUMinMax["Uz_max"][1])
@@ -887,7 +878,7 @@ class MEF(Bar_generator, _Base_graph):
         self.title = 'Efforts normaux Nx : '
         self.color = "orange"
         self.x_values = self.node_coor
-        self.y_values = self.ei_coor[0]
+        self.y_values = self.ei_coor["Nx"]
         
         dictEiMinMax = self.effort_interne_max()
         self.max_XY_values = (dictEiMinMax["Nx_max"]["Position"], dictEiMinMax["Nx_max"]["Effort"])
@@ -906,66 +897,56 @@ class MEF(Bar_generator, _Base_graph):
         plt.show()
 
 
-    def _graphique_Vz(self, name_combi:str):
-        """ Retourne le diagramme des efforts tranchant en Z """
+    def _graphique_V(self, name_combi:str, axe: str=("y", "z")):
+        """ Retourne le diagramme des efforts tranchant suivant l'axe donnée y ou z local"""
 
         self.name = name_combi
-        self.title = 'Efforts tranchants Vz : '
+        self.title = f'Efforts tranchants V{axe} : '
         self.color = 'b'
-        # self.x_values = []
         self.x_values = self.node_coor
-        self.y_values = self.ei_coor[1]
-        # self.y_values = []
-        # for index, value in enumerate(self.ei_coor[1]):
-        #     if isinstance(value, list):
-        #         for i in range(len(value)):
-        #             self.x_values.append(self.node_coor[index,0])
-        #             self.y_values.append(value[i])
-        #     else:
-        #         self.x_values.append(self.node_coor[index,0])
-        #         self.y_values.append(value[i])
+        self.y_values = self.ei_coor[f"V{axe}"]
         
         dictEiMinMax = self.effort_interne_max()
-        self.max_XY_values = (dictEiMinMax["Vz_max"]["Position"], dictEiMinMax["Vz_max"]["Effort"])
-        self.min_XY_values = (dictEiMinMax["Vz_min"]["Position"], dictEiMinMax["Vz_min"]["Effort"])
+        self.max_XY_values = (dictEiMinMax[f"V{axe}_max"]["Position"], dictEiMinMax[f"V{axe}_max"]["Effort"])
+        self.min_XY_values = (dictEiMinMax[f"V{axe}_min"]["Position"], dictEiMinMax[f"V{axe}_min"]["Effort"])
         self.excent_X = 50
         self.excent_Y = 1
         self.fill_between = True
         self.fill_between_X = self.node_coor.flatten().tolist()
         
-        self.save_path = os.path.join(self.SAVE_PATH, "Vz.png")
+        self.save_path = os.path.join(self.SAVE_PATH, f"V{axe}.png")
         self._base_graphique()
     
 
-    def show_graphique_Vz(self, name_combi:str):
-        self._graphique_Vz(name_combi)
+    def show_graphique_V(self, name_combi:str, axe: str=("y", "z")):
+        self._graphique_V(name_combi, axe)
         plt.show()
 
     
-    def _graphique_My(self, name_combi:str):
-        """ Retourne le diagramme des efforts de moment autour de My """
+    def _graphique_M(self, name_combi:str, axe: str=("y", "z")):
+        """ Retourne le diagramme des efforts de moment autour de M suivant l'axe y ou z local """
 
         self.name = name_combi
-        self.title = 'Moments My : '
+        self.title = f'Moments M{axe} : '
         self.color = 'r'
         self.y_label = "Effort (kN.m)"
         self.unit = " kN.m"
         self.x_values = self.node_coor
-        self.y_values = self.ei_coor[2]
+        self.y_values = self.ei_coor[f"M{axe}"]
         
         dictEiMinMax = self.effort_interne_max()
-        self.max_XY_values = (dictEiMinMax["My_max"]["Position"], dictEiMinMax["My_max"]["Effort"])
-        self.min_XY_values = (dictEiMinMax["My_min"]["Position"], dictEiMinMax["My_min"]["Effort"])
+        self.max_XY_values = (dictEiMinMax[f"M{axe}_max"]["Position"], dictEiMinMax[f"M{axe}_max"]["Effort"])
+        self.min_XY_values = (dictEiMinMax[f"M{axe}_min"]["Position"], dictEiMinMax[f"M{axe}_min"]["Effort"])
         self.excent_X = 1
         self.excent_Y = 1
         self.fill_between = True
         self.fill_between_X = self.node_coor.flatten().tolist()
         
-        self.save_path = os.path.join(self.SAVE_PATH, "My.png")
+        self.save_path = os.path.join(self.SAVE_PATH, f"M{axe}.png")
         self._base_graphique()
 
-    def show_graphique_My(self, name_combi):
-        self._graphique_My(name_combi)
+    def show_graphique_M(self, name_combi, axe: str=("y", "z")):
+        self._graphique_M(name_combi, axe)
         plt.show()
 
 
@@ -978,9 +959,9 @@ class MEF(Bar_generator, _Base_graph):
         start = time.time()
         loads = self.combinaison.get_all_loads()
         supports = self.get_supports()
-        self._matrice_K_1D()
         self._matrice_Fext_1D(loads)
         self._matrice_U_1D(supports)
+        self._matrice_K_1D()
 
         self._condition_limite()
         self._equa_deplacement()
@@ -1007,8 +988,8 @@ class MEF(Bar_generator, _Base_graph):
             self.show_graphique_reaction_Z(name_combi)
             self.show_graphique_reaction_X(name_combi)
             self.show_graphique_Nx(name_combi)
-            self.show_graphique_Vz(name_combi)
-            self.show_graphique_My(name_combi)
+            self.show_graphique_V(name_combi, "z")
+            self.show_graphique_M(name_combi, "y")
         else:
             self.show_graphique_fleche(name_combi)
         
@@ -1017,11 +998,7 @@ if __name__ == '__main__':
     from EC0_Combinaison import Chargement
     # _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/6000", 'Z'],
     #              [2, '', "Neige normale Sn", 'Linéique', -200, "0/6000", 'Z']]
-    _list_loads = [
-                   [1, '', 'Permanente G', -500, 2000, 'Z'],
-                   [1, '', 'Permanente G', -500, 1000, 'Z'],
-                   [2, '', 'Permanente G', -500, 2000, 'Z'],
-                   [2, '', 'Permanente G', -500, 3000, 'Z']]
+    _list_loads = [[1, '', 'Permanente G', -500, 2000, 'X'], [2, '', 'Permanente G', 500, 2000, 'X'],]
     chargement = Chargement(pays="Japon")
     chargement.create_load_by_list(_list_loads)
     c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation", kdef=0.6)
@@ -1041,10 +1018,11 @@ if __name__ == '__main__':
     beam_gen.add_bar(2828.42,2828.42,5656.84,0,a)
     
     beam_gen.add_relaxation(1, "end")
+    # beam_gen.add_relaxation(2, "start")
     beam_gen.add_material_by_class(1, iy, iz, "C24")
     beam_gen.add_material_by_class(2, iy, iz, "C24")
 
-    listdeplacement = [[1, "Rotule", 0, 0], [2, "Rotule", beam_gen.bar_info[2]["length"], 0]]
+    listdeplacement = [[1, "Rotule", 0, 0], [2, "Rotule", beam_gen.bar_info[2]["length"], 0], [2, "Simple Y", 0, 0]]
     beam_gen.create_supports_by_list(listdeplacement)
    
     

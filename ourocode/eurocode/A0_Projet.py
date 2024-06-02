@@ -323,13 +323,46 @@ class Bar_generator(Projet):
         return self._dict_supports
     
 
-    def show_graph_loads_and_supports(self):
+    def show_graph_loads_and_supports(self, scale_internal_forces: int=100, scale_deplacement: int=10):
         """Affiche le graphique des charges et des appuis du MEF"""
+
+        # Récupération des efforts internes et conversion du locale au globale
+        def get_local_to_global_list(list_value: list, list_ele: list, angle=None):
+            def get_local_to_global(y_local, angle, x, y):
+                angle = np.radians(angle)
+                X = x + y_local * -np.sin(angle)
+                Y = y + y_local * np.cos(angle)
+                return X, Y
+
+            # Initialisation des listes pour stocker les coordonnées X et Y
+            X_coords = []
+            Y_coords = []
+
+            for index_ele, ele in enumerate(list_ele):
+                node1 = int(ele[0])-1
+                node2 = int(ele[1])-1
+                x1, y1 = self.node_coor[node1]
+                x2, y2 = self.node_coor[node2]
+                v1 = (x2-x1, y2-y1)
+                if not angle:
+                    angle = self._get_angle_of_bar(v1)
+                for node in (node1, node2):
+                    y_local = list_value[node] * scale_internal_forces
+                    x, y = self.node_coor[node]
+                    X, Y = get_local_to_global(y_local, angle, x, y)
+                    # Ajouter les coordonnées X et Y à la liste correspondante
+                    X_coords.append(X)
+                    Y_coords.append(Y)
+            return X_coords, Y_coords
+        
+        n_rows, n_cols = 2, 3
+        axis_coor = [[row, col] for row in range(n_rows) for col in range(n_cols)]
+        print(axis_coor)
         # Calcul des efforts internes
         ei_coor = self.effort_interne()
         
         # Création de la figure et des sous-graphique
-        fig, axs = plt.subplots(2, 2, figsize=(14, 10))
+        fig, axs = plt.subplots(n_rows, n_cols, figsize=(21, 10))
         
         # Tracé de la structure globale sur le premier sous-graphe
         axs[0, 0].arrow(0, 0, 0, 350, width=15, color="blue")
@@ -339,16 +372,40 @@ class Bar_generator(Projet):
 
         for key, beam in self.bar_info.items():
             x, y = [], []
+            ux, uz = [], []
+            list_ele = [self.element_list[element] for element in beam["elements"]]
             for element in beam["elements"]:
                 for i, node in enumerate(self.element_list[element]):
                     coor = self.node_coor[int(node)-1]
                     x.append(coor[0])
                     y.append(coor[1])
+                    ux.append(coor[0] + self.u_coor["uX"][int(node)-1]*scale_deplacement)
+                    uz.append(coor[1] + self.u_coor["uZ"][int(node)-1]*scale_deplacement)
 
-            for subplot in ([0,0], [0,1], [1,0], [1,1]):
-                axs[subplot[0], subplot[1]].plot(x, y, label=f"Barre N°{key}")
+            middle_x = x[int(round((len(x) - 1)/2,0))]
+            middle_y = y[int(round((len(y) - 1)/2,0))]
+            for subplot in axis_coor:
+                axs[subplot[0], subplot[1]].plot(x, y, color="black", linestyle='dashed')
+                axs[subplot[0], subplot[1]].text(middle_x+100, middle_y+100, f"B{key}", ha="right", color="black")
                 axs[subplot[0], subplot[1]].plot(x[0], y[0], marker='o', mec='gray', mfc="gray")
                 axs[subplot[0], subplot[1]].plot(x[-1], y[-1], marker='o', mec='gray', mfc="gray")
+            axs[0, 1].plot(ux, uz, color='green')
+
+            
+            Nx_coor = get_local_to_global_list(ei_coor["Nx"], list_ele)
+            axs[0, 2].plot(Nx_coor[0], Nx_coor[1], color='orange')
+            
+            Vz_coor = get_local_to_global_list(ei_coor["Vz"], list_ele)
+            axs[1, 0].plot(Vz_coor[0], Vz_coor[1], color='blue')
+
+            My_coor = get_local_to_global_list(ei_coor["My"], list_ele)
+            axs[1, 1].plot(My_coor[0], My_coor[1], color='red')
+
+            Mz_coor = get_local_to_global_list(ei_coor["Mz"], list_ele)
+            axs[1, 2].plot(Mz_coor[0], Mz_coor[1], color='purple')
+
+            # U_coor = get_local_to_global_list(self.u_coor["uX"], list_ele, 0)
+            # axs[1, 2].plot(U_coor[0], U_coor[1], label="Flèche (u global)", color='green')
         
         for key, support in self._dict_supports.items():
             if support["Type d'appui"] == "Rotule":
@@ -359,69 +416,20 @@ class Bar_generator(Projet):
                 support_type = "^"
             x = mt.cos(mt.radians(self.bar_info[support["N° barre"]]["angle"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["x1"]
             y = mt.sin(mt.radians(self.bar_info[support["N° barre"]]["angle"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["y1"]
-            for subplot in ([0,0], [0,1], [1,0], [1,1]):
+            for subplot in axis_coor:
                 axs[subplot[0], subplot[1]].plot(x, y, marker=support_type, markersize=10, color="red", label=f"Appui {key} / {support['Type d\'appui']}")
+                axs[subplot[0], subplot[1]].text(x+100, y+100, f"A{key}", ha="right", color="red")
 
-        axs[0, 0].set_title('Schématisation de la structure et des charges')
-        axs[0, 0].set_xlabel('Longueur (mm)')
-        axs[0, 0].set_ylabel('Hauteur (mm)')
-        axs[0, 0].legend()
-        axs[0, 0].grid(True)
-
-        x_coords = [coor[0] for coor in self.node_coor]
-
-        # Tracé des efforts internes
-        def get_local_to_global_list(list):
-            def get_local_to_global(y_local, angle, x, y):
-                angle = np.radians(angle)
-                X = x - y_local * np.sin(angle)
-                Y = y + y_local * np.cos(angle)
-                return X, Y
-
-            # Initialisation des listes pour stocker les coordonnées X et Y
-            X_coords = []
-            Y_coords = []
-
-            for index_ele, ele in enumerate(self.element_list):
-                node1 = int(ele[0])-1
-                node2 = int(ele[1])-1
-                x1, y1 = self.node_coor[node1]
-                x2, y2 = self.node_coor[node2]
-                v1 = (x2-x1, y2-y1)
-                angle = self._get_angle_of_bar(v1)
-                for node in (node1, node2):
-                    y_local = list[node] * 100
-                    x, y = self.node_coor[node]
-                    X, Y = get_local_to_global(y_local, angle, x, y)
-                    # Ajouter les coordonnées X et Y à la liste correspondante
-                    X_coords.append(X)
-                    Y_coords.append(Y)
-            return X_coords, Y_coords
+        titles = ('Schématisation de la structure et des charges', 'Flèche (u global XZ)', 
+                  'Effort Normal (Nx)', 'Effort Tranchant (Vz)', 'Moment Fléchissant (My)', 
+                  'Moment Fléchissant (Mz)')
         
-        Nx_coor = get_local_to_global_list(ei_coor[0])
-        # Tracer l'effort normal en fonction de la position
-        axs[0, 1].plot(Nx_coor[0], Nx_coor[1], label="Effort Normal (N)", color='orange')
-        axs[0, 1].set_title('Effort Normal (N)')
-        axs[0, 1].set_xlabel('Position X (mm)')
-        axs[0, 1].set_ylabel('Position Y (mm)')
-        axs[0, 1].legend()
-        axs[0, 1].grid(True)
-
-        Vz_coor = get_local_to_global_list(ei_coor[1])
-        axs[1, 0].plot(Vz_coor[0], Vz_coor[1], label="Effort Tranchant (V)", color='green')
-        axs[1, 0].set_title('Effort Tranchant (V)')
-        axs[1, 0].set_xlabel('Position (mm)')
-        axs[1, 0].set_ylabel('Effort (kN)')
-        axs[1, 0].legend()
-        axs[1, 0].grid(True)
-
-        My_coor = get_local_to_global_list(ei_coor[2])
-        axs[1, 1].plot(My_coor[0], My_coor[1], label="Moment Fléchissant (M_y)", color='purple')
-        axs[1, 1].set_title('Moment Fléchissant (M_y)')
-        axs[1, 1].set_xlabel('Position (mm)')
-        axs[1, 1].set_ylabel('Moment (kNm)')
-        axs[1, 1].legend()
-        axs[1, 1].grid(True)
+        for index, subplot in enumerate(axis_coor):
+            axs[subplot[0], subplot[1]].set_title(titles[index])
+            axs[subplot[0], subplot[1]].set_xlabel('Longueur (mm)')
+            axs[subplot[0], subplot[1]].set_ylabel('Hauteur (mm)')
+            axs[subplot[0], subplot[1]].legend()
+            axs[subplot[0], subplot[1]].grid(True)
 
         plt.tight_layout()
         plt.show()
