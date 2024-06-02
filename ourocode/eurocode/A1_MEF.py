@@ -398,7 +398,6 @@ class MEF(Bar_generator, _Base_graph):
         for index_F_ext, F_ext in dict_F_ext.items():
             bar_id = F_ext['N° barre']
             l = self.get_lenght_of_element(self.bar_info[bar_id]["elements"][0])
-            print(l)
             angle = mt.radians(self.bar_info[bar_id]["angle"])
             base_global_R_tetaY = np.array([[np.cos(angle), np.sin(angle), 0],
                                             [-np.sin(angle), np.cos(angle), 0],
@@ -414,86 +413,88 @@ class MEF(Bar_generator, _Base_graph):
                 
                 end_pos = int(F_ext['Position'][slash_pos+1:])
                 end_index = self._nearest_node(end_pos, bar_id)
-                nearest_node = [[start_index, start_pos], [end_index, end_pos]]
+                nearest_node_index = [[start_index, start_pos], [end_index, end_pos]]
 
                 # print("Longueur élément:", l, " mm")
-                for index in range(start_index[2], end_index[2]+6, 6):
+                for index in range(start_index['index matrice'], end_index['index matrice']+6, 6):
                     listFlocal = np.zeros((3,1))
                     listFlocal2 = np.zeros((3,1))
 
-                    if F_ext['Axe'] == 'Z' or F_ext['Axe'] == 'Z local' :
-                        force = F_ext['Charge'] * (l/1000) * 10
+                    force = F_ext['Charge'] * (l/1000) * 10
 
+                    if F_ext['Axe'] in ('Z', 'Z local'):
                         listFlocal[1,0] = F_ext['Charge'] * 10 * (l/1000) / 2 # Rza et Rzb
                         listFlocal2[1,0] = listFlocal[1,0]
-                        listFlocal[2,0] = F_ext['Charge'] * 10 * (l/1000) **2 / 12 # Mya et Myb
-                        listFlocal2[2,0] = listFlocal[2,0]
-
-                        if index in (start_index[2], end_index[2]):
-                            calc_formulaire = False
-                            if index != end_index[2]:
-                                ind = nearest_node[0]
-
-                                # Cas dans le quelle la force est avant le noeud le plus proche
-                                if ind[1] < ind[0][1]:
-                                    a = ind[0][1] - ind[1]
-                                    b = ind[1] - self.node_coor[ind[0][0]-1][0]
-                                    Mya = ((force * b**2)/l) * (4*(b/l) + 3*(b/l)**2)
-                                    Myb = -((force * b**2)/12) * (6-8*(b/l) + 3*(b/l)**2)
-                                    force = force * b
-                                    b = b/2 
-                                    a = a + b 
-                                    Rza = (force * b**2 * (3 * a + b))/l**3
-                                    Rzb = (force * a**2 * (3 * b + a))/l**3
-                                    
-                                    listFlocal[1,0] = Rza
-                                    listFlocal[2,0] = Mya
-                                    listFlocal2[1,0] = Rzb
-                                    listFlocal2[2,0] = Myb
-                                    calc_formulaire = True
-                            
-                            else:
-                                ind = nearest_node[1]
-                                # Formule tirée de l'aide mémoire page 113 cas 3 et cas 1 pour RA et RB
-                                # Cas dans lequel la force est aprés le noeud le plus proche
-                                if ind[1] > ind[0][1]:
-                                    a = ind[1] - ind[0][1]
-                                    b = self.node_coor[ind[0][0]+1][0]-ind[1]
-                                    Mya = ((force * a**2)/12) * (6-8*(a/l) + 3*(a/l)**2)
-                                    Myb = -((force * a**2)/l) * (4*(a/l) + 3*(a/l)**2)
-                                    force = force * b
-                                    a = a/2 
-                                    b = a + b 
-                                    Rza = (force * b**2 * (3 * a + b))/l**3
-                                    Rzb = (force * a**2 * (3 * b + a))/l**3
-                                    
-                                    listFlocal[1,0] = Rza
-                                    listFlocal[2,0] = Mya
-                                    listFlocal2[1,0] = Rzb
-                                    listFlocal2[2,0] = Myb
-                                    calc_formulaire = True
-
-                            if calc_formulaire:
-                                if F_ext['Axe'] == 'Z':
-                                    listFlocal= np.dot(base_global_R_tetaY, listFlocal)
-                                    listFlocal2= np.dot(base_global_R_tetaY, listFlocal2)
-
-                                for i_index in range(3):
-                                    j_index = i_index * 2
-                                    Assembleur_COO_F.append(index+j_index, 0, listFlocal[i_index,0])
-                                    Assembleur_COO_F.append(index+6+j_index, 0, listFlocal2[i_index,0])
-                                continue
-
-                        if F_ext['Axe'] == 'Z':
-                            listFlocal= np.dot(base_global_R_tetaY, listFlocal)
-                            listFlocal2= np.dot(base_global_R_tetaY, listFlocal2)
-                            
-                    elif F_ext['Axe'] == 'X':
-                        listFlocal[0,0] = F_ext['Charge'] * (l/1000) * 10 / 2
+                    elif F_ext['Axe'] in ('X', 'X local'):
+                        listFlocal[0,0] = F_ext['Charge'] * 10 * (l/1000) / 2 # Rza et Rzb
                         listFlocal2[0,0] = listFlocal[0,0]
-                        listFlocal= np.dot(base_global_R_tetaY, listFlocal)
 
-                    if index != end_index[2]:
+                    listFlocal[2,0] = F_ext['Charge'] * 10 * (l/1000) **2 / 12 # Mya et Myb
+                    listFlocal2[2,0] = listFlocal[2,0]
+
+                    if index in (start_index['index matrice'], end_index['index matrice']):
+                        if index != end_index['index matrice']:
+                            ind = nearest_node_index[0]
+                            
+                            node_local_x = ind[0]['nearest node local x']
+                            # Cas dans le quelle la force est avant le noeud le plus proche
+                            if ind[1] < node_local_x:
+                                # a = F_ext['Position'] - nearest_node['nearest node local x']
+                                # after_node_local_x = self.global_to_local(self.node_coor[nearest_node['index']+1], self.bar_info[bar_id])
+                                # b = after_node_local_x - F_ext['Position']
+                                a = node_local_x - ind[1]
+                                before_node_local_x = self.global_to_local(self.node_coor[ind[0]['index']-1], self.bar_info[bar_id])
+                                b = ind[1] - before_node_local_x
+                                Mya = ((force * b**2)/l) * (4*(b/l) + 3*(b/l)**2)
+                                Myb = -((force * b**2)/12) * (6-8*(b/l) + 3*(b/l)**2)
+                                force = force * b
+                                b = b/2 
+                                a = a + b 
+                                Rza = (force * b**2 * (3 * a + b))/l**3
+                                Rzb = (force * a**2 * (3 * b + a))/l**3
+                                
+                                if F_ext['Axe'] in ('Z', 'Z local'):
+                                    listFlocal[1,0] = Rza
+                                    listFlocal2[1,0] = Rzb
+                                elif F_ext['Axe'] in ('X', 'X local'):
+                                    listFlocal[0,0] = Rza
+                                    listFlocal2[0,0] = Rzb
+
+                                listFlocal[2,0] = Mya
+                                listFlocal2[2,0] = Myb
+                        
+                        else:
+                            ind = nearest_node_index[1]
+                            node_local_x = ind[0]['nearest node local x']
+                            # Formule tirée de l'aide mémoire page 113 cas 3 et cas 1 pour RA et RB
+                            # Cas dans lequel la force est aprés le noeud le plus proche
+                            if ind[1] > node_local_x:
+                                a = ind[1] - node_local_x
+                                after_node_local_x = self.global_to_local(self.node_coor[ind[0]['index']+1], self.bar_info[bar_id])
+                                b = after_node_local_x - ind[1]
+                                Mya = ((force * a**2)/12) * (6-8*(a/l) + 3*(a/l)**2)
+                                Myb = -((force * a**2)/l) * (4*(a/l) + 3*(a/l)**2)
+                                force = force * b
+                                a = a/2 
+                                b = a + b 
+                                Rza = (force * b**2 * (3 * a + b))/l**3
+                                Rzb = (force * a**2 * (3 * b + a))/l**3
+                                
+                                if F_ext['Axe'] in ('Z', 'Z local'):
+                                    listFlocal[1,0] = Rza
+                                    listFlocal2[1,0] = Rzb
+                                elif F_ext['Axe'] in ('X', 'X local'):
+                                    listFlocal[0,0] = Rza
+                                    listFlocal2[0,0] = Rzb
+
+                                listFlocal[2,0] = Mya
+                                listFlocal2[2,0] = Myb
+
+                    if F_ext['Axe'] in ('Z local', 'X local'):
+                        listFlocal= np.dot(base_global_R_tetaY, listFlocal)
+                        listFlocal2= np.dot(base_global_R_tetaY, listFlocal2)
+
+                    if index != end_index['index matrice']:
                         for i_index in range(3):
                             j_index = i_index * 2
                             Assembleur_COO_F.append(index+j_index, 0, listFlocal[i_index,0])
@@ -503,49 +504,55 @@ class MEF(Bar_generator, _Base_graph):
             elif F_ext['Type de charge'] == 'Nodale':
                 nearest_node = self._nearest_node(int(F_ext['Position']), bar_id)
                 force = F_ext['Charge'] * 10
-                
-                if F_ext['Axe'] == 'Z' or F_ext['Axe'] == 'Z local' :                    
-                    if nearest_node['position'] == "exactly at":
+                                   
+                if nearest_node['position'] == "exactly at":
+                    if F_ext['Axe'] in ('Z', 'Z local'):
                         listFlocal[1,0] = force
+                    elif F_ext['Axe'] in ('X', 'X local'):
+                        listFlocal[0,0] = force
+                
+                # Cas dans lequel la force est aprés le noeud le plus proche
+                elif nearest_node['position'] == "before":
+                    a = F_ext['Position'] - nearest_node['nearest node local x']
+                    after_node_local_x = self.global_to_local(self.node_coor[nearest_node['index']+1], self.bar_info[bar_id])
+                    b = after_node_local_x - F_ext['Position']
+                    Mya = (force * a * b**2)/l**2
+                    Myb = -(force * b * a**2)/l**2
+                    Rza = (force * b**2 * (3 * a + b))/l**3
+                    Rzb = (force * a**2 * (3 * b + a))/l**3
                     
-                    # Cas dans lequel la force est aprés le noeud le plus proche
-                    elif nearest_node['position'] == "before":
-                        
-                        a = F_ext['Position'] - nearest_node['nearest node local x']
-                        after_node_local_x = self.global_to_local(self.node_coor[nearest_node['index']+1], self.bar_info[bar_id])
-                        b = after_node_local_x - F_ext['Position']
-                        Mya = (force * a * b**2)/l**2
-                        Myb = -(force * b * a**2)/l**2
-                        Rza = (force * b**2 * (3 * a + b))/l**3
-                        Rzb = (force * a**2 * (3 * b + a))/l**3
-                        
+                    if F_ext['Axe'] in ('Z', 'Z local'):
                         listFlocal[1,0] = Rza
-                        listFlocal[2,0] = Mya
-                        
                         Assembleur_COO_F.append(nearest_node['index matrice']+6+2, 0, Rzb)
-                        Assembleur_COO_F.append(nearest_node['index matrice']+6+4, 0, Myb)
-                        
-                        #print("La force est situé après le noeud le plus proche à: ", a,b)
+                    elif F_ext['Axe'] in ('X', 'X local'):
+                        listFlocal[0,0] = Rza
+                        Assembleur_COO_F.append(nearest_node['index matrice']+6, 0, Rzb)
+
+                    listFlocal[2,0] = Mya
+                    Assembleur_COO_F.append(nearest_node['index matrice']+6+4, 0, Myb)
                     
-                    # Cas dans lequel la force est avant le noeud le plus proche
-                    else:
-                        b = nearest_node['nearest node local x'] - F_ext['Position']
-                        before_node_local_x = self.global_to_local(self.node_coor[nearest_node['index']-1], self.bar_info[bar_id])
-                        a = F_ext['Position'] - before_node_local_x
-                        Mya = (force * a * b**2)/l**2
-                        Myb = -(force * b * a**2)/l**2
-                        Rza = (force * b**2 * (3 * a + b))/l**3
-                        Rzb = (force * a**2 * (3 * b + a))/l**3
-                        
+                    #print("La force est situé après le noeud le plus proche à: ", a,b)
+                
+                # Cas dans lequel la force est avant le noeud le plus proche
+                else:
+                    b = nearest_node['nearest node local x'] - F_ext['Position']
+                    before_node_local_x = self.global_to_local(self.node_coor[nearest_node['index']-1], self.bar_info[bar_id])
+                    a = F_ext['Position'] - before_node_local_x
+                    Mya = (force * a * b**2)/l**2
+                    Myb = -(force * b * a**2)/l**2
+                    Rza = (force * b**2 * (3 * a + b))/l**3
+                    Rzb = (force * a**2 * (3 * b + a))/l**3
+                    
+                    if F_ext['Axe'] in ('Z', 'Z local'):
                         listFlocal[1,0] = Rzb
-                        listFlocal[2,0] = Myb
-                        
                         Assembleur_COO_F.append(nearest_node['index matrice']-6+2, 0, Rza)
-                        Assembleur_COO_F.append(nearest_node['index matrice']-6+4, 0, Mya)
-                        #print("La force est situé avant le noeud le plus proche à: ", a,b)
-                    
-                elif F_ext['Axe'] == 'X':
-                    listFlocal[0,0] = F_ext['Charge'] * 10
+                    elif F_ext['Axe'] in ('X', 'X local'):
+                        listFlocal[0,0] = Rzb
+                        Assembleur_COO_F.append(nearest_node['index matrice']-6, 0, Rza)
+                    listFlocal[2,0] = Myb
+                    Assembleur_COO_F.append(nearest_node['index matrice']-6+4, 0, Mya)
+                    #print("La force est situé avant le noeud le plus proche à: ", a,b)
+
                     
                 if F_ext['Axe'] in ('Z local', 'X local'):
                     listFlocal= np.dot(base_global_R_tetaY, listFlocal)
@@ -998,7 +1005,7 @@ if __name__ == '__main__':
     from EC0_Combinaison import Chargement
     # _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/6000", 'Z'],
     #              [2, '', "Neige normale Sn", 'Linéique', -200, "0/6000", 'Z']]
-    _list_loads = [[1, '', 'Permanente G', -500, 2000, 'X'], [2, '', 'Permanente G', 500, 2000, 'X'],]
+    _list_loads = [[1, '', 'Permanente G', -400, "0/3999", 'Z local'], [2, '', 'Permanente G', -400, "0/3999", 'Z local']]
     chargement = Chargement(pays="Japon")
     chargement.create_load_by_list(_list_loads)
     c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation", kdef=0.6)
