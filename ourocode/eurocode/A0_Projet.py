@@ -355,14 +355,14 @@ class Bar_generator(Projet):
                     Y_coords.append(Y)
             return X_coords, Y_coords
         
-        n_rows, n_cols = 2, 3
+        n_rows, n_cols = 3, 3
         axis_coor = [[row, col] for row in range(n_rows) for col in range(n_cols)]
         print(axis_coor)
         # Calcul des efforts internes
         ei_coor = self.effort_interne()
         
         # Création de la figure et des sous-graphique
-        fig, axs = plt.subplots(n_rows, n_cols, figsize=(21, 10))
+        fig, axs = plt.subplots(n_rows, n_cols, figsize=(21, 14))
         
         # Tracé de la structure globale sur le premier sous-graphe
         axs[0, 0].arrow(0, 0, 0, 350, width=15, color="blue")
@@ -372,7 +372,7 @@ class Bar_generator(Projet):
 
         for key, beam in self.bar_info.items():
             x, y = [], []
-            ux, uz = [], []
+            ux, uy, uz = [], [], []
             list_ele = [self.element_list[element] for element in beam["elements"]]
             for element in beam["elements"]:
                 for i, node in enumerate(self.element_list[element]):
@@ -380,6 +380,7 @@ class Bar_generator(Projet):
                     x.append(coor[0])
                     y.append(coor[1])
                     ux.append(coor[0] + self.u_coor["uX"][int(node)-1]*scale_deplacement)
+                    uy.append(coor[0] + self.u_coor["uY"][int(node)-1]*scale_deplacement)
                     uz.append(coor[1] + self.u_coor["uZ"][int(node)-1]*scale_deplacement)
 
             middle_x = x[int(round((len(x) - 1)/2,0))]
@@ -389,23 +390,26 @@ class Bar_generator(Projet):
                 axs[subplot[0], subplot[1]].text(middle_x+100, middle_y+100, f"B{key}", ha="right", color="black")
                 axs[subplot[0], subplot[1]].plot(x[0], y[0], marker='o', mec='gray', mfc="gray")
                 axs[subplot[0], subplot[1]].plot(x[-1], y[-1], marker='o', mec='gray', mfc="gray")
+
+
             axs[0, 1].plot(ux, uz, color='green')
-
+            axs[0, 2].plot(uy, uz, color='green')
+            internal_forces_params = {"Nx": ["orange", [1, 0]],
+                                      "Vy": ["maroon", [1, 1]],
+                                      "Vz": ["blue", [1, 2]],
+                                      "My": ["red", [2, 0]],
+                                      "Mz": ["purple", [2, 1]],
+                                      }
             
-            Nx_coor = get_local_to_global_list(ei_coor["Nx"], list_ele)
-            axs[0, 2].plot(Nx_coor[0], Nx_coor[1], color='orange')
-            
-            Vz_coor = get_local_to_global_list(ei_coor["Vz"], list_ele)
-            axs[1, 0].plot(Vz_coor[0], Vz_coor[1], color='blue')
+            for internal_f, value in internal_forces_params.items():
+                If_coor = get_local_to_global_list(ei_coor[internal_f], list_ele)
+                axs[value[1][0], value[1][1]].plot(If_coor[0], If_coor[1], color=value[0])
 
-            My_coor = get_local_to_global_list(ei_coor["My"], list_ele)
-            axs[1, 1].plot(My_coor[0], My_coor[1], color='red')
-
-            Mz_coor = get_local_to_global_list(ei_coor["Mz"], list_ele)
-            axs[1, 2].plot(Mz_coor[0], Mz_coor[1], color='purple')
-
-            # U_coor = get_local_to_global_list(self.u_coor["uX"], list_ele, 0)
-            # axs[1, 2].plot(U_coor[0], U_coor[1], label="Flèche (u global)", color='green')
+                if 0 <= beam['angle'] < 90 or 180 <= beam['angle'] < 270:
+                    axs[value[1][0], value[1][1]].fill_between(x, If_coor[1], y, alpha=0.3, interpolate=True, color=value[0])
+                else:
+                    axs[value[1][0], value[1][1]].fill_betweenx(y, If_coor[0], x, alpha=0.3, interpolate=True, color=value[0])
+                
         
         for key, support in self._dict_supports.items():
             if support["Type d'appui"] == "Rotule":
@@ -417,92 +421,52 @@ class Bar_generator(Projet):
             x = mt.cos(mt.radians(self.bar_info[support["N° barre"]]["angle"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["x1"]
             y = mt.sin(mt.radians(self.bar_info[support["N° barre"]]["angle"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["y1"]
             for subplot in axis_coor:
-                axs[subplot[0], subplot[1]].plot(x, y, marker=support_type, markersize=10, color="red", label=f"Appui {key} / {support['Type d\'appui']}")
+                axs[subplot[0], subplot[1]].plot(x, y, marker=support_type, markersize=10, color="red", label=f"A{key} / {support['Type d\'appui']}")
                 axs[subplot[0], subplot[1]].text(x+100, y+100, f"A{key}", ha="right", color="red")
 
-        titles = ('Schématisation de la structure et des charges', 'Flèche (u global XZ)', 
-                  'Effort Normal (Nx)', 'Effort Tranchant (Vz)', 'Moment Fléchissant (My)', 
-                  'Moment Fléchissant (Mz)')
+
+        # Conversion des positions en valeurs numériques
+        def parse_position(position, charge):
+            position = str(position)
+            charge = -charge
+            parts = position.split("/")
+            if len(parts) == 1:
+                return [int(parts[0])]*2, [0,charge]
+            elif len(parts) == 2:
+                return [pos for pos in range(int(parts[0]), int(parts[1]), 1)], [charge for _ in range(int(parts[0]), int(parts[1]), 1)]
+            else:
+                return None
+        
+        # # On génère les charges
+        # for i, load in enumerate(self.list_loads):
+        #     charge = load[4]
+        #     parser = parse_position(load[5], charge)
+        #     charge = round(-charge,2)
+        #     nom = " / ".join([load[1], load[2], load[3], load[6]])
+        #     if len(parser[1]) != 2:
+        #         unit_load = "daN/m"
+        #         plt.plot(parser[0], parser[1], label=nom)
+        #         plt.fill_between(parser[0], parser[1], alpha=0.3)
+        #     else:
+        #         unit_load = "daN"
+        #         plt.plot(parser[0], parser[1], marker="X",label=nom)
+        #     plt.text(parser[0][1]+1000, charge+2, f'{charge} {unit_load}', ha='right')
+
+
+        titles = ('Schématisation de la structure et des charges', 'Flèche (u global XZ)', 'Flèche (u global YZ)',
+                  'Effort Normal (Nx)', 'Effort Tranchant (Vy)', 'Effort Tranchant (Vz)', 
+                  'Moment Fléchissant (My)',  'Moment Fléchissant (Mz)', "")
         
         for index, subplot in enumerate(axis_coor):
             axs[subplot[0], subplot[1]].set_title(titles[index])
             axs[subplot[0], subplot[1]].set_xlabel('Longueur (mm)')
             axs[subplot[0], subplot[1]].set_ylabel('Hauteur (mm)')
-            axs[subplot[0], subplot[1]].legend()
             axs[subplot[0], subplot[1]].grid(True)
+            if not index:
+                axs[subplot[0], subplot[1]].legend()
 
         plt.tight_layout()
         plt.show()
-        
-
-    # def show_graph_loads_and_supports(self):
-    #     """Affiche le graphique des charges et des appuis du MEF
-    #     """
-    #     # Conversion des positions en valeurs numériques
-    #     def parse_position(position, charge):
-    #         position = str(position)
-    #         charge = -charge
-    #         parts = position.split("/")
-    #         if len(parts) == 1:
-    #             return [int(parts[0])]*2, [0,charge]
-    #         elif len(parts) == 2:
-    #             return [pos for pos in range(int(parts[0]), int(parts[1]), 1)], [charge for _ in range(int(parts[0]), int(parts[1]), 1)]
-    #         else:
-    #             return None
-
-    #     # Création du graphique
-    #     plt.figure(figsize=(12, 4))
-
-    #     plt.arrow(0, 0, 0, 350, width=15, color="blue")
-    #     plt.text(150, -100, "X", ha='right')
-    #     plt.arrow(0, 0, 350, 0, width=15, color="red")
-    #     plt.text(-50, 150, "Z", ha='right')
-
-    #     # On dessine les barres
-    #     for key, beam in self.bar_info.items():
-    #         x, y = [], []
-    #         for element in beam["elements"]:
-    #             for i, node in enumerate(self.element_list[element]):
-    #                 coor = self.node_coor[int(node)-1]
-    #                 x.append(coor[0])
-    #                 y.append(coor[1])
-    #         plt.plot(x, y, label=f"Barre N°{key}", marker="o")
-    #         plt.plot(x[0], y[0], marker='o', mec='gray', mfc="gray")
-    #         plt.plot(x[-1], y[-1], marker='o', mec='gray', mfc="gray")
-
-    #     # # On génère les charges
-    #     # for i, load in enumerate(self.list_loads):
-    #     #     charge = load[4]
-    #     #     parser = parse_position(load[5], charge)
-    #     #     charge = round(-charge,2)
-    #     #     nom = " / ".join([load[1], load[2], load[3], load[6]])
-    #     #     if len(parser[1]) != 2:
-    #     #         unit_load = "daN/m"
-    #     #         plt.plot(parser[0], parser[1], label=nom)
-    #     #         plt.fill_between(parser[0], parser[1], alpha=0.3)
-    #     #     else:
-    #     #         unit_load = "daN"
-    #     #         plt.plot(parser[0], parser[1], marker="X",label=nom)
-    #     #     plt.text(parser[0][1]+1000, charge+2, f'{charge} {unit_load}', ha='right')
-
-    #     # On génère les appuis
-    #     for key, support in self._dict_supports.items():
-    #         if support["Type d'appui"] == "Rotule":
-    #             support_type = "o"
-    #         elif support["Type d'appui"] == "Encastrement":
-    #             support_type = "s"
-    #         else:
-    #             support_type = "^"
-    #         x = mt.cos(mt.radians(self.bar_info[support["N° barre"]]["angle"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["x1"]
-    #         y = mt.sin(mt.radians(self.bar_info[support["N° barre"]]["angle"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["y1"]
-    #         plt.plot(x, y, marker=support_type, markersize=10, color="red", label=f"Appui {key} / {support["Type d'appui"]}")
-
-    #     plt.title('Schématisation de la structure et des charges')
-    #     plt.xlabel('Longueur (mm)')
-    #     plt.ylabel('Hauteur (mm')
-    #     plt.legend()
-    #     plt.grid(True)
-    #     plt.show()
 
 
 if __name__ == "__main__":
