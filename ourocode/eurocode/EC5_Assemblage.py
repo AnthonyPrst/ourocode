@@ -1274,7 +1274,7 @@ class Boulon(Assemblage):
         Returns:
             FaxRk: la résistance axial d'un boulon en N
         """
-        from EC3_Assemblage import Tige
+        from ourocode.eurocode.EC3_Assemblage import Tige
         d_int = d_int * si.mm
         d_ext = d_ext * si.mm
 
