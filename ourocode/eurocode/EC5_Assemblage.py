@@ -176,8 +176,8 @@ class Assemblage(Projet):
             k_type = 2
         @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():    
-            kser_ass = K_ser * n_file * n * n_Cis * k_type
-            return kser_ass
+            K_ser_ass = K_ser * n_file * n * n_Cis * k_type
+            return K_ser_ass
         return val()
 
 
