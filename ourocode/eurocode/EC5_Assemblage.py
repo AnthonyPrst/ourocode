@@ -1281,10 +1281,10 @@ class Boulon(Assemblage):
         if self._type_beam[0] == "Métal":
             FtRd = Tige(self.d.value*10**3, d_int, self.qualite, True, filetage_EN1090, t=self.beam_1.t.value*10**3, h=self.beam_1.h.value*10**3, classe_acier=self.beam_1.classe_acier, classe_transv=self.beam_1.classe_transv).FtRd
             d_ext = min(self.beam_1.t*12, 4*self.d)
-            fc_90_d = self.beam_2._f_type_d("fc90k", loadtype, typecombi)[1]
+            fc_90_k = float(self.beam_2.caract_meca.loc["fc90k"]) * si.MPa
         else:
             FtRd = Tige(self.d.value*10**3, d_int, self.qualite, True, filetage_EN1090, t=0, h=0, classe_acier="S235", classe_transv=3).FtRd
-            fc_90_d = self.beam_1._f_type_d("fc90k", loadtype, typecombi)[1]
+            fc_90_k = float(self.beam_1.caract_meca.loc["fc90k"]) * si.MPa
 
         Ft_Rd = FtRd[1]
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -1292,8 +1292,8 @@ class Boulon(Assemblage):
             A_int = pi * (d_int / 2)**2 
             A_rondelle = pi * (d_ext / 2)**2 - A_int
 
-            f_c90_d_rond = fc_90_d * 3
-            F_c90_d = f_c90_d_rond * A_rondelle
+            f_c90_k_rond = fc_90_k * 3
+            F_c90_d = f_c90_k_rond * A_rondelle
             F_ax_Rk = min(F_c90_d, Ft_Rd)
             return F_ax_Rk
         FaxRk = val()
