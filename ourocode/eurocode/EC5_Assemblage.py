@@ -1261,15 +1261,13 @@ class Boulon(Assemblage):
 
 
     # 8.5.2 Boulons chargés axialement
-    def FaxRk(self, d_int: float=0, d_ext: float=0, filetage_EN1090: bool=("True", "False"), loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
+    def FaxRk(self, d_int: float=0, d_ext: float=0, filetage_EN1090: bool=("True", "False")):
         """Calcul la résistance axial caractéristique d'un boulon chargé axialement à partir soit de la rondelle soit de la plaque métalique.
 
         Args:
             d_int (float, optional): diamètre intérieur de la rondelle en mm ou du trou de perçage dans la plaque métallique. Defaults to 0.
             d_ext (float, optional): diamètre extérieur de la rondelle en mm. Defaults to 0.
             filetage_EN1090 (bool, optional): défini si le filetage est conforme à l'EN 1090, soit matricé. Si filetage usiné alors False. Defaults to True.
-            loadtype (str): chargement de plus courte durée sur l'élément.
-            typecombi (str): type de combinaison, fondamentale ou accidentelle.
 
         Returns:
             FaxRk: la résistance axial d'un boulon en N
