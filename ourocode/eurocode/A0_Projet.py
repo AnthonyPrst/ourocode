@@ -136,9 +136,11 @@ class Bar_generator(Projet):
         
     def _create_elements_and_nodes(self, bar: dict):
         if bar["length"] < 5000:
-            nb_ele = int(mt.ceil(bar["length"]/100))
+            # nb_ele = int(mt.ceil(bar["length"]/800))
+            nb_ele = 2
         else:
-            nb_ele = int(mt.ceil(bar["length"]/100))
+            # nb_ele = int(mt.ceil(bar["length"]/100))
+            nb_ele = 4
 
         shape = (0,0)
         if hasattr(self, "element_list"):
@@ -203,7 +205,7 @@ class Bar_generator(Projet):
         else:
             self.element_list = nodeList
             self.node_coor = nodeCoor
-        print(self.element_list, "\n", self.node_coor)
+        print("Elements list: ", self.element_list, "\n", "Node coor: ", self.node_coor)
 
 
     def add_bar(self, x1: int, y1: int, x2: int, y2: int, aire: float):
@@ -241,6 +243,9 @@ class Bar_generator(Projet):
 
     def add_material_by_mechanical_properties(self, bar_id: int, E: int, G: float, J: float, Iy: float, Iz: float):
         """Ajoute un matériau à une barre par ces caractéristiques mécaniques.
+
+        ATTENTION: Iy / Iz est différent des Eurocodes ! y est verticale et est donc dans le sens théorique eurocode de Z ! z est donc dans le sens théorique de Y !
+        Il faut donc faire attention au dimenssion de l'élément ! Pour une poutre de section b: 100mm h: 200mm -> Iy = 200 * 100^3 / 12 et Iz = 100 * 200^3 / 12.
         
         Args:
             bar_id (int): Le numéro de la barre à laquelle ajouter le matériaux
@@ -278,7 +283,7 @@ class Bar_generator(Projet):
                                                })
 
 
-    def create_support(self, bar_id: int, type_appuis: str=("Simple", 'Rotule', 'Encastrement'), pos: int=0, l_appuis: int=0):
+    def create_support(self, bar_id: int, type_appuis: str=("Simple X", "Simple Y", "Simple Z", "Rotule", "Encastrement"), pos: int=0, l_appuis: int=0):
         """Ajoute un appuis dans la liste d'appuis de la classe MEF
 
         Args:
@@ -323,11 +328,11 @@ class Bar_generator(Projet):
         return self._dict_supports
     
 
-    def show_graph_loads_and_supports(self, scale_internal_forces: int=100, scale_deplacement: int=10):
+    def show_graph_loads_and_supports(self, scale_internal_forces: int=50, scale_deplacement: int=10):
         """Affiche le graphique des charges et des appuis du MEF"""
 
         # Récupération des efforts internes et conversion du locale au globale
-        def get_local_to_global_list(list_value: list, list_ele: list, angle=None):
+        def get_local_to_global_list(list_value: list, internal_force_type: str, list_ele: list, angle=None):
             def get_local_to_global(y_local, angle, x, y):
                 angle = np.radians(angle)
                 X = x + y_local * -np.sin(angle)
@@ -346,8 +351,9 @@ class Bar_generator(Projet):
                 v1 = (x2-x1, y2-y1)
                 if not angle:
                     angle = self._get_angle_of_bar(v1)
-                for node in (node1, node2):
-                    y_local = list_value[node] * scale_internal_forces
+                for index_node, node in enumerate((node1, node2)):
+                    y_local = list_value[index_ele][internal_force_type][index_node] * scale_internal_forces
+                    # print("node: ", node, "if_type: ", internal_force_type, " list_value: ", list_value[index_ele][internal_force_type][index_node])
                     x, y = self.node_coor[node]
                     X, Y = get_local_to_global(y_local, angle, x, y)
                     # Ajouter les coordonnées X et Y à la liste correspondante
@@ -358,11 +364,9 @@ class Bar_generator(Projet):
         n_rows, n_cols = 3, 3
         axis_coor = [[row, col] for row in range(n_rows) for col in range(n_cols)]
         print(axis_coor)
-        # Calcul des efforts internes
-        ei_coor = self.effort_interne()
         
         # Création de la figure et des sous-graphique
-        fig, axs = plt.subplots(n_rows, n_cols, figsize=(21, 14))
+        fig, axs = plt.subplots(n_rows, n_cols, figsize=(12, 12))
         
         # Tracé de la structure globale sur le premier sous-graphe
         axs[0, 0].arrow(0, 0, 0, 350, width=15, color="blue")
@@ -370,7 +374,7 @@ class Bar_generator(Projet):
         axs[0, 0].arrow(0, 0, 350, 0, width=15, color="red")
         axs[0, 0].text(-50, 150, "Z", ha='right')
 
-        for key, beam in self.bar_info.items():
+        for id_bar, beam in self.bar_info.items():
             x, y = [], []
             ux, uy, uz = [], [], []
             list_ele = [self.element_list[element] for element in beam["elements"]]
@@ -387,7 +391,7 @@ class Bar_generator(Projet):
             middle_y = y[int(round((len(y) - 1)/2,0))]
             for subplot in axis_coor:
                 axs[subplot[0], subplot[1]].plot(x, y, color="black", linestyle='dashed')
-                axs[subplot[0], subplot[1]].text(middle_x+100, middle_y+100, f"B{key}", ha="right", color="black")
+                axs[subplot[0], subplot[1]].text(middle_x+100, middle_y+100, f"B{id_bar}", ha="right", color="black")
                 axs[subplot[0], subplot[1]].plot(x[0], y[0], marker='o', mec='gray', mfc="gray")
                 axs[subplot[0], subplot[1]].plot(x[-1], y[-1], marker='o', mec='gray', mfc="gray")
 
@@ -402,7 +406,7 @@ class Bar_generator(Projet):
                                       }
             
             for internal_f, value in internal_forces_params.items():
-                If_coor = get_local_to_global_list(ei_coor[internal_f], list_ele)
+                If_coor = get_local_to_global_list(beam["internals forces"], internal_f, list_ele)
                 axs[value[1][0], value[1][1]].plot(If_coor[0], If_coor[1], color=value[0])
 
                 if 0 <= beam['angle'] < 90 or 180 <= beam['angle'] < 270:
