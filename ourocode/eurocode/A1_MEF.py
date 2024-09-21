@@ -37,13 +37,33 @@ class _Base_graph(object):
         self.fill_between_X = []
         self.save_path = None
 
+    def get_local_coor_value_in_bar(self, list_value: list, bar_id: int):
+            x_coords = []
+            y_coords = []
+            list_ele = [self.element_list[element] for element in self.bar_info[bar_id]["elements"]]
 
-    def get_local_coor_value_in_bar(self, list_value: list, internal_force_type: str, bar_id: int):
+            for index_ele, ele in enumerate(list_ele):
+                node = [int(ele[0])-1, int(ele[1])-1]
+                x1, y1 = self.node_coor[node[0]]
+                x2, y2 = self.node_coor[node[1]]
+                v1 = (x2-x1, y2-y1)
+                length = mt.sqrt(abs(v1[0])**2 + abs(v1[1])**2)
+                if not index_ele:
+                    x_coords.append(0)
+                    y_coords.append(list_value[node[0]])
+                x_coords.append(x_coords[-1]+length)
+                y_coords.append(list_value[node[1]])
+            return x_coords, y_coords
+
+    def get_local_internal_forces_coor_value_in_bar(self, list_value: list, internal_type: str, bar_id: int):
         x_coords = []
         y_coords = []
         list_ele = [self.element_list[element] for element in self.bar_info[bar_id]["elements"]]
 
-        for index_ele, ele in enumerate(list_ele):
+        for ele in list_ele:
+            # On récupère l'index de l'élément dans la liste numpy 
+            index_ele = np.where(self.element_list == ele)[0][0]
+
             node = [int(ele[0])-1, int(ele[1])-1]
             # x1, y1 = self.node_coor[node[0]]
             # x2, y2 = self.node_coor[node[1]]
@@ -51,7 +71,7 @@ class _Base_graph(object):
             # length = mt.sqrt(abs(v1[0])**2 + abs(v1[1])**2)
             for index_node, node in enumerate(node):
                 x_local = self.global_to_local(self.node_coor[node], self.bar_info[bar_id])
-                y_local = list_value[index_ele][internal_force_type][index_node]
+                y_local = list_value[index_ele][internal_type][index_node]
                 x_coords.append(x_local)
                 y_coords.append(y_local)
         print(x_coords, y_coords)
@@ -161,16 +181,21 @@ class MEF(Bar_generator, _Base_graph):
         # lambda_matrix = np.array([[mt.cos(rad_angle), 1, mt.sin(rad_angle)],
         #                         [-mt.sin(rad_angle), 1, mt.cos(rad_angle)],
         #                         [0, 0, 1]])
-        lambda_matrix = np.array([[mt.cos(rad_angle), 0, mt.sin(rad_angle)],
-                                [0, 1, 0],
-                                [-mt.sin(rad_angle), 0, mt.cos(rad_angle)]])
-        transformation_matrix = np.zeros((12,12))
+        
+        lambda_matrix = np.array([
+                                    [mt.cos(rad_angle), mt.sin(rad_angle), 0, 0, 0, 0],
+                                    [-mt.sin(rad_angle), mt.cos(rad_angle), 0, 0, 0, 0],
+                                    [0, 0, 1, 0, 0, 0],
+                                    [0, 0, 0, 1, 0, 0],
+                                    [0, 0, 0, 0, 1, 0],
+                                    [0, 0, 0, 0, 0, 1],
+                                ])
         index = 0
-        for _ in range(0,4):
-            for i in range(0,3):
-                for j in range(0,3):
+        for _ in range(0,2):
+            for i in range(0,6):
+                for j in range(0,6):
                     Assembleur_COO_T.append(index+i, index+j, lambda_matrix[i,j])
-            index += 3
+            index += 6
 
         transformation_matrix = (coo_matrix(Assembleur_COO_T.data, shape=(12, 12))).tocsr()
         # print("Matrice de transformation locale/globale: ",angle, transformation_matrix.toarray())
@@ -291,12 +316,12 @@ class MEF(Bar_generator, _Base_graph):
     def _agregation_matrix_K(self, assembleur_COO_K: list, k: np.array, n1: int, n2: int):
         for i in range(-6,0):
             for j in range(-6,0):
-                assembleur_COO_K.append(n1+i, n1+j, k[i+6,j+6]+0.0001) # ajout de bruit pour éviter les singularité (+0.001)
-                assembleur_COO_K.append(n2+i, n2+j, k[i+12,j+12]+0.0001) # ajout de bruit pour éviter les singularité (+0.001)
+                assembleur_COO_K.append(n1+i, n1+j, k[i+6,j+6]+0.01) # ajout de bruit pour éviter les singularité (+0.001)
+                assembleur_COO_K.append(n2+i, n2+j, k[i+12,j+12]+0.01) # ajout de bruit pour éviter les singularité (+0.001)
                 if k[i+6,j+12]:
-                    assembleur_COO_K.append(n1+i, n2+j, k[i+6,j+12])
+                    assembleur_COO_K.append(n1+i, n2+j, k[i+6,j+12]+0.01)
                 if k[i+12,j+6]:
-                    assembleur_COO_K.append(n2+i, n1+j, k[i+12,j+6]+0.0001) # ajout de bruit pour éviter les singularité (+0.001)
+                    assembleur_COO_K.append(n2+i, n1+j, k[i+12,j+6]+0.01) # ajout de bruit pour éviter les singularité (+0.001)
         
     
     def _matrice_K_1D(self):
@@ -557,7 +582,7 @@ class MEF(Bar_generator, _Base_graph):
                     
                     # Ajouter les forces dans le dictionnaire par élément
                     print(index)
-                    current_index = index - 5 * counter
+                    current_index = int(index/6)
                     x_local_of_current_index = self.global_to_local(self.node_coor[current_index], self.bar_info[bar_id])
                     print("x_local_of_current_index: ", x_local_of_current_index,self.node_coor[current_index], current_index)
                     current_element = self._nearest_node(x_local_of_current_index, bar_id)['element']
@@ -676,9 +701,9 @@ class MEF(Bar_generator, _Base_graph):
 
 
     def _equa_reaction(self):
-        self.ri = np.dot(self.matriceK.toarray(), self.matriceU) - self.matriceF_concat.toarray()
-        print("\n Solution Réaction : \n", self.ri, np.dot(self.matriceK.toarray(), self.matriceU), self.matriceF_concat.toarray(), "\n")
-        return self.ri
+        self._ri = np.dot(self.matriceK.toarray(), self.matriceU) - self.matriceF_concat.toarray()
+        print("\n Solution Réaction : \n", self._ri, "\n")
+        return self._ri
 
 
     def reaction(self):
@@ -694,16 +719,16 @@ class MEF(Bar_generator, _Base_graph):
             n1 = int(self.element_list[i,0])*6
             n2 = int(self.element_list[i,1])*6
 
-            r1 = self.ri[n1-6:n1,0]
-            r2 = self.ri[n2-6:n2,0]
+            r1 = self._ri[n1-6:n1,0]
+            r2 = self._ri[n2-6:n2,0]
             
             if n1 == 6:
                 rx.append(r1[0]/10**3)
-                rz.append(r1[2]/10**3)
+                rz.append(r1[1]/10**3)
                 rmy.append(r1[5]/10**6)
 
             rx.append(r2[0]/10**3)
-            rz.append(r2[2]/10**3)
+            rz.append(r2[1]/10**3)
             rmy.append(r2[5]/10**6)
 
         self.react_coor = [rx, rz, rmy]
@@ -833,12 +858,15 @@ class MEF(Bar_generator, _Base_graph):
                 print("noeud 2: ", n2, "\n")
                 
                 u_global = np.concatenate([self.matriceU[n1-6:n1,0], self.matriceU[n2-6:n2,0]])
-                f_0 = np.concatenate([self.fext_by_element[i_ele]["forces_local_start"] ,self.fext_by_element[i_ele]["forces_local_end"]], axis=0).flatten()
+                try:
+                    f_0 = np.concatenate([self.fext_by_element[i_ele]["forces_local_start"] ,self.fext_by_element[i_ele]["forces_local_end"]], axis=0).flatten()
+                except KeyError:
+                    f_0 = np.zeros((12,))
                 T_matrix = self.k_local["ele"+str(i_ele)]["T_global"]
 
                 print("déplacement:\n", u_global)
                 print("\n force ext.:\n", f_0)
-                # print("\n Transform matrix:\n", T_matrix.toarray())
+                print("\n Transform matrix:\n", T_matrix.toarray())
                 # print("\n K local matrix:\n", self.k_local["ele"+str(i)]["k_local"])
 
                 internal_forces = np.dot(np.dot(self.k_local["ele"+str(i_ele)]["k_local"], T_matrix.toarray()), u_global) - np.dot(T_matrix.toarray(), f_0)
@@ -899,6 +927,8 @@ class MEF(Bar_generator, _Base_graph):
                 # Initialisation du dictionnaire quand un nouveau type de force est présent
                 if not force_type_init.get(force_type):
                     force_type_init[force_type] = {"force_max": 0, "force_min": 0}
+                    ei_min_max[force_type + "_max"] = {"Position": 0, "Effort": 0}
+                    ei_min_max[force_type + "_min"] = {"Position": 0, "Effort": 0}
                 force_max = force_type_init[force_type]["force_max"]
                 force_min = force_type_init[force_type]["force_min"]
                 max_value = max(values)
@@ -973,7 +1003,7 @@ class MEF(Bar_generator, _Base_graph):
         self.color = "g"
         self.y_label = "Déplacement \n(mm)"
         self.unit = " mm"
-        self.x_values, self.y_values = self.get_local_coor_value_in_bar(self.u_coor[f"u{axe}"], f"u{axe}", bar_id)
+        self.x_values, self.y_values = self.get_local_coor_value_in_bar(self.u_coor[f"u{axe}"], bar_id)
         
         dictUMinMax = self.deplacement_max()
         self.max_XY_values = (dictUMinMax[f"u{axe}_max"]["Position"], dictUMinMax[f"u{axe}_max"]["Deplacement"])
@@ -994,7 +1024,7 @@ class MEF(Bar_generator, _Base_graph):
         self.name = name_combi
         self.title = f'Barre {bar_id}: Efforts normaux Nx : '
         self.color = "orange"
-        self.x_values, self.y_values = self.get_local_coor_value_in_bar(self.bar_info[bar_id]["internals forces"], "Nx", bar_id)
+        self.x_values, self.y_values = self.get_local_internal_forces_coor_value_in_bar(self.bar_info[bar_id]["internals forces"], "Nx", bar_id)
         
         dictEiMinMax = self.max_internal_forces(bar_id)
         self.max_XY_values = (dictEiMinMax["Nx_max"]["Position"], dictEiMinMax["Nx_max"]["Effort"])
@@ -1015,7 +1045,7 @@ class MEF(Bar_generator, _Base_graph):
         self.name = name_combi
         self.title = f'Barre {bar_id}: Efforts tranchants V{axe}: '
         self.color = 'b'
-        self.x_values, self.y_values = self.get_local_coor_value_in_bar(self.bar_info[bar_id]["internals forces"], f"V{axe}", bar_id)
+        self.x_values, self.y_values = self.get_local_internal_forces_coor_value_in_bar(self.bar_info[bar_id]["internals forces"], f"V{axe}", bar_id)
         
         dictEiMinMax = self.max_internal_forces(bar_id)
         self.max_XY_values = (dictEiMinMax[f"V{axe}_max"]["Position"], dictEiMinMax[f"V{axe}_max"]["Effort"])
@@ -1038,7 +1068,7 @@ class MEF(Bar_generator, _Base_graph):
         self.color = 'r'
         self.y_label = "Effort (kN.m)"
         self.unit = " kN.m"
-        self.x_values, self.y_values = self.get_local_coor_value_in_bar(self.bar_info[bar_id]["internals forces"], f"M{axe}", bar_id)
+        self.x_values, self.y_values = self.get_local_internal_forces_coor_value_in_bar(self.bar_info[bar_id]["internals forces"], f"M{axe}", bar_id)
         
         dictEiMinMax = self.max_internal_forces(bar_id)
         self.max_XY_values = (dictEiMinMax[f"M{axe}_max"]["Position"], dictEiMinMax[f"M{axe}_max"]["Effort"])
@@ -1099,10 +1129,13 @@ class MEF(Bar_generator, _Base_graph):
 
 if __name__ == '__main__':
     from EC0_Combinaison import Chargement
+    import json
     # _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/6000", 'Z'],
     #              [2, '', "Neige normale Sn", 'Linéique', -200, "0/6000", 'Z']]
-    _list_loads = [[1, '', 'Permanente G', -2000, "0/10000", 'Z'],
-                   ]
+    _list_loads = [
+                [2, '', 'Permanente G', -2000, "0/2000", 'Z'],
+                [1, '', 'Permanente G', 10000, 2000, 'X'],
+                ]
     chargement = Chargement(pays="Japon")
     chargement.create_load_by_list(_list_loads)
     c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation", kdef=0.6)
@@ -1110,37 +1143,45 @@ if __name__ == '__main__':
     rcombi = "ELU_STR G"
     print(c1.get_combi_list_load(rcombi))
 
-    b = 300
-    h = 500
+    b = 100
+    h = 280
     a = b*h
     Iz = (b*h**3)/12
     Iy = (h*b**3)/12
 
     beam_gen = Bar_generator()
-    # beam_gen.add_bar(0,0,1414,1414,a)
-    beam_gen.add_bar(0,0,10000,0,a)
+    beam_gen.add_bar(0,0,0,2000,a)
     # beam_gen.add_bar(1414,0,0,1414,a) #135
-    # beam_gen.add_bar(0,1414,1414,0,a)
+    beam_gen.add_bar(0,2000,2000,2000,a) #225
+    beam_gen.add_bar(0,0,2000,2000,a)
+    # beam_gen.add_bar(0,1414,1414,0,a) #315
     
-    # beam_gen.add_relaxation(1, "end", teta_z=False, v=False)
-    # beam_gen.add_relaxation(2, "end", teta_z=False, v=False)
-    # beam_gen.add_material_by_class(1, Iy, Iz, "C24")
-    # beam_gen.add_material_by_class(2, Iy, Iz, "C24")
-    beam_gen.add_material_by_mechanical_properties(1, 20*10**9, 0, 0, Iy, Iz)
-    # beam_gen.add_material_by_mechanical_properties(2, 210000, 0, 0, 200000000, 200000000)
+    # beam_gen.add_relaxation(1, "end")
+    # beam_gen.add_relaxation(4, "end")
+    # beam_gen.add_relaxation(5, "start")
+    # beam_gen.add_relaxation(5, "end")
+    beam_gen.add_material_by_class(1, Iy, Iz, "C24")
+    beam_gen.add_material_by_class(2, Iy, Iz, "C24")
+    beam_gen.add_material_by_class(3, Iy, Iz, "C24")
+    # beam_gen.add_material_by_mechanical_properties(1, 20*10**9, 0, 0, Iy, Iz)
+    # beam_gen.add_material_by_mechanical_properties(2, 20*10**9, 0, 0, Iy, Iz)
 
-    listdeplacement = [[1, "Rotule", 0, 0],
-                       [1, "Rotule", 5000, 0],
-                       [1, "Rotule", beam_gen.bar_info[1]["length"], 0],]
+    listdeplacement = [
+                    [1, "Encastrement", 0, 0],
+                    [1, "Rotule", beam_gen.bar_info[1]["length"], 0],
+                    [2, "Encastrement", beam_gen.bar_info[2]["length"], 0],
+                    ]
     beam_gen.create_supports_by_list(listdeplacement)
    
     
     mef = MEF._from_parent_class(beam_gen, combinaison=c1)
     
     mef.calcul_1D()
-    print(beam_gen.bar_info)
+    with open("bars_infos.json", "w") as file:
+        json.dump(beam_gen.bar_info, file, indent=4)
     mef.show_graph_loads_and_supports()
     bar = 1
+    mef.show_graphique_reaction_Z("elu")
     mef.show_graphique_Nx(bar, "ELU_STR G")
     mef.show_graphique_V(bar, "ELU_STR G", "z")
     mef.show_graphique_M(bar, "ELU_STR G", "y")

@@ -140,7 +140,7 @@ class Bar_generator(Projet):
             nb_ele = 2
         else:
             # nb_ele = int(mt.ceil(bar["length"]/100))
-            nb_ele = 4
+            nb_ele = 2
 
         shape = (0,0)
         if hasattr(self, "element_list"):
@@ -328,7 +328,7 @@ class Bar_generator(Projet):
         return self._dict_supports
     
 
-    def show_graph_loads_and_supports(self, scale_internal_forces: int=50, scale_deplacement: int=10):
+    def show_graph_loads_and_supports(self, scale_internal_forces: int=20, scale_deplacement: int=10):
         """Affiche le graphique des charges et des appuis du MEF"""
 
         # Récupération des efforts internes et conversion du locale au globale
@@ -343,9 +343,13 @@ class Bar_generator(Projet):
             X_coords = []
             Y_coords = []
 
-            for index_ele, ele in enumerate(list_ele):
+            for ele in list_ele:
                 node1 = int(ele[0])-1
                 node2 = int(ele[1])-1
+
+                # On récupère l'index de l'élément dans la liste numpy 
+                index_ele = np.where(self.element_list == ele)[0][1]
+
                 x1, y1 = self.node_coor[node1]
                 x2, y2 = self.node_coor[node2]
                 v1 = (x2-x1, y2-y1)
@@ -363,7 +367,6 @@ class Bar_generator(Projet):
         
         n_rows, n_cols = 3, 3
         axis_coor = [[row, col] for row in range(n_rows) for col in range(n_cols)]
-        print(axis_coor)
         
         # Création de la figure et des sous-graphique
         fig, axs = plt.subplots(n_rows, n_cols, figsize=(12, 12))

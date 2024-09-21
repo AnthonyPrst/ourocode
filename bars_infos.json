@@ -1,0 +1,230 @@
+{
+    "1": {
+        "elements": [
+            0,
+            1
+        ],
+        "length": 2000.0,
+        "section": 28000,
+        "angle": 90.0,
+        "x1": 0,
+        "y1": 0,
+        "x2": 0,
+        "y2": 2000,
+        "relaxation": [],
+        "material": {
+            "classe": "C24",
+            "E": 11000,
+            "G": 690,
+            "J": 0,
+            "Iy": 23333333.333333332,
+            "Iz": 182933333.33333334
+        },
+        "internals forces": {
+            "0": {
+                "Nx": [
+                    NaN,
+                    NaN
+                ],
+                "Vy": [
+                    NaN,
+                    NaN
+                ],
+                "Vz": [
+                    NaN,
+                    NaN
+                ],
+                "Mx": [
+                    NaN,
+                    NaN
+                ],
+                "My": [
+                    NaN,
+                    NaN
+                ],
+                "Mz": [
+                    NaN,
+                    NaN
+                ]
+            },
+            "1": {
+                "Nx": [
+                    NaN,
+                    NaN
+                ],
+                "Vy": [
+                    NaN,
+                    NaN
+                ],
+                "Vz": [
+                    NaN,
+                    NaN
+                ],
+                "Mx": [
+                    NaN,
+                    NaN
+                ],
+                "My": [
+                    NaN,
+                    NaN
+                ],
+                "Mz": [
+                    NaN,
+                    NaN
+                ]
+            }
+        }
+    },
+    "2": {
+        "elements": [
+            2,
+            3
+        ],
+        "length": 2000.0,
+        "section": 28000,
+        "angle": 0.0,
+        "x1": 0,
+        "y1": 2000,
+        "x2": 2000,
+        "y2": 2000,
+        "relaxation": [],
+        "material": {
+            "classe": "C24",
+            "E": 11000,
+            "G": 690,
+            "J": 0,
+            "Iy": 23333333.333333332,
+            "Iz": 182933333.33333334
+        },
+        "internals forces": {
+            "2": {
+                "Nx": [
+                    NaN,
+                    NaN
+                ],
+                "Vy": [
+                    NaN,
+                    NaN
+                ],
+                "Vz": [
+                    NaN,
+                    NaN
+                ],
+                "Mx": [
+                    NaN,
+                    NaN
+                ],
+                "My": [
+                    NaN,
+                    NaN
+                ],
+                "Mz": [
+                    NaN,
+                    NaN
+                ]
+            },
+            "3": {
+                "Nx": [
+                    NaN,
+                    NaN
+                ],
+                "Vy": [
+                    NaN,
+                    NaN
+                ],
+                "Vz": [
+                    NaN,
+                    NaN
+                ],
+                "Mx": [
+                    NaN,
+                    NaN
+                ],
+                "My": [
+                    NaN,
+                    NaN
+                ],
+                "Mz": [
+                    NaN,
+                    NaN
+                ]
+            }
+        }
+    },
+    "3": {
+        "elements": [
+            4,
+            5
+        ],
+        "length": 2828.42712474619,
+        "section": 28000,
+        "angle": 45.0,
+        "x1": 0,
+        "y1": 0,
+        "x2": 2000,
+        "y2": 2000,
+        "relaxation": [],
+        "material": {
+            "classe": "C24",
+            "E": 11000,
+            "G": 690,
+            "J": 0,
+            "Iy": 23333333.333333332,
+            "Iz": 182933333.33333334
+        },
+        "internals forces": {
+            "4": {
+                "Nx": [
+                    NaN,
+                    NaN
+                ],
+                "Vy": [
+                    NaN,
+                    NaN
+                ],
+                "Vz": [
+                    NaN,
+                    NaN
+                ],
+                "Mx": [
+                    NaN,
+                    NaN
+                ],
+                "My": [
+                    NaN,
+                    NaN
+                ],
+                "Mz": [
+                    NaN,
+                    NaN
+                ]
+            },
+            "5": {
+                "Nx": [
+                    NaN,
+                    NaN
+                ],
+                "Vy": [
+                    NaN,
+                    NaN
+                ],
+                "Vz": [
+                    NaN,
+                    NaN
+                ],
+                "Mx": [
+                    NaN,
+                    NaN
+                ],
+                "My": [
+                    NaN,
+                    NaN
+                ],
+                "Mz": [
+                    NaN,
+                    NaN
+                ]
+            }
+        }
+    }
+}
