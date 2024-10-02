@@ -137,10 +137,10 @@ class Bar_generator(Projet):
     def _create_elements_and_nodes(self, bar: dict):
         if bar["length"] < 5000:
             # nb_ele = int(mt.ceil(bar["length"]/800))
-            nb_ele = 2
+            nb_ele = 1
         else:
             # nb_ele = int(mt.ceil(bar["length"]/100))
-            nb_ele = 2
+            nb_ele = 1
 
         shape = (0,0)
         if hasattr(self, "element_list"):
@@ -238,14 +238,13 @@ class Bar_generator(Projet):
         E = int(material_properties.loc["E0mean"])
         G = int(material_properties.loc["Gmoy"])
         J = 0
-        self.bar_info[bar_id]["material"] = {"classe": classe, "E": E, "G": G, "J": J, "Iy": Iy, "Iz": Iz}
+        # ATTENTION: Iy / Iz est différent des Eurocodes ! y est verticale et est donc dans le sens théorique eurocode de Z ! z est donc dans le sens théorique de Y !
+        # Il faut donc faire attention au dimenssion de l'élément ! Pour une poutre de section b: 100mm h: 200mm -> Iy = 200 * 100^3 / 12 et Iz = 100 * 200^3 / 12.
+        self.bar_info[bar_id]["material"] = {"classe": classe, "E": E, "G": G, "J": J, "Iy": Iz, "Iz": Iy}
 
 
     def add_material_by_mechanical_properties(self, bar_id: int, E: int, G: float, J: float, Iy: float, Iz: float):
         """Ajoute un matériau à une barre par ces caractéristiques mécaniques.
-
-        ATTENTION: Iy / Iz est différent des Eurocodes ! y est verticale et est donc dans le sens théorique eurocode de Z ! z est donc dans le sens théorique de Y !
-        Il faut donc faire attention au dimenssion de l'élément ! Pour une poutre de section b: 100mm h: 200mm -> Iy = 200 * 100^3 / 12 et Iz = 100 * 200^3 / 12.
         
         Args:
             bar_id (int): Le numéro de la barre à laquelle ajouter le matériaux
@@ -256,7 +255,9 @@ class Bar_generator(Projet):
             Iy (float): Inertie quadratique autour de y en mm4
             Iz (float): Inertie quadratique autour de z en mm4
         """
-        self.bar_info[bar_id]["material"] = {"classe": "Manuel", "E": E, "G": G, "J": J, "Iy": Iy, "Iz": Iz}
+        # ATTENTION: Iy / Iz est différent des Eurocodes ! y est verticale et est donc dans le sens théorique eurocode de Z ! z est donc dans le sens théorique de Y !
+        # Il faut donc faire attention au dimenssion de l'élément ! Pour une poutre de section b: 100mm h: 200mm -> Iy = 200 * 100^3 / 12 et Iz = 100 * 200^3 / 12.
+        self.bar_info[bar_id]["material"] = {"classe": "Manuel", "E": E, "G": G, "J": J, "Iy": Iz, "Iz": Iy}
 
     
     def add_relaxation(self, bar_id: int, position: str=("start", "end"), u: bool=False, v: bool=False, w: bool=False, teta_x: bool=False, teta_y: bool=True, teta_z: bool=True):
@@ -289,14 +290,29 @@ class Bar_generator(Projet):
         Args:
             bar_id (int): Numéro de la barre sur laquelle positionner l'appuis.
             type_appuis (str, optional): type d'appuis à créer. Defaults to ("Simple", 'Rotule', 'Encastrement').
-            pos (int, optional): position de l'appuis sur la barre en mm. Defaults to 0.
+            pos (int, str, optional): position de l'appuis sur la barre en mm ou chaine de caractère représentant le début de la barre: "start", la fin de la barre: "end", le milieu: "middle ou encore un pourcentage de la longueur de la barre: ex. "40%". Defaults to 0.
             l_appuis (int, optional): longueur d'appuis sur la poutre en mm. Defaults to 0.
         """
+        print(pos)
+        match pos:
+            case "start":
+                pos = 0
+            case "end":
+                pos = self.bar_info[bar_id]["length"]
+            case "middle":
+                pos = int(round(self.bar_info[bar_id]["length"] / 2, 0))
+            case str(x) if '%' in x:
+                pos = pos.split("%")[0]
+                pos.replace(" ", "")
+                pos = int(round(self.bar_info[bar_id]["length"] *  int(pos) / 100, 0))
+            case _:
+                pass
+
         self._dict_supports[len(self._dict_supports)+1] = {"N° barre": bar_id, 
                                                               "Type d'appui": type_appuis, 
                                                               "Position de l'appui": pos, 
                                                               "Longueur d'appui": l_appuis}
-        return self._dict_supports[len(self._dict_supports)+1]
+        return self._dict_supports[len(self._dict_supports)]
 
     
     def create_supports_by_list(self, list_supports: list):
@@ -306,10 +322,8 @@ class Bar_generator(Projet):
             list_supports (list): liste de charge.
         """
         for support in list_supports:
-            self._dict_supports[len(self._dict_supports)+1] = {"N° barre": support[0], 
-                                                                  "Type d'appui": support[1], 
-                                                                  "Position de l'appui": support[2], 
-                                                                  "Longueur d'appui": support[3]}
+            print(support)
+            self.create_support(*support)
         return self._dict_supports
 
 

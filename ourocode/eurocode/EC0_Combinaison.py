@@ -5,11 +5,11 @@ import numpy as np
 import pandas as pd
 
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
-# from A0_Projet import Projet
-from ourocode.eurocode.A0_Projet import Projet
+# from A0_Projet import Bar_generator
+from eurocode.A0_Projet import Bar_generator
 
 
-class Chargement(Projet):
+class Chargement(Bar_generator):
 	ACTION = ("Permanente G", 
 			"Exploitation Q",
 			"Neige normale Sn",
@@ -18,18 +18,18 @@ class Chargement(Projet):
 			"Neige accidentelle Sx",
 			"Sismique Ae")
 	
-	def __init__(self, **kwargs):
+	def __init__(self, *args, **kwargs):
 		"""Génère une classe Chargement qui permet de définir le chargement sur la barre.
 		Cette classe est hérité de la classe Projet du module A0_Projet.py
 		"""
-		super().__init__(**kwargs)
+		super().__init__(*args, **kwargs)
 		self._dict_loads = {}
 
-	def create_load(self, beam_number:int, name: str, load: int, pos: str, action: str=ACTION, direction: str=("Z", "X", "Z local")):
+	def create_load(self, bar_id:int, name:str, load:int, pos:str, action: str=ACTION, direction: str=("Z", "X", "Z local")):
 		"""Ajoute une charge dans la liste de chargement de la classe chargement
 
 		Args:
-			beam_number (int): Numéro de la barre à charger.
+			bar_id (int): Numéro de la barre à charger.
 			name (str): nom de la charge.
 			load (int): effort en daN ou daN/m suivant le "type_load" sélectionné.
 			pos (str): position de la charge sur la barre en mm. 
@@ -40,11 +40,34 @@ class Chargement(Projet):
 			direction (str): sens de l'effort sur la barre.
 		"""	
 		type_load = "Linéique"
-		if pos.find("/") == -1:
+		if not isinstance(pos, str) or pos.find("/") == -1:
 			pos = int(pos)
 			type_load = "Nodale"
+		
+		else:
+			start_pos, end_pos = pos.split("/")
+			reform_pos = []
 
-		load = {"N° barre": beam_number, 
+			for pos_index in (start_pos, end_pos):
+				match pos_index:
+					case "start":
+						pos_index = 0
+					case "end":
+						pos_index = int(self.bar_info[bar_id]["length"])
+					case "middle":
+						pos_index = int(round(self.bar_info[bar_id]["length"] / 2, 0))
+					case str(x) if '%' in x:
+						pos_index = pos_index.split("%")[0]
+						pos_index.replace(" ", "")
+						pos_index = int(round(self.bar_info[bar_id]["length"] *  int(pos_index) / 100, 0))
+					case _:
+						pass
+				reform_pos.append(str(pos_index))
+			print(reform_pos)
+			pos = "/".join(reform_pos)
+
+
+		dict_load = {"N° barre": bar_id, 
 		  		"Nom": name, 
 				"Action": action, 
 				"Type de charge": type_load, 
@@ -52,7 +75,9 @@ class Chargement(Projet):
 				"Position": pos, 
 				"Axe": direction}
 		
-		self._dict_loads[str(len(self._dict_loads)+1)] = load
+		print("COUCOOOUUUUUUUUUUUU", dict_load)
+		
+		self._dict_loads[str(len(self._dict_loads)+1)] = dict_load
 		return load
 
 	
@@ -63,17 +88,14 @@ class Chargement(Projet):
 			list_loads (list): liste de charge.
 		"""
 		for load in list_loads:
-			type_load = "Linéique"
-			if isinstance(load[4], int):
-				type_load = "Nodale"
-
-			self._dict_loads[str(len(self._dict_loads)+1)] = {"N° barre": load[0],
-													 		"Nom": load[1], 
-															"Action": load[2], 
-															"Type de charge": type_load, 
-															"Charge": load[3], 
-															"Position": load[4], 
-															"Axe": load[5]}
+			self.create_load(*load)
+			# self._dict_loads[str(len(self._dict_loads)+1)] = {"N° barre": load[0],
+			# 										 		"Nom": load[1], 
+			# 												"Action": load[2], 
+			# 												"Type de charge": type_load, 
+			# 												"Charge": load[3], 
+			# 												"Position": load[4], 
+			# 												"Axe": load[5]}
 		return self._dict_loads
 	
 
@@ -92,10 +114,10 @@ class Chargement(Projet):
 		return self._dict_loads
 	
 	
-	def get_beam_loads(self, beam_number: int):
+	def get_bar_loads(self, bar_id: int):
 		"""Retourne la liste des charges définis initialement.
 		"""
-		return self._dict_loads[str(beam_number)]
+		return self._dict_loads[str(bar_id)]
 		
 
 
