@@ -25,6 +25,7 @@ class Chargement(Bar_generator):
 		super().__init__(*args, **kwargs)
 		self._dict_loads = {}
 
+
 	def create_load(self, bar_id:int, name:str, load:int, pos:str, action: str=ACTION, direction: str=("Z", "X", "Z local")):
 		"""Ajoute une charge dans la liste de chargement de la classe chargement
 
@@ -39,9 +40,34 @@ class Chargement(Bar_generator):
 			type_load (str): type de chargement nodale ou linéique.
 			direction (str): sens de l'effort sur la barre.
 		"""	
+
+		def _convert_pos(pos_index: int|str):
+			"""Converti la position en valeur recevable par la fonction create_load
+
+			Args:
+				pos_index (int | str): position de la charge sur la barre
+
+			Returns:
+				int: la position numérique sur la barre
+			"""
+			match pos_index:
+				case "start":
+					pos_index = 0
+				case "end":
+					pos_index = int(self.bar_info[bar_id]["length"])
+				case "middle":
+					pos_index = int(round(self.bar_info[bar_id]["length"] / 2, 0))
+				case str(x) if '%' in x:
+					pos_index = pos_index.split("%")[0]
+					pos_index.replace(" ", "")
+					pos_index = int(round(self.bar_info[bar_id]["length"] *  int(pos_index) / 100, 0))
+				case _:
+					pass
+			return pos_index
+				
 		type_load = "Linéique"
 		if not isinstance(pos, str) or pos.find("/") == -1:
-			pos = int(pos)
+			pos = _convert_pos(pos)
 			type_load = "Nodale"
 		
 		else:
@@ -49,36 +75,20 @@ class Chargement(Bar_generator):
 			reform_pos = []
 
 			for pos_index in (start_pos, end_pos):
-				match pos_index:
-					case "start":
-						pos_index = 0
-					case "end":
-						pos_index = int(self.bar_info[bar_id]["length"])
-					case "middle":
-						pos_index = int(round(self.bar_info[bar_id]["length"] / 2, 0))
-					case str(x) if '%' in x:
-						pos_index = pos_index.split("%")[0]
-						pos_index.replace(" ", "")
-						pos_index = int(round(self.bar_info[bar_id]["length"] *  int(pos_index) / 100, 0))
-					case _:
-						pass
+				pos_index = _convert_pos(pos_index)
 				reform_pos.append(str(pos_index))
-			print(reform_pos)
 			pos = "/".join(reform_pos)
-
-
-		dict_load = {"N° barre": bar_id, 
+		
+		self._dict_loads[str(len(self._dict_loads)+1)] = {
+				"N° barre": bar_id, 
 		  		"Nom": name, 
 				"Action": action, 
 				"Type de charge": type_load, 
 				"Charge": load, 
 				"Position": pos, 
-				"Axe": direction}
-		
-		print("COUCOOOUUUUUUUUUUUU", dict_load)
-		
-		self._dict_loads[str(len(self._dict_loads)+1)] = dict_load
-		return load
+				"Axe": direction
+				}
+		return self._dict_loads[str(len(self._dict_loads))]
 
 	
 	def create_load_by_list(self, list_loads: list):
@@ -89,13 +99,6 @@ class Chargement(Bar_generator):
 		"""
 		for load in list_loads:
 			self.create_load(*load)
-			# self._dict_loads[str(len(self._dict_loads)+1)] = {"N° barre": load[0],
-			# 										 		"Nom": load[1], 
-			# 												"Action": load[2], 
-			# 												"Type de charge": type_load, 
-			# 												"Charge": load[3], 
-			# 												"Position": load[4], 
-			# 												"Axe": load[5]}
 		return self._dict_loads
 	
 
@@ -122,7 +125,6 @@ class Chargement(Bar_generator):
 
 
 class Combinaison(Chargement):
-	
 	CAT_TYPE = ("Aucune",
 				"Cat A : habitation",
 				"Cat B : bureaux", 

@@ -111,125 +111,161 @@ class Bar_generator(Projet):
         
         
     def _get_angle_of_bar(self, v1: tuple):
-        """Retourne un angle entre deux points celon le cercle trigo
+        """Retourne les angles de la barre par rapport aux plans XY, XZ et YZ.
 
         Args:
-            v1 (tuple): vecteur dans le cercle trigonométrique
+            v1 (tuple): vecteur 3D représentant la barre (x2-x1, y2-y1, z2-z1)
+
+        Returns:
+            dict: Dictionnaire contenant les angles par rapport aux plans XY, XZ et YZ en degrés.
         """
-        ang1 = np.arctan2(*v1[::-1])
-        return np.rad2deg(ang1 % (2 * np.pi))
+        def _get_local_angle_of_bar(v1: tuple):
+            """
+            Retourne l'angle dans le plan local de la barre, autour de l'axe longitudinal.
+            
+            Args:
+                v1 (tuple): vecteur 3D représentant la barre (x2-x1, y2-y1, z2-z1)
+
+            Returns:
+                float: L'angle de rotation autour de l'axe longitudinal en degrés.
+            """
+            # Calcul de l'axe longitudinal de la barre (normalisation du vecteur)
+            L = np.array(v1) / np.linalg.norm(v1)
+            
+            # Choisir un vecteur de référence global, par exemple (1, 0, 0) pour l'axe X
+            ref_vec = np.array([1, 0, 0])
+            
+            # Calculer le produit vectoriel pour obtenir un vecteur perpendiculaire à L
+            T = np.cross(L, ref_vec)  # Axe transverse
+            if np.linalg.norm(T) == 0:
+                # Si L est parallèle à l'axe de référence, on choisit un autre vecteur de référence (par exemple, l'axe Y)
+                ref_vec = np.array([0, 1, 0])
+                T = np.cross(L, ref_vec)
+            
+            # Normaliser l'axe transverse
+            T = T / np.linalg.norm(T)
+            
+            # Calculer l'angle entre l'axe de référence projeté et l'axe transverse
+            angle_local = np.arctan2(np.linalg.norm(np.cross(ref_vec, T)), np.dot(ref_vec, T))
+            
+            return np.rad2deg(angle_local)
+        
+        dx, dy, dz = v1
+
+        # Angle dans le plan XY
+        angle_xy = np.arctan2(dy, dx)
+        
+        # Angle dans le plan XZ
+        angle_xz = np.arctan2(dz, dx)
+        
+        # Angle dans le plan YZ
+        angle_yz = np.arctan2(dz, dy)
+        
+        # Convertir les angles en degrés
+        angles = {
+            "XY": np.rad2deg(angle_xy % (2 * np.pi)),
+            "XZ": np.rad2deg(angle_xz % (2 * np.pi)),
+            "YZ": np.rad2deg(angle_yz % (2 * np.pi)),
+            "local": _get_local_angle_of_bar(v1)
+        }
+        
+        return angles
+        # ang1 = np.arctan2(*v1[::-1])
+        # return np.rad2deg(ang1 % (2 * np.pi))
     
     
-    def __add_element_to_beam(self, bar: dict):
+    def __add_element_to_bar(self, bar: dict, elements):
         """On récupère le dernier élément crée et on l'incrémente pour ajouter un nouvel élément"""
-        elements = self.bar_info[list(self.bar_info)[-1]]["elements"]
-        # On récupère le dernière index
-        if elements:
-            last_element = elements[-1]
-        elif len(self.bar_info) > 1:
-            elements = self.bar_info[list(self.bar_info)[-2]]["elements"]
-            last_element = elements[-1]
+        initial_len_of_element_list = len(self.element_list)
+        for i in range(len(elements)):
+            bar["elements"].append(initial_len_of_element_list + i)
+
+
+    def __generate_mesh_number(self, bar_lenght: int|float):
+        """Calcul le nombre d'élément à créer en fonction de la longueur de la barre
+
+        Args:
+            bar_lenght (int | float): Longueur de la barre en mm
+        """
+        if bar_lenght < 5000:
+            # nb_ele = int(mt.ceil(bar_lenght/800))
+            nb_ele = 20
         else:
-            last_element = -1
-        bar["elements"].append(last_element + 1)
+            # nb_ele = int(mt.ceil(bar_lenght/100))
+            nb_ele = 20
+        return nb_ele
 
         
     def _create_elements_and_nodes(self, bar: dict):
-        if bar["length"] < 5000:
-            # nb_ele = int(mt.ceil(bar["length"]/800))
-            nb_ele = 1
-        else:
-            # nb_ele = int(mt.ceil(bar["length"]/100))
-            nb_ele = 1
+        """Crée les éléments et les nœuds associés à une barre en utilisant numpy."""
+        nb_ele = self.__generate_mesh_number(bar["length"])
 
-        shape = (0,0)
-        if hasattr(self, "element_list"):
-            shape = (self.element_list.shape[0] + 1 - self.bi_connected, self.element_list.shape[1])
+        # Si c'est la première barre, on initialise les tableaux
+        if not hasattr(self, "node_coor"):
+            self.node_coor = np.empty((0, 3), dtype=float)  # Coordonnées des nœuds (X, Y, Z)
+            self.element_list = np.empty((0, 2), dtype=int)  # Liste des éléments (nœud 1, nœud 2)
 
-        # On crée une  node list et une coordonée list et on itère
-        nodeCoor = np.zeros((nb_ele+1, 2))
-        nodeList = np.zeros((nb_ele,2))
-        
-        node_coor_to_del = []
-        bi_connect = False
-        j = 0
-        for i in range(nb_ele+1):
-            length = bar["length"] / nb_ele * i
-            x = round(bar["x1"] + length * mt.cos(mt.radians(bar["angle"])),3)
-            y = round(bar["y1"] + length * mt.sin(mt.radians(bar["angle"])),3)
-            if not x:
-                x = 0
-            if not y:
-                y = 0
+        # Calcul de la direction de la barre dans l'espace 3D (vecteur direction unitaire)
+        direction_vector = np.array([bar["x2"] - bar["x1"], bar["y2"] - bar["y1"], bar["z2"] - bar["z1"]])
+        unit_vector = direction_vector / bar["length"]  # Vecteur direction unitaire (pour projeter les nœuds)
 
-            if shape[0]>1:
-                find_array = np.where((self.node_coor == [x,y]).all(axis=1))[0]
-                if find_array.shape[0]:
-                    # print(self.element_list[find_array[0]])
-                    val = 0
-                    if find_array[0] != 0:
-                        find_array[0] = find_array[0]-1
-                        val = 1
-                    if i < nb_ele:
-                        nodeList[i,0] = self.element_list[find_array[0]][val]
-                        nodeList[i,1] = shape[0]+i+1-j
-                    else:
-                        nodeList[i-1,0] = shape[0]+i-j
-                        print(self.element_list[find_array[0]][val], self.bi_connected)
-                        nodeList[i-1,1] = self.element_list[find_array[0]][val]
-                        # on test si on a déja rattacher un premier noeud de la barre à un noeud existant si oui on incrémente le compteur
-                        if j == 1:
-                            self.bi_connected += 1
-                            bi_connect = True
-                    # On incrémente le compteur de soustraction de noeud car on a récupérer un noeud déjà existant
-                    j += 1
-                    node_coor_to_del.append(i)
-                    if not bi_connect and i < nb_ele:
-                        self.__add_element_to_beam(bar)
-                    continue
-            nodeCoor[i,0] = x
-            nodeCoor[i,1] = y
-            
-            if i < nb_ele:
-                nodeList[i,0] = shape[0]+i+1 - j
-                nodeList[i,1] = shape[0]+i+2 - j
-                self.__add_element_to_beam(bar)
-        j = 0
-        for i_del in node_coor_to_del:
-            nodeCoor = np.delete(nodeCoor, i_del - j, 0)
-            j += 1
-      
-        if shape[0]:
-            self.node_coor = np.concatenate((self.node_coor, nodeCoor), axis=0)
-            self.element_list = np.concatenate((self.element_list, nodeList), axis=0)
-        else:
-            self.element_list = nodeList
-            self.node_coor = nodeCoor
-        print("Elements list: ", self.element_list, "\n", "Node coor: ", self.node_coor)
+        # Fonction de génération des coordonnées d'un nœud
+        def generate_node(i):
+            length_ratio = bar["length"] / nb_ele * i
+            node_position = np.array([bar["x1"], bar["y1"], bar["z1"]]) + length_ratio * unit_vector
+            return np.round(node_position, 3)  # Arrondi pour éviter les imprécisions numériques
+
+        # Vérifier si un nœud existe déjà et le retourner, sinon l'ajouter
+        def get_or_add_node(coor):
+            # On vérifie si le nœud existe déjà dans la liste
+            idx = np.where((self.node_coor == coor).all(axis=1))[0]
+            if len(idx) > 0:
+                return idx[0]  # Retourner l'index du nœud existant
+            else:
+                # Ajouter le nouveau nœud
+                self.node_coor = np.vstack([self.node_coor, coor])
+                return self.node_coor.shape[0] - 1  # Retourner l'index du nouveau nœud
+
+        # Créer les nœuds et les éléments
+        nodes = np.zeros(nb_ele + 1, dtype=int)  # Liste des nœuds
+        for i in range(nb_ele + 1):
+            node_coor = generate_node(i)
+            nodes[i] = get_or_add_node(node_coor)
+
+        # Créer les éléments entre les nœuds
+        elements = np.vstack([nodes[:-1]+1, nodes[1:]+1]).T  # Création des éléments en reliant les nœuds
+        # Ajouter les éléments à la liste globale
+        self.__add_element_to_bar(bar, elements)
+        self.element_list = np.vstack([self.element_list, elements])
+
+        print("Elements list: \n", self.element_list)
+        print("Node coordinates: \n", self.node_coor)
 
 
-    def add_bar(self, x1: int, y1: int, x2: int, y2: int, aire: float):
+    def add_bar(self, x1: int, y1: int, z1: int, x2: int, y2: int, z2: int, aire: float):
         """Ajoute une poutre au model MEF
 
         Args:
             x1 (int): position de départ en x en mm
             y1 (int): position de départ en y en mm
+            z1 (int): position de départ en z en mm
             x2 (int): position de fin en x en mm
             y2 (int): position de fin en y en mm
+            z2 (int): position de fin en z en mm
             aire (float): aire en mm²
         """
         bar_id = len(self.bar_info) + 1
-        v1 = (x2-x1, y2-y1)
-        length = mt.sqrt(abs(v1[0])**2 + abs(v1[1])**2)
+        v1 = (x2-x1, y2-y1, z2-z1)
+        length = mt.sqrt(abs(v1[0])**2 + abs(v1[1])**2 + abs(v1[2])**2)
         angle = self._get_angle_of_bar(v1)
         self.bar_info[bar_id] = {"elements": [], 
                                    "length": length,
                                    "section": aire,
                                    "angle": angle, 
-                                   "x1": x1, "y1": y1, "x2": x2, "y2": y2,
+                                   "x1": x1, "y1": y1, "z1": z1, "x2": x2, "y2": y2, "z2": z2,
                                    "relaxation": []}
-        self._create_elements_and_nodes(self.bar_info[bar_id])
         print("Poutre crée: ", self.bar_info)
+        self._create_elements_and_nodes(self.bar_info[bar_id])
 
 
     def add_material_by_class(self, bar_id: int, Iy: float, Iz: float, classe: str=CLASSE_WOOD):
@@ -293,7 +329,6 @@ class Bar_generator(Projet):
             pos (int, str, optional): position de l'appuis sur la barre en mm ou chaine de caractère représentant le début de la barre: "start", la fin de la barre: "end", le milieu: "middle ou encore un pourcentage de la longueur de la barre: ex. "40%". Defaults to 0.
             l_appuis (int, optional): longueur d'appuis sur la poutre en mm. Defaults to 0.
         """
-        print(pos)
         match pos:
             case "start":
                 pos = 0
@@ -347,10 +382,11 @@ class Bar_generator(Projet):
 
         # Récupération des efforts internes et conversion du locale au globale
         def get_local_to_global_list(list_value: list, internal_force_type: str, list_ele: list, angle=None):
+            print(list_value, internal_force_type, list_ele)
             def get_local_to_global(y_local, angle, x, y):
-                angle = np.radians(angle)
-                X = x + y_local * -np.sin(angle)
-                Y = y + y_local * np.cos(angle)
+                angle_XY = np.radians(angle["XY"])
+                X = x + y_local * -np.sin(angle_XY)
+                Y = y + y_local * np.cos(angle_XY)
                 return X, Y
 
             # Initialisation des listes pour stocker les coordonnées X et Y
@@ -361,18 +397,19 @@ class Bar_generator(Projet):
                 node1 = int(ele[0])-1
                 node2 = int(ele[1])-1
 
-                # On récupère l'index de l'élément dans la liste numpy 
-                index_ele = np.where(self.element_list == ele)[0][1]
+                # On récupère l'index de l'élément dans la liste numpy
+                print(ele, type(ele), np.where(np.all(self.element_list == ele, axis=1)))
+                index_ele = np.where(np.all(self.element_list == ele, axis=1))[0][0]
 
-                x1, y1 = self.node_coor[node1]
-                x2, y2 = self.node_coor[node2]
-                v1 = (x2-x1, y2-y1)
+                x1, y1, z1 = self.node_coor[node1]
+                x2, y2, z2 = self.node_coor[node2]
+                v1 = (x2-x1, y2-y1, z2-z1)
                 if not angle:
                     angle = self._get_angle_of_bar(v1)
                 for index_node, node in enumerate((node1, node2)):
                     y_local = list_value[index_ele][internal_force_type][index_node] * scale_internal_forces
                     # print("node: ", node, "if_type: ", internal_force_type, " list_value: ", list_value[index_ele][internal_force_type][index_node])
-                    x, y = self.node_coor[node]
+                    x, y, z = self.node_coor[node]
                     X, Y = get_local_to_global(y_local, angle, x, y)
                     # Ajouter les coordonnées X et Y à la liste correspondante
                     X_coords.append(X)
@@ -426,7 +463,7 @@ class Bar_generator(Projet):
                 If_coor = get_local_to_global_list(beam["internals forces"], internal_f, list_ele)
                 axs[value[1][0], value[1][1]].plot(If_coor[0], If_coor[1], color=value[0])
 
-                if 0 <= beam['angle'] < 90 or 180 <= beam['angle'] < 270:
+                if 0 <= beam['angle']["XY"] < 90 or 180 <= beam['angle']["XY"] < 270:
                     axs[value[1][0], value[1][1]].fill_between(x, If_coor[1], y, alpha=0.3, interpolate=True, color=value[0])
                 else:
                     axs[value[1][0], value[1][1]].fill_betweenx(y, If_coor[0], x, alpha=0.3, interpolate=True, color=value[0])
@@ -439,8 +476,8 @@ class Bar_generator(Projet):
                 support_type = "s"
             else:
                 support_type = "^"
-            x = mt.cos(mt.radians(self.bar_info[support["N° barre"]]["angle"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["x1"]
-            y = mt.sin(mt.radians(self.bar_info[support["N° barre"]]["angle"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["y1"]
+            x = mt.cos(mt.radians(self.bar_info[support["N° barre"]]["angle"]["XY"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["x1"]
+            y = mt.sin(mt.radians(self.bar_info[support["N° barre"]]["angle"]["XY"])) * support["Position de l'appui"] + self.bar_info[support["N° barre"]]["y1"]
             for subplot in axis_coor:
                 axs[subplot[0], subplot[1]].plot(x, y, marker=support_type, markersize=10, color="red", label=f"A{key} / {support['Type d\'appui']}")
                 axs[subplot[0], subplot[1]].text(x+100, y+100, f"A{key}", ha="right", color="red")
