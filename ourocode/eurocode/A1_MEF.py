@@ -254,31 +254,31 @@ class FEM(Bar_generator, _Base_graph):
         return k
 
 
-    def _apply_relaxation_to_F(self, element: list, relaxation):
-        dof_map = {
-            "u": 0,
-            "v": 1,
-            "w": 2,
-            "teta_x": 3,
-            "teta_y": 4,
-            "teta_z": 5
-        }
+    # def _apply_relaxation_to_F(self, element: list, relaxation):
+    #     dof_map = {
+    #         "u": 0,
+    #         "v": 1,
+    #         "w": 2,
+    #         "teta_x": 3,
+    #         "teta_y": 4,
+    #         "teta_z": 5
+    #     }
 
-        if relaxation["position"] == "start":
-            index_F = (int(element[0])-1) * 6
-        elif relaxation["position"] == "end":
-            index_F = (int(element[1])-1) * 6
-        else:
-            raise ValueError("Position must be 'start' or 'end'")
-        # print(element)
-        # print(index_F)
-        for key, rel in relaxation.items():
-            if key != "position" and rel:
-                row = index_F+dof_map[key]
-                indexes_to_remove = [i for i,x in enumerate(self.matriceF.data[1][0]) if x==row]
-                for i, index in enumerate(indexes_to_remove):
-                    index -= i
-                    self.matriceF.remove_index(index)
+    #     if relaxation["position"] == "start":
+    #         index_F = (int(element[0])-1) * 6
+    #     elif relaxation["position"] == "end":
+    #         index_F = (int(element[1])-1) * 6
+    #     else:
+    #         raise ValueError("Position must be 'start' or 'end'")
+    #     # print(element)
+    #     # print(index_F)
+    #     for key, rel in relaxation.items():
+    #         if key != "position" and rel:
+    #             row = index_F+dof_map[key]
+    #             indexes_to_remove = [i for i,x in enumerate(self.matriceF.data[1][0]) if x==row]
+    #             for i, index in enumerate(indexes_to_remove):
+    #                 index -= i
+    #                 self.matriceF.remove_index(index)
 
 
     def _init_matrix_K(self, index: int|str) -> np.array:
@@ -319,11 +319,9 @@ class FEM(Bar_generator, _Base_graph):
             for relaxation in bar["relaxation"]:
                 if relaxation["position"] == "start" and index == bar["elements"][0]:
                     k = self._apply_relaxation_to_k(k, relaxation, relaxation["position"])
-                    # self._apply_relaxation_to_F(self.element_list[index], relaxation)
                     break
                 elif relaxation["position"] == "end" and index == bar["elements"][-1]:
                     k = self._apply_relaxation_to_k(k, relaxation, relaxation["position"])
-                    # self._apply_relaxation_to_F(self.element_list[index], relaxation)
                     break
 
         T_matrix = self._transformation_matrix(bar)
@@ -359,14 +357,6 @@ class FEM(Bar_generator, _Base_graph):
             n1 = int(self.element_list[i,0])*6
             n2 = int(self.element_list[i,1])*6
             
-            # # Réorganisation des sous-blocs de la matrice locale k si nécessaire
-            # if n1 > n2:
-            #     # Inversion des sous-blocs pour l'assemblage
-            #     # k_reshape = np.block([[k[6:12, 6:12], k[6:12, 0:6]],
-            #     #                     [k[0:6, 6:12], k[0:6, 0:6]]])
-            #     self._agregation_matrix_K(Assembleur_COO_K , k, n1, n2)
-            # else:
-            #     # Utilisation directe de la matrice si l'ordre est correct
             self._agregation_matrix_K(Assembleur_COO_K , k, n1, n2)
 
         self.matriceF_concat = coo_matrix(self.matriceF.data, shape=((len(self.element_list)+1)*6, 1)).tocsr()
@@ -642,9 +632,9 @@ class FEM(Bar_generator, _Base_graph):
             print(node)
             while node:
                 node_pop = node.pop(0)
-                if start_index['index matrice'] <= node_pop <= end_index['index matrice'] or start_index['index matrice'] >= node_pop >= end_index['index matrice']:
-                    if node_pop not in indices:
-                        indices.append(node_pop)
+                # if start_index['index matrice'] <= node_pop <= end_index['index matrice'] or start_index['index matrice'] >= node_pop >= end_index['index matrice']:
+                if node_pop not in indices:
+                    indices.append(node_pop)
         print(indices)
         return indices
 
@@ -1328,8 +1318,17 @@ if __name__ == '__main__':
 
 
     
-    # chargement.add_relaxation(1, "end")
-    # chargement.add_relaxation(2, "end")
+    chargement.add_relaxation(7, "start")
+    chargement.add_relaxation(7, "end")
+    chargement.add_relaxation(8, "start")
+    chargement.add_relaxation(9, "start")
+    chargement.add_relaxation(9, "end")
+
+    chargement.add_relaxation(4, "end")
+    chargement.add_relaxation(5, "start")
+    
+    chargement.add_relaxation(1, "start")
+    chargement.add_relaxation(2, "end")
 
     for i in range(9):
         chargement.add_material_by_class(i+1, Iy, Iz, "C24")

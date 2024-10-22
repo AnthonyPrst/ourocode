@@ -187,7 +187,7 @@ class Bar_generator(Projet):
         Args:
             bar_lenght (int | float): Longueur de la barre en mm
         """
-        if bar_lenght < 5000:
+        if bar_lenght < 4000:
             # nb_ele = int(mt.ceil(bar_lenght/800))
             nb_ele = 20
         else:
