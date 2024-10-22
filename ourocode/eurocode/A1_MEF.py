@@ -4,15 +4,19 @@
 
 import os, sys
 
+import time
 import numpy as np
 from matplotlib import pyplot as plt
+import math as mt
 from scipy.sparse import coo_matrix, csr_matrix
 from scipy.sparse.linalg import spsolve
 
-# sys.path.append(os.path.join(os.getcwd(), "ourocode"))
-# from eurocode.EC0_Combinaison import Combinaison
+sys.path.append(os.path.join(os.getcwd(), "ourocode"))
+from eurocode.A0_Projet import Bar_generator
+from eurocode.EC0_Combinaison import Combinaison
 
-from ourocode.eurocode.EC0_Combinaison import Combinaison
+# from ourocode.eurocode.EC0_Combinaison import Combinaison
+# from ourocode.eurocode.A0_Projet import Bar_generator
 
 class _Base_graph(object): 
     """ Retourne un diagramme de base """
@@ -32,6 +36,50 @@ class _Base_graph(object):
         self.fill_between = True
         self.fill_between_X = []
         self.save_path = None
+
+    def get_local_coor_value_in_bar(self, list_value: list, bar_id: int):
+            x_coords = []
+            y_coords = []
+            list_ele = [self.element_list[element] for element in self.bar_info[bar_id]["elements"]]
+
+            for index_ele, ele in enumerate(list_ele):
+                node = [int(ele[0])-1, int(ele[1])-1]
+                x1, y1, z1 = self.node_coor[node[0]]
+                x2, y2, z2 = self.node_coor[node[1]]
+                v1 = (x2-x1, y2-y1, z2-z1)
+                length = mt.sqrt(abs(v1[0])**2 + abs(v1[1])**2 + abs(v1[2])**2)
+                if not index_ele:
+                    x_coords.append(0)
+                    y_coords.append(list_value[node[0]])
+                x_coords.append(x_coords[-1]+length)
+                y_coords.append(list_value[node[1]])
+            return x_coords, y_coords
+
+    def get_local_internal_forces_coor_value_in_bar(self, list_value: list, internal_type: str, bar_id: int):
+        x_coords = []
+        y_coords = []
+        list_ele = [self.element_list[element] for element in self.bar_info[bar_id]["elements"]]
+
+        # for ele in list_ele:
+        for index_ele in self.bar_info[bar_id]["elements"]:
+        #     # On récupère l'index de l'élément dans la liste numpy 
+        #     print("np xhere", np.where(self.element_list == ele))
+        #     index_ele = np.where(self.element_list == ele)[0][0]
+            ele = self.element_list[index_ele]
+
+            node = [int(ele[0])-1, int(ele[1])-1]
+            # x1, y1 = self.node_coor[node[0]]
+            # x2, y2 = self.node_coor[node[1]]
+            # v1 = (x2-x1, y2-y1)
+            # length = mt.sqrt(abs(v1[0])**2 + abs(v1[1])**2)
+            for index_node, node in enumerate(node):
+                x_local = self.global_to_local(self.node_coor[node], self.bar_info[bar_id])
+                y_local = list_value[index_ele][internal_type][index_node]
+                x_coords.append(x_local)
+                y_coords.append(y_local)
+        print(x_coords, y_coords)
+        return x_coords, y_coords
+    
     
     def _base_graphique(self):
         """ Retourne le diagramme """
@@ -78,369 +126,684 @@ class _Triplets(object):
         self.data[0].append(val)
         self.data[1][0].append(I)
         self.data[1][1].append(J)
+
+    def remove_index(self, index: int):
+        del self.data[0][index]
+        del self.data[1][0][index]
+        del self.data[1][1][index]
+
+    def to_array(self):
+        # Maximum Y and X coordinates
+        xmax = max(self.data[1][0])
+        ymax = max(self.data[1][1])
+        # Target array
+        target = np.zeros((xmax+1, ymax+1))
+        target[self.data[1][1], self.data[1][0]] = self.data[0]
+        print(target)
+        return target
+
     
     
         
-class MEF(Combinaison, _Base_graph):
+class FEM(Bar_generator, _Base_graph):
     SAVE_PATH = os.path.join(Combinaison.PATH_CATALOG, "data","screenshot")
-    def __init__(self, long: int, E: int, A: float, G: float, J: float, Iy: float, Iz: float, ele: int=500, alphaZ: float=0, alphaY: float=0, alphaX: float=0,**kwargs):
+    def __init__(self, combinaison: Combinaison, **kwargs):
         """Classe permettant de créer des poutres MEF et de les calculer. Cette classe est hérité de l'objet Combinaison du module EC0_Combinaison.py
         Args:
-            combinaison (Combinaison): L'objet créer à partir de la classe Combinaison du module EC0_Combinaison.py
-            long (int): Longueur de l'élément en mm
-            E (int): Module de young en MPa, ce E est le E,mean. Il ne faut absolument pas donner le E,mean,fin sous peine de réaliser le calcul EC5 §2.3.2.2 equ2.7 deux fois !
             A (float): Section en mm²
-            G (float): Module de cisaillement en MPa
-            J (float): Module de torsion
-            Iy (float): Inertie quadratique autour de y en mm4
-            Iz (float): Inertie quadratique autour de z en mm4
-            ele (int): Nombre d'élément fini (mesh)
-            alphaZ (float): Angle d'application des charges entre un repère local et global autour de Z
-            alphaY (float): Angle d'application des charges entre un repère local et global autour de y
-            alphaX (float): Angle d'application des charges entre un repère local et global autour de x
         """
-        super(Combinaison, self).__init__(**kwargs)
+        super(Bar_generator, self).__init__(**kwargs)
         _Base_graph.__init__(self)
-        self.long = long
-        self.A = A
-        self.Iy = Iy
-        self.Iz = Iz
+        self.combinaison = combinaison
+        self._fem_info = {}
 
-        self.ea = E*self.A
-        self.eiy = E*self.Iy
-        self.eiz = E*self.Iz
-        self.gj = G*J
+    def get_lenght_of_element(self, element_index: int):
+        """Retourne la longueur d'un élément en mm à partir de ces coordonnées globale
 
-        if (self.long / ele) < (self.long/20):
-            self.ele = round(self.long / 20)
-        else:
-            self.ele = ele
-        self.alpha_R_tetaZ = np.radians(alphaZ)
-        self.alpha_R_tetaY = np.radians(alphaY)
-        self.alpha_R_tetaX = np.radians(alphaX)
-        self.node_coor = self.node_coord()
-        self.elementList = self.element_list()
-        self.list_supports = []
-
-
-    def node_coord(self):
-        nodeCoor = np.zeros((self.ele+1, 1))
-        for i in range(self.ele + 1) :
-            # l0 = 6
-            # if i == 1 or i == self.ele-1:
-            #     if i == 1:
-            #         nodeCoor[i,0]= l0
-            #     else:
-            #         nodeCoor[i,0]= round(self.long - l0)
-            # elif i == 0:
-            #     nodeCoor[i,0]= 0
-            # elif i == self.ele:
-            #     nodeCoor[i,0]= round(self.long)
-            # else:
-            #     nodeCoor[i,0]= round(((self.long- l0) / (self.ele-2)) + nodeCoor[i-1,0])
-            nodeCoor[i,0]= round(self.long/ self.ele * i)
-
-        # print("\n Liste des coordonnées des éléments : \n", nodeCoor, "\n")
-        return nodeCoor
-
-
-    def element_list(self):
-        nodeList = np.zeros((self.ele,2))
-        for i in range(self.ele):
-            nodeList[i,0] = i+1
-            nodeList[i,1] = i+2
-        
-        # print("\n Liste des éléments : \n",nodeList, "\n")
-        return nodeList
+        Args:
+            element_index (int): index de l'élément à récupérer
+        """
+        element = self.element_list[element_index]
+        print("élement: ", element)
+        node_1, node_2 = element
+        x1, y1, z1 = self.node_coor[int(node_1)-1]
+        x2, y2, z2 = self.node_coor[int(node_2)-1]
+        v1 = (x2-x1, y2-y1, z2-z1)
+        # print(x1, y1, x2, y2)
+        return abs(mt.sqrt(abs(v1[0])**2 + abs(v1[1])**2 + abs(v1[2])**2))
     
+    
+    def _transformation_matrix(self, bar: dict):
+        """Matrice de transformation pour un élément barre 3D dans un plan perpendiculaire à un axe.
+        Si la barre est réellement dans un espace 3D il faut alors calculer les produits scalaire de chaque axe dans une matrice lambda.
+        Voir la video youtube https://www.youtube.com/watch?v=J2MwWFcY3NI&list=PLmw2x4fCMxg6Yw-7FqwBNSobXZR6fQ3Sm&index=16
+        Args:
+            angle (float): angle en degré de la barre par rapport à X
+        """
+        Assembleur_COO_T = _Triplets()
 
-    def _init_matrix_K(self, index: int|str, l: int) -> np.array:
+        # Extraire les coordonnées des extrémités de la barre
+        x1, y1, z1 = bar['x1'], bar['y1'], bar['z1']
+        x2, y2, z2 = bar['x2'], bar['y2'], bar['z2']
+        
+        # Vecteur directionnel de la barre
+        L = bar["length"]
+
+        x_local_vector_unit = np.array([(x2 - x1) / L, (y2 - y1) / L, (z2 - z1) / L])
+        # Vecteur global Z
+        Z_global_vector_unit = np.array([0,0,1])
+
+        # Calculer le produit vectoriel pour obtenir le vecteur perpendiculaire y à Z et x
+        v = np.cross(Z_global_vector_unit, x_local_vector_unit)  # Axe transverse
+        if np.linalg.norm(v) == 0:
+                # Si L est parallèle à l'axe de référence, on choisit un autre vecteur de référence (par exemple, l'axe Y)
+                y_local_vector_unit = np.array([0, 1, 0])
+        else:
+            Lv = np.linalg.norm(v) # distance Euclidienne
+            y_local_vector_unit = v / Lv
+        
+        # Calculer le produit vectoriel pour obtenir le vecteur perpendiculaire z à x et y
+        w = np.cross(x_local_vector_unit, y_local_vector_unit)  # Axe transverse
+        Lw = np.linalg.norm(w) # distance Euclidienne
+        z_local_vector_unit = w / Lw
+        # print(x_local_vector_unit, y_local_vector_unit, z_local_vector_unit)
+        lambda_matrix = np.array([
+                                x_local_vector_unit,
+                                y_local_vector_unit,
+                                z_local_vector_unit
+                                ])
+        index = 0
+        for _ in range(0,4):
+            for i in range(0,3):
+                for j in range(0,3):
+                    Assembleur_COO_T.append(index+i, index+j, lambda_matrix[i,j])
+            index += 3
+
+        transformation_matrix = (coo_matrix(Assembleur_COO_T.data, shape=(12, 12))).tocsr()
+        # print("Matrice de transformation locale/globale: \n",transformation_matrix.toarray())
+        return transformation_matrix
+    
+    
+    def _apply_relaxation_to_k(self, k, relaxation, position):
+        indices = {
+            "start": [0, 1, 2, 3, 4, 5],
+            "end": [6, 7, 8, 9, 10, 11]
+        }
+        
+        dof_map = {
+            "u": 0,
+            "v": 1,
+            "w": 2,
+            "teta_x": 3,
+            "teta_y": 4,
+            "teta_z": 5
+        }
+        
+        if position == "start":
+            dof_indices = indices["start"]
+        elif position == "end":
+            dof_indices = indices["end"]
+        else:
+            raise ValueError("Position must be 'start' or 'end'")
+        
+        for key, rel in relaxation.items():
+            if key != "position" and rel:
+                index = dof_map[key]
+                k[dof_indices[index], :] = 0
+                k[:, dof_indices[index]] = 0
+        return k
+
+
+    # def _apply_relaxation_to_F(self, element: list, relaxation):
+    #     dof_map = {
+    #         "u": 0,
+    #         "v": 1,
+    #         "w": 2,
+    #         "teta_x": 3,
+    #         "teta_y": 4,
+    #         "teta_z": 5
+    #     }
+
+    #     if relaxation["position"] == "start":
+    #         index_F = (int(element[0])-1) * 6
+    #     elif relaxation["position"] == "end":
+    #         index_F = (int(element[1])-1) * 6
+    #     else:
+    #         raise ValueError("Position must be 'start' or 'end'")
+    #     # print(element)
+    #     # print(index_F)
+    #     for key, rel in relaxation.items():
+    #         if key != "position" and rel:
+    #             row = index_F+dof_map[key]
+    #             indexes_to_remove = [i for i,x in enumerate(self.matriceF.data[1][0]) if x==row]
+    #             for i, index in enumerate(indexes_to_remove):
+    #                 index -= i
+    #                 self.matriceF.remove_index(index)
+
+
+    def _init_matrix_K(self, index: int|str) -> np.array:
         """Initialise la matrice K suivant la longueur de l'élément l en mm
         Args:
             l (int): longueur de l'élément MEF en mm
         Returns:
             numpy.array: matrice de rigidité K
         """
-        k = np.array([[(self.ea)/l, 0, 0, 0, 0, 0, -(self.ea)/l, 0, 0, 0, 0, 0],
-                    [0, (12*self.eiz)/l**3, 0, 0, 0, (6*self.eiz)/l**2, 0, -(12*self.eiz)/l**3, 0, 0, 0, (6*self.eiz)/l**2],
-                    [0, 0, (12*self.eiy)/l**3, 0, -(6*self.eiy)/l**2, 0, 0, 0, -(12*self.eiy)/l**3, 0, -(6*self.eiy)/l**2, 0],
-                    [0, 0, 0, self.gj/l, 0, 0, 0, 0, 0, -self.gj/l, 0, 0],
-                    [0, 0, -(6*self.eiy)/l**2, 0, (4*self.eiy)/l, 0, 0, 0, (6*self.eiy)/l**2, 0, (2*self.eiy)/l, 0],
-                    [0, (6*self.eiz)/l**2, 0, 0, 0, (4*self.eiz)/l, 0, -(6*self.eiz)/l**2, 0, 0, 0, (2*self.eiz)/l],
-                    [-(self.ea)/l, 0, 0, 0, 0, 0, (self.ea)/l, 0, 0, 0, 0, 0],
-                    [0, -(12*self.eiz)/l**3, 0, 0, 0, -(6*self.eiz)/l**2, 0, (12*self.eiz)/l**3, 0, 0, 0, -(6*self.eiz)/l**2],
-                    [0, 0, -(12*self.eiy)/l**3, 0, (6*self.eiy)/l**2, 0, 0, 0, (12*self.eiy)/l**3, 0, (6*self.eiy)/l**2, 0],
-                    [0, 0, 0, -self.gj/l, 0, 0, 0, 0, 0, self.gj/l, 0, 0],
-                    [0, 0, -(6*self.eiy)/l**2, 0, (2*self.eiy)/l, 0, 0, 0, (6*self.eiy)/l**2, 0, (4*self.eiy)/l,0],
-                    [0, (6*self.eiz)/l**2, 0, 0, 0, (2*self.eiz)/l, 0, -(6*self.eiz)/l**2, 0, 0, 0, (4*self.eiz)/l]])
-
-        self.k_local["ele"+str(index)] = {"k11_local": k[0:6,0:6], 
-                                        "k12_local": k[0:6,6:12],
-                                        "k21_local": k[6:12,0:6],
-                                        "k22_local": k[6:12,6:12]}
-        return k
-
-    
-    def _agregation_matrix_K(self, assembleur_COO_K: list, k: np.array, n1: int, n2: int):
-        # Agrégation de la matrice global
-        for i in range(-6,0):
-                for j in range(-6,0):
-                    assembleur_COO_K.append(n1+i, n1+j, k[i+6,j+6]) # ajout de bruit pour éviter les singularité (+0.001)
-                    assembleur_COO_K.append(n2+i, n2+j, k[i+12,j+12]) # ajout de bruit pour éviter les singularité (+0.001)
-                    if k[i+6,j+12]:
-                        assembleur_COO_K.append(n1+i, n2+j, k[i+6,j+12])
-                        
-                    if k[i+12,j+6]:
-                        assembleur_COO_K.append(n2+i, n1+j, k[i+12,j+6]) # ajout de bruit pour éviter les singularité (+0.001)
+        for key, bar in self.bar_info.items():
+            if index in bar["elements"]:
+                angle = bar["angle"]
+                l = bar["length"] / len(bar["elements"])
+                E = bar["material"]["E"]
+                EA = E * bar["section"] 
+                EIy = E * bar["material"]["Iy"]
+                EIz = E * bar["material"]["Iz"]
+                GJ = bar["material"]["G"] * bar["material"]["J"]
+                # print(f"J'ai retrouvé la poutre {key} qui est associé à l'élément {index}, son angle est de {angle} degrés.")
+                break
+        k = np.array([
+                    [(EA)/l, 0, 0, 0, 0, 0, -(EA)/l, 0, 0, 0, 0, 0],
+                    [0, (12*EIz)/l**3, 0, 0, 0, (6*EIz)/l**2, 0, -(12*EIz)/l**3, 0, 0, 0, (6*EIz)/l**2],
+                    [0, 0, (12*EIy)/l**3, 0, -(6*EIy)/l**2, 0, 0, 0, -(12*EIy)/l**3, 0, -(6*EIy)/l**2, 0],
+                    [0, 0, 0, GJ/l, 0, 0, 0, 0, 0, -GJ/l, 0, 0],
+                    [0, 0, -(6*EIy)/l**2, 0, (4*EIy)/l, 0, 0, 0, (6*EIy)/l**2, 0, (2*EIy)/l, 0],
+                    [0, (6*EIz)/l**2, 0, 0, 0, (4*EIz)/l, 0, -(6*EIz)/l**2, 0, 0, 0, (2*EIz)/l],
+                    [-(EA)/l, 0, 0, 0, 0, 0, (EA)/l, 0, 0, 0, 0, 0],
+                    [0, -(12*EIz)/l**3, 0, 0, 0, -(6*EIz)/l**2, 0, (12*EIz)/l**3, 0, 0, 0, -(6*EIz)/l**2],
+                    [0, 0, -(12*EIy)/l**3, 0, (6*EIy)/l**2, 0, 0, 0, (12*EIy)/l**3, 0, (6*EIy)/l**2, 0],
+                    [0, 0, 0, -GJ/l, 0, 0, 0, 0, 0, GJ/l, 0, 0],
+                    [0, 0, -(6*EIy)/l**2, 0, (2*EIy)/l, 0, 0, 0, (6*EIy)/l**2, 0, (4*EIy)/l,0],
+                    [0, (6*EIz)/l**2, 0, 0, 0, (2*EIz)/l, 0, -(6*EIz)/l**2, 0, 0, 0, (4*EIz)/l]
+                    ])
         
+        if bar.get("relaxation"):
+            # change_matrix_k = False
+            for relaxation in bar["relaxation"]:
+                if relaxation["position"] == "start" and index == bar["elements"][0]:
+                    k = self._apply_relaxation_to_k(k, relaxation, relaxation["position"])
+                    break
+                elif relaxation["position"] == "end" and index == bar["elements"][-1]:
+                    k = self._apply_relaxation_to_k(k, relaxation, relaxation["position"])
+                    break
 
+        T_matrix = self._transformation_matrix(bar)
+
+        self._fem_info["ele"+str(index)] = {"k_local": k, "T_global": T_matrix}
+        # print(index, "matrice k local: \n", k, "\n")
+        return np.dot(np.dot(T_matrix.T.toarray(), k), T_matrix.toarray())
+    
+
+
+    def _agregation_matrix_K(self, assembleur_COO_K: list, k: np.array, n1: int, n2: int):
+        for i in range(-6,0):
+            for j in range(-6,0):
+                # print(n1+i, n1+j, n2+i, n2+j, f'i et j: {[i, j]}', k[i+6,j+6], k[i+12,j+12 ], k[i+6,j+12], k[i+12,j+6])
+                assembleur_COO_K.append(n1+i, n1+j, k[i+6,j+6]) # ajout de bruit pour éviter les singularité (+0.001)
+                assembleur_COO_K.append(n2+i, n2+j, k[i+12,j+12]) # ajout de bruit pour éviter les singularité (+0.001)
+                if k[i+6,j+12]:
+                    assembleur_COO_K.append(n1+i, n2+j, k[i+6,j+12])
+                if k[i+12,j+6]:
+                    assembleur_COO_K.append(n2+i, n1+j, k[i+12,j+6]) # ajout de bruit pour éviter les singularité (+0.001)
+                    
     
     def _matrice_K_1D(self):
         """Méthodequi créer la matrice de rigidité K assemblée
         Returns:
             numpy.array: la matrice de rigidité assemblée
         """
-        self.k_local = {}
-        # l = abs(int(self.node_coor[1,0]))
-        l = abs((self.long/ self.ele))
-        
-        # matrice de rigidité K
-        k = self._init_matrix_K("ALL", l)
-        
-        # Agrégation de la matrice global
-        
         Assembleur_COO_K = _Triplets()
-        
-        for i in range(self.ele):
-            n1 = int(self.elementList[i,0])*6
-            n2 = int(self.elementList[i,1])*6
+
+        for i in range(len(self.element_list)):
+            # matrice de rigidité K
+            k = self._init_matrix_K(i)
+            n1 = int(self.element_list[i,0])*6
+            n2 = int(self.element_list[i,1])*6
             
             self._agregation_matrix_K(Assembleur_COO_K , k, n1, n2)
-        
-        self.matriceK = (coo_matrix(Assembleur_COO_K.data, shape=((self.ele+1)*6, (self.ele+1)*6))).tocsr() 
-             
-        # print("\n Matrice de rigidité K  : \n", self.matriceK, "\n")
-        return self.matriceK 
 
+        self.matriceF_concat = coo_matrix(self.matriceF.data, shape=((len(self.element_list)+1)*6, 1)).tocsr()
+        self.matriceK = (coo_matrix(Assembleur_COO_K.data, shape=((len(self.element_list)+1)*6, (len(self.element_list)+1)*6))).tocsr()
+        np.savetxt("Matrice de rigidité K.csv", self.matriceK.toarray(), delimiter=";", fmt='%f')
+        # print("\n Matrice de rigidité K  : \n", self.matriceK.toarray(), "\n")
+        print("\n Matrice des forces extérieur  : \n", self.matriceF_concat.toarray(), "\n")
+        return self.matriceK
+    
 
-    def _nearest_node(self, value: int) -> list:
-        """Find the nearest node of the beam in function of the value"""
-        # element to which nearest value is to be found
-        #print("Value to which nearest element is to be found: ", value)
+    def local_to_global(self, x_local, bar):
+        """
+        Convertit la coordonnée locale x sur une barre en coordonnées globales (X, Y, Z).
+
+        Args:
+            x_local (float): La position locale le long de la barre.
+            bar (dict): Dictionnaire contenant les informations sur la barre, notamment les coordonnées globales des extrémités (x1, y1, z1 et x2, y2, z2) et les angles.
+
+        Returns:
+            numpy.array: Coordonnées globales (X, Y, Z) correspondant à la position locale.
+        """
+        # Coordonnées des extrémités de la barre
+        x1, y1, z1 = bar['x1'], bar['y1'], bar['z1']
+        x2, y2, z2 = bar['x2'], bar['y2'], bar['z2']
         
-        # calculate the difference array
-        difference_array = np.absolute(self.node_coor-value)
+        # Vecteur directionnel de la barre en 3D
+        length = np.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
+        direction = np.array([x2 - x1, y2 - y1, z2 - z1]) / length  # Vecteur unitaire de direction
+
+        # Coordonnées locales projetées sur la barre (translation le long du vecteur directionnel)
+        X = x1 + x_local * direction[0]
+        Y = y1 + x_local * direction[1]
+        Z = z1 + x_local * direction[2]
+        return np.array([X, Y, Z])
+    
+
+    def global_to_local(self, global_coor, bar):
+        """Convert global coordinates (X, Y) to local x coordinate on a bar."""
+        x1, y1, z1 = bar['x1'], bar['y1'], bar['z1']
+        x2, y2, z2 = bar['x2'], bar['y2'], bar['z2']
         
-        # find the index of minimum element from the array
+        bar_vector = np.array([x2-x1, y2-y1, z2-z1])
+        point_vector = global_coor - np.array([x1, y1, z1])
+        
+        bar_length = np.linalg.norm(bar_vector)
+        local_x = np.dot(point_vector, bar_vector) / bar_length
+
+        return local_x
+    
+
+    def _nearest_node(self, x_local, bar_id) -> list:
+        """Find the nearest node in global coordinates from a local x distance on a given bar."""
+        bar = self.bar_info[bar_id]
+        value = self.local_to_global(x_local, bar)
+        
+        # Calculate the Euclidean distance between the given value and all node coordinates
+        difference_array = np.linalg.norm(self.node_coor - value, axis=1)
+        
+        # Find the index of the minimum element from the array
         index = difference_array.argmin()
-        nearest_distance = self.node_coor[index][0]
+        nearest_node_coor = self.node_coor[index]
+        
+        # Convert nearest node's global coordinates to local x coordinate
+        nearest_node_local_x = self.global_to_local(nearest_node_coor, bar)
+        # print("local x: ",nearest_node_local_x)
+        
+        # Compare local x coordinates
+        if np.isclose(nearest_node_local_x, x_local, atol=1e-6):
+            position = "exactly at"
+        elif nearest_node_local_x < x_local:
+            position = "before"
+        else:
+            position = "after"
+        
         index_I_matrice = ((index+1) * 6) - 6
-        element_coor = self.elementList[index-1]
-        
-        #print("Nearest element to the given values is : ", nearest_distance)
-        #print("Index of nearest value is : ", index)
-        return index, nearest_distance, index_I_matrice, element_coor
+
+        # Recherche de l'élément correspondant dans la poutre
+        # On parcourt les éléments de la barre pour vérifier lequel correspond au nœud le plus proche
+        for element_id in bar['elements']:
+            element_nodes = self.element_list[element_id]
+            node1 = self.node_coor[int(element_nodes[0]) - 1]  # Premier nœud de l'élément
+            node2 = self.node_coor[int(element_nodes[1]) - 1]  # Deuxième nœud de l'élément
+            
+            # Vérification si le nœud appartient à l'élément (entre node1 et node2)
+            if np.allclose(nearest_node_coor, node1, atol=1e-6) or np.allclose(nearest_node_coor, node2, atol=1e-6):
+                # Si le nœud est l'un des nœuds de l'élément, on retourne cet élément
+                return {
+                    "index": index,
+                    "nearest node": nearest_node_coor,
+                    "nearest node local x": nearest_node_local_x,
+                    "index matrice": index_I_matrice,
+                    "element": element_id,  # ID correct de l'élément
+                    "position": position
+                }
+
+        # Si aucun élément n'est trouvé (ce qui ne devrait pas arriver)
+        raise ValueError(f"Aucun élément correspondant trouvé pour le nœud le plus proche à {nearest_node_coor}")
 
 
-    def _matrice_U_1D(self, listDepla):
-        """ Donner en entrée la liste type des appuis extérieurs, 
-        ressort une matrice acceptable pour le calcul MEF """
-        self.matriceU = np.ones(((self.ele+1)*6,1))
+    def _matrice_U_1D(self, dict_supports: dict):
+        """ Donner en entrée le dictionnaire type des appuis extérieurs, 
+        ressort une matrice acceptable pour le calcul MEF
         
-        for i in range(len(listDepla)):
-            index_min = self._nearest_node(int(listDepla[i][2]))
+        Args:
+            dict_supports (dict): dictionnaire des appuis extérieures"""
+        
+        print(dict_supports)
+        self.matriceU = np.ones(((len(self.element_list)+1)*6,1))
+        
+        for support in dict_supports.values():
+            bar_id = support['N° barre']
+            nearest_node = self._nearest_node(support["Position de l'appui"], bar_id)
            
-            if listDepla[i][1] == 'Rotule':
+            if support["Type d'appui"] == 'Rotule':
                 for i in range(0,4):
-                    self.matriceU[index_min[2] + i,0] = False
+                    self.matriceU[nearest_node['index matrice'] + i,0] = False
                     
-            elif listDepla[i][1] == 'Encastrement':
+            elif support["Type d'appui"] == 'Encastrement':
                 for i in range(0,6):
-                    self.matriceU[index_min[2] + i,0] = False
-            else:
-                self.matriceU[index_min[2] + 2,0] = False
-                self.matriceU[index_min[2] + 3,0] = False
+                    self.matriceU[nearest_node['index matrice'] + i,0] = False
+
+            elif support["Type d'appui"] == 'Simple Z':
+                self.matriceU[nearest_node['index matrice'] + 1,0] = False
+                self.matriceU[nearest_node['index matrice'] + 3,0] = False
+
+            elif support["Type d'appui"] == 'Simple Y':
+                self.matriceU[nearest_node['index matrice'] + 2,0] = False
+                self.matriceU[nearest_node['index matrice'] + 3,0] = False
+
+            elif support["Type d'appui"] == 'Simple X':
+                self.matriceU[nearest_node['index matrice'],0] = False
+                self.matriceU[nearest_node['index matrice'] + 3,0] = False
 
         # print("\n Matrice de déplacement U : \n",self.matriceU, "\n")
         return self.matriceU
+    
+    
+    def _counter_unique_in_array(self, array: np.ndarray):
+        unique, counts = np.unique(array, return_counts=True)
+        return dict(zip(unique, counts))
+    
 
+    def _create_local_force_arrays(self):
+        """Créer des matrices de forces locales initialisées à zéro."""
+        return np.zeros((6, 1)), np.zeros((6, 1))
+    
 
-    def _matrice_Fext_1D(self, listFext):
-        """ Donner en entrée la liste type des efforts extérieurs en daN, 
-        ressort une matrice acceptable pour le calcul MEF """
-        Assembleur_COO_F = _Triplets()
-        
-        base_global_R_tetaY = np.array([[np.cos(self.alpha_R_tetaY), np.sin(self.alpha_R_tetaY), 0],
-                    [-np.sin(self.alpha_R_tetaY), np.cos(self.alpha_R_tetaY), 0],
-                    [0, 0, 1]])
-        
-        base_global_R_tetaX = np.array([[np.cos(self.alpha_R_tetaX), np.sin(self.alpha_R_tetaX), 0],
-                    [-np.sin(self.alpha_R_tetaX), np.cos(self.alpha_R_tetaX), 0],
-                    [0, 0, 1]])
-        
-        # l = abs(int(self.node_coor[1,0]))
-        l = abs((self.long/ self.ele))
+    def _get_start_end_indices(self, F_ext, bar_id):
+        """Retourne les indices de départ et de fin pour unne force linéique donné."""
+        start_pos, end_pos = F_ext['Position'].split("/")
+        start_index = self._nearest_node(int(start_pos), bar_id)
+        end_index = self._nearest_node(int(end_pos), bar_id)
+        return start_index, end_index, [[start_index, int(start_pos)], [end_index, int(end_pos)]]
+    
 
-        for i in range(len(listFext)):
-            listFlocal = np.zeros((3,1))
-            listFlocal2 = np.zeros((3,1))
+    def _calculate_forces(self, F_ext, l):
+        """Calcul des forces locales en fonction de l'axe de la charge."""
+        force = F_ext['Charge'] * 10**-2 * l
+        listFlocal, listFlocal2 = self._create_local_force_arrays()
+
+        if F_ext['Axe'] in ('Z', 'Z local'):
+            listFlocal[1, 0] = listFlocal2[1, 0] = force / 2  # Rza et Rzb
+        elif F_ext['Axe'] in ('X', 'X local'):
+            listFlocal[0, 0] = listFlocal2[0, 0] = force / 2  # Rxa et Rxb
             
-            if listFext[i][3] == 'Linéique':
+        listFlocal[5, 0] = force * l / 12  # Mya
+        listFlocal2[5, 0] = -listFlocal[5, 0]  # Myb
+
+        return listFlocal, listFlocal2
+    
+    def _adjust_forces_for_nearest_node(self, nearest_node_index, F_ext, l, index, bar_id, listFlocal, listFlocal2):
+        """Ajuste les forces pour les nœuds proches en fonction de la position de la charge."""
+        force = F_ext['Charge'] * 10**-2 * l
+        if index != nearest_node_index[1][0]['index matrice']:
+            ind = nearest_node_index[0]
             
-                slash_pos = listFext[i][5].index("/")
-                start_pos = int(listFext[i][5][0:slash_pos])
-                start_index = self._nearest_node(start_pos)
+            node_local_x = ind[0]['nearest node local x']
+            # Cas dans le quelle la force est avant le noeud le plus proche
+            # print(ind[1], node_local_x, type(ind[1]), type(node_local_x))
+            if ind[1] < node_local_x:
+                a = node_local_x - ind[1]
+                before_node_local_x = self.global_to_local(self.node_coor[ind[0]['index']-1], self.bar_info[bar_id])
+                b = ind[1] - before_node_local_x
+                Mya = ((force * b**2)/l) * (4*(b/l) + 3*(b/l)**2)
+                Myb = -((force * b**2)/12) * (6-8*(b/l) + 3*(b/l)**2)
+                force = force * b
+                b = b/2 
+                a = a + b 
+                Rza = (force * b**2 * (3 * a + b))/l**3
+                Rzb = (force * a**2 * (3 * b + a))/l**3
                 
-                end_pos = int(listFext[i][5][slash_pos+1:])
-                end_index = self._nearest_node(end_pos)
-                index_min = [[start_index, start_pos], [end_index, end_pos]]
+                if F_ext['Axe'] in ('Z', 'Z local'):
+                    listFlocal[1,0] = Rza
+                    listFlocal2[1,0] = Rzb
+                elif F_ext['Axe'] in ('X', 'X local'):
+                    listFlocal[0,0] = Rza
+                    listFlocal2[0,0] = Rzb
 
-                # print("Longueur élément:", l, " mm")
-                for index in range(start_index[2], end_index[2]+6, 6):
-                    listFlocal = np.zeros((3,1))
-                    listFlocal2 = np.zeros((3,1))
-
-                    if listFext[i][6] == 'Z' or listFext[i][6] == 'Z local' :
-                        force = listFext[i][4] * (l/1000) * 10
-
-                        listFlocal[1,0] = listFext[i][4] * 10 * (l/1000) / 2 # Rza et Rzb
-                        listFlocal2[1,0] = listFlocal[1,0]
-                        listFlocal[2,0] = listFext[i][4] * 10 * (l/1000) **2 / 12 # Mya et Myb
-                        listFlocal2[2,0] = listFlocal[2,0]
-
-                        if index in (start_index[2], end_index[2]):
-                            calc_formulaire = False
-                            if index != end_index[2]:
-                                ind = index_min[0]
-
-                                # Cas dans le quelle la force est avant le noeud le plus proche
-                                if ind[1] < ind[0][1]:
-                                    a = ind[0][1] - ind[1]
-                                    b = ind[1] - self.node_coor[ind[0][0]-1][0]
-                                    Mya = ((force * b**2)/l) * (4*(b/l) + 3*(b/l)**2)
-                                    Myb = -((force * b**2)/12) * (6-8*(b/l) + 3*(b/l)**2)
-                                    force = force * b
-                                    b = b/2 
-                                    a = a + b 
-                                    Rza = (force * b**2 * (3 * a + b))/l**3
-                                    Rzb = (force * a**2 * (3 * b + a))/l**3
-                                    
-                                    listFlocal[1,0] = Rza
-                                    listFlocal[2,0] = Mya
-                                    listFlocal2[1,0] = Rzb
-                                    listFlocal2[2,0] = Myb
-                                    calc_formulaire = True
-                            
-                            else:
-                                ind = index_min[1]
-                                # Formule tirée de l'aide mémoire page 113 cas 3 et cas 1 pour RA et RB
-                                # Cas dans lequel la force est aprés le noeud le plus proche
-                                if ind[1] > ind[0][1]:
-                                    a = ind[1] - ind[0][1]
-                                    b = self.node_coor[ind[0][0]+1][0]-ind[1]
-                                    Mya = ((force * a**2)/12) * (6-8*(a/l) + 3*(a/l)**2)
-                                    Myb = -((force * a**2)/l) * (4*(a/l) + 3*(a/l)**2)
-                                    force = force * b
-                                    a = a/2 
-                                    b = a + b 
-                                    Rza = (force * b**2 * (3 * a + b))/l**3
-                                    Rzb = (force * a**2 * (3 * b + a))/l**3
-                                    
-                                    listFlocal[1,0] = Rza
-                                    listFlocal[2,0] = Mya
-                                    listFlocal2[1,0] = Rzb
-                                    listFlocal2[2,0] = Myb
-                                    calc_formulaire = True
-
-                            if calc_formulaire:
-                                if listFext[i][6] == 'Z':
-                                    listFlocal= np.dot(base_global_R_tetaY, listFlocal)
-                                    listFlocal2= np.dot(base_global_R_tetaY, listFlocal2)
-
-                                for i_index in range(3):
-                                    j_index = i_index * 2
-                                    Assembleur_COO_F.append(index+j_index, 0, listFlocal[i_index,0])
-                                    Assembleur_COO_F.append(index+6+j_index, 0, listFlocal2[i_index,0])
-                                continue
-
-                        if listFext[i][6] == 'Z':
-                            listFlocal= np.dot(base_global_R_tetaY, listFlocal)
-                            listFlocal2= np.dot(base_global_R_tetaY, listFlocal2)
-                            
-                    elif listFext[i][6] == 'X':
-                        listFlocal[0,0] = listFext[i][4] * (l/1000) * 10 / 2
-                        listFlocal2[0,0] = listFlocal[0,0]
-                        listFlocal= np.dot(base_global_R_tetaY, listFlocal)
-
-                    if index != end_index[2]:
-                        for i_index in range(3):
-                            j_index = i_index * 2
-                            Assembleur_COO_F.append(index+j_index, 0, listFlocal[i_index,0])
-                            Assembleur_COO_F.append(index+6+j_index, 0, listFlocal2[i_index,0])
-
-            
-            elif listFext[i][3] == 'Nodale':
-                index_min = self._nearest_node(int(listFext[i][5]))
-                force = listFext[i][4] * 10
+                listFlocal[5,0] = Mya
+                listFlocal2[5,0] = Myb
+        
+        else:
+            ind = nearest_node_index[1]
+            node_local_x = ind[0]['nearest node local x']
+            # Formule tirée de l'aide mémoire page 113 cas 3 et cas 1 pour RA et RB
+            # Cas dans lequel la force est aprés le noeud le plus proche
+            if ind[1] > node_local_x:
+                a = ind[1] - node_local_x
+                after_node_local_x = self.global_to_local(self.node_coor[ind[0]['index']+1], self.bar_info[bar_id])
+                b = after_node_local_x - ind[1]
+                Mya = ((force * a**2)/12) * (6-8*(a/l) + 3*(a/l)**2)
+                Myb = -((force * a**2)/l) * (4*(a/l) + 3*(a/l)**2)
+                force = force * b
+                a = a/2 
+                b = a + b 
+                Rza = (force * b**2 * (3 * a + b))/l**3
+                Rzb = (force * a**2 * (3 * b + a))/l**3
                 
-                if listFext[i][6] == 'Z' or listFext[i][6] == 'Z local' :
-                    if listFext[i][5] == index_min[1]:
-                        listFlocal[1,0] = force
-                    
-                    # Cas dans lequel la force est aprés le noeud le plus proche
-                    elif listFext[i][5] > index_min[1]:
-                        
-                        a = listFext[i][5] - index_min[1]
-                        b = self.node_coor[index_min[0]+1][0]-listFext[i][5]
-                        Mya = (force * a * b**2)/l**2
-                        Myb = -(force * b * a**2)/l**2
-                        Rza = (force * b**2 * (3 * a + b))/l**3
-                        Rzb = (force * a**2 * (3 * b + a))/l**3
-                        
-                        listFlocal[1,0] = Rza
-                        listFlocal[2,0] = Mya
-                        
-                        Assembleur_COO_F.append(index_min[2]+6+2, 0, Rzb)
-                        Assembleur_COO_F.append(index_min[2]+6+4, 0, Myb)
-                        
-                        #print("La force est situé après le noeud le plus proche à: ", a,b)
-                    
-                    # Cas dans lequel la force est avant le noeud le plus proche
-                    else:
-                        b = index_min[1] - listFext[i][5]
-                        a = listFext[i][5] - self.node_coor[index_min[0]-1][0]
-                        Mya = (force * a * b**2)/l**2
-                        Myb = -(force * b * a**2)/l**2
-                        Rza = (force * b**2 * (3 * a + b))/l**3
-                        Rzb = (force * a**2 * (3 * b + a))/l**3
-                        
-                        listFlocal[1,0] = Rzb
-                        listFlocal[2,0] = Myb
-                        
-                        Assembleur_COO_F.append(index_min[2]-6+2, 0, Rza)
-                        Assembleur_COO_F.append(index_min[2]-6+4, 0, Mya)
-                        #print("La force est situé avant le noeud le plus proche à: ", a,b)
-                    
-                elif listFext[i][6] == 'X':
-                    listFlocal[0,0] = listFext[i][4] * 10
-                    
-                if listFext[i][6] == 'Z local':
-                    pass
+                if F_ext['Axe'] in ('Z', 'Z local'):
+                    listFlocal[1,0] = Rza
+                    listFlocal2[1,0] = Rzb
+                elif F_ext['Axe'] in ('X', 'X local'):
+                    listFlocal[0,0] = Rza
+                    listFlocal2[0,0] = Rzb
+
+                listFlocal[5,0] = Mya
+                listFlocal2[5,0] = Myb
+
+
+    def _append_forces_to_assembler(self, index1, index2, listFlocal, listFlocal2, Assembleur_COO_F):
+        """Ajoute les forces dans l'assembleur COO."""
+        print(index1, index2)
+        for i in range(len(listFlocal)):
+            Assembleur_COO_F.append(index1 + i, 0, listFlocal[i, 0])
+            Assembleur_COO_F.append(index2 + i, 0, listFlocal2[i, 0])
+
+
+    def _store_forces_by_element(self, counter, element_index_travel, index, bar_id, listFlocal, listFlocal2):
+        """Stocke les forces calculées dans un dictionnaire par élément."""
+        if counter:
+            current_index = int(index/6)
+            x_local_of_current_index = self.global_to_local(self.node_coor[current_index], self.bar_info[bar_id])
+            print(self._nearest_node(x_local_of_current_index, bar_id))
+            current_element = self._nearest_node(x_local_of_current_index, bar_id)['element']
+
+            if current_element not in element_index_travel:
+                if not self.fext_by_element.get(current_element):
+                    self.fext_by_element[current_element] = {
+                            'forces_local_start': np.copy(listFlocal),
+                            'forces_local_end': np.copy(listFlocal2)
+                    }
                 else:
-                    listFlocal= np.dot(base_global_R_tetaY, listFlocal)
+                    self.fext_by_element[current_element]['forces_local_start'] += np.copy(listFlocal)
+                    self.fext_by_element[current_element]['forces_local_end'] += np.copy(listFlocal2)
+                element_index_travel.append(current_element)
+
+
+    def _get_index_between_start_and_end_of_bar(self, start_index, end_index, bar_id):
+        """
+        Récupère les index de la matrice de force entre start_index et end_index en tenant compte des éléments connectés.
+        """
+        indices = []
+        
+        # Obtenir la liste des éléments associés à la barre en question
+        elements_in_bar = self.bar_info[bar_id]["elements"]
+
+        # Parcourir les éléments pour ajouter les index entre start et end
+        for element in elements_in_bar:
+            ele = self.element_list[element]
+            node1 = ((ele[0]) * 6) - 6
+            node2 = ((ele[1]) * 6) - 6
+            node = [node1, node2]
+            print(node)
+            while node:
+                node_pop = node.pop(0)
+                # if start_index['index matrice'] <= node_pop <= end_index['index matrice'] or start_index['index matrice'] >= node_pop >= end_index['index matrice']:
+                if node_pop not in indices:
+                    indices.append(node_pop)
+        print(indices)
+        return indices
+
+
+    def _matrice_Fext_1D(self, dict_F_ext: dict):
+        """Transforme un dictionnaire de charges extérieures en une matrice pour le calcul MEF."""
+        print(dict_F_ext)
+        Assembleur_COO_F = _Triplets()
+        self.fext_by_element = {}
+        
+        for _ , F_ext in dict_F_ext.items():
+            bar_id = F_ext['N° barre']
+            print("\n", bar_id, self.bar_info[bar_id])
+
+            l = self.get_lenght_of_element(self.bar_info[bar_id]["elements"][0])
+
+            # On récupère la matrice de transformation des efforts locaux à globaux
+            T_matrix = self._transformation_matrix(self.bar_info[bar_id]).toarray()
+            T_matrix = T_matrix[0:6,0:6]
+
+            # Créer les listes de forces locales
+            listFlocal, listFlocal2 = self._create_local_force_arrays()
+            
+            if F_ext['Type de charge'] == 'Linéique':
+                element_index_travel = []
+                start_index, end_index, nearest_node_index = self._get_start_end_indices(F_ext, bar_id)
+                print(nearest_node_index)
+
+                sens_inverse = start_index['index matrice'] > end_index['index matrice']
+                range_index = range(start_index['index matrice'], end_index['index matrice'] + (6 if not sens_inverse else -6), (6 if not sens_inverse else -6))
+
+                indexs_in_bar = self._get_index_between_start_and_end_of_bar(start_index, end_index, bar_id)
+                for counter, index in enumerate(indexs_in_bar):
+                    # Calcul des forces et moments
+                    listFlocal, listFlocal2 = self._calculate_forces(F_ext, l)
+
+                    if index in (start_index['index matrice'], end_index['index matrice']):
+                        self._adjust_forces_for_nearest_node(nearest_node_index, F_ext, l, index, bar_id, listFlocal, listFlocal2)
+                    
+                    # Appliquer la rotation si nécessaire
+                    if F_ext['Axe'] in ('Z local', 'X local'):
+                        listFlocal= np.dot(T_matrix, listFlocal)
+                        listFlocal2= np.dot(T_matrix, listFlocal2)
+
+                    if sens_inverse:
+                        temp = np.copy(listFlocal2)
+                        listFlocal2 = listFlocal
+                        listFlocal = temp
+
+                    # Ajouter les forces dans l'assembleur COO
+                    if index != max(end_index['index matrice'], start_index['index matrice']):
+                        if not sens_inverse:
+                            self._append_forces_to_assembler(index, indexs_in_bar[counter+1], listFlocal, listFlocal2, Assembleur_COO_F)
+                        else:
+                            self._append_forces_to_assembler(index, indexs_in_bar[counter-1], listFlocal, listFlocal2, Assembleur_COO_F)
+
+                    # Stocker les forces par élément
+                    # print("counter: ", counter, 
+                    #       "element_index_travel: ", element_index_travel, 
+                    #       "index: ", index, "\n", 
+                    #       listFlocal, listFlocal2, '\n')
+                    self._store_forces_by_element(counter, element_index_travel, index, bar_id, listFlocal, listFlocal2)
+
+            
+            elif F_ext['Type de charge'] == 'Nodale':
+                node_pos = int(F_ext['Position'])  # Position du nœud pour une force nodale
+                nearest_node = self._nearest_node(node_pos, bar_id)  # Trouver le nœud le plus proche
+                force = F_ext['Charge'] * 10 # On passe la charge nodale de daN à N
+                                   
+                if nearest_node['position'] == "exactly at":
+                    if F_ext['Axe'] in ('Z', 'Z local'):
+                        listFlocal[1,0] = force
+                    elif F_ext['Axe'] in ('X', 'X local'):
+                        listFlocal[0,0] = force
                 
-                Assembleur_COO_F.append(index_min[2], 0, listFlocal[0,0])
-                Assembleur_COO_F.append(index_min[2]+2, 0, listFlocal[1,0])
-                Assembleur_COO_F.append(index_min[2]+4, 0, listFlocal[2,0])
+                # Cas dans lequel la force est aprés le noeud le plus proche
+                elif nearest_node['position'] == "before":
+                    a = F_ext['Position'] - nearest_node['nearest node local x']
+                    after_node_local_x = self.global_to_local(self.node_coor[nearest_node['index']+1], self.bar_info[bar_id])
+                    b = after_node_local_x - F_ext['Position']
+                    Mya = (force * a * b**2)/l**2
+                    Myb = -(force * b * a**2)/l**2
+                    Rza = (force * b**2 * (3 * a + b))/l**3
+                    Rzb = (force * a**2 * (3 * b + a))/l**3
+                    
+                    if F_ext['Axe'] in ('Z', 'Z local'):
+                        listFlocal[1,0] = Rza
+                        Assembleur_COO_F.append(nearest_node['index matrice']+6+2, 0, Rzb)
+                    elif F_ext['Axe'] in ('X', 'X local'):
+                        listFlocal[0,0] = Rza
+                        Assembleur_COO_F.append(nearest_node['index matrice']+6, 0, Rzb)
+
+                    listFlocal[5,0] = Mya
+                    Assembleur_COO_F.append(nearest_node['index matrice']+6+6, 0, Myb)
+                    
+                    #print("La force est situé après le noeud le plus proche à: ", a,b)
                 
-        self.matriceF = coo_matrix(Assembleur_COO_F.data, shape=((self.ele+1)*6, 1)).tocsr()
-        # print("\n Matrice des forces extérieurs Fext : \n",self.matriceF, self.matriceF.shape,"\n")
+                # Cas dans lequel la force est avant le noeud le plus proche
+                else:
+                    b = nearest_node['nearest node local x'] - F_ext['Position']
+                    before_node_local_x = self.global_to_local(self.node_coor[nearest_node['index']-1], self.bar_info[bar_id])
+                    a = F_ext['Position'] - before_node_local_x
+                    Mya = (force * a * b**2)/l**2
+                    Myb = -(force * b * a**2)/l**2
+                    Rza = (force * b**2 * (3 * a + b))/l**3
+                    Rzb = (force * a**2 * (3 * b + a))/l**3
+                    
+                    if F_ext['Axe'] in ('Z', 'Z local'):
+                        listFlocal[1,0] = Rzb
+                        Assembleur_COO_F.append(nearest_node['index matrice']-6+2, 0, Rza)
+                    elif F_ext['Axe'] in ('X', 'X local'):
+                        listFlocal[0,0] = Rzb
+                        Assembleur_COO_F.append(nearest_node['index matrice']-6, 0, Rza)
+                    listFlocal[5,0] = Myb
+                    Assembleur_COO_F.append(nearest_node['index matrice']-6+6, 0, Mya)
+                    #print("La force est situé avant le noeud le plus proche à: ", a,b)
+
+                    
+                if F_ext['Axe'] in ('Z local', 'X local'):
+                    listFlocal= np.dot(T_matrix, listFlocal)
+                
+                for i_index in range(len(listFlocal)):
+                    Assembleur_COO_F.append(nearest_node['index matrice']+i_index, 0, listFlocal[i_index,0])
+                
+                current_element = nearest_node["element"]
+                if nearest_node['position'] == "exactly at":
+                    applying_node = nearest_node["index"]+1
+                    if applying_node == self.element_list[current_element][0]:
+                        start_F_local = np.copy(listFlocal)
+                        end_F_local = np.zeros((6,1))
+                    else:
+                        start_F_local = np.zeros((6,1))
+                        end_F_local = np.copy(listFlocal)
+                    
+                    unique_element_counter = self._counter_unique_in_array(self.element_list)
+                    if unique_element_counter[applying_node] > 1:
+                        start_F_local = start_F_local / unique_element_counter[applying_node]
+                        end_F_local = end_F_local / unique_element_counter[applying_node]
+
+                        for i, element in enumerate(self.element_list):
+                            if i != current_element and applying_node in element and i in self.bar_info[bar_id]["elements"]:
+                                if not self.fext_by_element.get(i):
+                                    self.fext_by_element[i] = {
+                                        'forces_local_start': end_F_local,
+                                        'forces_local_end': start_F_local
+                                        }
+                                else:
+                                    self.fext_by_element[i]['forces_local_start'] += end_F_local
+                                    self.fext_by_element[i]['forces_local_end'] += start_F_local
+                                
+
+                if not self.fext_by_element.get(current_element):
+                    self.fext_by_element[current_element] = {
+                        'forces_local_start': start_F_local,
+                        'forces_local_end': end_F_local
+                        }
+                else:
+                    self.fext_by_element[current_element]['forces_local_start'] += start_F_local
+                    self.fext_by_element[current_element]['forces_local_end'] += end_F_local
+        
+        self.matriceF = Assembleur_COO_F
+        print("\n Matrice des forces extérieurs Fext : \n",self.matriceF,"\n")
+        # print("fext_by_element:\n", self.fext_by_element)
         return self.matriceF
 
 
     def _condition_limite(self):
         self.matriceK_CL = self.matriceK.toarray()
-        self.matriceF_CL = self.matriceF.toarray()
+        self.matriceF_CL = self.matriceF_concat.toarray()
      
         j = 0
         for i in range(len(self.matriceU)):
@@ -452,21 +815,22 @@ class MEF(Combinaison, _Base_graph):
                 j += 1
 
         
-        # plt.figure()
-        # plt.pcolormesh(self.matriceK_CL)
-        # plt.gca().invert_yaxis()
-        # plt.colorbar()
-        # plt.show()
+        plt.figure()
+        plt.pcolormesh(self.matriceK_CL)
+        plt.gca().invert_yaxis()
+        plt.colorbar()
+        plt.show()
         self.matriceK_CL = csr_matrix(self.matriceK_CL)
         self.matriceF_CL = csr_matrix(self.matriceF_CL)
         
-        # print("\n Matrice des forces extérieure Fext au condition limite: \n", self.matriceF_CL,"\n")
-        # print("\n Matrice de rigidité K au condition limite: \n", self.matriceK_CL,"\n")
+        # print("\n Matrice des forces extérieure Fext au condition limite: \n", self.matriceF_CL.toarray(),"\n")
+        # print("\n Matrice de rigidité K au condition limite: \n", self.matriceK_CL.toarray(),"\n")
         
-
+    
 
     def _equa_deplacement(self):
-        ui = spsolve(self.matriceK_CL,self.matriceF_CL)
+        ui = np.linalg.lstsq(self.matriceK_CL.toarray(),self.matriceF_CL.toarray())[0]
+        # ui = spsolve(self.matriceK_CL,self.matriceF_CL)
         j = 0
         for i in range(len(self.matriceU)):
             if self.matriceU[i]:
@@ -477,9 +841,9 @@ class MEF(Combinaison, _Base_graph):
 
 
     def _equa_reaction(self):
-        self.ri = np.dot(self.matriceK.toarray(), self.matriceU) - self.matriceF.toarray()
-        #print("\n Solution Réaction : \n", self.ri, "\n")
-        return self.ri
+        self._ri = np.dot(self.matriceK.toarray(), self.matriceU) - self.matriceF_concat.toarray()
+        # print("\n Solution Réaction : \n", self._ri, "\n")
+        return self._ri
 
 
     def reaction(self):
@@ -491,25 +855,21 @@ class MEF(Combinaison, _Base_graph):
         rmy = []
         rmz = []
         
-        for i in range(self.ele):
-            n1 = int(self.elementList[i,0])*6
-            n2 = int(self.elementList[i,1])*6
+        for i in range(len(self.element_list)):
+            n1 = int(self.element_list[i,0])*6
+            n2 = int(self.element_list[i,1])*6
 
-            r1 = self.ri[n1-6:n1,0]
-            r2 = self.ri[n2-6:n2,0]
+            r1 = self._ri[n1-6:n1,0]
+            r2 = self._ri[n2-6:n2,0]
             
             if n1 == 6:
-                
                 rx.append(r1[0]/10**3)
-                rx.append(r2[0]/10**3)
-                rz.append(r1[2]/10**3)
-                rz.append(r2[2]/10**3)
-                rmy.append(r1[4]/10**6)
-                rmy.append(r2[4]/10**6)
-            else:
-                rx.append(r2[0]/10**3)
-                rz.append(r2[2]/10**3)
-                rmy.append(r2[4]/10**6)
+                rz.append(r1[1]/10**3)
+                rmy.append(r1[5]/10**6)
+
+            rx.append(r2[0]/10**3)
+            rz.append(r2[1]/10**3)
+            rmy.append(r2[5]/10**6)
 
         self.react_coor = [rx, rz, rmy]
         return self.react_coor
@@ -549,194 +909,193 @@ class MEF(Combinaison, _Base_graph):
 
     
     def deplacement(self):
-        ux = []
-        uz = []
-        tetay = []
+        uX, uY, uZ, tetaX, tetaY, tetaZ = [], [], [], [], [], []
+        ux, uy, uz, tetax, tetay, tetaz = [], [], [], [], [], []
 
-        for i in range(self.ele):
-            n1 = int(self.elementList[i,0])*6
-            n2 = int(self.elementList[i,1])*6
+        for i in range(len(self.element_list)):
+            n1 = int(self.element_list[i,0])*6
+            n2 = int(self.element_list[i,1])*6
 
             u1 = self.matriceU[n1-6:n1,0]
             u2 = self.matriceU[n2-6:n2,0]
 
+            u_global = np.concatenate([self.matriceU[n1-6:n1,0], self.matriceU[n2-6:n2,0]])
+            # u_global = self.matriceU[n1-6:n2,0]
+            T_matrix = self._fem_info["ele"+str(i)]["T_global"]
+            u_local = np.dot(T_matrix.toarray(), u_global)
+
             if n1 == 6:
 
-                ux.append(u1[0])
-                ux.append(u2[0])
-                uz.append(u1[2])
-                uz.append(u2[2])
-                tetay.append(u1[4])
-                tetay.append(u2[4])
-            else:
-                ux.append(u2[0])
-                uz.append(u2[2])
-                tetay.append(u2[4])
+                uX.append(u_global[0])
+                ux.append(u_local[0])
 
-        self.u_coor = [ux, uz, tetay]
+                uZ.append(u_global[1])
+                uz.append(u_local[1])
+
+                uY.append(u_global[2])
+                uy.append(u_local[2])
+
+                tetaX.append(u_global[3])
+                tetax.append(u_local[3])
+
+                tetaY.append(u_global[4])
+                tetay.append(u_local[4])
+
+                tetaZ.append(u_global[5])
+                tetaz.append(u_local[5])
+
+            uX.append(u_global[6])
+            ux.append(u_local[6])
+
+            uZ.append(u_global[7])
+            uz.append(u_local[7])
+
+            uY.append(u_global[8])
+            uy.append(u_local[8])
+
+            tetaX.append(u_global[9])
+            tetax.append(u_local[9])
+
+            tetaY.append(u_global[10])
+            tetay.append(u_local[10])
+
+            tetaZ.append(u_global[11])
+            tetaz.append(u_local[11])
+
+        self.u_coor = {"uX": uX, "uY": uY, "uZ": uZ, "teta_X": tetaX, "teta_Y": tetaY, "teta_Z": tetaZ,
+                       "ux": ux, "uy": uy, "uz": uz, "teta_x": tetax, "teta_y": tetay, "teta_z": tetaz}
         return self.u_coor
         
 
     def deplacement_max(self):
+        depl_min_max = {}
+        for depl_type in self.u_coor.keys():
 
-        ux_max = max(self.u_coor[0])
-        ux_max_index = self.u_coor[0].index(ux_max)
-        ux_max_coor = [self.node_coor[ux_max_index,0], ux_max]
+            depl_max = max(self.u_coor[depl_type])
+            depl_max_index = self.u_coor[depl_type].index(depl_max)
+            depl_max_coor = {"Position": self.node_coor[depl_max_index,0], "Deplacement": depl_max}
 
-        ux_min = min(self.u_coor[0])
-        ux_min_index = self.u_coor[0].index(ux_min)
-        ux_min_coor = [self.node_coor[ux_min_index,0], ux_min]
+            depl_min = min(self.u_coor[depl_type])
+            depl_min_index = self.u_coor[depl_type].index(depl_min)
+            depl_min_coor = {"Position": self.node_coor[depl_min_index,0], "Deplacement": depl_min}
 
-        uz_max = max(self.u_coor[1])
-        uz_max_index = self.u_coor[1].index(uz_max)
-        uz_max_coor = [self.node_coor[uz_max_index,0], uz_max]
-
-        uz_min = min(self.u_coor[1])
-        uz_min_index = self.u_coor[1].index(uz_min)
-        uz_min_coor = [self.node_coor[uz_min_index,0], uz_min]
-
-        tetay_max = max(self.u_coor[2])
-        tetay_max_index = self.u_coor[2].index(tetay_max)
-        tetay_max_coor = [self.node_coor[tetay_max_index,0], tetay_max]
-
-        tetay_min = min(self.u_coor[2])
-        tetay_min_index = self.u_coor[2].index(tetay_min)
-        tetay_min_coor = [self.node_coor[tetay_min_index,0], tetay_min]
-
-        listMinMax = {"Ux_max": ux_max_coor, "Ux_min": ux_min_coor, 
-                      "Uz_max": uz_max_coor, "Uz_min": uz_min_coor, 
-                      "tetay_max": tetay_max_coor, "tetay_min": tetay_min_coor}
-
-        return listMinMax
+            depl_min_max[depl_type + "_max"] = depl_max_coor
+            depl_min_max[depl_type + "_min"] = depl_min_coor
+        return depl_min_max
 
 
-    def effort_interne(self):
-
-        ni = []
-        vi = []
-        myi = []
-        for i in range(self.ele):
-            n1 = int(self.elementList[i,0])*6
-            n2 = int(self.elementList[i,1])*6
-
-            # print("noeud 1: ", n1)
-            # print("noeud 2: ", n2, "\n")
-            
-            u1 = self.matriceU[n1-6:n1,0]
-            u2 = self.matriceU[n2-6:n2,0]
-
-            matriceF = self.matriceF.toarray()
-            f1 = matriceF[n1-6:n1,0]
-            f2 = matriceF[n2-6:n2,0]
-
-            # print("force f1: ", f1)
-            # print("force f2: ", f2, "\n")
-
-            # # l = abs(int(self.node_coor[1,0]))
-            # l = abs((self.long/ self.ele))
-            
-            # # matrice de rigidité K
-            # k = self._init_matrix_K("ALL", l)
-
-            
-
-            # print("déplacement noeud 1: ", u1)
-            # print("déplacement noeud 2: ", u2, "\n")
-
-            effortinterneN1 = np.dot(self.k_local["eleALL"]["k11_local"],u1) + np.dot(self.k_local["eleALL"]["k12_local"], u2) - f1
-            effortinterneN2 = -(np.dot(self.k_local["eleALL"]["k21_local"],u1) + np.dot(self.k_local["eleALL"]["k22_local"], u2) - f2)
-            # print(effortinterneN1)
-            # print(effortinterneN2)
-
-            if n1 == 6:
-                ni.append(effortinterneN1[0]/10**3)
-                vi.append(effortinterneN1[2]/10**3)
-                myi.append(effortinterneN1[4]/10**6)
+    def _effort_interne(self):
+        # on boucle sur les différentes barres
+        for id_bar, bar in self.bar_info.items():
+            bar["internals forces"] = {}
+            # On récupère chaque élément composants la barre
+            for i_ele in bar["elements"]:
+                bar["internals forces"][i_ele]= {"Nx": [], "Vy": [], "Vz": [], "Mx": [], "My": [], "Mz": []}
+                n1 = int(self.element_list[i_ele,0])*6
+                n2 = int(self.element_list[i_ele,1])*6
+                convention_sign = [(-1, 1), (1, -1), (-1, 1)]
+                if n1 > n2:
+                    convention_sign = [(-1, 1), (1, -1), (1, -1)]
                 
-            # else:
-            #     if round(ni[-1],3) != round(effortinterneN1[0]/10**3,3):
-            #         ni[-1] = [ni[-1], effortinterneN1[0]/10**3]
-            #     if round(vi[-1],2) != round(effortinterneN1[0]/10**3,2):
-            #         vi[-1] = [vi[-1], effortinterneN1[2]/10**3]
-            #     if round(myi[-1],6) != round(effortinterneN1[0]/10**3,6):
-            #         myi[-1] = [myi[-1], effortinterneN1[4]/10**6]
-            
-            ni.append(effortinterneN2[0]/10**3)
-            vi.append(effortinterneN2[2]/10**3)
-            myi.append(effortinterneN2[4]/10**6)
+                print("Barre: ", id_bar, " Elément : ", self.element_list[i_ele], f"{i_ele+1}/{len(self.element_list)}")
+                print("noeud 1: ", n1)
+                print("noeud 2: ", n2, "\n")
                 
-        self.ei_coor = [ni, vi, myi]
-        return self.ei_coor
+                u_global = np.concatenate([self.matriceU[n1-6:n1,0], self.matriceU[n2-6:n2,0]])
+                try:
+                    f_0 = np.concatenate([self.fext_by_element[i_ele]["forces_local_start"] ,self.fext_by_element[i_ele]["forces_local_end"]], axis=0).flatten()
+                except KeyError:
+                    f_0 = np.zeros((12,))
+                T_matrix = self._fem_info["ele"+str(i_ele)]["T_global"]
+
+                # print("déplacement:\n", u_global)
+                # print("\n force ext.:\n", f_0)
+                # print("\n Transform matrix:\n", T_matrix.toarray())
+                # print("\n K local matrix:\n", self._fem_info["ele"+str(i_ele)]["k_local"])
+
+                internal_forces = np.dot(self._fem_info["ele"+str(i_ele)]["k_local"], np.dot(T_matrix.toarray(), u_global)) - np.dot(T_matrix.toarray(), f_0)
+                # print("déplacement local:\n", np.dot(T_matrix.toarray(), u_global))
+                # print("F local total:\n", np.dot(self._fem_info["ele"+str(i_ele)]["k_local"], np.dot(T_matrix.toarray(), u_global)), "\n\n")
+                # print("effort interne:\n", internal_forces, "\n\n")
+                    
+                bar["internals forces"][i_ele]["Nx"].append(convention_sign[0][0] * internal_forces[0]/10**3)
+                bar["internals forces"][i_ele]["Nx"].append(convention_sign[0][1] * internal_forces[6]/10**3)
+
+                bar["internals forces"][i_ele]["Vz"].append(convention_sign[1][0] * internal_forces[1]/10**3)
+                bar["internals forces"][i_ele]["Vz"].append(convention_sign[1][1] * internal_forces[7]/10**3)
+
+                bar["internals forces"][i_ele]["Vy"].append(convention_sign[1][0] * internal_forces[2]/10**3)
+                bar["internals forces"][i_ele]["Vy"].append(convention_sign[1][1] * internal_forces[8]/10**3)
+
+                bar["internals forces"][i_ele]["Mx"].append(convention_sign[2][0] * internal_forces[3]/10**6)
+                bar["internals forces"][i_ele]["Mx"].append(convention_sign[2][1] * internal_forces[9]/10**6)
+
+                bar["internals forces"][i_ele]["Mz"].append(convention_sign[2][0] * internal_forces[4]/10**6)
+                bar["internals forces"][i_ele]["Mz"].append(convention_sign[2][1] * internal_forces[10]/10**6)
+
+                bar["internals forces"][i_ele]["My"].append(convention_sign[2][0] * internal_forces[5]/10**6)
+                bar["internals forces"][i_ele]["My"].append(convention_sign[2][1] * internal_forces[11]/10**6)
+
+    
+    def get_internal_forces(self, bar_id: int):
+        """Retourne les efforts internes sous forme de dictionnaire avec comme clé l'id de l'élément de la barre.
+        On récupère ensuite les efforts par typologie avec un tuple pour chaque élément composant la barre avec le noeud 1 puis le noeud 2.
+
+        Returns:
+            dict[dict[tuple]]: Dictionnaire des efforts internes en kN et kN.m par barre.
+        """
+        return self.bar_info[bar_id]["internals forces"]
     
 
     def effort_interne_position(self, position: int):
         position_index = self._nearest_node(position)
-        nx = self.ei_coor[0][position_index[0]]
-        vz = self.ei_coor[1][position_index[0]]
-        my = self.ei_coor[2][position_index[0]]
-        print(f"la position la plus proche est {position_index[1]} mm", {"Nx": nx, "Vz": vz, "My": my})
-        return {"Nx": nx, "Vz": vz, "My": my}
+        nx = self._ei_coor["Nx"][position_index[0]]
+        vy = self._ei_coor["Vy"][position_index[0]]
+        vz = self._ei_coor["Vz"][position_index[0]]
+        my = self._ei_coor["My"][position_index[0]]
+        mz = self._ei_coor["Mz"][position_index[0]]
+        print(f"la position la plus proche est {position_index[1]} mm", {"Nx": nx, "Vy": vy, "Vz": vz, "My": my, "Mz": mz})
+        return {"Nx": nx, "Vy": vy, "Vz": vz, "My": my, "Mz": mz}
     
 
-    
-    def effort_interne_max(self):
-        """ Retourne les efforts min et max d'une liste d'effort interne """
+    def max_internal_forces(self, bar_id: int):
+        """ Retourne les efforts min et max d'une barre spécifique"""
+        ei_min_max = {}
+        force_type_init = {}
 
-        # def max_min_list_load(get_max: bool=True, nested_list=[]):
-        #     item_value = 0
-        #     index_item_value = 0
-        #     for index, item in enumerate(nested_list):
-        #         if isinstance(item, list):
-        #             if get_max:
-        #                 item = max(item)
-        #             else:
-        #                 item = min(item)
-        #         if get_max and (item > item_value):
-        #             item_max = item
-        #             index_item_value = index
-        #         elif not get_max and (item < item_value):
-        #             item_max = item
-        #             index_item_value = index
-        #     return item_value, index_item_value
-                
+        # On itère sur chaque élément de la barre et l'on récupère les efforts internes
+        for i_ele, forces in  self.bar_info[bar_id]["internals forces"].items():
+            node = [int(self.element_list[i_ele][0])-1, int(self.element_list[i_ele][1])-1]
 
-        # nx_max, nx_max_index = max_min_list_load(get_max=True, nested_list=self.ei_coor[0])
-        nx_max = max(self.ei_coor[0])
-        nx_max_index = self.ei_coor[0].index(nx_max)
-        nx_max_coor = {"Position": self.node_coor[nx_max_index,0], "Effort": nx_max}
+            # On itère sur les efforts internes par type de force.
+            for force_type, values in forces.items():
+                # Initialisation du dictionnaire quand un nouveau type de force est présent
+                if not force_type_init.get(force_type):
+                    force_type_init[force_type] = {"force_max": 0, "force_min": 0}
+                    ei_min_max[force_type + "_max"] = {"Position": 0, "Effort": 0}
+                    ei_min_max[force_type + "_min"] = {"Position": 0, "Effort": 0}
+                force_max = force_type_init[force_type]["force_max"]
+                force_min = force_type_init[force_type]["force_min"]
+                max_value = max(values)
+                min_value = min(values)
 
-        # nx_min, nx_min_index = max_min_list_load(get_max=False, nested_list=self.ei_coor[0])
-        nx_min = min(self.ei_coor[0])
-        nx_min_index = self.ei_coor[0].index(nx_min)
-        nx_min_coor = {"Position": self.node_coor[nx_min_index,0], "Effort": nx_min}
-
-        # vz_max, vz_max_index = max_min_list_load(get_max=True, nested_list=self.ei_coor[1])
-        vz_max = max(self.ei_coor[1])
-        vz_max_index = self.ei_coor[1].index(vz_max)
-        vz_max_coor = {"Position": self.node_coor[vz_max_index,0], "Effort": vz_max}
-
-        # vz_min, vz_min_index = max_min_list_load(get_max=False, nested_list=self.ei_coor[1])
-        vz_min = min(self.ei_coor[1])
-        vz_min_index = self.ei_coor[1].index(vz_min)
-        vz_min_coor = {"Position": self.node_coor[vz_min_index,0], "Effort": vz_min}
-
-        # my_max, my_max_index = max_min_list_load(get_max=True, nested_list=self.ei_coor[2])
-        my_max = max(self.ei_coor[2])
-        my_max_index = self.ei_coor[2].index(my_max)
-        my_max_coor = {"Position": self.node_coor[my_max_index,0], "Effort": my_max}
-
-        # my_min, my_min_index = max_min_list_load(get_max=False, nested_list=self.ei_coor[2])
-        my_min = min(self.ei_coor[2])
-        my_min_index = self.ei_coor[2].index(my_min)
-        my_min_coor = {"Position": self.node_coor[my_min_index,0], "Effort": my_min}
-
-        return {"Nx_max": nx_max_coor,"Nx_min": nx_min_coor, 
-                "Vz_max": vz_max_coor, "Vz_min": vz_min_coor, 
-                "My_max": my_max_coor, "My_min": my_min_coor}
+                # On test si la valeur est supérieur ou inférieur à la valeur précédente
+                if max_value >= force_max:
+                    force_type_init[force_type]["force_max"] = max_value
+                    force_max_index = values.index(max_value)
+                    x_local = self.global_to_local(self.node_coor[node[force_max_index]], self.bar_info[bar_id])
+                    force_max_coor = {"Position": x_local, "Effort": max_value}
+                    ei_min_max[force_type + "_max"] = force_max_coor
+                if min_value <= force_min:
+                    force_type_init[force_type]["force_min"] = min_value
+                    force_min_index = values.index(min_value)
+                    x_local = self.global_to_local(self.node_coor[node[force_min_index]], self.bar_info[bar_id])
+                    force_min_coor = {"Position": x_local, "Effort": min_value}
+                    ei_min_max[force_type + "_min"] = force_min_coor
+        return ei_min_max
 
 
-
-    def _graphique_reaction_Z(self, name_combi: str):
+    def show_graphique_reaction_Z(self, name_combi: str):
         """ Retourne le diagramme des réactions d'appuis Z """
 
         self.name = name_combi
@@ -756,14 +1115,10 @@ class MEF(Combinaison, _Base_graph):
         
         self.save_path = os.path.join(self.SAVE_PATH, "reactionZ.png")
         self._base_graphique()
-        
-    
-    def show_graphique_reaction_Z(self, name_combi: str):
-        self._graphique_reaction_Z(name_combi)
         plt.show()
 
 
-    def _graphique_reaction_X(self, name_combi: str):
+    def show_graphique_reaction_X(self, name_combi: str):
         """ Retourne le diagramme des réactions d'appuis X """
         
         self.name = name_combi
@@ -783,214 +1138,94 @@ class MEF(Combinaison, _Base_graph):
         
         self.save_path = os.path.join(self.SAVE_PATH, "reactionX.png")
         self._base_graphique()
-
-
-    def show_graphique_reaction_X(self, name_combi):
-        self._graphique_reaction_X(name_combi)
         plt.show()
 
 
-    def _graphique_fleche(self, name_combi:str):
+    def show_graphique_fleche(self, bar_id: int, name_combi:str, axe: str=("y", "z")):
 
         self.name = name_combi
-        self.title = 'Flèche z : '
+        self.title = f'Barre {bar_id}: Flèche {axe}: '
         self.color = "g"
         self.y_label = "Déplacement \n(mm)"
         self.unit = " mm"
-        self.x_values = self.node_coor
-        self.y_values = self.u_coor[1]
+        self.x_values, self.y_values = self.get_local_coor_value_in_bar(self.u_coor[f"u{axe}"], bar_id)
         
         dictUMinMax = self.deplacement_max()
-        self.max_XY_values = (dictUMinMax["Uz_max"][0], dictUMinMax["Uz_max"][1])
-        self.min_XY_values = (dictUMinMax["Uz_min"][0], dictUMinMax["Uz_min"][1])
+        self.max_XY_values = (dictUMinMax[f"u{axe}_max"]["Position"], dictUMinMax[f"u{axe}_max"]["Deplacement"])
+        self.min_XY_values = (dictUMinMax[f"u{axe}_min"]["Position"], dictUMinMax[f"u{axe}_min"]["Deplacement"])
         self.excent_X = 1
         self.excent_Y = 0.05
         self.fill_between = True
-        self.fill_between_X = self.node_coor.flatten().tolist()
+        self.fill_between_X = self.x_values
         
-        self.save_path = os.path.join(self.SAVE_PATH, "fleche.png")
+        self.save_path = os.path.join(self.SAVE_PATH, f"fleche{axe}.png")
         self._base_graphique()
-    
-    
-    def show_graphique_fleche(self, name_combi:str):
-        self._graphique_fleche(name_combi)
         plt.show()
 
 
-    def _graphique_Nx(self, name_combi:str):
+    def show_graphique_Nx(self, bar_id: int, name_combi:str):
         """ Retourne le diagramme des efforts normaux """
         
         self.name = name_combi
-        self.title = 'Efforts normaux Nx : '
+        self.title = f'Barre {bar_id}: Efforts normaux Nx : '
         self.color = "orange"
-        self.x_values = self.node_coor
-        self.y_values = self.ei_coor[0]
+        self.x_values, self.y_values = self.get_local_internal_forces_coor_value_in_bar(self.bar_info[bar_id]["internals forces"], "Nx", bar_id)
         
-        dictEiMinMax = self.effort_interne_max()
+        dictEiMinMax = self.max_internal_forces(bar_id)
         self.max_XY_values = (dictEiMinMax["Nx_max"]["Position"], dictEiMinMax["Nx_max"]["Effort"])
         self.min_XY_values = (dictEiMinMax["Nx_min"]["Position"], dictEiMinMax["Nx_min"]["Effort"])
         self.excent_X = 100
         self.excent_Y = 0.05
         self.fill_between = True
-        self.fill_between_X = self.node_coor.flatten().tolist()
+        self.fill_between_X = self.x_values
         
         self.save_path = os.path.join(self.SAVE_PATH, "Nx.png")
         self._base_graphique()
-    
-
-    def show_graphique_Nx(self, name_combi:str):
-        self._graphique_Nx(name_combi)
         plt.show()
 
 
-    def _graphique_Vz(self, name_combi:str):
-        """ Retourne le diagramme des efforts tranchant en Z """
+    def show_graphique_V(self, bar_id: int, name_combi:str, axe: str=("y", "z")):
+        """ Retourne le diagramme des efforts tranchant suivant l'axe donnée y ou z local"""
 
         self.name = name_combi
-        self.title = 'Efforts tranchants Vz : '
+        self.title = f'Barre {bar_id}: Efforts tranchants V{axe}: '
         self.color = 'b'
-        # self.x_values = []
-        self.x_values = self.node_coor
-        self.y_values = self.ei_coor[1]
-        # self.y_values = []
-        # for index, value in enumerate(self.ei_coor[1]):
-        #     if isinstance(value, list):
-        #         for i in range(len(value)):
-        #             self.x_values.append(self.node_coor[index,0])
-        #             self.y_values.append(value[i])
-        #     else:
-        #         self.x_values.append(self.node_coor[index,0])
-        #         self.y_values.append(value[i])
+        self.x_values, self.y_values = self.get_local_internal_forces_coor_value_in_bar(self.bar_info[bar_id]["internals forces"], f"V{axe}", bar_id)
         
-        dictEiMinMax = self.effort_interne_max()
-        self.max_XY_values = (dictEiMinMax["Vz_max"]["Position"], dictEiMinMax["Vz_max"]["Effort"])
-        self.min_XY_values = (dictEiMinMax["Vz_min"]["Position"], dictEiMinMax["Vz_min"]["Effort"])
+        dictEiMinMax = self.max_internal_forces(bar_id)
+        self.max_XY_values = (dictEiMinMax[f"V{axe}_max"]["Position"], dictEiMinMax[f"V{axe}_max"]["Effort"])
+        self.min_XY_values = (dictEiMinMax[f"V{axe}_min"]["Position"], dictEiMinMax[f"V{axe}_min"]["Effort"])
         self.excent_X = 50
         self.excent_Y = 1
         self.fill_between = True
-        self.fill_between_X = self.node_coor.flatten().tolist()
+        self.fill_between_X = self.x_values
         
-        self.save_path = os.path.join(self.SAVE_PATH, "Vz.png")
+        self.save_path = os.path.join(self.SAVE_PATH, f"V{axe}.png")
         self._base_graphique()
-    
-
-    def show_graphique_Vz(self, name_combi:str):
-        self._graphique_Vz(name_combi)
         plt.show()
 
     
-    def _graphique_My(self, name_combi:str):
-        """ Retourne le diagramme des efforts de moment autour de My """
+    def show_graphique_M(self, bar_id: int, name_combi:str, axe: str=("y", "z")):
+        """ Retourne le diagramme des efforts de moment autour de M suivant l'axe y ou z local """
 
         self.name = name_combi
-        self.title = 'Moments My : '
+        self.title = f'Barre {bar_id}: Moments M{axe} : '
         self.color = 'r'
         self.y_label = "Effort (kN.m)"
         self.unit = " kN.m"
-        self.x_values = self.node_coor
-        self.y_values = self.ei_coor[2]
+        self.x_values, self.y_values = self.get_local_internal_forces_coor_value_in_bar(self.bar_info[bar_id]["internals forces"], f"M{axe}", bar_id)
         
-        dictEiMinMax = self.effort_interne_max()
-        self.max_XY_values = (dictEiMinMax["My_max"]["Position"], dictEiMinMax["My_max"]["Effort"])
-        self.min_XY_values = (dictEiMinMax["My_min"]["Position"], dictEiMinMax["My_min"]["Effort"])
+        dictEiMinMax = self.max_internal_forces(bar_id)
+        self.max_XY_values = (dictEiMinMax[f"M{axe}_max"]["Position"], dictEiMinMax[f"M{axe}_max"]["Effort"])
+        self.min_XY_values = (dictEiMinMax[f"M{axe}_min"]["Position"], dictEiMinMax[f"M{axe}_min"]["Effort"])
         self.excent_X = 1
         self.excent_Y = 1
         self.fill_between = True
-        self.fill_between_X = self.node_coor.flatten().tolist()
+        self.fill_between_X = self.x_values
         
-        self.save_path = os.path.join(self.SAVE_PATH, "My.png")
+        self.save_path = os.path.join(self.SAVE_PATH, f"M{axe}.png")
         self._base_graphique()
-
-    def show_graphique_My(self, name_combi):
-        self._graphique_My(name_combi)
         plt.show()
-
-    
-    def show_graph_loads_and_supports(self):
-        """Affiche le graphique des charges et des appuis du MEF
-        """
-        # Conversion des positions en valeurs numériques
-        def parse_position(position, charge):
-            position = str(position)
-            charge = -charge
-            parts = position.split("/")
-            if len(parts) == 1:
-                return [int(parts[0])]*2, [0,charge]
-            elif len(parts) == 2:
-                return [pos for pos in range(int(parts[0]), int(parts[1]), 1)], [charge for _ in range(int(parts[0]), int(parts[1]), 1)]
-            else:
-                return None
-
-        # Création du graphique
-        plt.figure(figsize=(12, 4))
-        for i, load in enumerate(self.list_loads):
-            charge = load[4]
-            parser = parse_position(load[5], charge)
-            charge = round(-charge,2)
-            nom = " / ".join([load[1], load[2], load[3], load[6]])
-            if len(parser[1]) != 2:
-                unit_load = "daN/m"
-                plt.plot(parser[0], parser[1], label=nom)
-                plt.fill_between(parser[0], parser[1], alpha=0.3)
-            else:
-                unit_load = "daN"
-                plt.plot(parser[0], parser[1], marker="o",label=nom)
-            plt.text(parser[0][1]+1000, charge+2, f'{charge} {unit_load}', ha='right')
-
-        for support in self.list_supports:
-            if support[1] == "Rotule":
-                support_type = "o"
-            elif support[1] == "Encastrement":
-                support_type = "s"
-            else:
-                support_type = "^"
-            plt.plot(support[2], 0, marker=support_type, markersize=10, color="red", label=f"Appui {support[0]} / {support[1]}")
-
-        plt.title('Schématisation des charges')
-        plt.xlabel('Position (m)')
-        plt.ylabel('Charge (daN ou daN/m)')
-        plt.legend()
-        plt.grid(True)
-        plt.show()
-
-
-    def get_supports(self):
-        """Retourne la liste des appuis définis.
-        """
-        return self.list_supports
-
-    def create_support(self, type_appuis: str=("Simple", 'Rotule', 'Encastrement'), pos: int=0, l_appuis: int=0):
-        """Ajoute un appuis dans la liste d'appuis de la classe MEF
-
-        Args:
-            type_appuis (str, optional): type d'appuis à créer. Defaults to ("Simple", 'Rotule', 'Encastrement').
-            pos (int, optional): position de l'appuis sur la poutre en mm. Defaults to 0.
-            l_appuis (int, optional): longueur d'appuis sur la poutre en mm. Defaults to 0.
-        """
-        load = (len(self.list_supports)+1, type_appuis, pos, l_appuis)
-        self.list_supports.append(load)
-        return load
-
-    
-    def create_supports_by_list(self, list_supports: list):
-        """Ajoute les charges d'une liste pré-défini dans la liste de chargement
-
-        Args:
-            list_supports (list): liste de charge.
-        """
-        for support in list_supports:
-            self.list_supports.append(support)
-        return self.list_supports
-
-
-    def del_support(self, index_load: int):
-        """Supprime une charge de l'attribut list_supports par son index
-
-        Args:
-            index_load (int): index de la charge à supprimer.
-        """
-        return self.list_supports.pop(index_load-1)
-    
 
 
     def calcul_1D(self):
@@ -999,22 +1234,25 @@ class MEF(Combinaison, _Base_graph):
         Args:
             list_loads (list): liste des charges combinées sur la poutre MEF.
         """
-        #start = time.time()
+        start = time.time()
+        loads = self.combinaison.get_all_loads()
+        supports = self.get_supports()
+        self._matrice_Fext_1D(loads)
+        self._matrice_U_1D(supports)
         self._matrice_K_1D()
-        self._matrice_Fext_1D(self.list_loads)
-        self._matrice_U_1D(self.list_supports)
 
         self._condition_limite()
         self._equa_deplacement()
         self._equa_reaction()
 
         self.reaction()
-        self.effort_interne()
+        self._effort_interne()
         self.deplacement()
         
-        # end = time.time()
-        # elapsed = end - start
-        # print(f'Temps d\'exécution : {elapsed:.2}s')
+        end = time.time()
+        elapsed = end - start
+        print(f'Temps d\'exécution : {elapsed:.2}s')
+
     
     def graphique(self, name_combi:str):
         """Affiche le graphique des efforts internes, des réactions d'appuis et de la flèche,
@@ -1028,39 +1266,97 @@ class MEF(Combinaison, _Base_graph):
             self.show_graphique_reaction_Z(name_combi)
             self.show_graphique_reaction_X(name_combi)
             self.show_graphique_Nx(name_combi)
-            self.show_graphique_Vz(name_combi)
-            self.show_graphique_My(name_combi)
+            self.show_graphique_V(name_combi, "z")
+            self.show_graphique_M(name_combi, "y")
         else:
             self.show_graphique_fleche(name_combi)
         
 
 if __name__ == '__main__':
     from EC0_Combinaison import Chargement
-    # _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/6000", 'Z'],
-    #              [2, '', "Neige normale Sn", 'Linéique', -200, "0/6000", 'Z']]
-    _list_loads = [[1, '', 'Permanente G', 'Linéique', -100, "0/5000", 'Z'],
-                [2, '', "Neige normale Sn", 'Linéique', -200, "0/5000", 'Z']]
+    import json
+    b = 100
+    h = 100
+    a = b*h
+    Iy = (b*h**3)/12
+    Iz = (h*b**3)/12
+
+    # _list_loads = [
+    #             [2, '', -83333.3333333, "0/end", 'Permanente G', 'Z'],
+    #             ]
+
+    _list_loads = []
+    for i in range(3,7):
+        print(i)
+        _list_loads.append([i, '', -1000, "0/end", 'Permanente G', 'Z'])
+
     chargement = Chargement(pays="Japon")
+
+    # chargement.add_bar(0,0,0,360,360,0,a)
+    # # chargement.add_bar(840,360,0,360,360,0,a)
+    # chargement.add_bar(360,360,0,840,360,0,a)
+
+    chargement.add_bar(0,0,0,4000,0,0,a)
+    chargement.add_bar(4000,0,0,8000,0,0,a)
+
+    chargement.add_bar(0,0,0,2000,2000,0,a)
+    chargement.add_bar(2000,2000,0,4000,4000,0,a)
+    chargement.add_bar(4000,4000,0,6000,2000,0,a)
+    chargement.add_bar(6000,2000,0,8000,0,0,a)
+
+
+
+    chargement.add_bar(4000,0,0,2000,2000,0,a)
+    chargement.add_bar(4000,0,0,4000,4000,0,a)
+    chargement.add_bar(6000,2000,0,4000,0,0,a)
+
     chargement.create_load_by_list(_list_loads)
     c1 = Combinaison._from_parent_class(chargement, cat="Cat A : habitation", kdef=0.6)
     # print(c1.list_combination)
     rcombi = "ELU_STR G"
     print(c1.get_combi_list_load(rcombi))
-    long = 5000
-    ele = 500
-    
-    b = 60
-    h = 100
-    a = b*h
-    iy = (b*h**3)/12
-    iz = (h*b**3)/12
-    test = MEF._from_parent_class(c1, long=long,E=11000,A=a, G=690, J=690, Iy=iy, Iz=iz, ele=ele, alphaZ=0, alphaY=0, alphaX=0)
 
-    listdeplacement = [[1, "Simple", 0, 0], [2, "Rotule", long, 0]]
-    test.create_supports_by_list(listdeplacement)
+
     
-    test.calcul_1D()
-    # print(test.reaction_max())
-    test.graphique(rcombi)
-    test.show_graphique_fleche(rcombi)
-    # test.show_graph_loads_and_supports()
+    chargement.add_relaxation(7, "start")
+    chargement.add_relaxation(7, "end")
+    chargement.add_relaxation(8, "start")
+    chargement.add_relaxation(9, "start")
+    chargement.add_relaxation(9, "end")
+
+    chargement.add_relaxation(4, "end")
+    chargement.add_relaxation(5, "start")
+    
+    chargement.add_relaxation(1, "start")
+    chargement.add_relaxation(2, "end")
+
+    for i in range(9):
+        chargement.add_material_by_class(i+1, Iy, Iz, "C24")
+
+    # chargement.add_material_by_mechanical_properties(1, 30*10**6, 0, 0, 1000, 1000)
+    # chargement.add_material_by_mechanical_properties(2, 30*10**6, 0, 0, 1000, 1000)
+
+    listdeplacement = [
+                    [1, "Rotule", "start", 0],
+                    [2, "Rotule", "end", 0],
+                    [4, "Simple Y", "end", 0],
+                    ]
+    chargement.create_supports_by_list(listdeplacement)
+   
+    
+    mef = FEM._from_parent_class(chargement, combinaison=c1)
+    
+    mef.calcul_1D()
+    with open("bars_infos.json", "w") as file:
+        json.dump(chargement.bar_info, file, indent=4)
+    mef.show_graph_loads_and_supports(scale_internal_forces=40, scale_deplacement=15)
+    bar = 2
+    mef.show_graphique_reaction_Z("elu")
+    mef.show_graphique_Nx(bar, "ELU_STR G")
+    mef.show_graphique_V(bar, "ELU_STR G", "z")
+    mef.show_graphique_M(bar, "ELU_STR G", "y")
+    mef.show_graphique_fleche(bar, "ELU_STR G", "z")
+    # print(mef.reaction_max())
+    # mef.graphique(rcombi)
+    # mef.show_graphique_fleche(rcombi)
+    # mef.show_graph_loads_and_supports()
