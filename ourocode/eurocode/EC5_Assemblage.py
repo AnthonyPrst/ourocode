@@ -176,8 +176,8 @@ class Assemblage(Projet):
             k_type = 2
         @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():    
-            kser_ass = K_ser * n_file * n * n_Cis * k_type
-            return kser_ass
+            K_ser_ass = K_ser * n_file * n * n_Cis * k_type
+            return K_ser_ass
         return val()
 
 
@@ -1261,30 +1261,28 @@ class Boulon(Assemblage):
 
 
     # 8.5.2 Boulons chargés axialement
-    def FaxRk(self, d_int: float=0, d_ext: float=0, filetage_EN1090: bool=("True", "False"), loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
+    def FaxRk(self, d_int: float=0, d_ext: float=0, filetage_EN1090: bool=("True", "False")):
         """Calcul la résistance axial caractéristique d'un boulon chargé axialement à partir soit de la rondelle soit de la plaque métalique.
 
         Args:
             d_int (float, optional): diamètre intérieur de la rondelle en mm ou du trou de perçage dans la plaque métallique. Defaults to 0.
             d_ext (float, optional): diamètre extérieur de la rondelle en mm. Defaults to 0.
             filetage_EN1090 (bool, optional): défini si le filetage est conforme à l'EN 1090, soit matricé. Si filetage usiné alors False. Defaults to True.
-            loadtype (str): chargement de plus courte durée sur l'élément.
-            typecombi (str): type de combinaison, fondamentale ou accidentelle.
 
         Returns:
             FaxRk: la résistance axial d'un boulon en N
         """
-        from EC3_Assemblage import Tige
+        from ourocode.eurocode.EC3_Assemblage import Tige
         d_int = d_int * si.mm
         d_ext = d_ext * si.mm
 
         if self._type_beam[0] == "Métal":
             FtRd = Tige(self.d.value*10**3, d_int, self.qualite, True, filetage_EN1090, t=self.beam_1.t.value*10**3, h=self.beam_1.h.value*10**3, classe_acier=self.beam_1.classe_acier, classe_transv=self.beam_1.classe_transv).FtRd
             d_ext = min(self.beam_1.t*12, 4*self.d)
-            fc_90_d = self.beam_2._f_type_d("fc90k", loadtype, typecombi)[1]
+            fc_90_k = float(self.beam_2.caract_meca.loc["fc90k"]) * si.MPa
         else:
             FtRd = Tige(self.d.value*10**3, d_int, self.qualite, True, filetage_EN1090, t=0, h=0, classe_acier="S235", classe_transv=3).FtRd
-            fc_90_d = self.beam_1._f_type_d("fc90k", loadtype, typecombi)[1]
+            fc_90_k = float(self.beam_1.caract_meca.loc["fc90k"]) * si.MPa
 
         Ft_Rd = FtRd[1]
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -1292,8 +1290,8 @@ class Boulon(Assemblage):
             A_int = pi * (d_int / 2)**2 
             A_rondelle = pi * (d_ext / 2)**2 - A_int
 
-            f_c90_d_rond = fc_90_d * 3
-            F_c90_d = f_c90_d_rond * A_rondelle
+            f_c90_k_rond = fc_90_k * 3
+            F_c90_d = f_c90_k_rond * A_rondelle
             F_ax_Rk = min(F_c90_d, Ft_Rd)
             return F_ax_Rk
         FaxRk = val()
