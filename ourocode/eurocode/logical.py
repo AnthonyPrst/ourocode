@@ -64,7 +64,7 @@ class For(Objet):
         self.SELECTION = ["Tous"] + list(items)
         print(self.SELECTION)
 
-    def get_item(self, selection: str="Tous"):
+    def get_item(self, selection: str=SELECTION):
         """Retourne un élément spécifique ou la sélection."""
         if selection == "Tous":
             self.counter += 1
