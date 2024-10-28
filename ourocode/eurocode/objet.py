@@ -48,30 +48,7 @@ class Objet(object):
     
 
     @classmethod
-    def _from_dict(cls, dictionary:dict):
-        """Class méthode permetant l'intanciation des classe hérité de la classe parent, par une classe déjà instanciée.
-
-        Args:
-            object (class object): l'objet Element déjà créer par l'utilisateur
-        """ 
-        # dict_physical = {}
-        # # Si on argument utilise forallpeople on récupère que la valeur pour ne pas multiplier l'unité par elle même
-        # for key, val in dictionary.items():
-        #     if isinstance(val, si.Physical):
-        #         physical = val.split(base_value=False)
-        #         dict_physical[key] = physical[0]
-
-        # dictionary.update(dict_physical)
-        return cls(**dictionary)
-    
-    @classmethod
-    def _from_parent_class(cls, objet: list|object, **kwargs):
-        """Class méthode permetant l'intanciation des classe hérité de la classe parent, par une classe déjà instanciée.
-
-        Args:
-            object (class object): l'objet Element déjà créer par l'utilisateur
-        """
-        def convert_unit_physical(value: int|float, si_unit: si.Physical, unit_to_convert: si.Physical):
+    def _convert_unit_physical(cls, value: int|float, si_unit: si.Physical, unit_to_convert: si.Physical):
             """Convertie l'unité de base dans l'unité nécessaire à l'instanciation de la classe parente
 
             Args:
@@ -94,32 +71,59 @@ class Objet(object):
                     if unit_to_convert == str(si.kN):
                         return value * 10**-3
             return value
-                    
-        def reset_physical(objet: object):
-            dict_physical = {}
-            dictionnary = objet.__dict__
-            # Si un argument utilise forallpeople on récupère que la valeur pour ne pas multiplier l'unité par elle même
-            for key, val in dictionnary.items():
-                if isinstance(val, si.Physical):
-                    physical = val.split(base_value=True)
+    
+    @classmethod           
+    def _reset_physical_dictionnary(cls, objet: object, dictionnary: dict):
+        dict_physical = {}
+        # Si un argument utilise forallpeople on récupère que la valeur pour ne pas multiplier l'unité par elle même
+        for key, val in dictionnary.items():
+            if isinstance(val, si.Physical):
+                physical = val.split(base_value=True)
+                # On test si l'objet est une classe ou une instance de classe
+                if isinstance(objet, type):
+                    mro = objet.mro()
+                else:
                     mro = type(objet).mro()
-                    for objt in mro:
-                        spec = inspect.getfullargspec(objt.__init__).annotations
-                        if spec.get(key):
-                            unit = spec[key]
-                            value = convert_unit_physical(physical[0], physical[1], unit)
-                            dict_physical[key] = value
-                            break
-            return dict_physical
+                for objt in mro:
+                    spec = inspect.getfullargspec(objt.__init__).annotations
+                    if spec.get(key):
+                        unit = spec[key]
+                        value = cls._convert_unit_physical(physical[0], physical[1], unit)
+                        dict_physical[key] = value
+                        break
+        return dict_physical
+    
+    @classmethod           
+    def _reset_physical_object(cls, objet: object):
+        dictionnary = objet.__dict__
+        return cls._reset_physical_dictionnary(objet, dictionnary)
+    
+    
 
+    @classmethod
+    def _from_dict(cls, dictionary:dict):
+        """Class méthode permetant l'intanciation des classe hérité de la classe parent, par une classe déjà instanciée.
+
+        Args:
+            object (class object): l'objet Element déjà créer par l'utilisateur
+        """ 
+        return cls(**dictionary)
+    
+    @classmethod
+    def _from_parent_class(cls, objet: list|object, **kwargs):
+        """Class méthode permetant l'intanciation des classe hérité de la classe parent, par une classe déjà instanciée.
+
+        Args:
+            object (class object): l'objet Element déjà créer par l'utilisateur
+        """
         dict_objet = {}
         if isinstance(objet, list):
             for obj in objet:
                 dict_objet.update(obj.__dict__)
-                dict_objet.update(reset_physical(obj))
+                dict_objet.update(Objet._reset_physical_object(obj))
         else:
             dict_objet = objet.__dict__
-            dict_objet.update(reset_physical(objet))
+            dict_objet.update(Objet._reset_physical_object(objet))
         return cls(**dict_objet, **kwargs)
 
     
