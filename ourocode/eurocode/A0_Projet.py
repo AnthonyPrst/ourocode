@@ -11,7 +11,6 @@ from handcalcs.decorator import handcalc
 # from objet import Objet
 from ourocode.eurocode.objet import Objet
 
-
 class Projet(Objet):
     JUPYTER_DISPLAY = False
     def __init__(self, ingenieur: str=None, num_project: str=None, name: str=None, adresse: str=None, 

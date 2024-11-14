@@ -6,8 +6,7 @@ import pandas as pd
 
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 # from A0_Projet import Bar_generator
-from eurocode.A0_Projet import Bar_generator
-
+from ourocode.eurocode.A0_Projet import Bar_generator
 
 class Chargement(Bar_generator):
 	ACTION = ("Permanente G", 
