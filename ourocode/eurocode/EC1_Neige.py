@@ -292,7 +292,6 @@ class Neige(Batiment):
 				mu_1 = self.mu["mu1"]
 				if isinstance(mu_1, tuple):
 					mu_1 = mu_1[1]
-				mu_1 = self.mu[1]["mu1"]
 				@handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
 				def val():
 					S_x = C_e * C_t * S_Ad * mu_1
