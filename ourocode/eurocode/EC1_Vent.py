@@ -122,13 +122,7 @@ class Vent(Batiment):
         Cdir = 1
         Cseason = 1
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             V_b = V_b_0 * Cdir * Cseason
             return V_b
@@ -144,13 +138,7 @@ class Vent(Batiment):
         """
         z = self.z.value
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             rayon_secteur_angu = max(23 * z**1.2, 300) * si.m
             return rayon_secteur_angu
@@ -248,17 +236,10 @@ class Vent(Batiment):
         C_o_z = self.Co_z
         V_b = self.Vb[1]
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             V_m_z = C_r_z * C_o_z * V_b
             return V_m_z
-
         return val()
 
     @property
@@ -315,13 +296,7 @@ class Vent(Batiment):
         V_b = self.Vb[1]
         rho_air = self.RHO_AIR
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             Q_b = 0.5 * rho_air * V_b**2  # 4.10
             return Q_b
@@ -340,13 +315,7 @@ class Vent(Batiment):
         rho_air = self.RHO_AIR
         V_m_z = self.Vm_z[1]
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             Q_p_z = (1 + 7 * I_v_z) * 0.5 * rho_air * V_m_z**2  # 4.8
             return Q_p_z
@@ -363,13 +332,7 @@ class Vent(Batiment):
         Q_p_z = self.Qp_z[1]
         Q_b = self.Qb[1]
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             Ce_z = Q_p_z / Q_b  # 4.9
             return Ce_z
@@ -388,13 +351,7 @@ class Vent(Batiment):
         Q_p_z = self.Qp_z[1]
         C_pe = Cpe
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             W_e = Q_p_z * C_pe  # 5.1
             return W_e
@@ -412,13 +369,7 @@ class Vent(Batiment):
         Q_p_z = self.Qp_z[1]
         C_pi = Cpi
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             W_e = Q_p_z * C_pi  # 5.2
             return W_e
@@ -453,13 +404,7 @@ class Vent(Batiment):
         C_fr = self.CFR[Cfr]
         Q_p_z = self.Qp_z[1]
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             F_fr = C_fr * Q_p_z * A_fr
             return F_fr
