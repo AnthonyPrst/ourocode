@@ -11,12 +11,12 @@ import math as mt
 from scipy.sparse import coo_matrix, csr_matrix
 from scipy.sparse.linalg import spsolve
 
-sys.path.append(os.path.join(os.getcwd(), "ourocode"))
-from eurocode.A0_Projet import Bar_generator
-from eurocode.EC0_Combinaison import Combinaison
+# sys.path.append(os.path.join(os.getcwd(), "ourocode"))
+# from eurocode.A0_Projet import Bar_generator
+# from eurocode.EC0_Combinaison import Combinaison
 
-# from ourocode.eurocode.EC0_Combinaison import Combinaison
-# from ourocode.eurocode.A0_Projet import Bar_generator
+from ourocode.eurocode.EC0_Combinaison import Combinaison
+from ourocode.eurocode.A0_Projet import Bar_generator
 
 class _Base_graph(object): 
     """ Retourne un diagramme de base """

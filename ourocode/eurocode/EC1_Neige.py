@@ -8,8 +8,6 @@ from handcalcs.decorator import handcalc
 
 from ourocode.eurocode.A0_Projet import Batiment
 
-
-
 class Neige(Batiment):
 	EXPOSITION = ("Normal", "Protégé")
 	TYPE_TOIT = ("1 versant", "2 versants", "Versants multiples")
