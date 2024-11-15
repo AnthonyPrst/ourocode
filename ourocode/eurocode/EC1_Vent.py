@@ -1,6 +1,7 @@
 #! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
 import os
+import sys
 from PIL import Image
 
 import math as mt
@@ -11,6 +12,8 @@ import pandas as pd
 import forallpeople as si
 from handcalcs.decorator import handcalc
 
+# sys.path.append(os.path.join(os.getcwd(), "ourocode"))
+# from eurocode.A0_Projet import Batiment
 from ourocode.eurocode.A0_Projet import Batiment
 
 si.environment("structural")
@@ -62,14 +65,7 @@ class Vent(Batiment):
     CAT_ORO = {"Aucun": 1, "Cas 1": "1", "Cas 2": "2"}
     CFR = {"Lisse": 0.01, "Rugueuse": 0.02, "Très rugueuse": 0.04}
 
-    def __init__(
-        self,
-        z: si.m,
-        terrain: str = CAT_TERRAIN,
-        oro: str = CAT_ORO,
-        CsCd: float = 1,
-        **kwargs,
-    ):
+    def __init__(self, z: si.m, terrain: str = CAT_TERRAIN, oro: str = CAT_ORO, CsCd: float = 1, **kwargs):
         """
         Args:
                 z (float): hauteur en m sur le bâtiment ou est étudié le vent (Ze suivant EN 1991-1-4 §7.2.2).
@@ -567,6 +563,143 @@ class Murs_verticaux(Vent):
         image = Image.open(file)
         image.show()
 
+class Toiture_terrasse_acrotere(Vent):
+    def __init__(self, load_area:float, hp:si.m, h:si.m, *args, **kwargs):
+        """Créer une classe permetant le calcul d'une toiture terrasse au vent selon l'EN 1991-1-4 §7.2.3
+
+        Args:
+            load_area (float): aire chargée pour le calcul des éléments ou des fixations.
+            hp (si.m): hauteur de l'acrotère
+            h (si.m): hauteur sous l'acrotère
+        """
+        super().__init__(*args, **kwargs)
+        self.type_terrasse = "Acrotères"
+        self.load_area = load_area
+        self.hp = hp * si.m
+        self.h = h * si.m
+        self._hp_h = self.hp/self.h
+        self._wind_direction = {"0°": {}}
+
+        self.e = min(self.b_bat, self.h_bat * 2)
+
+        self._wind_direction["0°"]["geometrie"] = self._geo()
+        self._wind_direction["0°"]["Cpe"] = self._Cpe()
+
+    def _geo(self):
+        """Calcul les surfaces du zonage de la toiture
+        """
+        geometrie = {
+            "F": {
+                "Longueur": self.e / 4,
+                "Largeur": self.e / 10,
+                "Surface": (self.e / 4) * (self.e / 10) / mt.cos(mt.radians(self.alpha_toit)),
+            },
+            "G": {
+                "Longueur": self.b_bat - (self.e / 4 * 2),
+                "Largeur": self.e / 10,
+                "Surface": (self.b_bat - (self.e / 4 * 2)) * (self.e / 10) / mt.cos(mt.radians(self.alpha_toit)),
+            },
+            "H": {
+                "Longueur": self.b_bat,
+                "Largeur": self.e / 2 - self.e / 10,
+                "Surface": self.b_bat * (self.e / 2 - self.e / 10) / mt.cos(mt.radians(self.alpha_toit)),
+            },
+            "I": {
+                "Longueur": self.b_bat,
+                "Largeur": self.d_bat - self.e / 2,
+                "Surface": self.b_bat * (self.d_bat - self.e / 2) / mt.cos(mt.radians(self.alpha_toit)),
+            },
+        }
+        return geometrie
+
+    def _Cpe(self):
+        """Calcul les Cpe d'une toiture terrasse avec acrotère
+
+        Args:
+                direction (str): sens du vent sur le bâtiment 0° ou 90°
+        """
+        num_columns = 7
+        df = self._data_from_csv(
+            os.path.join("vent", "vent_Cpe_toiture_terrasse.csv")
+        )
+        name_csv_type = self.type_terrasse.replace("è", "e")
+        df = df.loc[name_csv_type]
+        df.reset_index(drop=False, inplace=True)
+        df.drop("Type", axis=1, inplace=True)
+        list_type_rapport = df["Rapport"].unique()
+
+        if self._hp_h > 0.1:
+            self._hp_h = 0.1
+        elif not self._hp_h in list_type_rapport:
+            minimum = list_type_rapport[list_type_rapport < self._hp_h].max()
+            maximum = list_type_rapport[list_type_rapport > self._hp_h].min()
+            df_min = df[df["Rapport"] == minimum]
+            df_max = df[df["Rapport"] == maximum]
+
+            df = df[df["Rapport"].isin([minimum, maximum])]
+            df.reset_index(drop=True, inplace=True)
+
+            df.reset_index(drop=True, inplace=True)
+            for i, cpe in enumerate(["CPE 10", "CPE 1"]):
+                row = [round(self._hp_h, 3), cpe]
+                for j in range(2, num_columns):
+                    row.append(
+                        interpolation_lineaire(
+                            self._hp_h,
+                            minimum,
+                            maximum,
+                            df_min.iloc[i, j],
+                            df_max.iloc[i, j],
+                        )
+                    )
+                df.loc[df.shape[0]] = row
+
+        if self.load_area > 1 and self.load_area < 10:
+            for i in range(df.shape[0]):
+                if i % 2 == 0:
+                    row = [df.iloc[i, 0], "CPE " + str(round(self.load_area, 2))]
+                    for j in range(2, num_columns):
+                        row.append(
+                            interpolation_logarithmique(
+                                self.load_area, 1, 10, df.iloc[i + 1, j], df.iloc[i, j]
+                            )
+                        )
+                        print(row)
+                    df.loc[df.shape[0]] = row
+            df.reset_index(drop=True, inplace=True)
+
+        df = df[df["Rapport"] == round(self._hp_h, 3)]
+        df.dropna(axis=1, how="all", inplace=True)
+        df.set_index("Rapport", inplace=True)
+        return df
+
+    def get_wind_dict(self) -> dict:
+        return self._wind_direction
+
+    def get_geo(self):
+        """Retourne les caractéristiques géométrique pour la direction de vent donnée.
+
+        Args:
+                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°", "180°").
+        """
+        return self._wind_direction["0°"]["geometrie"]
+
+    def get_Cpe(self):
+        """Retourne les Cpe pour la direction de vent donnée.
+
+        Args:
+                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°", "180°").
+        """
+        return self._wind_direction["0°"]["Cpe"]
+
+    def show_zonage(self):
+        """Affiche l'image du zonage pour une toiture à 1 versant"""
+        file = os.path.join(
+            Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_toiture_terrasse.png"
+        )
+        image = Image.open(file)
+        image.show()
+        
 
 class Toiture_1_pant(Vent):
     def __init__(self, load_area: float, *args, **kwargs):
@@ -1248,8 +1381,8 @@ if __name__ == "__main__":
     print(ffr)
     print(Action_wind.rayon_secteur_angu)
     # Action_wind.show_Ffr()
-    vertical = Toiture_isolee_2pants._from_parent_class(
-        Action_wind, phi=0.5, load_area=1.9
+    vertical = Toiture_terrasse_acrotere._from_parent_class(
+        Action_wind, load_area=10, hp= 1, h= 10.5
     )
     # vertical.show_zonage()
-    print(vertical.get_Cp("0°"))
+    print(vertical.get_Cpe())
