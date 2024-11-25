@@ -118,7 +118,6 @@ class Assemblage(Projet):
         
         
     # 7.1 Glissement des assemblages
-    @property
     def Kser(self):
         """Calcul le kser du type d'un organe et de l'asssemblage en N/mm 
 
@@ -165,7 +164,6 @@ class Assemblage(Projet):
                 return K_ser * si.N / si.mm
         return val()
     
-    @property
     def Kser_ass(self):
         n_file = self.nfile
         K_ser = self.Kser[1]
@@ -179,7 +177,6 @@ class Assemblage(Projet):
             K_ser_ass = K_ser * n_file * n * n_Cis * k_type
             return K_ser_ass
         return val()
-
 
 
     # 8.1.4 Effort d'assemblage inclinés par rapport au fil

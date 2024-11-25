@@ -8,7 +8,7 @@ import forallpeople as si
 from handcalcs.decorator import handcalc
 
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
-# from objet import Objet
+# from eurocode.objet import Objet
 from ourocode.eurocode.objet import Objet
 
 class Projet(Objet):
