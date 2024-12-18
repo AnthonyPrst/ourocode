@@ -56,8 +56,9 @@ class Barre(Projet):
         self.classe = classe
         self.cs = cs
         self.effet_systeme = effet_systeme
+        self._sectionCalcul()
 
-    @property 
+
     def _sectionCalcul(self):
         """ Retourne la section de calcul en fonction de l'humidité de pose et celle d'utilisation avec pour argument:
                 Hi : Humidité de pose en %
