@@ -48,7 +48,6 @@ class Assemblage(Projet):
         self.beam_1 = beam_1
         self.beam_2 = beam_2
         self.nfile = nfile
-        # self.FaxRk = FaxRk
         self.nCis = nCis
         self.__type_assemblage()
     
@@ -1258,7 +1257,7 @@ class Boulon(Assemblage):
 
 
     # 8.5.2 Boulons chargés axialement
-    def FaxRk(self, d_int: float=0, d_ext: float=0, filetage_EN1090: bool=("True", "False")):
+    def Fax_Rk(self, d_int: float=0, d_ext: float=0, filetage_EN1090: bool=("True", "False")):
         """Calcul la résistance axial caractéristique d'un boulon chargé axialement à partir soit de la rondelle soit de la plaque métalique.
 
         Args:
@@ -1319,7 +1318,8 @@ class Broche(Boulon):
         self.type_organe = "Broche"
 
     @property
-    def FaxRk(self):
+    def Fax_Rk(self):
+        self.FaxRk = 0
         return 0
         
     @property
@@ -1351,18 +1351,28 @@ class Broche(Boulon):
 
 
 class Tirefond(object):
-    """ Défini un object tirefond avec :
-        d : diamètre extérieur du filet en mm
-        d1 : diamètre du noyau en mm
-        dh : diamètre de la tête en mm
-        rho_a : masse volumique associée au tirefond en fax,k en kg/m3
-        fhead : valeur caractéristique de traversée de la tête du tirefond à l'EN14592 en Mpa
-        ftensk : valeur caractéristique en traction du tirefond en N
-        n : nombre de boulons dans une file
-        alpha1 : angle entre l'effort de l'organe et le fil du bois 1 en °
-        alpha2 : angle entre l'effort de l'organe et le fil du bois 2 en °"""
-
     def __init__(self, d:si.mm, d1:si.mm, ds:si.mm, dh:si.mm, l:si.mm, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
+        """Défini un object tirefond
+
+        Args:
+            d (si.mm): diamètre extérieur du filet en mm
+            d1 (float): diamètre du noyaux en mm
+            ds (float): diamètre de la tête en mm
+            dh (float): diamètre de la tête en mm
+            l (float): longueur total de la vis en mm
+            n (int): le nombre de vis dans une file
+            rho_a (float): masse volumique associée au tirefond en fax,k en kg/m3
+            fhead (float): valeur caractéristique de traversée de la tête du tirefond à l'EN 14592 en Mpa
+            ftensk (float): valeur caractéristique en traction du tirefond en N
+
+            MyRk (float, optional): le moment d'écoulement plastique de la vis en N.mm. 
+                Si cette attribut est remplie, alors on récupère la valeur founis sinon on le calcul à l'EC5. 
+                Defaults to 0.
+
+            alpha1 (float, optional): angle entre l'effort de l'organe et le fil du bois 1 en °. Defaults to 0.
+            alpha2 (float, optional): angle entre l'effort de l'organe et le fil du bois 2 en °. Defaults to 0.
+            percage (bool, optional): l'élément est-il préperçé ? Si oui alors True. Defaults to ("False", "True").
+        """
         self.d_vis = d * si.mm
         self.d1 = d1 * si.mm
         self.ds = ds * si.mm
@@ -1381,9 +1391,11 @@ class Tirefond(object):
 
     # 8.7.2 Tirefond chargés axialement
     def pince_tirefond_axial(self, t: int):
-        """ Défini les pinces d'un tirefond en mm lorsqu'il est chargée axialement et l'epaisseur de bois supérieur à 12*d avec:
-        d : diamètre extérieur du filet en mm
-        t : epaisseur de bois en mm """
+        """
+        Défini les pinces d'un tirefond en mm lorsqu'il est chargée axialement et l'epaisseur de bois supérieur à 12*d.
+        Args:
+            t(int) : epaisseur de bois en mm
+        """
         if t >= 12 * self.d_vis:
 
             a1 = 7 * self.d_vis
@@ -1398,8 +1410,7 @@ class Tirefond(object):
 
     @property
     def nefTraction(self):
-        """ Renvoie le nombre efficace de tirefond quand ils sont solicités par une composante parallèle à la partie lisse avec :
-            n = nombre de tirefond agissant conjointement dans l'assemblage """
+        """Renvoie le nombre efficace de tirefond quand ils sont solicités par une composante parallèle à la partie lisse."""
         n = self.n * self.nfile
         if n > 1:
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -1414,15 +1425,15 @@ class Tirefond(object):
         return val()
 
 
-    def faxk(self, l_ef: int, beam:str=["1", "2"]):
-        """Calcul la valeur caractéristique de la résistance à l'arrachement perpendiculaire au fil en N/mm2 si 6mm<=d<=12mm
-        et 0.6<=d1/d<=0.75 avec :
-            d : diamètre extérieur du filet en mm
-            d1 : diamètre du noyaux en mm
-            l_ef : longueur de pénétration de la partie filetée en mm
-            pk : masse volumique caractéristique en kg/m3
-            beam: poutre à calculer 1 ou 2"""
-        
+    def faxk(self, l_ef:int, beam:str=["1", "2"]):
+        """
+        Calcul la valeur caractéristique de la résistance à l'arrachement perpendiculaire au fil en N/mm2 si 6mm<=d<=12mm
+        et 0.6<=d1/d<=0.75.
+
+        Args:
+            l_ef (int): longueur de pénétration de la partie filetée en mm
+            beam (str): élément à calculer 1 ou 2
+        """
         d = self.d_vis.value*10**3
         d1 = self.d1.value*10**3
         if beam == "1":
@@ -1443,11 +1454,15 @@ class Tirefond(object):
 
 
     def _FaxaRk(self, faxk:float, l_ef:int, alpha:int, beam:str=["1", "2"]):
-        """Calcul la valeur caractéristique de la résistance à l'arrachement du tirefond à un angle alpha par rapport au fil en N avec :
-                faxk : Valeur caractéristique de résistance à l'arrachement perpendiculaire au fil en N/mm2
-                l_ef : longueur de pénétration de la partie filetée en mm
-                alpha : angle formé entre l'axe du tirefond et le fil du bois, doit être supérieur à 30°
-                beam: poutre à calculer 1 ou 2"""
+        """
+        Calcul la valeur caractéristique de la résistance à l'arrachement du tirefond à un angle alpha par rapport au fil en N.
+
+        Args:
+            faxk (float): Valeur caractéristique de résistance à l'arrachement perpendiculaire au fil en N/mm2
+            l_ef (int): longueur de pénétration de la partie filetée en mm
+            alpha (int): angle formé entre l'axe du tirefond et le fil du bois, doit être supérieur à 30°
+            beam (str): élement à calculer 1 ou 2
+        """
         d = self.d_vis.value*10**3
         d_1 = self.d1
         rho_a = self.rho_a.value
@@ -1470,12 +1485,9 @@ class Tirefond(object):
         return val()
 
     def _FaxaRkHead(self):
-        """Calcul la valeur caractéristique de résistance à la traversée de l'assemblage en N avec :
-            _nef : nombre efficace de tirefond en traction compression
-            fhead : valeur caractéristique de traversée de la tête du tirefond à l'EN14592 en Mpa
-            dh : diamètre de la tête en mm
-            rho_k : masse volumique caractéristique en kg/m3
-            rho_a : masse volumique associée au tirefond en fax,k en kg/m3 """
+        """
+        Calcul la valeur caractéristique de résistance à la traversée de la tête du tirefond dans l'assemblage en N.
+        """
         f_head = self.fhead.value*10**-6
         d_h = self.dh.value*10**3
         rho_a = self.rho_a.value
@@ -1487,7 +1499,16 @@ class Tirefond(object):
         return val()
     
     
-    def FaxRk(self, faxk:float, l_ef:int, alpha:int, beam:str=["1", "2"]):
+    def Fax_Rk(self, faxk:float, l_ef:int, alpha:int, beam:str=["1", "2"]):
+        """Calcul la valeur caractéristique de résistance du tirefond axialement entre la résistance caractéristique de la tête et du pas de vis dans le bois en N.
+        Cette fonction détermine ensuite la valeur de résistance caractéristique de l'assemblage en prenant compte du nombre efficace de tirefond en traction.
+
+        Args:
+            faxk (float): Valeur caractéristique de résistance à l'arrachement perpendiculaire au fil en N/mm2
+            l_ef (int): longueur de pénétration de la partie filetée en mm
+            alpha (int): angle formé entre l'axe du tirefond et le fil du bois, doit être supérieur à 30°
+            beam (str, optional): élément à calculer 1 ou 2
+        """
         F_ax_a_Rk_value = self._FaxaRk(faxk, l_ef, alpha, beam)
         F_ax_a_Rk = F_ax_a_Rk_value[1]
         F_ax_a_Rk_head_value = self._FaxaRkHead()
@@ -1495,36 +1516,27 @@ class Tirefond(object):
         
         @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            f_ax_Rk = min(F_ax_a_Rk, F_ax_a_Rk_head) #N
-            return f_ax_Rk
+            F_ax_Rk = min(F_ax_a_Rk, F_ax_a_Rk_head) #N
+            return F_ax_Rk
         FaxRk = val()
         self.FaxRk = FaxRk[1]
-        return (F_ax_a_Rk_value[0] + F_ax_a_Rk_head_value[0] + FaxRk[0], FaxRk[1])
-   
-    
-    def FaxRkTraction(self, faxk:float, l_ef:int, alpha:int, beam:str=["1", "2"]):
-        F_ax_a_Rk_value = self._FaxaRk(faxk, l_ef, alpha, beam)
+
+        f_ax_Rk = FaxRk[1]
         n_ef_traction = self.nefTraction[1]
-        F_ax_a_Rk = F_ax_a_Rk_value[1]
-        F_ax_a_Rk_head_value = self._FaxaRkHead()
-        F_ax_a_Rk_head = F_ax_a_Rk_head_value[1]
-        
+
         @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-        def val():
-            f_ax_Rk_traction = min(F_ax_a_Rk, F_ax_a_Rk_head) #N
-            f_ax_Rk_traction_ass = f_ax_Rk_traction * n_ef_traction
-            return f_ax_Rk_traction_ass
-        FaxRk = val()
-        self.FaxRkTraction = FaxRk[1]
-        return (F_ax_a_Rk_value[0] + F_ax_a_Rk_head_value[0] + FaxRk[0], FaxRk[1])
+        def val_ass():
+            F_ax_Rk_ass = f_ax_Rk * n_ef_traction # N
+            return F_ax_Rk_ass
+        F_ax_Rk_ass = val_ass()
+        
+        return (F_ax_a_Rk_value[0] + F_ax_a_Rk_head_value[0] + FaxRk[0] + F_ax_Rk_ass[0], F_ax_Rk_ass[1])
 
 
     def FtRk(self):
-        """ Calcul la résistance caractéristique en traction du tirefond en N avec:
-            _nef : nombre efficace de tirefond en traction compression
-            ftensk : valeur caractéristique en traction du tirefond en N """
-        n_ef_traction = self.nefTraction()
-        f_tens_k = self.ftensk.value
+        """ Calcul la résistance caractéristique en traction pur du fil des tirefonds dans l'assemblage en N."""
+        n_ef_traction = self.nefTraction[1]
+        f_tens_k = self.ftensk
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             f_tRk = n_ef_traction * f_tens_k
@@ -1533,28 +1545,36 @@ class Tirefond(object):
     
 
 class Tirefond_inf_7(Tirefond, Pointe):
-    """ Défini un object tirefond avec :
-        d : diamètre extérieur du filet en mm
-        d1 : diamètre du noyaux en mm
-        dh : diamètre de la tête en mm
-        rho_a : masse volumique associée au tirefond en fax,k en kg/m3
-        fhead : valeur caractéristique de traversée de la tête du tirefond à l'EN14592 en Mpa
-        ftensk : valeur caractéristique en traction du tirefond en N
-        n : nombre de boulons dans une file
-        alpha1 : angle entre l'effort de l'organe et le fil du bois 1 en °
-        alpha2 : angle entre l'effort de l'organe et le fil du bois 2 en °"""
-
     def __init__(self, d:si.mm, d1:float, ds:float, dh:float, l:float, n:int, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
+        """Défini un object tirefond qui a un diamètre efficace inférieur à 6mm
+
+        Args:
+            d (si.mm): diamètre extérieur du filet en mm
+            d1 (float): diamètre du noyaux en mm
+            ds (float): diamètre de la tête en mm
+            dh (float): diamètre de la tête en mm
+            l (float): longueur total de la vis en mm
+            n (int): le nombre de vis dans une file
+            rho_a (float): masse volumique associée au tirefond en fax,k en kg/m3
+            fhead (float): valeur caractéristique de traversée de la tête du tirefond à l'EN 14592 en Mpa
+            ftensk (float): valeur caractéristique en traction du tirefond en N
+
+            MyRk (float, optional): le moment d'écoulement plastique de la vis en N.mm. 
+                Si cette attribut est remplie, alors on récupère la valeur founis sinon on le calcul à l'EC5. 
+                Defaults to 0.
+
+            alpha1 (float, optional): angle entre l'effort de l'organe et le fil du bois 1 en °. Defaults to 0.
+            alpha2 (float, optional): angle entre l'effort de l'organe et le fil du bois 2 en °. Defaults to 0.
+            percage (bool, optional): l'élément est-il préperçé ? Si oui alors True. Defaults to ("False", "True").
+        """
         qualite = "6.8"
         self.d_vis = d * si.mm
         if "qualite" in kwargs.keys():
             qualite = kwargs.pop("qualite")
                 
-                
         if d1*1.1 <= 6:
             Pointe.__init__(self, d=d1*1.1, d_tete=dh, l=l, qualite=qualite, n=n, alpha1=alpha1, alpha2=alpha2, type_organe="Tirefond", percage=percage, **kwargs)
             Tirefond.__init__(self, d, d1, ds, dh, l, n, rho_a, fhead, ftensk, MyRk, alpha1, alpha2, percage)
-            
         else:
             raise "Erreur, le tirefond est considéré comme un boulon et non une pointe"
         
@@ -1586,6 +1606,26 @@ class Tirefond_sup_6(Tirefond, Boulon):
         alpha2 : angle entre l'effort de l'organe et le fil du bois 2 en °"""
 
     def __init__(self, d:si.mm, d1:float, ds:float, dh:float, l:si.mm, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, **kwargs):
+        """Défini un object tirefond qui a un diamètre efficace supérieur à 6mm
+
+        Args:
+            d (si.mm): diamètre extérieur du filet en mm
+            d1 (float): diamètre du noyaux en mm
+            ds (float): diamètre de la tête en mm
+            dh (float): diamètre de la tête en mm
+            l (float): longueur total de la vis en mm
+            n (int): le nombre de vis dans une file
+            rho_a (float): masse volumique associée au tirefond en fax,k en kg/m3
+            fhead (float): valeur caractéristique de traversée de la tête du tirefond à l'EN 14592 en Mpa
+            ftensk (float): valeur caractéristique en traction du tirefond en N
+
+            MyRk (float, optional): le moment d'écoulement plastique de la vis en N.mm. 
+                Si cette attribut est remplie, alors on récupère la valeur founis sinon on le calcul à l'EC5. 
+                Defaults to 0.
+
+            alpha1 (float, optional): angle entre l'effort de l'organe et le fil du bois 1 en °. Defaults to 0.
+            alpha2 (float, optional): angle entre l'effort de l'organe et le fil du bois 2 en °. Defaults to 0.
+        """
         qualite = "6.8"
         self.d_vis = d * si.mm
         self.l = l * si.mm

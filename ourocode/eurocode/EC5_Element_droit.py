@@ -31,6 +31,7 @@ class Barre(Projet):
     TYPE_ACTION = ("Fondamentales" ,"Accidentelles")
     TYPE_BAT = ("Bâtiments courants", "Bâtiments agricoles et similaires")
     TYPE_ELE = tuple(Projet._data_from_csv(Projet, "limite_fleche.csv").index.unique())
+    B90 = 0.25
 
     def __init__(self, b:si.mm, h:si.mm, section: str=LIST_SECTION, Hi: int=12, Hf: int=12, classe: str=CLASSE_WOOD, cs: int=CS, effet_systeme: bool=("False", "True"), **kwargs):
         """Classe qui définis les caractéristiques d'un élément droit. 
@@ -55,16 +56,16 @@ class Barre(Projet):
         self.classe = classe
         self.cs = cs
         self.effet_systeme = effet_systeme
-        self._sectionCalcul()
-        
-    def _sectionCalcul(self, B90=0.25):
+
+    @property 
+    def _sectionCalcul(self):
         """ Retourne la section de calcul en fonction de l'humidité de pose et celle d'utilisation avec pour argument:
                 Hi : Humidité de pose en %
                 Hf : Humidité finale en % selon AN Hf = 12%
                 B90 : Coefficient de correction de section selon AN B90 = 0.25 %
                 cote : Largeur ou hauteur de la section initiale en mm """
-        self.b_calcul = self.b * (1 - B90 / 100 * (self.Hi - self.Hf))
-        self.h_calcul = self.h * (1 - B90 / 100 * (self.Hi - self.Hf))
+        self.b_calcul = self.b * (1 - self.B90 / 100 * (self.Hi - self.Hf))
+        self.h_calcul = self.h * (1 - self.B90 / 100 * (self.Hi - self.Hf))
 
     
     @property
@@ -220,10 +221,9 @@ class Barre(Projet):
         return kh       
     
     
-    def Emean_fin (self, psy2: float):
+    def Emean_fin (self, psy_2: float):
         """Renvoie le E,mean,fin en fonction du Kdef et du psy2"""
-        self.psy_2 = psy2
-        psy_2 = self.psy_2
+        self.psy_2 = psy_2
         E0_mean = int(self.caract_meca.loc["E0mean"]) * si.MPa
         K_def = self.K_def
 
@@ -238,8 +238,19 @@ class Barre(Projet):
     
 
     def fleche(self, long:int, Ed_WinstQ:float=0, Ed_Wnetfin:float=0, Ed_Wfin:float=0, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
-        """ Retourne le taux de travail de la flèche en % avec pour argument:
-            """
+        """Retourne le taux de travail de la flèche en % avec pour argument:
+
+        Args:
+            long (int): La longueur entre appuis à vérifier en mm
+            Ed_WinstQ (float, optional): La flèche instanténée sous charge variable Q en mm. Defaults to 0.
+            Ed_Wnetfin (float, optional): La flèche net finale en mm. Defaults to 0.
+            Ed_Wfin (float, optional): La flèche finale en mm. Defaults to 0.
+            type_ele (_type_, optional): Le type d'élément à vérifier. Defaults to TYPE_ELE.
+            type_bat (_type_, optional): Le type de bâtiment sur lequel on vérifie notre élémennt. Defaults to TYPE_BAT.
+
+        Returns:
+            dict: Retourne le dictionnaire des taux de travail.
+        """
         data_csv_fleche = self._data_from_csv("limite_fleche.csv")
         self.data_fleche= data_csv_fleche.loc[type_ele]
         self.data_fleche = self.data_fleche.loc[self.data_fleche["Type bâtiment"]==type_bat]
