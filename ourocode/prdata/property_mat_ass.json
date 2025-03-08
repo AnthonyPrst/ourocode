@@ -9,6 +9,16 @@
                         "Fondamentales": 1.3,
                         "Accidentelles": 1
                     },
+                    "Retrait/Gonflement": {
+                        "Résineux": {
+                            "Perpendiculaire au fil": 0.25,
+                            "Parallèle au fil": 0.01
+                        },
+                        "Feuillus": {
+                            "Perpendiculaire au fil": 0.45,
+                            "Parallèle au fil": 0.01
+                        }
+                    },
                     "Produits": {
                         "Bois de structure à section rectangulaire classé pour sa résistance": {
                             "Abréviation": "ST",
@@ -87,6 +97,16 @@
                     "gamma M": {
                         "Fondamentales": 1.25,
                         "Accidentelles": 1
+                    },
+                    "Retrait/Gonflement": {
+                        "Résineux": {
+                            "Perpendiculaire au fil": 0.25,
+                            "Parallèle au fil": 0.01
+                        },
+                        "Feuillus": {
+                            "Perpendiculaire au fil": 0.45,
+                            "Parallèle au fil": 0.01
+                        }
                     },
                     "Produits": {
                         "Bois de structure collé": {
@@ -574,18 +594,186 @@
                 "Fondamentales": 1.3,
                 "Accidentelles": 1
             },
-            "Produits": {
+            "Sous-groupes": {
                 "Panneau de fibres dur": {
-                    "Abrévation": "HB"
+                    "Abrévation": "HB",
+                    "Produits": {
+                        "HB.LA": {
+                            "Abrévation": "HB.LA",
+                            "Classe de service": {
+                                "1": {
+                                    "Kdef": 2.25,
+                                    "Kmod": {
+                                        "Permanente": 0.3,
+                                        "Long terme": 0.45,
+                                        "Moyen terme": 0.65,
+                                        "Court terme": 0.85,
+                                        "Instantanée": 1.1
+                                    }
+                                }
+                            }
+                        },
+                        "HB.HLA 1/2": {
+                            "Abrévation": "HB.HLA 1/2",
+                            "Classe de service": {
+                                "1": {
+                                    "Kdef": 2.25,
+                                    "Kmod": {
+                                        "Permanente": 0.3,
+                                        "Long terme": 0.45,
+                                        "Moyen terme": 0.65,
+                                        "Court terme": 0.85,
+                                        "Instantanée": 1.1
+                                    }
+                                },
+                                "2": {
+                                    "Kdef": 3,
+                                    "Kmod": {
+                                        "Permanente": 0.2,
+                                        "Long terme": 0.3,
+                                        "Moyen terme": 0.45,
+                                        "Court terme": 0.6,
+                                        "Instantanée": 0.8
+                                    }
+                                }
+                            }
+                        }
+                    }
                 },
                 "Panneau de fibres mi-dur": {
-                    "Abrévation": "MB"
+                    "Abrévation": "MB",
+                    "Produits": {
+                        "MBH.LA 1/2": {
+                            "Abrévation": "MBH.LA 1/2",
+                            "Classe de service": {
+                                "1": {
+                                    "Kdef": 3,
+                                    "Kmod": {
+                                        "Permanente": 0.2,
+                                        "Long terme": 0.4,
+                                        "Moyen terme": 0.6,
+                                        "Court terme": 0.8,
+                                        "Instantanée": 1.1
+                                    }
+                                }
+                            }
+                        },
+                        "MBH.HLS 1/2": {
+                            "Abrévation": "MBH.HLS 1/2",
+                            "Classe de service": {
+                                "1": {
+                                    "Kdef": 3,
+                                    "Kmod": {
+                                        "Permanente": 0.2,
+                                        "Long terme": 0.4,
+                                        "Moyen terme": 0.6,
+                                        "Court terme": 0.8,
+                                        "Instantanée": 1.1
+                                    }
+                                },
+                                "2": {
+                                    "Kdef": 4,
+                                    "Kmod": {
+                                        "Permanente": null,
+                                        "Long terme": null,
+                                        "Moyen terme": null,
+                                        "Court terme": 0.45,
+                                        "Instantanée": 0.8
+                                    }
+                                }
+                            }
+                        }
+                    }
                 },
                 "Panneau de fibres tendre": {
-                    "Abrévation": "SB"
+                    "Abrévation": "SB",
+                    "Produits": {
+                        "SB.LS": {
+                            "Abrévation": "SB.LS",
+                            "Classe de service": {
+                                "1": {
+                                    "Kdef": null,
+                                    "Kmod": {
+                                        "Permanente": null,
+                                        "Long terme": null,
+                                        "Moyen terme": null,
+                                        "Court terme": 0.65,
+                                        "Instantanée": 1
+                                    }
+                                }
+                            }
+                        },
+                        "SB.HLS": {
+                            "Abrévation": "SB.HLS",
+                            "Classe de service": {
+                                "1": {
+                                    "Kdef": null,
+                                    "Kmod": {
+                                        "Permanente": null,
+                                        "Long terme": null,
+                                        "Moyen terme": null,
+                                        "Court terme": 0.65,
+                                        "Instantanée": 1
+                                    }
+                                },
+                                "2": {
+                                    "Kdef": null,
+                                    "Kmod": {
+                                        "Permanente": null,
+                                        "Long terme": null,
+                                        "Moyen terme": null,
+                                        "Court terme": 0.4,
+                                        "Instantanée": 0.6
+                                    }
+                                }
+                            }
+                        }
+                    }
                 },
                 "Panneau de fibres par procédé à sec": {
-                    "Abrévation": "MDF"
+                    "Abrévation": "MDF",
+                    "Produits": {
+                        "MDF.LA": {
+                            "Abrévation": "MDF.LA",
+                            "Classe de service": {
+                                "1": {
+                                    "Kdef": 2.25,
+                                    "Kmod": {
+                                        "Permanente": 0.2,
+                                        "Long terme": 0.4,
+                                        "Moyen terme": 0.6,
+                                        "Court terme": 0.8,
+                                        "Instantanée": 1.1
+                                    }
+                                }
+                            }
+                        },
+                        "MDF.HLS": {
+                            "Abrévation": "MDF.HLS",
+                            "Classe de service": {
+                                "1": {
+                                    "Kdef": 2.25,
+                                    "Kmod": {
+                                        "Permanente": 0.2,
+                                        "Long terme": 0.4,
+                                        "Moyen terme": 0.6,
+                                        "Court terme": 0.8,
+                                        "Instantanée": 1.1
+                                    }
+                                },
+                                "2": {
+                                    "Kdef": 3,
+                                    "Kmod": {
+                                        "Permanente": null,
+                                        "Long terme": null,
+                                        "Moyen terme": null,
+                                        "Court terme": 0.45,
+                                        "Instantanée": 0.8
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -595,12 +783,116 @@
                 "Fondamentales": 1.3,
                 "Accidentelles": 1
             },
-            "Produits": {
+            "Sous-groupes": {
                 "Panneau de particules liées à la résine": {
-                    "Abrévation": "RPB"
+                    "Abrévation": "RPB",
+                    "Produits": {
+                        "Panneau de particule type 4": {
+                            "Abrévation": "RPB/4",
+                            "Classe de service": {
+                                "1": {
+                                    "Kdef": 2.25,
+                                    "Kmod": {
+                                        "Permanente": 0.3,
+                                        "Long terme": 0.45,
+                                        "Moyen terme": 0.65,
+                                        "Court terme": 0.85,
+                                        "Instantanée": 1.1
+                                    }
+                                }
+                            }
+                        },
+                        "Panneau de particule type 5": {
+                            "Abrévation": "RPB/5",
+                            "Classe de service": {
+                                "1": {
+                                    "Kdef": 2.25,
+                                    "Kmod": {
+                                        "Permanente": 0.3,
+                                        "Long terme": 0.45,
+                                        "Moyen terme": 0.65,
+                                        "Court terme": 0.85,
+                                        "Instantanée": 1.1
+                                    }
+                                },
+                                "2": {
+                                    "Kdef": 3,
+                                    "Kmod": {
+                                        "Permanente": 0.2,
+                                        "Long terme": 0.3,
+                                        "Moyen terme": 0.45,
+                                        "Court terme": 0.6,
+                                        "Instantanée": 0.8
+                                    }
+                                }
+                            }
+                        },
+                        "Panneau de particule type 6": {
+                            "Abrévation": "RPB/6",
+                            "Classe de service": {
+                                "1": {
+                                    "Kdef": 1.5,
+                                    "Kmod": {
+                                        "Permanente": 0.4,
+                                        "Long terme": 0.5,
+                                        "Moyen terme": 0.7,
+                                        "Court terme": 0.9,
+                                        "Instantanée": 1.1
+                                    }
+                                }
+                            }
+                        },
+                        "Panneau de particule type 7": {
+                            "Abrévation": "RPB/7",
+                            "Classe de service": {
+                                "1": {
+                                    "Kdef": 1.5,
+                                    "Kmod": {
+                                        "Permanente": 0.4,
+                                        "Long terme": 0.5,
+                                        "Moyen terme": 0.7,
+                                        "Court terme": 0.9,
+                                        "Instantanée": 1.1
+                                    }
+                                },
+                                "2": {
+                                    "Kdef": 2.25,
+                                    "Kmod": {
+                                        "Permanente": 0.3,
+                                        "Long terme": 0.4,
+                                        "Moyen terme": 0.55,
+                                        "Court terme": 0.7,
+                                        "Instantanée": 0.9
+                                    }
+                                }
+                            }
+                        }
+                    }
                 },
                 "Panneau de particules liées au ciment": {
-                    "Abrévation": "CPB"
+                    "Abrévation": "CPB",
+                    "Classe de service": {
+                        "1": {
+                            "Kdef": 2.25,
+                            "Kmod": {
+                                "Permanente": 0.3,
+                                "Long terme": 0.45,
+                                "Moyen terme": 0.65,
+                                "Court terme": 0.85,
+                                "Instantanée": 1.1
+                            }
+                        },
+                        "2": {
+                            "Kdef": 3,
+                            "Kmod": {
+                                "Permanente": 0.2,
+                                "Long terme": 0.3,
+                                "Moyen terme": 0.45,
+                                "Court terme": 0.6,
+                                "Instantanée": 0.8
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -612,10 +904,54 @@
             },
             "Produits": {
                 "Plaques de plâtre": {
-                    "Abrévation": "GPB"
+                    "Abrévation": "GPB",
+                    "Classe de service": {
+                        "1": {
+                            "Kdef": 3,
+                            "Kmod": {
+                                "Permanente": 0.2,
+                                "Long terme": 0.4,
+                                "Moyen terme": 0.6,
+                                "Court terme": 0.8,
+                                "Instantanée": 1.1
+                            }
+                        },
+                        "2": {
+                            "Kdef": 4,
+                            "Kmod": {
+                                "Permanente": 0.15,
+                                "Long terme": 0.3,
+                                "Moyen terme": 0.45,
+                                "Court terme": 0.6,
+                                "Instantanée": 0.8
+                            }
+                        }
+                    }
                 },
                 "Plaques de plâtre fibrées": {
-                    "Abrévation": "GFB"
+                    "Abrévation": "GFB",
+                    "Classe de service": {
+                        "1": {
+                            "Kdef": 3,
+                            "Kmod": {
+                                "Permanente": 0.2,
+                                "Long terme": 0.4,
+                                "Moyen terme": 0.6,
+                                "Court terme": 0.8,
+                                "Instantanée": 1.1
+                            }
+                        },
+                        "2": {
+                            "Kdef": 4,
+                            "Kmod": {
+                                "Permanente": 0.15,
+                                "Long terme": 0.3,
+                                "Moyen terme": 0.45,
+                                "Court terme": 0.6,
+                                "Instantanée": 0.8
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -626,7 +962,29 @@
             "gamma R": {
                 "Fondamentales": 1.3,
                 "Accidentelles": 1
-            }
+            },
+            "Tiges colléees": {
+                    "Classe de service": {
+                        "1": {
+                            "Kmod": {
+                                "Permanente": 0.6,
+                                "Long terme": 0.7,
+                                "Moyen terme": 0.8,
+                                "Court terme": 0.9,
+                                "Instantanée": 1.1
+                            }
+                        },
+                        "2": {
+                            "Kmod": {
+                                "Permanente": 0.5,
+                                "Long terme": 0.55,
+                                "Moyen terme": 0.65,
+                                "Court terme": 0.7,
+                                "Instantanée": 0.9
+                            }
+                        }
+                    }
+                }
         },
         "Défaillance du joint de colle": {
             "gamma M": {
