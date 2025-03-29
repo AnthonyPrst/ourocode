@@ -7,7 +7,8 @@ from PIL import Image
 import pandas as pd
 import pickle
 import inspect
-from tkinter import filedialog
+from PySide6.QtWidgets import QFileDialog
+# from tkinter import filedialog
 
 import forallpeople as si
 si.environment("structural")
@@ -22,6 +23,7 @@ def get_package_path(package):
 class Objet(object):
     """Classe permetant la sauvegarde ou l'ouverture d'un objet ou de plusieur sous un fichier .ec
     """
+    OPERATOR = {"+": lambda x, y: x + y, "-": lambda x, y: x - y, "*": lambda x, y: x * y, "/": lambda x, y: x / y}
     try:
         import ourocode
         PATH_CATALOG = os.path.join(get_package_path(ourocode))
@@ -29,10 +31,17 @@ class Objet(object):
         PATH_CATALOG = os.path.join(os.getcwd(), "ourocode")
 
     def _data_from_csv(self, data_file: str, index_col=0):
-            """ Retourne un dataframe d'un fichier CSV """
-            repertory = os.path.join(self.PATH_CATALOG, "data", data_file)
-            data_csv = pd.read_csv(repertory, sep=';', header=0, index_col=index_col)
-            return data_csv
+        """ Retourne un dataframe d'un fichier CSV """
+        repertory = os.path.join(self.PATH_CATALOG, "data", data_file)
+        data_csv = pd.read_csv(repertory, sep=';', header=0, index_col=index_col)
+        return data_csv
+    
+    def _data_from_json(self, data_file: str):
+        """ Retourne un dataframe d'un fichier JSON """
+        repertory = os.path.join(self.PATH_CATALOG, "data", data_file)
+        data_json = pd.read_json(repertory)
+        return data_json
+    
     
     @property
     def objet(self):
@@ -40,11 +49,17 @@ class Objet(object):
         """
         return self
 
-    def return_value(self, value: str):
+    def get_value(self, value: str):
         """Retourne l'argument donnée.
         """
-        print(value)
         return value
+    
+    def operation_between_values(self, value1: float, values2: float, operator: str=OPERATOR):
+        """Retourne l'opération donnée entre la valeur 1 et la valeur 2."""
+        if operator not in self.OPERATOR:
+            raise ValueError(f"Invalid operator: {operator}")
+        result = self.OPERATOR[operator](value1, values2)
+        return result
     
 
     @classmethod
@@ -128,13 +143,22 @@ class Objet(object):
 
     
     def _save_muliple_objects(self, object: list):
-        with filedialog.asksaveasfile('wb', filetypes=(("Ourea catalog object", "*.oco"), ('Text Document', '*.txt')), defaultextension='.oco') as f:
+        save_file_path = QFileDialog.getSaveFileName(
+                filter="Ourea catalog object (*.oco);;'Text Document' (*.txt)",
+                selectedFilter=".oco",
+            )[0]
+        # with filedialog.asksaveasfile('wb', filetypes=(("Ourea catalog object", "*.oco"), ('Text Document', '*.txt')), defaultextension='.oco') as f:
+        with open(save_file_path, "wb") as f:
             for ligne in object:
                 pickle.dump(ligne, f)
     
     
     def save_object(self):
-        with filedialog.asksaveasfile('wb', filetypes=(("Ourea catalog object", "*.oco"), ('Text Document', '*.txt')), defaultextension='.oco') as f:
+        save_file_path = QFileDialog.getSaveFileName(
+                filter="Ourea catalog object (*.oco);;'Text Document' (*.txt)",
+                selectedFilter=".oco",
+            )[0]
+        with open(save_file_path, "wb") as f:
             pickle.dump(self, f)
 
     
@@ -149,7 +173,11 @@ class Objet(object):
     @classmethod
     def _open_multiple_objects(cls):
         data = []
-        with filedialog.askopenfile('rb', filetypes=(("Ourea catalog object", "*.oco"), ('Text Document', '*.txt')), defaultextension='.oco') as f:
+        # with filedialog.askopenfile('rb', filetypes=(("Ourea catalog object", "*.oco"), ('Text Document', '*.txt')), defaultextension='.oco') as f:
+        file_path = QFileDialog.getOpenFileName(
+                    filter="Ourea catalog object (*.oco);;'Text Document' (*.txt)", selectedFilter=".oco"
+                )[0]
+        with open(file_path, "rb") as f:
             while True:
                 try:
                     data.append(pickle.load(f))
@@ -160,7 +188,10 @@ class Objet(object):
     @classmethod
     def _open_object(cls, path: str=None):
         if not path:
-            with filedialog.askopenfile('rb', filetypes=(("Ourea catalog object", "*.oco"), ('Text Document', '*.txt')), defaultextension='.oco') as f:
+            file_path = QFileDialog.getOpenFileName(
+                    filter="Ourea catalog object (*.oco);;'Text Document' (*.txt)", selectedFilter=".oco"
+                )[0]
+            with open(file_path, "rb") as f:
                 return pickle.load(f)
         else:
             with open(path, mode="rb") as f:
