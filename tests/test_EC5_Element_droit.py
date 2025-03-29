@@ -2,7 +2,7 @@
 # Encoding in UTF-8 by Anthony PARISOT
 import sys
 sys.path.insert(1, './')
-from eurocode import EC5_Element_droit as EC5
+from ourocode.eurocode import EC5_Element_droit as EC5
 
 
 class Test_Flexion(object):
