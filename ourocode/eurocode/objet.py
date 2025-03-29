@@ -23,7 +23,7 @@ def get_package_path(package):
 class Objet(object):
     """Classe permetant la sauvegarde ou l'ouverture d'un objet ou de plusieur sous un fichier .ec
     """
-    OPERATOR = {"+": lambda x, y: x + y, "-": lambda x, y: x - y, "*": lambda x, y: x * y, "/": lambda x, y: x / y}
+    OPERATOR = ("+", "-", "*", "/")
     try:
         import ourocode
         PATH_CATALOG = os.path.join(get_package_path(ourocode))
@@ -54,11 +54,19 @@ class Objet(object):
         """
         return value
     
-    def operation_between_values(self, value1: float, values2: float, operator: str=OPERATOR):
+    def operation_between_values(self, value1: float, value2: float, operator: str=OPERATOR):
         """Retourne l'opération donnée entre la valeur 1 et la valeur 2."""
-        if operator not in self.OPERATOR:
+        if operator not in self.OPERATOR.keys():
             raise ValueError(f"Invalid operator: {operator}")
-        result = self.OPERATOR[operator](value1, values2)
+        match operator:
+            case "+":
+                result = value1 + value2
+            case "-":
+                result = value1 - value2
+            case "x":
+                result = value1 * value2
+            case "/":
+                result = value1 / value2
         return result
     
 
