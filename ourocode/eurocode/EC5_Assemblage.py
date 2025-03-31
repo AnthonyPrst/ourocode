@@ -485,21 +485,21 @@ class Assemblage(Projet):
         return (latex, self.Fv_Rk_ass)
 
 
-    def F_Rd(self, F_Rk: float):
+    def F_Rd(self, F_Rk: float, loadtype=Barre.LOAD_TIME):
         """Calcul la valeur de calcul (design) de résistance de l'assemblage en N avec :
 
         Args:
             F_rk (float): capacité résistante caractéristique de l'organe en kN
-            num_beam (int, optional): numéro de l'élément à vérifier. Defaults to 1."""
+            loadtype (str, optional): Durée de chargement (Permanente, Court terme etc.). Defaults to "Permanente"."""
         F_Rk = F_Rk * si.kN
         gamma_M = self.GAMMA_M_ASS
         if "Métal" in self._type_beam:
             if self._type_beam[0] == "Métal":
-                k_mod = self.beam_2.K_mod
+                k_mod = self.beam_2._get_k_mod(loadtype)
             else:
-                k_mod = self.beam_1.K_mod
+                k_mod = self.beam_1._get_k_mod(loadtype)
         else:
-            k_mod = sqrt(self.beam_1.K_mod * self.beam_2.K_mod)
+            k_mod = sqrt(self.beam_1._get_k_mod(loadtype) * self.beam_2._get_k_mod(loadtype))
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             F_Rd = (F_Rk * k_mod) /gamma_M # Valeur de calcul (design)

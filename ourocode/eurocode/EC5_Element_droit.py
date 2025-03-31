@@ -111,6 +111,11 @@ class Barre(Projet):
         return data_csv_gammaM.loc[self.type_bois]
     
     
+    def _get_gamma_M(self, typecombi=TYPE_ACTION):
+        self.gamma_M = self.gamma_M_table.loc[typecombi]
+        return self.gamma_M
+    
+
     @property
     def K_def(self):
         data_csv_kdef = self._data_from_csv("kdef.csv")
@@ -127,6 +132,11 @@ class Barre(Projet):
         data_csv_kmod = self._data_from_csv("kmod.csv")
         data_kmod = data_csv_kmod.loc[self.type_bois]
         return data_kmod.loc[data_kmod["CS"]==self.cs]
+    
+
+    def _get_k_mod(self, loadtype=LOAD_TIME):
+        self.K_mod = self.K_mod_table[loadtype].iloc[0]
+        return self.K_mod
     
     
     @property
@@ -163,7 +173,7 @@ class Barre(Projet):
         latex = latex.replace("f_{type_{Rd}", "f_{"+type_caract+"_{"+"d}")
         latex = latex.replace("f_{type_{k}", "f_{"+type_caract+"_{"+"k}")
         return latex
-
+    
     
     def _f_type_d(self,typeCarac=CARACTERISTIQUE[0:6], loadtype=LOAD_TIME, typecombi=TYPE_ACTION):
         """Méthode donnant la résistance de calcul de l'élément fonction de la vérification
@@ -176,11 +186,8 @@ class Barre(Projet):
         Returns:
             float: Résistance de calcul en N/mm2 du type de vérification étudié.
         """
-        self.K_mod = self.K_mod_table[loadtype].iloc[0]
-        self.gamma_M = self.gamma_M_table.loc[typecombi]
-
-        gamma_M = self.gamma_M
-        K_mod = self.K_mod
+        gamma_M = self._get_gamma_M(typecombi)
+        K_mod = self._get_k_mod(loadtype)
         f_type_k = float(self.caract_meca.loc[typeCarac]) * si.MPa
 
         if typeCarac == "fm0k" and self.k_sys > 1:
