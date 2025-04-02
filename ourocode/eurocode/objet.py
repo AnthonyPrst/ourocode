@@ -56,7 +56,7 @@ class Objet(object):
     
     def operation_between_values(self, value1: float, value2: float, operator: str=OPERATOR):
         """Retourne l'opération donnée entre la valeur 1 et la valeur 2."""
-        if operator not in self.OPERATOR.keys():
+        if operator not in self.OPERATOR:
             raise ValueError(f"Invalid operator: {operator}")
         match operator:
             case "+":
