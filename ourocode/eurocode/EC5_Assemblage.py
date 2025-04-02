@@ -165,7 +165,7 @@ class Assemblage(Projet):
     
     def Kser_ass(self):
         n_file = self.nfile
-        K_ser = self.Kser[1]
+        K_ser = self.Kser()[1]
         n = self.n
         n_Cis = self.nCis
         k_type = 1
@@ -509,7 +509,8 @@ class Assemblage(Projet):
     
     # Annexe A : Cisaillement de bloc
     def FbsRk(self, dp:float, a1:float, a2:float, a3t:float, Kcr: float=0.67, num_beam: int=("1", "2")):
-        """Calcul la valeur caractéristique en cisaillement de bloc en N pour l'élément 1 ou 2 de l'assemblage avec:
+        """Calcul la valeur caractéristique en cisaillement de bloc en N pour l'élément 1 ou 2 de l'assemblage.
+        Attention pour que cette fonction puisse s'éxecuter il faut avoir préalablement éxécuté la fontion FvRk.
 
         Args:
             dp (float): diamètre de perçage en mm
@@ -573,7 +574,7 @@ class Assemblage(Projet):
                 A_net_v = L_net_v * (t_1 * K_cr)
                 return A_net_v
             a_net_v_result = a_net_v()
-            latex = latex + tef_result[0] + a_net_v_result[0]
+            latex = latex + a_net_v_result[0]
             A_net_v = a_net_v_result[1]
         else:
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -893,6 +894,32 @@ class Pointe(Assemblage):
         result = self._min_nef(nef_list)
         self._nef = result[1]
         return result
+    
+    # def FvRk(self, effet_corde: bool=("True", "False")):
+    #     """Calcul la valeur de calcul caractéristique de résistance au cisaillement de l'assemblage en N
+
+    #     Args:
+    #         effet_corde (bool): prise en compte de l'effet de corde, si oui alors True.
+
+    #     Returns:
+    #         float: effort de reprise caractéristique de l'assemblage en N
+    #     """
+    #     super()._FvRk(effet_corde)
+
+    # def FbsRk(self, dp:float, a1:float, a2:float, a3t:float, Kcr: float=0.67, num_beam: int=("1", "2")):
+    #     """Calcul la valeur caractéristique en cisaillement de bloc en N pour l'élément 1 ou 2 de l'assemblage.
+    #     Attention pour que cette fonction puisse s'éxecuter il faut avoir préalablement éxécuté la fontion FvRk.
+
+    #     Args:
+    #         dp (float): diamètre de perçage en mm
+    #         a1 (float): pince longitudinale en mm
+    #         a2 (float):  pince perpendiculaire en mm
+    #         a3t (float): pince en bord chargée suivant le file en mm
+    #         kcr (float, optional): coeff de réduction largeur en cisaillement. 
+    #             Si aucune valeur n'est rentrée alors il sera automatiquement calculé. Defaults to 0.67.
+    #         num_beam (int, optional): numéro de l'élément à vérifier. Defaults to 1.
+    #     """
+    #     super()._FbsRk(dp, a1, a2, a3t, Kcr, num_beam)
 
     @property
     def pince(self):
