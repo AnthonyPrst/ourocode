@@ -642,6 +642,8 @@ class Compression(Barre):
 
         super().__init__(*args, **kwargs)
         self.lo_comp = {"y":lo_y * si.mm, "z":lo_z * si.mm}
+        self.lo_y = self.lo_comp['y']
+        self.lo_z = self.lo_comp['z']
         self.coef_lef = __class__.COEF_LF[type_appuis]
 
 
