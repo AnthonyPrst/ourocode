@@ -49,9 +49,22 @@ class Objet(object):
         """
         return self
 
-    def get_value(self, value: str):
+    def get_value(self, value: str, index: int=None, key: str=None):
         """Retourne l'argument donnée.
+        Args:
+            value (str): argument à retourner.
+            index (int, optional): Si l'argument est une liste ou un tuple, on peut préciser l'index de l'élément à retourner. Defaults to None.
+            key (str, optional): Si l'argument est un dictionnaire, on peut préciser la clé que le l'on souhaite retourner. Defaults to None.
+
+        Returns:
+            value: l'argument transmit.
         """
+        if index or index == 0:
+            liste = list(value)
+            value = liste[index]
+        elif key:
+            dictionnary = dict(value)
+            value = dictionnary[key]
         return value
     
     def operation_between_values(self, value1: float, value2: float, operator: str=OPERATOR):
