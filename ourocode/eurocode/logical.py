@@ -56,15 +56,15 @@ class For(Objet):
                     self.items.append(item[self.key])
                 else:
                     self.items.append(item)
-        self.set_selection(*self.items)
+        self._set_selection(*self.items)
         return self.items
     
-    def set_selection(self, *items):
+    def _set_selection(self, *items):
         """Ajoute les items à une liste de sélection."""
         self.SELECTION = ["Tous"] + list(items)
         print(self.SELECTION)
 
-    def get_item(self, selection: str=SELECTION):
+    def _get_item(self, selection: str=SELECTION):
         print(self.SELECTION)
         """Retourne un élément spécifique ou la sélection."""
         if selection == "Tous":
@@ -77,7 +77,4 @@ class For(Objet):
                 if item == selection:
                     return item
         return None
-    
-    def end_for(self):
-        return f"j'arrète la boucle for, cela fait {self.counter+1} fois que je boucle."
                 
