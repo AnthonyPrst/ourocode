@@ -322,7 +322,7 @@ class Flexion(Barre):
     LOAD_POS =  {"Charge sur fibre comprimée": 0, "Charge sur fibre neutre": 1, "Charge sur fibre tendu" : 2}
 
     def __init__(self, lo:si.mm, coeflef: float=COEF_LEF['Appuis simple'][1], pos: str=LOAD_POS, *args, **kwargs):
-        """Claasse permettant le calcul de la flexion d'une poutre bois selon l'EN 1995 §6.1.6, §6.2.3, §6.2.4 et §6.3.3.
+        """Classe permettant le calcul de la flexion d'une poutre bois selon l'EN 1995 §6.1.6, §6.2.3, §6.2.4 et §6.3.3.
         Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
 
         Args:
@@ -552,9 +552,10 @@ class Flexion(Barre):
 # ================================ Traction ==================================
 
 class Traction(Barre):
-    """ Classe intégrant les formules de traction à l'EC5 """
-
     def __init__(self, *args, **kwargs):
+        """Classe permettant le calcul de la Traction d'un élément bois selon l'EN 1995.
+        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
+        """
         super().__init__(*args, **kwargs)
 
 
@@ -619,23 +620,24 @@ class Traction(Barre):
 # ================================ Compression ==================================
  
 class Compression(Barre):
-    """ Classe intégrant les formules de compression et d'instabilité au flambement à l'EC5 """
     COEF_LF = {"Encastré 1 côté" : 2,
                 "Rotule - Rotule" : 1,
                 "Encastré - Rotule" : 0.7,
                 "Encastré - Encastré" : 0.5,
                 "Encastré - Rouleau" : 1}
     def __init__(self, lo_y: si.mm, lo_z: si.mm, type_appuis: str=COEF_LF, *args, **kwargs):
-        """ 
-        lo : Longueur de flambement suivant l'axe de rotation (y ou z) en mm si pas de flambement alors 0
-
-        type_appuis : Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
-                    fonction des du type d'appuis :
-                                                    Encastré 1 côté : 2
-                                                    Rotule - Rotule : 1
-                                                    Encastré - Rotule : 0.7
-                                                    Encastré - Encastré : 0.5
-                                                    Encastré - Rouleau : 1
+        """ Classe permettant le calcul de la Compression d'un élément bois selon l'EN 1995.
+        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
+        
+        Args:
+            lo : Longueur de flambement suivant l'axe de rotation (y ou z) en mm si pas de flambement alors 0
+            type_appuis : Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
+                        fonction des du type d'appuis :
+                                                        Encastré 1 côté : 2
+                                                        Rotule - Rotule : 1
+                                                        Encastré - Rotule : 0.7
+                                                        Encastré - Encastré : 0.5
+                                                        Encastré - Rouleau : 1
         """
 
         super().__init__(*args, **kwargs)
@@ -801,17 +803,19 @@ class Compression(Barre):
     # ================================ COMPRESSION PERPENDICULAIRE ==================================
 
 class Compression_perpendiculaire(Barre):
-    """ Classe intégrant les formules de compression perpendiculaire selon l'EN 1995 §6.1.5"""
     TYPE_APPUIS = ("Appuis discret", "Appuis continu")
     def __init__(self, b_appuis:si.mm, l_appuis: si.mm, l1d: si.mm=10000, l1g: si.mm=10000, ad: si.mm=0, ag: si.mm=0, type_appuis: str=TYPE_APPUIS, *args, **kwargs):
-        """ 
-        b_appuis(int): largeur d'appuis en mm.
-        l_appuis(int): longeur de l'appuis en mm.
-        l1d(int) : Distance entre les charges en mm (l et l) (si pas de l1d ne rien mettre).
-        l1g(int) : Distance entre les charges en mm (l et l) (si pas de l1g ne rien mettre).
-        ad(int) : Distance depuis le bord jusqu'à l'appuis à droite (l) en mm (si pas de ad et au bord ne rien mettre).
-        ag(int) : Distance depuis le bord jusqu'à l'appuis à gauche (l) en mm (si pas de ad et au bord ne rien mettre).
-        type_appuis(str) : Type d'appuis (Appui continu, Appui discret)
+        """Classe intégrant les formules de compression perpendiculaire selon l'EN 1995 §6.1.5.
+        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
+
+        Args:
+            b_appuis(int): largeur d'appuis en mm.
+            l_appuis(int): longeur de l'appuis en mm.
+            l1d(int) : Distance entre les charges en mm (l et l) (si pas de l1d ne rien mettre).
+            l1g(int) : Distance entre les charges en mm (l et l) (si pas de l1g ne rien mettre).
+            ad(int) : Distance depuis le bord jusqu'à l'appuis à droite (l) en mm (si pas de ad et au bord ne rien mettre).
+            ag(int) : Distance depuis le bord jusqu'à l'appuis à gauche (l) en mm (si pas de ad et au bord ne rien mettre).
+            type_appuis(str) : Type d'appuis (Appui continu, Appui discret)
         """
 
         super().__init__(*args, **kwargs)
