@@ -319,7 +319,7 @@ class Bar_generator(Projet):
                                                })
 
 
-    def create_support(self, bar_id: int, type_appuis: str=("Simple X", "Simple Y", "Simple Z", "Rotule", "Encastrement"), pos: int=0, l_appuis: int=0):
+    def create_support(self, bar_id: int, type_appuis: str=("Simple X", "Simple Y", "Simple Z", "Rotule", "Encastrement"), pos: str=0, l_appuis: int=0):
         """Ajoute un appuis dans la liste d'appuis de la classe MEF
 
         Args:
@@ -340,7 +340,7 @@ class Bar_generator(Projet):
                 pos.replace(" ", "")
                 pos = int(round(self.bar_info[bar_id]["length"] *  int(pos) / 100, 0))
             case _:
-                pass
+                pos = int(pos)
 
         self._dict_supports[len(self._dict_supports)+1] = {"N° barre": bar_id, 
                                                               "Type d'appui": type_appuis, 
