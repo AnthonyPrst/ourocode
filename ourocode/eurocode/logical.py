@@ -27,6 +27,7 @@ class For(Objet):
         self.start = start
         self.stop = stop
         self.counter = -1
+        self.selected_item = None
 
         for key, val in kwargs.items():
             setattr(self, key, val)
@@ -64,17 +65,16 @@ class For(Objet):
         self.SELECTION = ["Tous"] + list(items)
         print(self.SELECTION)
 
-    def _get_item(self, selection: str=SELECTION):
-        print(self.SELECTION)
+    def _get_item(self, selection="Tous"):
         """Retourne un élément spécifique ou la sélection."""
         if selection == "Tous":
             self.counter += 1
             if self.counter >= len(self.items):
                 self.counter = 0
-            return self.items[self.counter]
+            self.selected_item = self.items[self.counter]
         else:
             for item in self.items:
                 if item == selection:
-                    return item
-        return None
+                    self.selected_item = item
+        return self.selected_item
                 

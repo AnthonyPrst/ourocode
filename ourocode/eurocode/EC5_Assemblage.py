@@ -554,7 +554,7 @@ class Assemblage(Projet):
 
         @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def l_net():
-            l_v_i = a_1 - diam # Distance entre perçage dans le sens fil
+            l_v_i = a_1 - diam_percage # Distance entre perçage dans le sens fil
             L_net_v = 2 * (l_v_i * (n - 1) + a_3_t - (diam_percage / 2)) # Longueur résiduelle de la surface de rupture en cisaillement
             
             l_t_i = a_2 - diam_percage # Distance entre perçage dans le sens perpendiculaire au fil
