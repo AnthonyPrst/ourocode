@@ -96,7 +96,16 @@ class Objet(object):
             return value
     
     @classmethod           
-    def _reset_physical_dictionnary(cls, objet: object, dictionnary: dict):
+    def _reset_physical_dictionnary(cls, objet: object, dictionnary: dict) -> dict:
+        """Class méthode permetant de réinitialiser les valeurs physiques d'un dictionnaire d'argument d'une classe parent.
+
+        Args:
+            objet (object): l'objet à réinitailiser
+            dictionnary (dict): le dictionnaire d'argument de la classe parent
+
+        Returns:
+            dict: le dictionnaire d'argument de la classe parent avec les valeurs physiques réinitialisées
+        """
         dict_physical = {}
         # Si un argument utilise forallpeople on récupère que la valeur pour ne pas multiplier l'unité par elle même
         for key, val in dictionnary.items():
@@ -118,6 +127,8 @@ class Objet(object):
     
     @classmethod           
     def _reset_physical_object(cls, objet: object):
+        """Class méthode permetant de réinitialiser les valeurs physiques d'un objet d'une classe parent.
+        """
         dictionnary = objet.__dict__
         return cls._reset_physical_dictionnary(objet, dictionnary)
     

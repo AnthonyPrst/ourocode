@@ -245,7 +245,7 @@ class Barre(Projet):
         return value   
     
 
-    def fleche(self, long:si.mm, Ed_WinstQ:float=0, Ed_Wnetfin:float=0, Ed_Wfin:float=0, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
+    def fleche(self, long:si.mm, Ed_WinstQ:si.mm=0, Ed_Wnetfin:si.mm=0, Ed_Wfin:si.mm=0, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
         """Retourne le taux de travail de la flèche en % avec pour argument:
 
         Args:
@@ -287,9 +287,9 @@ class Barre(Projet):
                 Rd_W_net_fin = long / limit_W_net_fin
                 Rd_W_fin = min(long / limit_W_fin, limit_U_fin_max)
 
-                taux_W_inst_Q = Ed_W_inst_Q / Rd_W_inst_Q
-                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin
-                taux_W_fin = Ed_W_fin / Rd_W_fin
+                taux_W_inst_Q = Ed_W_inst_Q / Rd_W_inst_Q * 100 #(%)
+                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin * 100 #(%)
+                taux_W_fin = Ed_W_fin / Rd_W_fin * 100 #(%)
                 return taux_W_inst_Q, taux_W_net_fin, taux_W_fin
             
             value = val()
@@ -303,8 +303,8 @@ class Barre(Projet):
                 Rd_W_net_fin = long / limit_W_net_fin
                 Rd_W_fin = min(long / limit_W_fin, limit_U_fin_max)
 
-                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin
-                taux_W_fin = Ed_W_fin / Rd_W_fin
+                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin * 100 #(%)
+                taux_W_fin = Ed_W_fin / Rd_W_fin * 100 #(%)
                 return taux_W_net_fin, taux_W_fin
             
             value = val()

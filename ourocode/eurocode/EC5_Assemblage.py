@@ -485,7 +485,7 @@ class Assemblage(Projet):
         return (latex, self.Fv_Rk_ass)
 
 
-    def F_Rd(self, F_Rk: float, loadtype=Barre.LOAD_TIME):
+    def F_Rd(self, F_Rk: si.kN, loadtype=Barre.LOAD_TIME):
         """Calcul la valeur de calcul (design) de résistance de l'assemblage en N avec :
 
         Args:
@@ -508,7 +508,7 @@ class Assemblage(Projet):
     
     
     # Annexe A : Cisaillement de bloc
-    def FbsRk(self, dp:float, a1:float, a2:float, a3t:float, Kcr: float=0.67, num_beam: int=("1", "2")):
+    def FbsRk(self, dp:si.mm, a1:si.mm, a2:si.mm, a3t:si.mm, Kcr: float=0.67, num_beam: int=("1", "2")):
         """Calcul la valeur caractéristique en cisaillement de bloc en N pour l'élément 1 ou 2 de l'assemblage.
         Attention pour que cette fonction puisse s'éxecuter il faut avoir préalablement éxécuté la fontion FvRk.
 
@@ -618,17 +618,17 @@ class Assemblage(Projet):
         self.F_bs_Rk = result[1]
         return (latex + result[0], self.F_bs_Rk)
     
-    def taux_cisaillement(self, Fv_Ed: float):
+    def taux_cisaillement(self, Fv_Ed: si.kN, loadtype=Barre.LOAD_TIME):
         """Détermine le taux de cisaillement de l'assemblage
 
         Args:
             Fv_Ed (float): effort de cisaillement à reprendre en kN
         """
-        Fv_Rd_ass = self.F_Rd(self.Fv_Rk_ass.value*10**-3)[1]
+        Fv_Rd_ass = self.F_Rd(self.Fv_Rk_ass.value*10**-3, loadtype)[1]
         Fv_Ed = abs(Fv_Ed) * si.kN
         @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            taux_cisaillement = Fv_Ed / Fv_Rd_ass
+            taux_cisaillement = Fv_Ed / Fv_Rd_ass * 100
             return taux_cisaillement
         return val()
     
