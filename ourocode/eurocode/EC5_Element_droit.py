@@ -245,7 +245,7 @@ class Barre(Projet):
         return value   
     
 
-    def fleche(self, long:int, Ed_WinstQ:float=0, Ed_Wnetfin:float=0, Ed_Wfin:float=0, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
+    def fleche(self, long:si.mm, Ed_WinstQ:float=0, Ed_Wnetfin:float=0, Ed_Wfin:float=0, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
         """Retourne le taux de travail de la flèche en % avec pour argument:
 
         Args:

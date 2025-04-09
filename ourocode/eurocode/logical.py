@@ -7,7 +7,6 @@ class And(Objet):
 
 
 class For(Objet):
-    SELECTION = ["Tous"]
     def __init__(self, liste: list, index: int=None, key: str=None, start: int=None, stop: int=None, **kwargs):
         """Boucle sur les valeurs d'une liste, en option on peux donner un index pour retourner une valeur spécifique d'une sous liste et une clé pour un dictionnaire.
         On peut aussi donner un start et un stop pour boucler que sur une partie de la liste.
@@ -57,13 +56,7 @@ class For(Objet):
                     self.items.append(item[self.key])
                 else:
                     self.items.append(item)
-        self._set_selection(*self.items)
         return self.items
-    
-    def _set_selection(self, *items):
-        """Ajoute les items à une liste de sélection."""
-        self.SELECTION = ["Tous"] + list(items)
-        print(self.SELECTION)
 
     def _get_item(self, selection="Tous"):
         """Retourne un élément spécifique ou la sélection."""
