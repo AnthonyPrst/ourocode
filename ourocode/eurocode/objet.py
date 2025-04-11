@@ -2,6 +2,7 @@
 # by Anthony PARISOT
 
 import os
+import math as mt
 import importlib.resources as pkg_resources
 from PIL import Image
 import pandas as pd
@@ -23,7 +24,7 @@ def get_package_path(package):
 class Objet(object):
     """Classe permetant la sauvegarde ou l'ouverture d'un objet ou de plusieur sous un fichier .ec
     """
-    OPERATOR = ("+", "-", "*", "/")
+    OPERATOR = ("+", "-", "x", "/")
     try:
         import ourocode
         PATH_CATALOG = os.path.join(get_package_path(ourocode))
@@ -49,13 +50,23 @@ class Objet(object):
         """
         return self
 
-    def get_value(self, value: str):
+    def get_value(self, value: str, index: int=None, key: str=None):
         """Retourne l'argument transmit.
+
+        Args:
+            index (int, optional): index à retourner dans une liste python. 
+                Attention sous pyhon le premier élément d'une liste ce trouve à l'index 0.
+            key (str, optional): clé à renvoyer dans un dictionnaire python.
         """
-        return value
-    
+        if index:
+            value = list(value)[index]
+        elif key:
+            value = dict(value)[key]
+        return str(value)
+        
     def operation_between_values(self, value1: float, value2: float, operator: str=OPERATOR):
-        """Retourne l'opération donnée entre la valeur 1 et la valeur 2."""
+        """Retourne l'opération donnée entre la valeur 1 et la valeur 2.
+        Pour les calculs trigonométrique, la valeur 2 est en degré."""
         if operator not in self.OPERATOR:
             raise ValueError(f"Invalid operator: {operator}")
         match operator:
@@ -68,6 +79,23 @@ class Objet(object):
             case "/":
                 result = value1 / value2
         return result
+    
+    def absolute_value(self, value1: float, value2: float):
+        """Retourne la valeur absolue entre la valeur 1 et valeur 2.
+        """
+        return abs(float(value1), float(value2))
+    
+    def cos(self, value: float):
+        """Retourne le cosinus de la valeur donnée en degré."""
+        return mt.cos(mt.radians(float(value)))
+    
+    def sin(self, value: float):
+        """Retourne le sinus de la valeur donnée en degré."""
+        return mt.sin(mt.radians(float(value)))
+    
+    def tan(self, value: float):
+        """Retourne la tangente de la valeur donnée en degré."""
+        return mt.tan(mt.radians(float(value)))
     
 
     @classmethod
@@ -90,9 +118,15 @@ class Objet(object):
                 elif si_unit == str(si.m**3):
                     if unit_to_convert == str(si.mm**3):
                         return value * 10**9
+                elif si_unit == str(si.m**4):
+                    if unit_to_convert == str(si.mm**4):
+                        return value * 10**12
                 elif si_unit == str(si.N):
                     if unit_to_convert == str(si.kN):
                         return value * 10**-3
+                elif si_unit == str(si.Pa):
+                    if unit_to_convert == str(si.MPa):
+                        return value * 10**-6
             return value
     
     @classmethod           

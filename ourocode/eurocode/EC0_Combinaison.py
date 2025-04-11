@@ -6,178 +6,10 @@ import pandas as pd
 
 sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 # from A0_Projet import Bar_generator
-from ourocode.eurocode.A0_Projet import Model_generator
+from ourocode.eurocode.A0_Projet import Projet, Model_generator
 
 
-class Chargement(Model_generator):
-    ACTION = (
-        "Permanente G",
-        "Exploitation Q",
-        "Neige normale Sn",
-        "Vent pression W+",
-        "Vent dépression W-",
-        "Neige accidentelle Sx",
-        "Sismique Ae",
-    )
-
-    def __init__(self, *args, **kwargs):
-        """Génère une classe Chargement qui permet de définir le chargement sur la barre.
-        Cette classe est hérité de la classe Projet du module A0_Projet.py
-        """
-        super().__init__(*args, **kwargs)
-        self._dict_loads = {}
-
-    def _convert_pos(self, pos_index: int | str, member_id: str) -> int:
-            """Converti la position en valeur recevable par la fonction create_load
-
-            Args:
-                    pos_index (int | str): position de la charge sur la barre
-
-            Returns:
-                    int: la position numérique sur la barre
-            """
-            match pos_index:
-                case "start":
-                    pos_index = 0
-                case "end":
-                    pos_index = int(self._data["members"][member_id]["Longueur"])
-                case "middle":
-                    pos_index = int(
-                        round(self._data["members"][member_id]["Longueur"] / 2, 0)
-                    )
-                case str(x) if "%" in x:
-                    pos_index = pos_index.split("%")[0]
-                    pos_index.replace(" ", "")
-                    pos_index = int(
-                        round(
-                            self._data["members"][member_id]["Longueur"]
-                            * int(pos_index)
-                            / 100,
-                            0,
-                        )
-                    )
-                case _:
-                    pass
-            return pos_index
-
-    def create_dist_load(
-        self,
-        member_id: str,
-        name: str,
-        start_load: int,
-        end_load: int,
-        start_pos: str = None,
-        end_pos: str = None,
-        action: str = ACTION,
-        direction: str = ("Fx", "Fy", "Fz", "FX", "FY", "FZ"),
-        comment: str = None,
-    ):
-        """Ajoute une charge dans la liste de chargement de la classe chargement
-
-        Args:
-                member_id (str): id de la barre à charger.
-                name (str): nom de la charge.
-                start_load (int): effort de départ en kN/m.
-                end_load (int): effort de fin en kN/m.
-                start_pos (str, optional): position de début de la charge sur la barre en mm. En complément il est possible de mettre "start", "middle" ou un pourcentage pour définir la position de la charge.
-                end_pos (str, optional): position de début de la charge sur la barre en mm. En complément il est possible de mettre "end", "middle" ou un pourcentage pour définir la position de la charge.
-                action (str): type d'action de l'effort.
-                direction (str): sens de l'effort sur la barre.
-                comment (str, optional): commentaire sur la charge.
-        """
-        load_id = "L" + str(len(self._data["loads"]) + 1)
-        type_load = "Distribuée"
-        if not start_pos:
-            start_pos = "start"
-        if not end_pos:
-            end_pos = "end"
-        start_pos = self._convert_pos(start_pos, member_id)
-        end_pos = self._convert_pos(end_pos, member_id)
-
-        self._data["loads"][load_id]= {
-            "N° barre": member_id,
-            "Nom": name,
-            "Action": action,
-            "Type de charge": type_load,
-            "Charge": {"start": start_load, "end": end_load},
-            "Position": {"start": start_pos, "end": end_pos},
-            "Axe": direction,
-            "Commentaire": comment
-        }
-        return self._data["loads"][load_id]
-    
-    def create_point_load(
-        self,
-        member_id: str,
-        name: str,
-        load: int,
-        pos: str = None,
-        action: str = ACTION,
-        direction: str = ("Fx", "Fy", "Fz", "Mx", "My", "Mz", "FX", "FY", "FZ", "MX", "MY", "MZ"),
-        comment: str = None,
-    ):
-        """Ajoute une charge dans la liste de chargement de la classe chargement
-
-        Args:
-                member_id (str): id de la barre à charger.
-                name (str): nom de la charge.
-                load (int): effort de départ en kN ou kN.m.
-                pos (str, optional): position de la charge sur la barre en mm. En complément il est possible de mettre "start", "middle", "end" ou un pourcentage pour définir la position de la charge.
-                action (str): type d'action de l'effort.
-                direction (str): sens de l'effort sur la barre.
-                comment (str, optional): commentaire sur la charge.
-        """
-        load_id = "L" + str(len(self._data["loads"]) + 1)
-        if "F" in direction:
-            type_load = "Concentrée"
-        else:
-            type_load = "Moment"
-
-        pos = self._convert_pos(pos, member_id)
-
-        self._data["loads"][load_id] = {
-            "N° barre": member_id,
-            "Nom": name,
-            "Action": action,
-            "Type de charge": type_load,
-            "Charge": load,
-            "Position": pos,
-            "Axe": direction,
-            "Commentaire": comment
-        }
-        return self._data["loads"][load_id]
-
-    def create_load_by_list(self, list_loads: list, type_load: str=("Distribuée", "Autre")):
-        """Ajoute les charges d'une liste pré-défini dans la liste de chargement
-
-        Args:
-                list_loads (list): liste de charge.
-        """
-        for load in list_loads:
-            if type_load == "Distribuée":
-                self.create_dist_load(*load)
-            else:
-                self.create_point_load(*load)
-        return self._data["loads"]
-
-    def del_load(self, load_id: str):
-        """Supprime une charge de l'attribut _data["loads"] par son index
-
-        Args:
-                index_load (int): index de la charge à supprimer.
-        """
-        self._data["loads"].pop(load_id)
-
-    def get_all_loads(self):
-        """Retourne la liste des charges définis initialement."""
-        return self._data["loads"]
-
-    def get_member_loads(self, member_id: str) -> list:
-        """Retourne la liste des charges définis initialement."""
-        return [load for load in self._data["loads"].values() if load["N° barre"] == member_id]
-
-
-class Combinaison(Chargement):
+class Combinaison(Projet):
     CAT_TYPE = (
         "Aucune",
         "Cat A : habitation",
@@ -189,20 +21,13 @@ class Combinaison(Chargement):
         "Cat G : véhicule <= 160kN",
         "Cat H : toits",
     )
-    DICO_COMBI_ACTION = {
-        "Permanente G": "G",
-        "Exploitation Q": "Q",
-        "Neige normale Sn": "Sn",
-        "Vent pression W+": "W+",
-        "Vent dépression W-": "W-",
-        "Neige accidentelle Sx": "Sx",
-        "Sismique Ae": "Ae",
-    }
     COEF_G = (1, 1.35)  # Ginf, Gsup
     COEF_Q = 1.5  # Qsup
+    ANALYZE_TYPE = ("Général", "Linéaire", "Second ordre")
 
     def __init__(
         self,
+        model_generator: Model_generator,
         ELU_STR: bool = ("True", "False"),
         ELU_STR_ACC: bool = ("True", "False"),
         ELS_C: bool = ("True", "False"),
@@ -213,9 +38,12 @@ class Combinaison(Chargement):
         **kwargs,
     ):
         """Créer une classe Combinaison qui génère les combinaisons d'action suivant les actions données.
-        Cette classe est hérité de la classe Chargement du module EC0_Combinaison.py
+        Cette classe est hérité de la classe Projet du module A0_Projet.py.
+        Elle nécessite toutefois la création d'un modèle de calcul avant d'être instanciée.
+        Le modèle de calcul est créé par la classe Model_generator dans le module A0_Projet.py.
 
         Args:
+                model_generator (Model_generator): le modèle de calcul à utiliser pour la génération des combinaisons d'action.
                 ELU_STR (bool): combiner les charges à l'ELU structure, si vrai -> True, sinon False.
                 ELU_STR_ACC (bool): combiner les charges à l'ELU accidentel, si vrai -> True, sinon False.
                 ELS_C (bool): combiner les charges à l'ELS carctéristique, si vrai -> True, sinon False.
@@ -226,7 +54,10 @@ class Combinaison(Chargement):
                 type_psy_2: détermine le type de psy 2 à récupérer notamment pour le calcul de la flèche dans le bois.
                         Court terme = 0, Moyen terme = calcul du psy en fonction de l'action donnant le psy le plus élevé, Long terme = 1.
         """
-        super(Chargement, self).__init__(**kwargs)
+        super().__init__(**kwargs)
+        self._combo_tags = []
+        self._model_generator = model_generator
+        self._model_generator._generate_model()
         self.elu_STR = ELU_STR
         self.elu_STR_ACC = ELU_STR_ACC
         self.els_C = ELS_C
@@ -241,7 +72,7 @@ class Combinaison(Chargement):
     def _generate_combinaison(self):
         """Génère les combinaisons de chargement si une liste de chargement à été défini précédement."""
         self.combiActionVariable = [0] * 7
-        for load in self._dict_loads.values():
+        for load in self._model_generator.get_all_loads().values():
             action = load["Action"]
             if action == "Permanente G":
                 self.combiActionVariable[0] = "G"
@@ -266,12 +97,16 @@ class Combinaison(Chargement):
 
         if self.elu_STR:
             self._ELU_STR()
+            self._combo_tags.append("ELU_STR")
         if self.elu_STR_ACC:
             self._ELU_STR_ACC()
+            self._combo_tags.append("ELU_STR_ACC")
         if self.els_C:
             self._ELS_C()
+            self._combo_tags.append("ELS_C")
         if self.els_QP:
             self._ELS_QP()
+            self._combo_tags.append("ELS_QP")
 
     @property
     def coef_psy(self):
@@ -306,17 +141,24 @@ class Combinaison(Chargement):
         return index
 
     def _create_array_load(
-        self, name: str, index: str, value: float, load_dict: dict, array
+        self,
+        name: str,
+        index: str,
+        factor_load: float,
+        load: float | dict,
+        load_dict: dict,
+        array,
     ):
         load = np.array(
             [
                 name,
-                int(index),
+                str(index),
                 load_dict["N° barre"],
                 load_dict["Nom"],
                 load_dict["Action"],
                 load_dict["Type de charge"],
-                value,
+                factor_load,
+                load,
                 load_dict["Position"],
                 load_dict["Axe"],
             ],
@@ -335,85 +177,111 @@ class Combinaison(Chargement):
                 "Nom",
                 "Action",
                 "Type",
-                "Charge",
+                "Facteur de charge",
+                "Charge combinée",
                 "Position",
                 "Axe",
             ],
         )
         # print(df_load)
         return df_load
+    
+    def _create_analyze_type(self, tag: str, df_type_load: pd.DataFrame):
+        """Génère les load combo dans le modèle FEM
+
+        Args:
+            tag (str): combo_tag à donner dans le modèle
+            df_type_load (pd.Dataframe): dataframe des combinaisons associé au tag (ex: ELU_STR, ELS_C)
+        """
+        unique_combinations = df_type_load["Combinaison"].unique()
+        combo_dict = {}
+        for combo_name in unique_combinations:
+            combo_dict[combo_name] = self._get_combi_factor_load(combo_name)
+        self._model_generator._add_load_combos_to_model(combo_dict, tag)
+
+
+    def _calcs_combined_load(self, factor: float, load: float):
+        """Convertit la valeur de la charge en fonction du type de charge."""
+        if isinstance(load, dict):
+            return {"start": load["start"] * factor, "end": load["end"] * factor}
+        else:
+            return load * factor
 
     def _create_list_combination(self, nameCombi: str):
-        test = 1
-        for i in self.name_combination:
-            if i == nameCombi:
-                test = 0
-                break
-        if test:
+        if nameCombi not in self.name_combination:
             self.name_combination.append(nameCombi)
+
+    def _add_combination(self, combi_name: str, index_load: str, factor: float, value: float| dict, load_dict: dict, array_load):
+        """Ajoute une combinaison et met à jour array_load."""
+        self._create_list_combination(combi_name)
+        return self._create_array_load(combi_name, index_load, factor, value, load_dict, array_load)
 
     def _ELU_STR(self):
         """Combinaison à l'ELU STR"""
-        array_load = np.empty((0, 9))
+        array_load = np.empty((0, 10))
 
-        for index_load, load in self._dict_loads.items():
+        for index_load, load in self._model_generator.get_all_loads().items():
+            load_action = self.DICO_COMBI_ACTION[load["Action"]]
             if (
-                self.DICO_COMBI_ACTION[load["Action"]]
+                load_action
                 not in self.combiActionVariable[5:7]
             ):
-                name = "ELU_STR " + self.DICO_COMBI_ACTION[load["Action"]]
-                self._create_list_combination(name)
-                value = load["Charge"]
-                array_load = self._create_array_load(
-                    name, index_load, value, load, array_load
-                )
+                name = "ELU_STR " + load_action
+                array_load = self._add_combination(name, index_load, 1, load["Charge"], load, array_load)
 
-            for action in self.combiActionVariable:
-                if not action in ("Sx", "Ae"):
-                    if load["Action"] == "Permanente G" and action == "G":
+            for var_action in self.combiActionVariable:
+                if not var_action in ("Sx", "Ae"):
+                    if load["Action"] == "Permanente G" and var_action == "G":
                         name = "ELU_STR " + str(self.COEF_G[1]) + "G"
-                        self._create_list_combination(name)
-                        value = self.COEF_G[1] * load["Charge"]
-                        array_load = self._create_array_load(
-                            name, index_load, value, load, array_load
+                        value = self._calcs_combined_load(
+                            self.COEF_G[1], load["Charge"]
                         )
+                        array_load = self._add_combination(name, index_load, self.COEF_G[1], value, load, array_load)
 
-                    elif action != 0 and action != "G":
-                        if action != "W-":
-                            name = "ELU_STR 1.35G + " + str(self.COEF_Q) + action
+                    elif var_action != 0 and var_action != "G":
+                        if var_action != "W-":
+                            name = "ELU_STR 1.35G + " + str(self.COEF_Q) + var_action
                             self._create_list_combination(name)
 
                         if (
                             load["Action"] != "Permanente G"
-                            and self.DICO_COMBI_ACTION[load["Action"]] == action
+                            and load_action == var_action
                         ):
-                            if action == "W-":
-                                name = "ELU_STR 1G" + " + " + str(self.COEF_Q) + action
+                            if var_action == "W-":
+                                name = "ELU_STR 1G" + " + " + str(self.COEF_Q) + var_action
                                 self._create_list_combination(name)
-                            value = self.COEF_Q * load["Charge"]
+                            value = self._calcs_combined_load(
+                                self.COEF_Q, load["Charge"]
+                            )
                             array_load = self._create_array_load(
-                                name, index_load, value, load, array_load
+                                name, index_load, self.COEF_Q, value, load, array_load
                             )
 
                         elif load["Action"] == "Permanente G":
-                            if action == "W-":
-                                name = "ELU_STR 1G" + " + " + str(self.COEF_Q) + action
+                            if var_action == "W-":
+                                name = "ELU_STR 1G" + " + " + str(self.COEF_Q) + var_action
                                 self._create_list_combination(name)
-                                value = self.COEF_G[0] * load["Charge"]
+                                factor = self.COEF_G[0]
+                                value = self._calcs_combined_load(
+                                    factor, load["Charge"]
+                                )
                             else:
-                                value = self.COEF_G[1] * load["Charge"]
+                                factor = self.COEF_G[1]
+                                value = self._calcs_combined_load(
+                                    factor, load["Charge"]
+                                )
                             array_load = self._create_array_load(
-                                name, index_load, value, load, array_load
+                                name, index_load, factor, value, load, array_load
                             )
 
                         for index in range(1, 4):
                             if (
-                                action != self.combiActionVariable[index]
-                                and action != "W-"
+                                var_action != self.combiActionVariable[index]
+                                and var_action != "W-"
                             ):
                                 # selon AN EC1 on ne doit pas combiner les charges d'entretien avec les charges de neige et de vent en toiture
                                 if (
-                                    action == "Q"
+                                    var_action == "Q"
                                     or self.combiActionVariable[index] == "Q"
                                 ) and self.cat == "Cat H : toits":
                                     continue
@@ -424,7 +292,7 @@ class Combinaison(Chargement):
                                     name = (
                                         "ELU_STR 1.35G + "
                                         + str(self.COEF_Q)
-                                        + action
+                                        + var_action
                                         + " + "
                                         + str(
                                             round(
@@ -438,34 +306,55 @@ class Combinaison(Chargement):
                                     self._create_list_combination(name)
 
                                     if load["Action"] == "Permanente G":
-                                        value = self.COEF_G[1] * load["Charge"]
+                                        value = self._calcs_combined_load(
+                                            self.COEF_G[1], load["Charge"]
+                                        )
                                         array_load = self._create_array_load(
-                                            name, index_load, value, load, array_load
+                                            name,
+                                            index_load,
+                                            self.COEF_G[1],
+                                            value,
+                                            load,
+                                            array_load,
                                         )
 
                                     elif (
-                                        self.DICO_COMBI_ACTION[load["Action"]]
+                                        load_action
                                         == self.combiActionVariable[index]
                                     ):
-                                        value = (
+                                        factor = (
                                             float(self.coef_psy[key_psy]["psy0"])
                                             * self.COEF_Q
-                                            * load["Charge"]
+                                        )
+                                        value = self._calcs_combined_load(
+                                            factor, load["Charge"]
                                         )
                                         array_load = self._create_array_load(
-                                            name, index_load, value, load, array_load
+                                            name,
+                                            index_load,
+                                            factor,
+                                            value,
+                                            load,
+                                            array_load,
                                         )
 
                                     elif (
-                                        self.DICO_COMBI_ACTION[load["Action"]] == action
+                                        load_action == var_action
                                     ):
-                                        value = self.COEF_Q * load["Charge"]
+                                        value = self._calcs_combined_load(
+                                            self.COEF_Q, load["Charge"]
+                                        )
                                         array_load = self._create_array_load(
-                                            name, index_load, value, load, array_load
+                                            name,
+                                            index_load,
+                                            self.COEF_Q,
+                                            value,
+                                            load,
+                                            array_load,
                                         )
 
                                     for index2 in range(1, 4):
-                                        if action != self.combiActionVariable[index2]:
+                                        if var_action != self.combiActionVariable[index2]:
                                             if (
                                                 self.combiActionVariable[index]
                                                 != self.combiActionVariable[index2]
@@ -487,7 +376,7 @@ class Combinaison(Chargement):
                                                         name = (
                                                             "ELU_STR 1.35G + "
                                                             + str(self.COEF_Q)
-                                                            + action
+                                                            + var_action
                                                             + " + "
                                                             + str(
                                                                 round(
@@ -523,14 +412,15 @@ class Combinaison(Chargement):
                                                             load["Action"]
                                                             == "Permanente G"
                                                         ):
-                                                            value = (
-                                                                self.COEF_G[1]
-                                                                * load["Charge"]
+                                                            value = self._calcs_combined_load(
+                                                                self.COEF_G[1],
+                                                                load["Charge"],
                                                             )
                                                             array_load = (
                                                                 self._create_array_load(
                                                                     name,
                                                                     index_load,
+                                                                    self.COEF_G[1],
                                                                     value,
                                                                     load,
                                                                     array_load,
@@ -545,19 +435,23 @@ class Combinaison(Chargement):
                                                                 index2
                                                             ]
                                                         ):
-                                                            value = (
+                                                            factor = (
                                                                 float(
                                                                     self.coef_psy[
                                                                         key_psy2
                                                                     ]["psy0"]
                                                                 )
                                                                 * self.COEF_Q
-                                                                * load["Charge"]
+                                                            )
+                                                            self._calcs_combined_load(
+                                                                factor,
+                                                                load["Charge"],
                                                             )
                                                             array_load = (
                                                                 self._create_array_load(
                                                                     name,
                                                                     index_load,
+                                                                    factor,
                                                                     value,
                                                                     load,
                                                                     array_load,
@@ -572,19 +466,23 @@ class Combinaison(Chargement):
                                                                 index
                                                             ]
                                                         ):
-                                                            value = (
+                                                            factor = (
                                                                 float(
                                                                     self.coef_psy[
                                                                         key_psy
                                                                     ]["psy0"]
                                                                 )
                                                                 * self.COEF_Q
-                                                                * load["Charge"]
+                                                            )
+                                                            value = self._calcs_combined_load(
+                                                                factor,
+                                                                load["Charge"],
                                                             )
                                                             array_load = (
                                                                 self._create_array_load(
                                                                     name,
                                                                     index_load,
+                                                                    factor,
                                                                     value,
                                                                     load,
                                                                     array_load,
@@ -595,42 +493,47 @@ class Combinaison(Chargement):
                                                             self.DICO_COMBI_ACTION[
                                                                 load["Action"]
                                                             ]
-                                                            == action
+                                                            == var_action
                                                         ):
-                                                            value = (
-                                                                self.COEF_Q
-                                                                * load["Charge"]
+                                                            value = self._calcs_combined_load(
+                                                                self.COEF_Q,
+                                                                load["Charge"],
                                                             )
                                                             array_load = (
                                                                 self._create_array_load(
                                                                     name,
                                                                     index_load,
+                                                                    self.COEF_Q,
                                                                     value,
                                                                     load,
                                                                     array_load,
                                                                 )
                                                             )
         array_load = array_load[array_load[:, 0].argsort()]
-        self.df_load_ELUSTR = self._create_dataframe_load(array_load)
+        self.df_load_ELU_STR = self._create_dataframe_load(array_load)
+        self._create_analyze_type("ELU_STR", self.df_load_ELU_STR)
+
+    def get_ELU_STR_loads(self):
+        """Retourne les charges des combinaisons ELU STR"""
+        return self.df_load_ELU_STR
 
     def _return_combi_ELUSTR(self, combi):
-        return self.df_load_ELUSTR.loc[self.df_load_ELUSTR["Combinaison"] == combi]
+        return self.df_load_ELU_STR.loc[self.df_load_ELU_STR["Combinaison"] == combi]
 
     def _ELU_STR_ACC(self):
         """Combinaison à l'ELU STR ACC"""
-        array_load = np.empty((0, 9))
+        array_load = np.empty((0, 10))
         acc_action = ("Sx", "Ae")
 
-        for index_load, load in self._dict_loads.items():
+        for index_load, load in self._model_generator.get_all_loads().items():
             if (
                 self.DICO_COMBI_ACTION[load["Action"]]
                 not in self.combiActionVariable[1:5]
             ):
                 name = "ELU_STR_ACC " + self.DICO_COMBI_ACTION[load["Action"]]
                 self._create_list_combination(name)
-                value = load["Charge"]
                 array_load = self._create_array_load(
-                    name, index_load, value, load, array_load
+                    name, index_load, 1, load["Charge"], load, array_load
                 )
 
             for action in self.combiActionVariable:
@@ -654,20 +557,25 @@ class Combinaison(Chargement):
                         ):
                             if action in acc_action:
                                 array_load = self._create_array_load(
-                                    name, load["Charge"], load, array_load
+                                    name,
+                                    index_load,
+                                    1,
+                                    load["Charge"],
+                                    load,
+                                    array_load,
                                 )
                             else:
-                                value = (
-                                    float(self.coef_psy[key_psy_action]["psy1"])
-                                    * load["Charge"]
+                                factor = float(self.coef_psy[key_psy_action]["psy1"])
+                                value = self._calcs_combined_load(
+                                    factor, load["Charge"]
                                 )
                                 array_load = self._create_array_load(
-                                    name, index_load, value, load, array_load
+                                    name, index_load, factor, value, load, array_load
                                 )
 
                         elif load["Action"] == "Permanente G":
                             array_load = self._create_array_load(
-                                name, index_load, load["Charge"], load, array_load
+                                name, index_load, 1, load["Charge"], load, array_load
                             )
 
                     for index in range(1, 4):
@@ -707,19 +615,31 @@ class Combinaison(Chargement):
                                         self._create_list_combination(name_2)
                                         if load["Action"] == "Permanente G":
                                             array_load = self._create_array_load(
-                                                name_2, load["Charge"], load, array_load
+                                                name_2,
+                                                index_load,
+                                                1,
+                                                load["Charge"],
+                                                load,
+                                                array_load,
                                             )
 
                                         elif (
                                             self.DICO_COMBI_ACTION[load["Action"]]
                                             == self.combiActionVariable[index]
                                         ):
-                                            value = (
-                                                float(self.coef_psy[key_psy]["psy2"])
-                                                * load["Charge"]
+                                            factor = float(
+                                                self.coef_psy[key_psy]["psy2"]
+                                            )
+                                            value = self._calcs_combined_load(
+                                                factor, load["Charge"]
                                             )
                                             array_load = self._create_array_load(
-                                                name_2, value, load, array_load
+                                                name_2,
+                                                index_load,
+                                                factor,
+                                                value,
+                                                load,
+                                                array_load,
                                             )
 
                                         elif (
@@ -729,21 +649,28 @@ class Combinaison(Chargement):
                                             if action in acc_action:
                                                 array_load = self._create_array_load(
                                                     name_2,
+                                                    index_load,
+                                                    1,
                                                     load["Charge"],
                                                     load,
                                                     array_load,
                                                 )
                                             else:
-                                                value = (
-                                                    float(
-                                                        self.coef_psy[key_psy_action][
-                                                            "psy1"
-                                                        ]
-                                                    )
-                                                    * load["Charge"]
+                                                factor = float(
+                                                    self.coef_psy[key_psy_action][
+                                                        "psy1"
+                                                    ]
+                                                )
+                                                value = self._calcs_combined_load(
+                                                    factor, load["Charge"]
                                                 )
                                                 array_load = self._create_array_load(
-                                                    name_2, value, load, array_load
+                                                    name_2,
+                                                    index_load,
+                                                    factor,
+                                                    value,
+                                                    load,
+                                                    array_load,
                                                 )
                                     except:
                                         pass
@@ -839,6 +766,8 @@ class Combinaison(Chargement):
                                                                 ):
                                                                     array_load = self._create_array_load(
                                                                         name_3,
+                                                                        index_load,
+                                                                        1,
                                                                         load["Charge"],
                                                                         load,
                                                                         array_load,
@@ -852,18 +781,19 @@ class Combinaison(Chargement):
                                                                         index2
                                                                     ]
                                                                 ):
-                                                                    value = (
-                                                                        float(
-                                                                            self.coef_psy[
-                                                                                key_psy2
-                                                                            ][
-                                                                                "psy2"
-                                                                            ]
-                                                                        )
-                                                                        * load["Charge"]
+                                                                    factor = float(
+                                                                        self.coef_psy[
+                                                                            key_psy2
+                                                                        ]["psy2"]
+                                                                    )
+                                                                    value = self._calcs_combined_load(
+                                                                        factor,
+                                                                        load["Charge"],
                                                                     )
                                                                     array_load = self._create_array_load(
                                                                         name_3,
+                                                                        index_load,
+                                                                        factor,
                                                                         value,
                                                                         load,
                                                                         array_load,
@@ -877,18 +807,19 @@ class Combinaison(Chargement):
                                                                         index
                                                                     ]
                                                                 ):
-                                                                    value = (
-                                                                        float(
-                                                                            self.coef_psy[
-                                                                                key_psy
-                                                                            ][
-                                                                                "psy2"
-                                                                            ]
-                                                                        )
-                                                                        * load["Charge"]
+                                                                    factor = float(
+                                                                        self.coef_psy[
+                                                                            key_psy
+                                                                        ]["psy2"]
+                                                                    )
+                                                                    value = self._calcs_combined_load(
+                                                                        factor,
+                                                                        load["Charge"],
                                                                     )
                                                                     array_load = self._create_array_load(
                                                                         name_3,
+                                                                        index_load,
+                                                                        factor,
                                                                         value,
                                                                         load,
                                                                         array_load,
@@ -906,6 +837,8 @@ class Combinaison(Chargement):
                                                                     ):
                                                                         array_load = self._create_array_load(
                                                                             name_3,
+                                                                            index_load,
+                                                                            1,
                                                                             load[
                                                                                 "Charge"
                                                                             ],
@@ -913,20 +846,23 @@ class Combinaison(Chargement):
                                                                             array_load,
                                                                         )
                                                                     else:
-                                                                        value = (
-                                                                            float(
-                                                                                self.coef_psy[
-                                                                                    key_psy_action
-                                                                                ][
-                                                                                    "psy1"
-                                                                                ]
-                                                                            )
-                                                                            * load[
-                                                                                "Charge"
+                                                                        factor = float(
+                                                                            self.coef_psy[
+                                                                                key_psy_action
+                                                                            ][
+                                                                                "psy1"
                                                                             ]
+                                                                        )
+                                                                        value = self._calcs_combined_load(
+                                                                            factor,
+                                                                            load[
+                                                                                "Charge"
+                                                                            ],
                                                                         )
                                                                         array_load = self._create_array_load(
                                                                             name_3,
+                                                                            index_load,
+                                                                            factor,
                                                                             value,
                                                                             load,
                                                                             array_load,
@@ -935,6 +871,11 @@ class Combinaison(Chargement):
                                                                 pass
         array_load = array_load[array_load[:, 0].argsort()]
         self.df_load_ELU_STR_ACC = self._create_dataframe_load(array_load)
+        self._create_analyze_type("ELU_STR_ACC", self.df_load_ELU_STR_ACC)
+
+    def get_ELU_STR_ACC_loads(self):
+        """Retourne les charges de la combinaison ELU STR ACC"""
+        return self.df_load_ELU_STR_ACC
 
     def _return_combi_ELU_STR_ACC(self, combi):
         return self.df_load_ELU_STR_ACC.loc[
@@ -942,18 +883,17 @@ class Combinaison(Chargement):
         ]
 
     def _ELS_C(self):
-        array_load = np.empty((0, 9))
+        array_load = np.empty((0, 10))
 
-        for index_load, load in self._dict_loads.items():
+        for index_load, load in self._model_generator.get_all_loads().items():
             for action in self.combiActionVariable:
                 if not action in ("Sx", "Ae"):
 
                     if load["Action"] == "Permanente G" and action == "G":
                         name = "ELS_C G"
                         self._create_list_combination(name)
-                        value = load["Charge"]
                         array_load = self._create_array_load(
-                            name, index_load, value, load, array_load
+                            name, index_load, 1, load["Charge"], load, array_load
                         )
 
                     elif action != 0 and action != "G":
@@ -964,15 +904,13 @@ class Combinaison(Chargement):
                             load["Action"] != "Permanente G"
                             and self.DICO_COMBI_ACTION[load["Action"]] == action
                         ):
-                            value = load["Charge"]
                             array_load = self._create_array_load(
-                                name, index_load, value, load, array_load
+                                name, index_load, 1, load["Charge"], load, array_load
                             )
 
                         elif load["Action"] == "Permanente G":
-                            value = load["Charge"]
                             array_load = self._create_array_load(
-                                name, index_load, value, load, array_load
+                                name, index_load, 1, load["Charge"], load, array_load
                             )
 
                         for index in range(1, 4):
@@ -1004,29 +942,42 @@ class Combinaison(Chargement):
                                     self._create_list_combination(name)
 
                                     if load["Action"] == "Permanente G":
-                                        value = load["Charge"]
                                         array_load = self._create_array_load(
-                                            name, index_load, value, load, array_load
+                                            name,
+                                            index_load,
+                                            1,
+                                            load["Charge"],
+                                            load,
+                                            array_load,
                                         )
 
                                     elif (
                                         self.DICO_COMBI_ACTION[load["Action"]]
                                         == self.combiActionVariable[index]
                                     ):
-                                        value = (
-                                            float(self.coef_psy[key_psy]["psy0"])
-                                            * load["Charge"]
+                                        factor = float(self.coef_psy[key_psy]["psy0"])
+                                        value = self._calcs_combined_load(
+                                            factor, load["Charge"]
                                         )
                                         array_load = self._create_array_load(
-                                            name, index_load, value, load, array_load
+                                            name,
+                                            index_load,
+                                            factor,
+                                            value,
+                                            load,
+                                            array_load,
                                         )
 
                                     elif (
                                         self.DICO_COMBI_ACTION[load["Action"]] == action
                                     ):
-                                        value = load["Charge"]
                                         array_load = self._create_array_load(
-                                            name, index_load, value, load, array_load
+                                            name,
+                                            index_load,
+                                            1,
+                                            load["Charge"],
+                                            load,
+                                            array_load,
                                         )
 
                                     for index2 in range(1, 4):
@@ -1085,12 +1036,12 @@ class Combinaison(Chargement):
                                                             load["Action"]
                                                             == "Permanente G"
                                                         ):
-                                                            value = load["Charge"]
                                                             array_load = (
                                                                 self._create_array_load(
                                                                     name,
                                                                     index_load,
-                                                                    value,
+                                                                    1,
+                                                                    load["Charge"],
                                                                     load,
                                                                     array_load,
                                                                 )
@@ -1104,18 +1055,19 @@ class Combinaison(Chargement):
                                                                 index2
                                                             ]
                                                         ):
-                                                            value = (
-                                                                float(
-                                                                    self.coef_psy[
-                                                                        key_psy2
-                                                                    ]["psy0"]
-                                                                )
-                                                                * load["Charge"]
+                                                            factor = float(
+                                                                self.coef_psy[key_psy2][
+                                                                    "psy0"
+                                                                ]
+                                                            )
+                                                            value = self._calcs_combined_load(
+                                                                factor, load["Charge"]
                                                             )
                                                             array_load = (
                                                                 self._create_array_load(
                                                                     name,
                                                                     index_load,
+                                                                    factor,
                                                                     value,
                                                                     load,
                                                                     array_load,
@@ -1130,18 +1082,19 @@ class Combinaison(Chargement):
                                                                 index
                                                             ]
                                                         ):
-                                                            value = (
-                                                                float(
-                                                                    self.coef_psy[
-                                                                        key_psy
-                                                                    ]["psy0"]
-                                                                )
-                                                                * load["Charge"]
+                                                            factor = float(
+                                                                self.coef_psy[key_psy][
+                                                                    "psy0"
+                                                                ]
+                                                            )
+                                                            value = self._calcs_combined_load(
+                                                                factor, load["Charge"]
                                                             )
                                                             array_load = (
                                                                 self._create_array_load(
                                                                     name,
                                                                     index_load,
+                                                                    factor,
                                                                     value,
                                                                     load,
                                                                     array_load,
@@ -1159,7 +1112,8 @@ class Combinaison(Chargement):
                                                                 self._create_array_load(
                                                                     name,
                                                                     index_load,
-                                                                    value,
+                                                                    1,
+                                                                    load["Charge"],
                                                                     load,
                                                                     array_load,
                                                                 )
@@ -1167,22 +1121,26 @@ class Combinaison(Chargement):
 
         array_load = array_load[array_load[:, 0].argsort()]
         self.df_load_ELScarac = self._create_dataframe_load(array_load)
+        self._create_analyze_type("ELS_C", self.df_load_ELScarac)
+
+    def get_ELS_C_loads(self):
+        """Retourne les charges des combinaisons ELS CARACTERISTIQUE"""
+        return self.df_load_ELScarac
 
     def _return_combi_ELScarac(self, combi):
         return self.df_load_ELScarac.loc[self.df_load_ELScarac["Combinaison"] == combi]
 
     def _ELS_QP(self):
-        array_load = np.empty((0, 9))
+        array_load = np.empty((0, 10))
 
-        for index_load, load in self._dict_loads.items():
+        for index_load, load in self._model_generator.get_all_loads().items():
             for action in self.combiActionVariable:
 
                 if load["Action"] == "Permanente G" and action == "G":
                     name = "ELS_QP G"
                     self._create_list_combination(name)
-                    value = load["Charge"]
                     array_load = self._create_array_load(
-                        name, index_load, value, load, array_load
+                        name, index_load, 1, load["Charge"], load, array_load
                     )
 
                 elif action != 0 and action != "G":
@@ -1200,17 +1158,15 @@ class Combinaison(Chargement):
                             load["Action"] != "Permanente G"
                             and self.DICO_COMBI_ACTION[load["Action"]] == action
                         ):
-                            value = (
-                                float(self.coef_psy[key_psy]["psy2"]) * load["Charge"]
-                            )
+                            factor = float(self.coef_psy[key_psy]["psy2"])
+                            value = self._calcs_combined_load(factor, load["Charge"])
                             array_load = self._create_array_load(
-                                name, index_load, value, load, array_load
+                                name, index_load, factor, value, load, array_load
                             )
 
                         elif load["Action"] == "Permanente G":
-                            value = load["Charge"]
                             array_load = self._create_array_load(
-                                name, index_load, value, load, array_load
+                                name, index_load, 1, load["Charge"], load, array_load
                             )
 
                         for index in range(1, 4):
@@ -1248,11 +1204,11 @@ class Combinaison(Chargement):
                                             )
                                             self._create_list_combination(name)
                                             if load["Action"] == "Permanente G":
-                                                value = load["Charge"]
                                                 array_load = self._create_array_load(
                                                     name,
                                                     index_load,
-                                                    value,
+                                                    1,
+                                                    load["Charge"],
                                                     load,
                                                     array_load,
                                                 )
@@ -1261,15 +1217,16 @@ class Combinaison(Chargement):
                                                 self.DICO_COMBI_ACTION[load["Action"]]
                                                 == self.combiActionVariable[index]
                                             ):
-                                                value = (
-                                                    float(
-                                                        self.coef_psy[key_psy1]["psy2"]
-                                                    )
-                                                    * load["Charge"]
+                                                factor = float(
+                                                    self.coef_psy[key_psy1]["psy2"]
+                                                )
+                                                value = self._calcs_combined_load(
+                                                    factor, load["Charge"]
                                                 )
                                                 array_load = self._create_array_load(
                                                     name,
                                                     index_load,
+                                                    factor,
                                                     value,
                                                     load,
                                                     array_load,
@@ -1279,15 +1236,16 @@ class Combinaison(Chargement):
                                                 self.DICO_COMBI_ACTION[load["Action"]]
                                                 == action
                                             ):
-                                                value = (
-                                                    float(
-                                                        self.coef_psy[key_psy]["psy2"]
-                                                    )
-                                                    * load["Charge"]
+                                                factor = float(
+                                                    self.coef_psy[key_psy]["psy2"]
+                                                )
+                                                value = self._calcs_combined_load(
+                                                    factor, load["Charge"]
                                                 )
                                                 array_load = self._create_array_load(
                                                     name,
                                                     index_load,
+                                                    factor,
                                                     value,
                                                     load,
                                                     array_load,
@@ -1372,13 +1330,13 @@ class Combinaison(Chargement):
                                                                         load["Action"]
                                                                         == "Permanente G"
                                                                     ):
-                                                                        value = load[
-                                                                            "Charge"
-                                                                        ]
                                                                         array_load = self._create_array_load(
                                                                             name,
                                                                             index_load,
-                                                                            value,
+                                                                            1,
+                                                                            load[
+                                                                                "Charge"
+                                                                            ],
                                                                             load,
                                                                             array_load,
                                                                         )
@@ -1393,21 +1351,23 @@ class Combinaison(Chargement):
                                                                             index2
                                                                         ]
                                                                     ):
-                                                                        value = (
-                                                                            float(
-                                                                                self.coef_psy[
-                                                                                    key_psy2
-                                                                                ][
-                                                                                    "psy2"
-                                                                                ]
-                                                                            )
-                                                                            * load[
-                                                                                "Charge"
+                                                                        factor = float(
+                                                                            self.coef_psy[
+                                                                                key_psy2
+                                                                            ][
+                                                                                "psy2"
                                                                             ]
+                                                                        )
+                                                                        value = self._calcs_combined_load(
+                                                                            factor,
+                                                                            load[
+                                                                                "Charge"
+                                                                            ],
                                                                         )
                                                                         array_load = self._create_array_load(
                                                                             name,
                                                                             index_load,
+                                                                            factor,
                                                                             value,
                                                                             load,
                                                                             array_load,
@@ -1423,21 +1383,23 @@ class Combinaison(Chargement):
                                                                             index
                                                                         ]
                                                                     ):
-                                                                        value = (
-                                                                            float(
-                                                                                self.coef_psy[
-                                                                                    key_psy1
-                                                                                ][
-                                                                                    "psy2"
-                                                                                ]
-                                                                            )
-                                                                            * load[
-                                                                                "Charge"
+                                                                        factor = float(
+                                                                            self.coef_psy[
+                                                                                key_psy1
+                                                                            ][
+                                                                                "psy2"
                                                                             ]
+                                                                        )
+                                                                        value = self._calcs_combined_load(
+                                                                            factor,
+                                                                            load[
+                                                                                "Charge"
+                                                                            ],
                                                                         )
                                                                         array_load = self._create_array_load(
                                                                             name,
                                                                             index_load,
+                                                                            factor,
                                                                             value,
                                                                             load,
                                                                             array_load,
@@ -1451,21 +1413,23 @@ class Combinaison(Chargement):
                                                                         ]
                                                                         == action
                                                                     ):
-                                                                        value = (
-                                                                            float(
-                                                                                self.coef_psy[
-                                                                                    key_psy
-                                                                                ][
-                                                                                    "psy2"
-                                                                                ]
-                                                                            )
-                                                                            * load[
-                                                                                "Charge"
+                                                                        factor = float(
+                                                                            self.coef_psy[
+                                                                                key_psy
+                                                                            ][
+                                                                                "psy2"
                                                                             ]
+                                                                        )
+                                                                        value = self._calcs_combined_load(
+                                                                            factor,
+                                                                            load[
+                                                                                "Charge"
+                                                                            ],
                                                                         )
                                                                         array_load = self._create_array_load(
                                                                             name,
                                                                             index_load,
+                                                                            factor,
                                                                             value,
                                                                             load,
                                                                             array_load,
@@ -1473,6 +1437,11 @@ class Combinaison(Chargement):
 
         array_load = array_load[array_load[:, 0].argsort()]
         self.df_load_ELSqp = self._create_dataframe_load(array_load)
+        self._create_analyze_type("ELS_QP", self.df_load_ELSqp)
+
+    def get_ELS_QP_loads(self):
+        """Retourne les charges des combinaisons ELS Quasi Permanente"""
+        return self.df_load_ELSqp
 
     def _return_combi_ELSqp(self, combi):
         return self.df_load_ELSqp.loc[self.df_load_ELSqp["Combinaison"] == combi]
@@ -1504,6 +1473,7 @@ class Combinaison(Chargement):
         """Génère l'association des combinaisons ELS caractéristique + quasi permanente (fluage, intégrant le Kdef) pour le calcul d'un élément en bois."""
 
         if self.els_C:
+            self._combo_tags.append("W_inst_Q")
             # On détermine W_inst(Q), pour cela on enlève W_inst_G
             self.df_W_inst_Q = self.df_load_ELScarac[
                 self.df_load_ELScarac["Action"] != "Permanente G"
@@ -1513,9 +1483,11 @@ class Combinaison(Chargement):
                 name_combi = "W_inst " + name[10:]
                 self.df_W_inst_Q.iloc[index, 0] = name_combi
                 self._create_list_combination(name_combi)
+            self._create_analyze_type("W_inst_Q", self.df_W_inst_Q)
             # print(self.df_W_inst_Q)
 
             if self.els_QP:
+                self._combo_tags.append("W_net_fin")
                 combi_qp = {}
                 combi_c = {}
                 value_search = ["Q", "S"]
@@ -1555,7 +1527,7 @@ class Combinaison(Chargement):
                 list_of_key = list(combi_qp.keys())
                 list_of_value = list(combi_qp.values())
 
-                array_load = np.empty((0, 9))
+                array_load = np.empty((0, 10))
                 for name_combi_C, val in combi_c.items():
                     position = list_of_value.index(val)
                     name_combi_QP = list_of_key[position]
@@ -1570,23 +1542,35 @@ class Combinaison(Chargement):
                     ]
                     for index in range(df_c.shape[0]):
                         index_c = df_c.iloc[index, 1]
-                        beam_number = df_c.iloc[index, 1]
+                        beam_number = df_c.iloc[index, 2]
                         name_load = df_c.iloc[index, 3]
                         action_load = df_c.iloc[index, 4]
                         type_load = df_c.iloc[index, 5]
-                        valeur_c = df_c.iloc[index, 6]
-                        position = df_c.iloc[index, 7]
-                        axe = df_c.iloc[index, 8]
+                        factor_c = df_c.iloc[index, 6]
+                        valeur_c = df_c.iloc[index, 7]
+                        position = df_c.iloc[index, 8]
+                        axe = df_c.iloc[index, 9]
                         if len(df_qp[df_qp["Index"] == index_c]):
                             # On multiplie les combinaisons quasi permanente par Kdef pour trouver Wcreep et par la formule 2.3.2.2 equ 2.7/2.10 pour modifier artificiellement E,mean en E,mean,fin
-                            valeur_qp = (
-                                df_qp[df_qp["Index"] == index_c].iloc[0, 6]
-                                * (1 + kdef * psy_2)
-                                * kdef
-                            )
-                            valeur = valeur_c + valeur_qp
+                            factor_kdef = (1 + kdef * psy_2) * kdef
+                            factor_qp = df_qp[df_qp["Index"] == index_c].iloc[0, 6]
+                            total_factor = factor_c + factor_kdef * factor_qp
+                            if type_load == "Distribuée":
+                                valeur = {"start": 0, "end": 0}
+                                for pos, load in df_qp[df_qp["Index"] == index_c].iloc[0, 7].items():
+                                    valeur_qp = load * factor_kdef
+                                    valeur[pos] += (valeur_qp + valeur_c[pos])
+                                    
+                            else:
+                                valeur_qp = (
+                                    df_qp[df_qp["Index"] == index_c].iloc[0, 7]
+                                    * factor_kdef
+                                )
+                                valeur = valeur_c + valeur_qp
+                            
                         else:
                             valeur = valeur_c
+                            total_factor = factor_c
                         load = np.array(
                             [
                                 name_combi,
@@ -1595,6 +1579,7 @@ class Combinaison(Chargement):
                                 name_load,
                                 action_load,
                                 type_load,
+                                total_factor,
                                 valeur,
                                 position,
                                 axe,
@@ -1606,10 +1591,23 @@ class Combinaison(Chargement):
 
                 array_load = array_load[array_load[:, 0].argsort()]
                 self.df_W_net_fin = self._create_dataframe_load(array_load)
+                self._create_analyze_type("W_net_fin", self.df_W_net_fin)
                 # print(self.df_W_net_fin)
+
+    def get_W_inst_Q_loads(self):
+        """Retourne les charges des combinaisons Winst (Q)"""
+        if hasattr(self, "df_W_inst_Q"):
+            return self.df_W_inst_Q
+        return None
 
     def _return_combi_W_inst_Q(self, combi):
         return self.df_W_inst_Q.loc[self.df_W_inst_Q["Combinaison"] == combi]
+
+    def get_W_net_fin_loads(self):
+        """Retourne les charges des combinaisons Wnet fin"""
+        if hasattr(self, "df_W_net_fin"):
+            return self.df_W_net_fin
+        return None
 
     def _return_combi_W_net_fin(self, combi):
         return self.df_W_net_fin.loc[self.df_W_net_fin["Combinaison"] == combi]
@@ -1662,6 +1660,20 @@ class Combinaison(Chargement):
         """
         self.list_loads = self._choice_combi_df()[nom]
         return self.list_loads
+    
+    def _get_combi_factor_load(self, nom: str) -> dict:
+        """Retourne la liste des facteurs de charge pour la combinaison sélectionné
+
+        Args:
+                nom (str): nom des la combinaison à récupérer. Defaults to "Sélectionner tout".
+        """
+        self.list_loads = self.get_combi_list_load(nom)
+        dict_loads = {}
+        for load in self.list_loads:
+            key_load = self.DICO_COMBI_ACTION[load[3]]
+            dict_loads[key_load] = load[5]
+        return dict_loads
+
 
     def min_type_load(self, name_combi: str) -> str:
         """Retourne le type de chargement de plus courte durée
@@ -1690,6 +1702,16 @@ class Combinaison(Chargement):
                     else:
                         name_load_type = dictName[action]
         return name_load_type
+    
+    def analize_FEM_model(self, analize_type: str=ANALYZE_TYPE, check_stability: bool=False):
+        """Lance l'analyse du modèle aux éléments finis.
+
+        Args:
+            analize_type (str): Défini le type d'analyse à réaliser
+            check_stability (bool, optional): Défini si vous voulez vérifier la stabilité du modèle. 
+                Ceci ralentit le calcul, à utiliser donc quand cas de débuguage. Defaults to False.
+        """
+        self._model_generator._analyze(analize_type, check_stability)
 
 
 if __name__ == "__main__":
@@ -1701,7 +1723,7 @@ if __name__ == "__main__":
         [3, "", "Exploitation Q", -100, 3610, "Z"],
     ]
     projet = Projet("AP", "6018.0", "", "", 73215, "France", 1200)
-    chargement = Chargement._from_parent_class(projet)
+    chargement = Model_generator._from_parent_class(projet)
     chargement.create_load_by_list(_dict_loads)
     # "Cat A : habitation"
     # "Cat H : toits"

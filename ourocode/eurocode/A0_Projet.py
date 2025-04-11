@@ -4,8 +4,11 @@ import os, sys
 import math as mt
 import numpy as np
 from matplotlib import pyplot as plt
+from PIL import Image
+
 import forallpeople as si
 from handcalcs.decorator import handcalc
+from Pynite import FEModel3D
 
 sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 from eurocode.objet import Objet
@@ -15,6 +18,15 @@ from eurocode.objet import Objet
 
 class Projet(Objet):
     JUPYTER_DISPLAY = False
+    DICO_COMBI_ACTION = {
+        "Permanente G": "G",
+        "Exploitation Q": "Q",
+        "Neige normale Sn": "Sn",
+        "Vent pression W+": "W+",
+        "Vent dépression W-": "W-",
+        "Neige accidentelle Sx": "Sx",
+        "Sismique Ae": "Ae",
+    }
 
     def __init__(
         self,
@@ -88,30 +100,51 @@ class Batiment(Projet):
 
 
 class Model_generator(Projet):
+    ACTION = (
+        "Permanente G",
+        "Exploitation Q",
+        "Neige normale Sn",
+        "Vent pression W+",
+        "Vent dépression W-",
+        "Neige accidentelle Sx",
+        "Sismique Ae",
+    )
     LIST_SECTION = ["Rectangulaire", "Circulaire"]
     CLASSE_WOOD = tuple(
         Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").index
     )[2:]
+    ANALYZE_TYPE = ("Général", "Linéaire", "Second ordre")
 
     def __init__(self, *args, **kwargs):
         """Créer une classe héritée de Projet, permettant de générer des barres pour générer tout d'abords des charges
         puis une modélisation MEF après la combinaison des dites charges à l'EC0.
 
         Voici les étapes de modélisation:
-            1) Créer les barres avec la méthode "add_beam"
-            2) Attribuer un matériaux aux barres avec la méthode "add_material"
-            3) Créer les appuis avec la méthode "create_support" ou "create_support_by_list"
-            4) Créer les charges sur les barres à partir de la classe Chargement dans le module EC0_Combinaison
-            5) Créer la classe MEF et lancer le calcul avec la méthode "calcul_1D"
-            6) Et voilà, plus cas siroter un thé glacé le temps du calcul ! :)
+            1) Créer les sections avec la méthode "add_section"
+            2) Créer les matériaux avec la méthode "add_material"
+            3) Créer les barres avec la méthode "add_member"
+            4) Créer les appuis avec la méthode "create_support"
+            5) Créer les charges sur les barres avec les méthodes "create_dist_load" et "create_point_load"
+            7) Transmettre cette classe dans les argument de la classe Combinaison du module EC0_Combinaison pour le calcul des combinaisons.
+            8) Exécuté la méthode "generate_model" avec la classe Combinaison.
+            9) Récupérer les efforts internes , les déformations et afficher les graphiques associés avec les méthodes correspondante.
         """
         super().__init__(*args, **kwargs)
-        self._data = {"nodes": {}, "members": {}, "supports": {}}
+        self.get_min_max_internal_force
+        self._data = {
+            "nodes": {},
+            "sections": {},
+            "materials": {},
+            "members": {},
+            "supports": {},
+            "loads": {},
+        }
+        self._model = FEModel3D()
 
     def get_all_data(self) -> dict:
         """Retourne l'ensemble des données du model"""
         return self._data
-    
+
     def export_data(self):
         """Export les données du model au format JSON
 
@@ -121,57 +154,103 @@ class Model_generator(Projet):
         import json
         from PySide6.QtWidgets import QFileDialog, QApplication
         from PySide6.QtCore import Qt
-        
+
         # QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
         app = QApplication(sys.argv)
         filename = QFileDialog.getSaveFileName(
-                filter="'JSON' (*.json)",
-                selectedFilter=".json",
-            )[0]
-
+            filter="'JSON' (*.json)",
+            selectedFilter=".json",
+        )[0]
         with open(filename, "w") as f:
             json.dump(self._data, f, indent=4)
 
-    def aire(self, b: int, h: int, section: str = LIST_SECTION):
-        if section == self.LIST_SECTION[0]:
-            return b * h
-        else:
-            return mt.pi * (b / 2) ** 2
+    def show_sign_convention(self):
+        """Affiche l'image de la convention de signe d'une barre'"""
+        file = os.path.join(
+            self.PATH_CATALOG, "data", "screenshot", "sign_convention.png"
+        )
+        image = Image.open(file)
+        image.show()
 
-    def inertie(self, b: int, h: int, section: str = LIST_SECTION):
-        """Retourne le moment quadratique d'une section rectangulaire en mm4 avec pour argument :
-        b ou d : Largeur ou diamètre de la poutre en mm
-        h : Hauteur de la poutre en mm"""
-        if section == "Rectangulaire":
-            I_y = (b * h**3) / 12
-            I_z = (h * b**3) / 12
-        else:
-            I_y = (mt.pi * b**4) / 64
-            I_z = I_y
-        return {"Iy": I_y, "Iz": I_z}
+    ################## Noeud ##################
 
-    def _get_angle_of_bar(self, v1: tuple):
+    def add_node(self, X: si.mm, Y: si.mm, Z: si.mm, comment: str = None) -> str:
+        """Ajoute un noeud au model MEF
+
+        Args:
+            X (int): position en X global en mm
+            Y (int): position en Y global en mm
+            Z (int): position en Z global en mm
+        """
+        node_id = "N" + str(len(self._data["nodes"]) + 1)
+        self._data["nodes"][node_id] = {
+            "X": X * si.mm,
+            "Y": Y * si.mm,
+            "Z": Z * si.mm,
+            "Commentaire": comment,
+        }
+        self._model.add_node
+        return node_id
+
+    def _add_node_to_model(self, node_id: str):
+        """Ajoute un noeud au model MEF
+
+        Args:
+            node_id (str): id du noeud à ajouter
+        """
+        node = self._data["nodes"][node_id]
+        self._model.add_node(
+            node_id,
+            node["X"].value * 10**3,
+            node["Y"].value * 10**3,
+            node["Z"].value * 10**3,
+        )
+        return node_id
+
+    def _add_nodes_to_model(self):
+        """Ajoute tous les noeuds au model MEF"""
+        for node_id in self._data["nodes"].keys():
+            self._add_node_to_model(node_id)
+        return self._model.nodes
+
+    def get_node(self, node_id: str) -> dict:
+        """Retourne les coordonnée du noeud
+
+        Args:
+            node_id (str): id du noeud à récupérer
+
+        Returns:
+            dict: dictionnaire contenant les coordonnées du noeud
+        """
+        return self._data["nodes"][node_id]
+
+    def get_all_nodes(self) -> dict:
+        return self._data["nodes"]
+
+    ################## Barre ##################
+
+    def _get_angle_of_bar(self, vector: tuple):
         """Retourne les angles de la barre par rapport aux plans XY, XZ et YZ.
 
         Args:
-            v1 (tuple): vecteur 3D représentant la barre (x2-x1, y2-y1, z2-z1)
+            vector (tuple): vecteur 3D représentant la barre (x2-x1, y2-y1, z2-z1)
 
         Returns:
             dict: Dictionnaire contenant les angles par rapport aux plans XY, XZ et YZ en degrés.
         """
 
-        def _get_local_angle_of_bar(v1: tuple):
+        def _get_local_angle_of_bar(vector: tuple):
             """
             Retourne l'angle dans le plan local de la barre, autour de l'axe longitudinal.
 
             Args:
-                v1 (tuple): vecteur 3D représentant la barre (x2-x1, y2-y1, z2-z1)
+                vector (tuple): vecteur 3D représentant la barre (x2-x1, y2-y1, z2-z1)
 
             Returns:
                 float: L'angle de rotation autour de l'axe longitudinal en degrés.
             """
             # Calcul de l'axe longitudinal de la barre (normalisation du vecteur)
-            L = np.array(v1) / np.linalg.norm(v1)
+            L = np.array(vector) / np.linalg.norm(vector)
 
             # Choisir un vecteur de référence global, par exemple (1, 0, 0) pour l'axe X
             ref_vec = np.array([1, 0, 0])
@@ -193,68 +272,37 @@ class Model_generator(Projet):
 
             return np.rad2deg(angle_local)
 
-        dx, dy, dz = v1
+        dx, dy, dz = vector
 
         # Angle dans le plan XY
-        angle_xy = np.arctan2(dy, dx)
+        angle_xy = np.arctan2(dy.value(), dx.value())
 
         # Angle dans le plan XZ
-        angle_xz = np.arctan2(dz, dx)
+        angle_xz = np.arctan2(dz.value(), dx.value())
 
         # Angle dans le plan YZ
-        angle_yz = np.arctan2(dz, dy)
+        angle_yz = np.arctan2(dz.value(), dy.value())
 
         # Convertir les angles en degrés
         angles = {
             "XY": np.rad2deg(angle_xy % (2 * np.pi)),
             "XZ": np.rad2deg(angle_xz % (2 * np.pi)),
             "YZ": np.rad2deg(angle_yz % (2 * np.pi)),
-            "local": _get_local_angle_of_bar(v1),
+            "local": _get_local_angle_of_bar(vector),
         }
-
-        return angles
         # ang1 = np.arctan2(*v1[::-1])
         # return np.rad2deg(ang1 % (2 * np.pi))
-
-    def add_node(self, X: int, Y: int, Z: int, comment: str = None) -> str:
-        """Ajoute un noeud au model MEF
-
-        Args:
-            X (int): position en X global en mm
-            Y (int): position en Y global en mm
-            Z (int): position en Z global en mm
-        """
-        node_id = "N" + str(len(self._data["nodes"]) + 1)
-        self._data["nodes"][node_id] = {"X": X, "Y": Y, "Z": Z, "Commentaire": comment}
-        return node_id
-
-    def get_node(self, node_id: str) -> dict:
-        """Retourne les coordonnée du noeud
-
-        Args:
-            node_id (str): id du noeud à récupérer
-
-        Returns:
-            dict: dictionnaire contenant les coordonnées du noeud
-        """
-        return self._data["nodes"][node_id]
-
-    def get_all_nodes(self) -> dict:
-        return self._data["nodes"]
-
-    def get_all_members(self) -> dict:
-        return self._data["members"]
-
-    def get_all_supports(self) -> dict:
-        return self._data["supports"]
+        return angles
 
     def add_member(
         self,
         node1: str,
         node2: str,
-        aire: float,
-        Iy: float,
-        Iz: float,
+        material: str,
+        section: str,
+        rotation: float = 0,
+        tension_only: bool = False,
+        compression_only: bool = False,
         comment: str = None,
     ):
         """Ajoute une poutre au model MEF
@@ -262,34 +310,98 @@ class Model_generator(Projet):
         Args:
             node1 (str): id du noeud 1
             node2 (str): id du noeud 2
-            aire (float): airede la section en mm²
-
-            ATTENTION: Iy est la grande inertie et Iz est la petite inertie !
-            Iy (float): Inertie quadratique autour de y en mm4
-            Iz (float): Inertie quadratique autour de z en mm4
+            material (str): id du matériaux
+            section (str): id de la section
+            rotation (float, optional): angle de rotation de la poutre en °. Defaults to 0.
+            tension_only (bool, optional): si True, la poutre ne peut que subir des efforts de traction. Defaults to False.
+            compression_only (bool, optional): si True, la poutre ne peut que subir des efforts de compression. Defaults to False.
+            comment (str, optional): commentaire sur la poutre. Defaults to None.
         """
         member_id = "M" + str(len(self._data["members"]) + 1)
         node_coor_1 = self.get_node(node1)
         node_coor_2 = self.get_node(node2)
-        x1, y1, z1 = node_coor_1["X"], node_coor_1["Y"], node_coor_1["Z"]
-        x2, y2, z2 = node_coor_2["X"], node_coor_2["Y"], node_coor_2["Z"]
-        vector = (x2 - x1, y2 - y1, z2 - z1)
-        length = mt.sqrt(
-            abs(vector[0]) ** 2 + abs(vector[1]) ** 2 + abs(vector[2]) ** 2
+        x1, y1, z1 = (
+            node_coor_1["X"].value * 10**3,
+            node_coor_1["Y"].value * 10**3,
+            node_coor_1["Z"].value * 10**3,
         )
-        angle = self._get_angle_of_bar(vector)
+        x2, y2, z2 = (
+            node_coor_2["X"].value * 10**3,
+            node_coor_2["Y"].value * 10**3,
+            node_coor_2["Z"].value * 10**3,
+        )
+        vector = (x2 - x1, y2 - y1, z2 - z1)
+        length = (
+            mt.sqrt(abs(vector[0]) ** 2 + abs(vector[1]) ** 2 + abs(vector[2]) ** 2)
+            * si.mm
+        )
+        print(length)
+        # angle = self._get_angle_of_bar(vector)
 
         self._data["members"][member_id] = {
             "Noeuds": [node1, node2],
             "Longueur": length,
-            "Section": aire,
-            "Iy": Iz,
-            "Iz": Iy,
-            "Angle": angle,
+            "Section": section,
+            "Matériaux": material,
+            # "Angle": angle,
+            "Rotation": rotation,
             "Relaxation": {"start": None, "end": None},
             "Commentaire": comment,
         }
+        if tension_only:
+            self._data["members"][member_id]["Tension uniquement"] = True
+        elif compression_only:
+            self._data["members"][member_id]["Compression uniquement"] = True
+
         return member_id
+
+    def _add_member_to_model(self, member_id: str):
+        """Ajoute une poutre au model MEF
+
+        Args:
+            member_id (str): id de la poutre à ajouter
+        """
+        node1, node2 = self._data["members"][member_id]["Noeuds"]
+        tension_only = False
+        compression_only = False
+        if self._data["members"][member_id].get("Tension uniquement"):
+            tension_only = True
+        elif self._data["members"][member_id].get("Compression uniquement"):
+            compression_only = True
+        self._model.add_member(
+            member_id,
+            node1,
+            node2,
+            self._data["members"][member_id]["Matériaux"],
+            self._data["members"][member_id]["Section"],
+            self._data["members"][member_id]["Rotation"],
+            tension_only,
+            compression_only,
+        )
+
+        # Ajout des releases
+        list_releases = []
+        has_release = False
+        for pos, release in self._data["members"][member_id]["Relaxation"].items():
+            if release:
+                has_release = True
+                list_releases.append([val for val in release.values()])
+            else:
+                list_releases.append([False * 6])
+
+        if has_release:
+            list_releases = list_releases[0] + list_releases[1]
+            self._model.def_releases(
+                member_id,
+                *list_releases,
+            )
+        return member_id
+
+    def _add_members_to_model(self):
+        """Ajoute toutes les poutres au model MEF"""
+        for member_id in self._data["members"].keys():
+            self._add_member_to_model(member_id)
+        return self._model.members
 
     def get_member(self, member_id: str) -> dict:
         """Retourne une membrure par son id
@@ -302,45 +414,187 @@ class Model_generator(Projet):
         """
         return self._data["members"][member_id]
 
-    def add_material_by_class(self, member_id: int, classe: str = CLASSE_WOOD) -> str:
-        data_csv_meca = self._data_from_csv("caracteristique_meca_bois.csv")
-        material_properties = data_csv_meca.loc[classe]
-        E = int(material_properties.loc["E0mean"])
-        G = int(material_properties.loc["Gmoy"])
-        J = 0
-        nu = (E / (2 * G)) - 1  # Coefficient de Poisson
-        self._data["members"][member_id]["Matériaux"] = {
-            "classe": classe,
-            "E": E,
-            "G": G,
-            "J": J,
-            "nu": nu,
-        }
-        return self._data["members"][member_id]["Matériaux"]
+    def get_all_members(self) -> dict:
+        return self._data["members"]
+
+    ################## Matériaux ##################
+
+    def add_material_by_class(self, classe: str = CLASSE_WOOD) -> str:
+        if not self._data["materials"].get(classe):
+            data_csv_meca = self._data_from_csv("caracteristique_meca_bois.csv")
+            material_properties = data_csv_meca.loc[classe]
+            E = int(material_properties.loc["E0mean"])
+            G = int(material_properties.loc["Gmoy"])
+            nu = (E / (2 * G)) - 1  # Coefficient de Poisson
+            self._data["materials"][classe] = {
+                "classe": classe,
+                "E": E * si.MPa,
+                "G": G * si.MPa,
+                "nu": nu,
+                "rho": int(material_properties.loc["rhomean"]) * si.kg / si.m**3,
+            }
+        return classe
 
     def add_material_by_mechanical_properties(
-        self, member_id: int, E: int, G: float, J: float, nu: float
+        self,
+        name: str,
+        E: si.MPa,
+        G: si.MPa,
+        nu: float,
+        rho: float,
     ):
         """Ajoute un matériau à une barre par ces caractéristiques mécaniques.
 
         Args:
-            member_id (int): Le numéro de la barre à laquelle ajouter le matériaux
+            name (str): nom du matériau
             E (int): Module de young en MPa, ce E est le E,mean. Il ne faut absolument pas donner le E,mean,fin sous peine de réaliser le calcul EC5 §2.3.2.2 equ2.7 deux fois !
-            A (float): Section en mm²
             G (float): Module de cisaillement en MPa
-            J (float): Module de torsion en mm4
             nu (float): Coefficient de Poisson
+            rho (float): Masse volumique en kg/m3
         """
-        # ATTENTION: Iy / Iz est différent des Eurocodes ! y est verticale et est donc dans le sens théorique eurocode de Z ! z est donc dans le sens théorique de Y !
-        # Il faut donc faire attention au dimenssion de l'élément ! Pour une poutre de section b: 100mm h: 200mm -> Iy = 200 * 100^3 / 12 et Iz = 100 * 200^3 / 12.
-        self._data["members"][member_id]["Matériaux"] = {
+        self._data["materials"][name] = {
             "classe": "Manuel",
-            "E": E,
-            "G": G,
-            "J": J,
+            "E": E * si.MPa,
+            "G": G * si.MPa,
             "nu": nu,
+            "rho": rho * si.kg / si.m**3,
         }
-        return self._data["members"][member_id]["Matériaux"]
+        return name
+
+    def _add_material_to_model(self, material_id: str):
+        """Ajoute un matériau au model MEF
+
+        Args:
+            material_id (str): id du matériau à ajouter
+        """
+        material = self._data["materials"][material_id]
+        print(material["E"].value)
+        self._model.add_material(
+            material_id,
+            material["E"].value * 10**-6,
+            material["G"].value * 10**-6,
+            material["nu"],
+            material["rho"].value,
+        )
+        return material_id
+
+    def _add_materials_to_model(self):
+        for mat_id in self._data["materials"].keys():
+            self._add_material_to_model(mat_id)
+        return self._model.materials
+
+    def get_material(self, material_id: str) -> dict:
+        return self._data["materials"][material_id]
+
+    def get_all_materials(self) -> dict:
+        return self._data["materials"]
+
+    ################## Section ##################
+
+    def aire(self, b: si.mm, h: si.mm, section: str = LIST_SECTION):
+        b = b * si.mm
+        h = h * si.mm
+        if section == self.LIST_SECTION[0]:
+            return b * h
+        else:
+            return mt.pi * (b / 2) ** 2
+
+    def inertie(self, b: si.mm, h: si.mm, section: str = LIST_SECTION):
+        """Retourne le moment quadratique d'une section rectangulaire en mm4 avec pour argument :
+        b ou d : Largeur ou diamètre de la poutre en mm
+        h : Hauteur de la poutre en mm"""
+        b = b * si.mm
+        h = h * si.mm
+        if section == "Rectangulaire":
+            I_y = (b * h**3) / 12
+            I_z = (h * b**3) / 12
+        else:
+            I_y = (mt.pi * b**4) / 64
+            I_z = I_y
+        return {"Iy": I_y, "Iz": I_z}
+
+    def add_section(self, b: si.mm, h: si.mm, J: si.mm**4, section: str = LIST_SECTION):
+        """Ajoute une section à la liste de section
+
+        Args:
+            b (int): largeur de la section en mm
+            h (int): hauteur de la section en mm
+            J (float): Module de torsion en mm4
+            section (str): type de section "Circulaire" ou "Rectangulaire".
+        """
+        if section not in self.LIST_SECTION:
+            raise ValueError(
+                f"Le type de section {section} n'est pas reconnu. Les types de sections disponibles sont: {self.LIST_SECTION}"
+            )
+        match section:
+            case "Rectangulaire":
+                name = "".join(["R", str(b), "X", str(h)])
+            case "Circulaire":
+                name = "".join(["C", str(b)])
+        inertie = self.inertie(b, h, section)
+        self._data["sections"][name] = {
+            "Section": section,
+            "b": b * si.mm,
+            "h": h * si.mm,
+            "Aire": self.aire(b, h, section),
+            "Iy": inertie["Iy"],
+            "Iz": inertie["Iz"],
+            "J": J * si.mm**4,
+        }
+        return name
+
+    def add_section_by_property(
+        self, name: str, aire: si.mm**2, Iy: si.mm**4, Iz: si.mm**4, J: si.mm**4
+    ):
+        """Ajoute une section à la liste de section
+
+        Args:
+            name (str): nom de la section
+            aire (float): aire de la section en mm²
+
+            ATTENTION: Iy est la grande inertie et Iz est la petite inertie !
+            Iy (float): Inertie quadratique autour de y en mm4
+            Iz (float): Inertie quadratique autour de z en mm4
+
+            J (float): Module de torsion en mm4
+        """
+        self._data["sections"][name] = {
+            "Section": "Manuel",
+            "Aire": aire * si.mm**2,
+            "Iy": Iy * si.mm**4,
+            "Iz": Iz * si.mm**4,
+            "J": J * si.mm**4,
+        }
+        return self._data["sections"][name]
+
+    def _add_section_to_model(self, section_id: str):
+        """Ajoute une section au model MEF
+
+        Args:
+            section_id (str): id de la section à ajouter
+        """
+        section = self._data["sections"][section_id]
+        self._model.add_section(
+            section_id,
+            section["Aire"].value * 10**4,
+            section["Iy"].value * 10**16,
+            section["Iz"].value * 10**16,
+            section["J"].value * 10**16,
+        )
+        return section_id
+
+    def _add_sections_to_model(self):
+        for section_id in self._data["sections"].keys():
+            self._add_section_to_model(section_id)
+        return self._model.sections
+
+    def get_section(self, section_id: str) -> dict:
+        return self._data["sections"][section_id]
+
+    def get_all_sections(self) -> dict:
+        return self._data["sections"]
+
+    ################## Relachement ##################
 
     def add_release(
         self,
@@ -366,57 +620,50 @@ class Model_generator(Projet):
             teta_y (bool, optional): relachement de l'axe de rotation y local, si oui alors True. Defaults to True.
             teta_z (bool, optional): relachement de l'axe de rotation z local, si oui alors True. Defaults to True.
         """
-        self._data[member_id]["relaxation"][position](
-            {
-                "position": position,
-                "u": u,
-                "v": v,
-                "w": w,
-                "teta_x": teta_x,
-                "teta_y": teta_y,
-                "teta_z": teta_z,
-            }
-        )
-        return self._data[member_id]["relaxation"][-1]
+        self._data["members"][member_id]["Relaxation"][position] = {
+            "u": u,
+            "v": v,
+            "w": w,
+            "teta_x": teta_x,
+            "teta_y": teta_y,
+            "teta_z": teta_z,
+        }
+        return self._data["members"][member_id]["Relaxation"][position]
 
-    def create_support(
+    ################## Appuis ##################
+
+    def add_support(
         self,
         node_id: int,
-        type_appuis: str = (
-            "Simple X",
-            "Simple Y",
-            "Simple Z",
-            "Rotule YZ",
-            "Rotule XY",
-            "Rotule XZ",
-            "Encastrement",
-        ),
+        DX: bool = True,
+        DY: bool = True,
+        DZ: bool = True,
+        RX: bool = True,
+        RY: bool = False,
+        RZ: bool = False,
         l_appuis: int = 0,
     ):
         """Ajoute un appuis dans la liste d'appuis de la classe MEF
 
         Args:
             node_id (int): Numéro du noeud sur lequel positionner l'appuis.
-            type_appuis (str, optional): type d'appuis à créer. Defaults to ("Simple", 'Rotule', 'Encastrement').
+            DX (bool, optional): Blocage en translation de l'axe X global, si oui alors True. Defaults to False.
+            DY (bool, optional): Blocage en translation de l'axe Y global, si oui alors True. Defaults to False.
+            DZ (bool, optional): Blocage en translation de l'axe Z global, si oui alors True. Defaults to False.
+            RX (bool, optional): Blocage en rotation de l'axe X global, si oui alors True. Defaults to False.
+            RY (bool, optional): Blocage en translation de l'axe X global, si oui alors True. Defaults to False.
+            RZ (bool, optional): Blocage en translation de l'axe X global, si oui alors True. Defaults to False.
             l_appuis (int, optional): longueur d'appuis sur la poutre en mm. Defaults to 0.
         """
         support_id = "S" + str(len(self._data["supports"]) + 1)
-        if type_appuis not in (
-            "Simple X",
-            "Simple Y",
-            "Simple Z",
-            "Rotule YZ",
-            "Rotule XY",
-            "Rotule XZ",
-            "Encastrement",
-        ):
-            raise ValueError(
-                f"Le type d'appuis {type_appuis} n'est pas reconnu. Les types d'appuis disponibles sont: {self._data['supports']}"
-            )
-
         self._data["supports"][support_id] = {
             "Noeud": node_id,
-            "Type d'appui": type_appuis,
+            "DX": DX,
+            "DY": DY,
+            "DZ": DZ,
+            "RX": RX,
+            "RY": RY,
+            "RZ": RZ,
             "Longueur d'appui": l_appuis,
         }
         return self._data["supports"][support_id]
@@ -428,7 +675,7 @@ class Model_generator(Projet):
             list_supports (list): liste de charge.
         """
         for support in list_supports:
-            self.create_support(*support)
+            self.add_support(*support)
         return self._data["supports"]
 
     def del_support(self, support_id: int):
@@ -439,9 +686,401 @@ class Model_generator(Projet):
         """
         return f"L'appui à été supprimé: {self._data["supports"].pop(support_id)}"
 
-    def get_supports(self):
-        """Retourne la liste des appuis définis."""
+    def _add_support_to_model(self, support_id: str):
+        """Ajoute un appui au model MEF
+
+        Args:
+            support_id (str): id de l'appui à ajouter
+        """
+        support = self._data["supports"][support_id]
+        self._model.def_support(
+            support["Noeud"],
+            support["DX"],
+            support["DY"],
+            support["DZ"],
+            support["RX"],
+            support["RY"],
+            support["RZ"],
+        )
+        return support_id
+
+    def _add_supports_to_model(self):
+        for support_id in self._data["supports"].keys():
+            self._add_support_to_model(support_id)
+        return "Appuis ajoutés"
+
+    def get_all_supports(self) -> dict:
         return self._data["supports"]
+
+    ################## Chargements ##################
+
+    def _convert_pos(self, pos_index: int | str, member_id: str) -> int:
+        """Converti la position en valeur recevable par la fonction create_load
+
+        Args:
+                pos_index (int | str): position de la charge sur la barre
+
+        Returns:
+                int: la position numérique sur la barre
+        """
+        match pos_index:
+            case "start":
+                pos_index = 0 * si.mm
+            case "end":
+                pos_index = self._data["members"][member_id]["Longueur"]
+            case "middle":
+                pos_index = round(self._data["members"][member_id]["Longueur"] / 2, 0)
+            case str(x) if "%" in x:
+                pos_index = pos_index.split("%")[0]
+                pos_index.replace(" ", "")
+                pos_index = round(
+                    self._data["members"][member_id]["Longueur"] * int(pos_index) / 100,
+                    0,
+                )
+            case _:
+                pos_index = pos_index * si.mm
+        return pos_index
+
+    def create_dist_load(
+        self,
+        member_id: str,
+        name: str,
+        start_load: float,
+        end_load: float,
+        start_pos: str = None,
+        end_pos: str = None,
+        action: str = ACTION,
+        direction: str = ("Fx", "Fy", "Fz", "FX", "FY", "FZ"),
+        comment: str = None,
+    ):
+        """Ajoute une charge dans la liste de chargement de la classe chargement
+
+        Args:
+                member_id (str): id de la barre à charger.
+                name (str): nom de la charge.
+                start_load (int): effort de départ en kN/m.
+                end_load (int): effort de fin en kN/m.
+                start_pos (str, optional): position de début de la charge sur la barre en mm. En complément il est possible de mettre "start", "middle"
+                                           ou un pourcentage pour définir la position de la charge.
+                end_pos (str, optional): position de début de la charge sur la barre en mm. En complément il est possible de mettre "end", "middle"
+                                         ou un pourcentage pour définir la position de la charge.
+                action (str): type d'action de l'effort.
+                direction (str): sens de l'effort sur la barre.
+                comment (str, optional): commentaire sur la charge.
+        """
+        load_id = "L" + str(len(self._data["loads"]) + 1)
+        type_load = "Distribuée"
+        if not start_pos:
+            start_pos = "start"
+        if not end_pos:
+            end_pos = "end"
+        start_pos = self._convert_pos(start_pos, member_id)
+        end_pos = self._convert_pos(end_pos, member_id)
+
+        self._data["loads"][load_id] = {
+            "N° barre": member_id,
+            "Nom": name,
+            "Action": action,
+            "Type de charge": type_load,
+            "Charge": {
+                "start": start_load * si.kN / si.m,
+                "end": end_load * si.kN / si.m,
+            },
+            "Position": {"start": start_pos, "end": end_pos},
+            "Axe": direction,
+            "Commentaire": comment,
+        }
+        return self._data["loads"][load_id]
+
+    def create_point_load(
+        self,
+        member_id: str,
+        name: str,
+        load: int,
+        pos: str = None,
+        action: str = ACTION,
+        direction: str = (
+            "Fx",
+            "Fy",
+            "Fz",
+            "Mx",
+            "My",
+            "Mz",
+            "FX",
+            "FY",
+            "FZ",
+            "MX",
+            "MY",
+            "MZ",
+        ),
+        comment: str = None,
+    ):
+        """Ajoute une charge dans la liste de chargement de la classe chargement
+
+        Args:
+                member_id (str): id de la barre à charger.
+                name (str): nom de la charge.
+                load (int): effort de départ en kN ou kN.m.
+                pos (str, optional): position de la charge sur la barre en mm. En complément il est possible de mettre "start", "middle", "end"
+                                     ou un pourcentage pour définir la position de la charge.
+                action (str): type d'action de l'effort.
+                direction (str): sens de l'effort sur la barre.
+                comment (str, optional): commentaire sur la charge.
+        """
+        load_id = "L" + str(len(self._data["loads"]) + 1)
+        if "F" in direction:
+            type_load = "Concentrée"
+            load = load * si.kN
+        else:
+            type_load = "Moment"
+            load = load * si.kN * si.m
+
+        pos = self._convert_pos(pos, member_id)
+
+        self._data["loads"][load_id] = {
+            "N° barre": member_id,
+            "Nom": name,
+            "Action": action,
+            "Type de charge": type_load,
+            "Charge": load,
+            "Position": pos,
+            "Axe": direction,
+            "Commentaire": comment,
+        }
+        return self._data["loads"][load_id]
+
+    def create_load_by_list(
+        self, list_loads: list, type_load: str = ("Distribuée", "Autre")
+    ):
+        """Ajoute les charges d'une liste pré-défini dans la liste de chargement
+
+        Args:
+                list_loads (list): liste de charge.
+        """
+        for load in list_loads:
+            if type_load == "Distribuée":
+                self.create_dist_load(*load)
+            else:
+                self.create_point_load(*load)
+        return self._data["loads"]
+
+    def del_load(self, load_id: str):
+        """Supprime une charge de l'attribut _data["loads"] par son index
+
+        Args:
+                index_load (int): index de la charge à supprimer.
+        """
+        self._data["loads"].pop(load_id)
+
+    def _add_load_to_model(self, load_id: str):
+        load = self._data["loads"][load_id]
+        case = self.DICO_COMBI_ACTION[load["Action"]]
+        match load["Type de charge"]:
+            case "Distribuée":
+                print(load["Charge"]["start"].value)
+                self._model.add_member_dist_load(
+                    load["N° barre"],
+                    load["Axe"],
+                    load["Charge"]["start"].value * 10**-3,
+                    load["Charge"]["end"].value * 10**-3,
+                    load["Position"]["start"].value * 10**3,
+                    load["Position"]["end"].value * 10**3,
+                    case,
+                )
+            case _:
+                member = self._data["members"][load["N° barre"]]
+                long = member["Longueur"]
+                local_axes = ("Fx", "Fy", "Fz", "Mx", "My", "Mz")
+                if load["Position"] == 0 and load["Axe"] not in local_axes:
+                    node1 = member["Noeuds"][0]
+                    self._model.add_node_load(
+                        node1, load["Axe"], load["Charge"].value, case
+                    )
+                elif load["Position"] == long and load["Axe"] not in local_axes:
+                    node2 = member["Noeuds"][1]
+                    self._model.add_node_load(
+                        node2, load["Axe"], load["Charge"].value, case
+                    )
+                else:
+                    self._model.add_member_pt_load(
+                        load["N° barre"],
+                        load["Axe"],
+                        load["Charge"].value,
+                        load["Position"].value * 10**3,
+                        case,
+                    )
+
+        return load_id
+
+    def _add_loads_to_model(self):
+        for load_id in self._data["loads"].keys():
+            self._add_load_to_model(load_id)
+        return self._model.load_cases
+
+    def get_all_loads(self):
+        """Retourne la liste des charges définis initialement."""
+        return self._data["loads"]
+
+    def get_member_loads(self, member_id: str) -> list:
+        """Retourne la liste des charges définis initialement."""
+        return [
+            load
+            for load in self._data["loads"].values()
+            if load["N° barre"] == member_id
+        ]
+
+    def get_internal_force(
+        self,
+        member_id: str,
+        combination: str,
+        type: str = ("Nx", "Vy", "Vz", "Mx", "My", "Mz"),
+        n_points: int = 20,
+    ) -> np.array:
+        """Retourne une table des efforts internes d'une membrure pour le type d'effort donné.
+
+        Args:
+            member_id (str): Le nom de la membrure à analyser
+            combination (str): Le nom de la combinaison à récupérer
+            type (str): Le type d'effort interne à retourner. Defaults to ("Nx", "Vy", "Vz", "Mx", "My", "Mz").
+            n_points (int, optional): le nombre de valeur à retrouner le long de la membrure. Defaults to 20.
+        """
+        match type:
+            case "Nx":
+                return self._model.members[member_id].axial_array(
+                    n_points=n_points, combo_name=combination
+                )
+            case "Vy":
+                return self._model.members[member_id].shear_array(
+                    "Fy", n_points=n_points, combo_name=combination
+                )
+            case "Vz":
+                return self._model.members[member_id].shear_array(
+                    "Fz", n_points=n_points, combo_name=combination
+                )
+            case "Mx":
+                return self._model.members[member_id].torque_array(
+                    n_points=n_points, combo_name=combination
+                )
+            case "My":
+                return self._model.members[member_id].shear_array(
+                    "My", n_points=n_points, combo_name=combination
+                )
+            case "Mz":
+                return self._model.members[member_id].shear_array(
+                    "Mz", n_points=n_points, combo_name=combination
+                )
+
+    def get_min_max_internal_force(self, member_id: str, combination: str) -> np.array:
+        """Retourne le maximum et minimum des efforts internes d'une membrure donnée.
+
+        Args:
+            member_id (str): Le nom de la membrure à analyser
+            combination (str): Le nom de la combinaison à récupérer
+        """
+        dict_internal_forces = {}
+        for type in ("Nx", "Vy", "Vz", "Mx", "My", "Mz"):
+            if type == "Nx":
+                max = self._model.members[member_id].max_axial(combo_name=combination)
+                min = self._model.members[member_id].min_axial(combo_name=combination)
+            elif type == "Vy":
+                max = self._model.members[member_id].max_shear(
+                    "Fy", combo_name=combination
+                )
+                min = self._model.members[member_id].min_shear(
+                    "Fy", combo_name=combination
+                )
+            elif type == "Vz":
+                max = self._model.members[member_id].max_shear(
+                    "Fz", combo_name=combination
+                )
+                min = self._model.members[member_id].min_shear(
+                    "Fz", combo_name=combination
+                )
+            elif type == "Mx":
+                max = self._model.members[member_id].max_torque(combo_name=combination)
+                min = self._model.members[member_id].min_torque(combo_name=combination)
+            elif type == "My":
+                max = self._model.members[member_id].max_moment(
+                    "My", combo_name=combination
+                )
+                min = self._model.members[member_id].min_moment(
+                    "My", combo_name=combination
+                )
+            elif type == "Mz":
+                max = self._model.members[member_id].max_moment(
+                    "Mz", combo_name=combination
+                )
+                min = self._model.members[member_id].min_moment(
+                    "Mz", combo_name=combination
+                )
+            if "M" in type:
+                si_unit = si.N*si.mm
+            else:
+                si_unit = si.N
+            dict_internal_forces[type] = {"Min": min * si_unit, "Max": max * si_unit}
+        self._data["members"][member_id][
+            "Forces internes Min/Max"
+        ] = dict_internal_forces
+        return dict_internal_forces
+
+    def get_deflection(
+        self,
+        member_id: str,
+        combination: str,
+        direction: str = ("dx", "dy", "dz"),
+        n_points: int = 20,
+    ) -> np.array:
+        """Retourne une table des déformation d'une membrure pour la direction locale donnée.
+
+        Args:
+            member_id (str): Le nom de la membrure à analyser
+            combination (str): Le nom de la combinaison à récupérer
+            direction (str): La driction locale à retourner. Defaults to ("dx", "dy", "dz").
+            n_points (int, optional): le nombre de valeur à retrouner le long de la membrure. Defaults to 20.
+        """
+        return self._model.members[member_id].deflection_array(
+            direction, n_points=n_points, combo_name=combination
+        )
+
+    def get_min_max_deflection(self, member_id: str, combination: str) -> np.array:
+        """Retourne le maximum et minimum des efforts internes d'une membrure donnée.
+
+        Args:
+            member_id (str): Le nom de la membrure à analyser
+            combination (str): Le nom de la combinaison à récupérer
+        """
+        dict_deflection = {}
+        for type in ("dx", "dy", "dz"):
+            max = self._model.members[member_id].max_deflection(
+                type, combo_name=combination
+            )
+            min = self._model.members[member_id].min_deflection(type, combo_name=combination)
+            dict_deflection[type] = {"Min": min*si.mm, "Max": max*si.mm}
+        self._data["members"][member_id]["Déformation Min/Max"] = dict_deflection
+        return dict_deflection
+
+    def _generate_model(
+        self,
+    ):
+        self._add_nodes_to_model()
+        self._add_materials_to_model()
+        self._add_sections_to_model()
+        self._add_members_to_model()
+        self._add_supports_to_model()
+        self._add_loads_to_model()
+
+    def _add_load_combos_to_model(self, combos: dict, tag: str):
+        for combo, factor in combos.items():
+            self._model.add_load_combo(combo, factor, tag)
+
+    def _analyze(self, analyze_type: str = ANALYZE_TYPE, check_stability: bool = False):
+        if analyze_type:
+            if analyze_type == self.ANALYZE_TYPE[0]:
+                self._model.analyze(check_stability=check_stability)
+            elif analyze_type == self.ANALYZE_TYPE[1]:
+                self._model.analyze_linear(check_stability=check_stability)
+            else:
+                self._model.analyze_PDelta(check_stability=check_stability)
 
 
 if __name__ == "__main__":
