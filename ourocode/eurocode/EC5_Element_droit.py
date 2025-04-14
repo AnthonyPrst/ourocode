@@ -34,7 +34,7 @@ class Barre(Projet):
     B90 = 0.25
 
     def __init__(self, b:si.mm, h:si.mm, section: str=LIST_SECTION, Hi: int=12, Hf: int=12, classe: str=CLASSE_WOOD, cs: int=CS, effet_systeme: bool=("False", "True"), **kwargs):
-        """Classe qui définis les caractéristiques d'un élément droit. 
+        """Classe qui définit les caractéristiques d'un élément droit. 
         Cette classe est hérité de la classe Projet du module A0_Projet.py.
 
         Args:
@@ -1147,7 +1147,7 @@ class Cisaillement(Barre):
 
 class Poutre_assemblee_meca(Projet):
     def __init__(self, beam_2:object, l: si.mm, disposition: str=["Latérale", "Dessus / Dessous"], recouvrement: list=[0,0], Ki: list=[0,None,0], entraxe: list=[1, None, 1], psy_2: int|float=0, **kwargs):
-        """Classe définissant une poutre composée d'au maximum 3 éléments connectés entre eux par liaisons mécanique 
+        """Classe définitssant une poutre composée d'au maximum 3 éléments connectés entre eux par liaisons mécanique 
         suivant la théorie de HEIMESHOFF Annexe B de l'EN 1995
         Args:
             beam_2 (object): objet contenant l'élément centrale de la poutre i=2, cette objet doit être issu de la classe élément ou de son héritage

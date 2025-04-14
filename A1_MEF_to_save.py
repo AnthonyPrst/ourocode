@@ -16,7 +16,6 @@ from scipy.sparse.linalg import spsolve
 # from eurocode.EC0_Combinaison import Combinaison
 
 from ourocode.eurocode.EC0_Combinaison import Combinaison
-from ourocode.eurocode.A0_Projet import Bar_generator
 
 class _Base_graph(object): 
     """ Retourne un diagramme de base """
@@ -1259,7 +1258,7 @@ class FEM(Bar_generator, _Base_graph):
             correspondant à la poutre MEF.
 
         Args:
-            name_combi (str): défini le type de graphique à afficher, ELU ou ELS 
+            name_combi (str): définit le type de graphique à afficher, ELU ou ELS 
                               et écrit le nom de la combinaison dans le graphique.
         """
         if name_combi[0:3] == "ELU":

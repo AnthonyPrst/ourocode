@@ -27,7 +27,7 @@ class Combinaison(Projet):
 
     def __init__(
         self,
-        model_generator: Model_generator,
+        model_generator: object,
         ELU_STR: bool = ("True", "False"),
         ELU_STR_ACC: bool = ("True", "False"),
         ELS_C: bool = ("True", "False"),
@@ -57,20 +57,20 @@ class Combinaison(Projet):
         super().__init__(**kwargs)
         self._combo_tags = []
         self._model_generator = model_generator
-        self._model_generator._generate_model()
+        self._model_generator.generate_model()
         self.elu_STR = ELU_STR
         self.elu_STR_ACC = ELU_STR_ACC
         self.els_C = ELS_C
         self.els_QP = ELS_QP
         self.cat = cat
-        self.name_combination = []
+        self._name_combination = []
         self._generate_combinaison()
         if kdef:
             self.type_psy_2 = type_psy_2
             self._els_fleche_bois(kdef)
 
     def _generate_combinaison(self):
-        """Génère les combinaisons de chargement si une liste de chargement à été défini précédement."""
+        """Génère les combinaisons de chargement si une liste de chargement à été définit précédement."""
         self.combiActionVariable = [0] * 7
         for load in self._model_generator.get_all_loads().values():
             action = load["Action"]
@@ -208,8 +208,8 @@ class Combinaison(Projet):
             return load * factor
 
     def _create_list_combination(self, nameCombi: str):
-        if nameCombi not in self.name_combination:
-            self.name_combination.append(nameCombi)
+        if nameCombi not in self._name_combination:
+            self._name_combination.append(nameCombi)
 
     def _add_combination(self, combi_name: str, index_load: str, factor: float, value: float| dict, load_dict: dict, array_load):
         """Ajoute une combinaison et met à jour array_load."""
@@ -510,15 +510,15 @@ class Combinaison(Projet):
                                                                 )
                                                             )
         array_load = array_load[array_load[:, 0].argsort()]
-        self.df_load_ELU_STR = self._create_dataframe_load(array_load)
-        self._create_analyze_type("ELU_STR", self.df_load_ELU_STR)
+        self._df_load_ELU_STR = self._create_dataframe_load(array_load)
+        self._create_analyze_type("ELU_STR", self._df_load_ELU_STR)
 
     def get_ELU_STR_loads(self):
         """Retourne les charges des combinaisons ELU STR"""
-        return self.df_load_ELU_STR
+        return self._df_load_ELU_STR
 
     def _return_combi_ELUSTR(self, combi):
-        return self.df_load_ELU_STR.loc[self.df_load_ELU_STR["Combinaison"] == combi]
+        return self._df_load_ELU_STR.loc[self._df_load_ELU_STR["Combinaison"] == combi]
 
     def _ELU_STR_ACC(self):
         """Combinaison à l'ELU STR ACC"""
@@ -870,16 +870,16 @@ class Combinaison(Projet):
                                                             except:
                                                                 pass
         array_load = array_load[array_load[:, 0].argsort()]
-        self.df_load_ELU_STR_ACC = self._create_dataframe_load(array_load)
-        self._create_analyze_type("ELU_STR_ACC", self.df_load_ELU_STR_ACC)
+        self._df_load_ELU_STR_ACC = self._create_dataframe_load(array_load)
+        self._create_analyze_type("ELU_STR_ACC", self._df_load_ELU_STR_ACC)
 
     def get_ELU_STR_ACC_loads(self):
         """Retourne les charges de la combinaison ELU STR ACC"""
-        return self.df_load_ELU_STR_ACC
+        return self._df_load_ELU_STR_ACC
 
     def _return_combi_ELU_STR_ACC(self, combi):
-        return self.df_load_ELU_STR_ACC.loc[
-            self.df_load_ELU_STR_ACC["Combinaison"] == combi
+        return self._df_load_ELU_STR_ACC.loc[
+            self._df_load_ELU_STR_ACC["Combinaison"] == combi
         ]
 
     def _ELS_C(self):
@@ -1120,15 +1120,15 @@ class Combinaison(Projet):
                                                             )
 
         array_load = array_load[array_load[:, 0].argsort()]
-        self.df_load_ELScarac = self._create_dataframe_load(array_load)
-        self._create_analyze_type("ELS_C", self.df_load_ELScarac)
+        self._df_load_ELScarac = self._create_dataframe_load(array_load)
+        self._create_analyze_type("ELS_C", self._df_load_ELScarac)
 
     def get_ELS_C_loads(self):
         """Retourne les charges des combinaisons ELS CARACTERISTIQUE"""
-        return self.df_load_ELScarac
+        return self._df_load_ELScarac
 
     def _return_combi_ELScarac(self, combi):
-        return self.df_load_ELScarac.loc[self.df_load_ELScarac["Combinaison"] == combi]
+        return self._df_load_ELScarac.loc[self._df_load_ELScarac["Combinaison"] == combi]
 
     def _ELS_QP(self):
         array_load = np.empty((0, 10))
@@ -1436,15 +1436,15 @@ class Combinaison(Projet):
                                                                         )
 
         array_load = array_load[array_load[:, 0].argsort()]
-        self.df_load_ELSqp = self._create_dataframe_load(array_load)
-        self._create_analyze_type("ELS_QP", self.df_load_ELSqp)
+        self._df_load_ELSqp = self._create_dataframe_load(array_load)
+        self._create_analyze_type("ELS_QP", self._df_load_ELSqp)
 
     def get_ELS_QP_loads(self):
         """Retourne les charges des combinaisons ELS Quasi Permanente"""
-        return self.df_load_ELSqp
+        return self._df_load_ELSqp
 
     def _return_combi_ELSqp(self, combi):
-        return self.df_load_ELSqp.loc[self.df_load_ELSqp["Combinaison"] == combi]
+        return self._df_load_ELSqp.loc[self._df_load_ELSqp["Combinaison"] == combi]
 
     def get_psy_2_by_combination(self, name: str):
         """Récupère le psy 2 en fonction de l'action la plus défavorable soit le psy2 le plus élevé
@@ -1475,16 +1475,16 @@ class Combinaison(Projet):
         if self.els_C:
             self._combo_tags.append("W_inst_Q")
             # On détermine W_inst(Q), pour cela on enlève W_inst_G
-            self.df_W_inst_Q = self.df_load_ELScarac[
-                self.df_load_ELScarac["Action"] != "Permanente G"
+            self._df_W_inst_Q = self._df_load_ELScarac[
+                self._df_load_ELScarac["Action"] != "Permanente G"
             ]
-            for index in range(self.df_W_inst_Q.shape[0]):
-                name = self.df_W_inst_Q.iloc[index, 0]
+            for index in range(self._df_W_inst_Q.shape[0]):
+                name = self._df_W_inst_Q.iloc[index, 0]
                 name_combi = "W_inst " + name[10:]
-                self.df_W_inst_Q.iloc[index, 0] = name_combi
+                self._df_W_inst_Q.iloc[index, 0] = name_combi
                 self._create_list_combination(name_combi)
-            self._create_analyze_type("W_inst_Q", self.df_W_inst_Q)
-            # print(self.df_W_inst_Q)
+            self._create_analyze_type("W_inst_Q", self._df_W_inst_Q)
+            # print(self._df_W_inst_Q)
 
             if self.els_QP:
                 self._combo_tags.append("W_net_fin")
@@ -1492,7 +1492,7 @@ class Combinaison(Projet):
                 combi_c = {}
                 value_search = ["Q", "S"]
 
-                for name in self.name_combination:
+                for name in self._name_combination:
                     if name[0:6] == "ELS_QP":
                         typeQP = [0] * 2
                         for i in range(len(value_search)):
@@ -1534,11 +1534,11 @@ class Combinaison(Projet):
                     name_combi = "W_net_fin " + name_combi_C + " & " + name_combi_QP
                     psy_2 = self.get_psy_2_by_combination(name_combi_QP)
 
-                    df_c = self.df_load_ELScarac[
-                        self.df_load_ELScarac["Combinaison"] == name_combi_C
+                    df_c = self._df_load_ELScarac[
+                        self._df_load_ELScarac["Combinaison"] == name_combi_C
                     ]
-                    df_qp = self.df_load_ELSqp[
-                        self.df_load_ELSqp["Combinaison"] == name_combi_QP
+                    df_qp = self._df_load_ELSqp[
+                        self._df_load_ELSqp["Combinaison"] == name_combi_QP
                     ]
                     for index in range(df_c.shape[0]):
                         index_c = df_c.iloc[index, 1]
@@ -1590,36 +1590,50 @@ class Combinaison(Projet):
                         self._create_list_combination(name_combi)
 
                 array_load = array_load[array_load[:, 0].argsort()]
-                self.df_W_net_fin = self._create_dataframe_load(array_load)
-                self._create_analyze_type("W_net_fin", self.df_W_net_fin)
-                # print(self.df_W_net_fin)
+                self._df_W_net_fin = self._create_dataframe_load(array_load)
+                self._create_analyze_type("W_net_fin", self._df_W_net_fin)
+                # print(self._df_W_net_fin)
 
     def get_W_inst_Q_loads(self):
         """Retourne les charges des combinaisons Winst (Q)"""
-        if hasattr(self, "df_W_inst_Q"):
-            return self.df_W_inst_Q
+        if hasattr(self, "_df_W_inst_Q"):
+            return self._df_W_inst_Q
         return None
 
     def _return_combi_W_inst_Q(self, combi):
-        return self.df_W_inst_Q.loc[self.df_W_inst_Q["Combinaison"] == combi]
+        return self._df_W_inst_Q.loc[self._df_W_inst_Q["Combinaison"] == combi]
 
     def get_W_net_fin_loads(self):
         """Retourne les charges des combinaisons Wnet fin"""
-        if hasattr(self, "df_W_net_fin"):
-            return self.df_W_net_fin
+        if hasattr(self, "_df_W_net_fin"):
+            return self._df_W_net_fin
         return None
 
     def _return_combi_W_net_fin(self, combi):
-        return self.df_W_net_fin.loc[self.df_W_net_fin["Combinaison"] == combi]
+        return self._df_W_net_fin.loc[self._df_W_net_fin["Combinaison"] == combi]
 
     @property
     def list_combination(self):
         """Retourne un data frame avec toute les combinaison créer"""
-        self.name_combination.sort()
-        return pd.DataFrame(self.name_combination, columns=["Combinaison"])
+        self._name_combination.sort()
+        return pd.DataFrame(self._name_combination, columns=["Combinaison"])
 
-    def get_list_combination(self):
-        return self.name_combination
+    def get_list_combination(self, type: str=("Toutes", "ELU", "ELS")):
+        """Retourne la liste des combinaisons pour le type sélectionné.
+
+        Args:
+            type (str): Le type de combinaison à retourner. Defaults to ("Toutes", "ELU", "ELS").
+
+        Returns:
+            list: Liste des combinaisons
+        """
+        match type:
+            case "Toutes":
+                return self._name_combination.sort()
+            case "ELU":
+                return [name for name in self._name_combination.sort() if name.startswith("ELU")]
+            case "ELS":
+                return [name for name in self._name_combination.sort() if name.startswith(("ELS", "W"))]
 
     def _choice_combi_df(self):
         shape = len(self.list_combination)
@@ -1656,7 +1670,7 @@ class Combinaison(Projet):
         """Retourne la liste des charges combinées pour la combinaison sélectionné
 
         Args:
-                nom (str): nom des la combinaison à récupérer. Defaults to "Sélectionner tout".
+                nom (str): nom de la combinaison à récupérer. Defaults to "Sélectionner tout".
         """
         self.list_loads = self._choice_combi_df()[nom]
         return self.list_loads
@@ -1703,16 +1717,6 @@ class Combinaison(Projet):
                         name_load_type = dictName[action]
         return name_load_type
     
-    def analize_FEM_model(self, analize_type: str=ANALYZE_TYPE, check_stability: bool=False):
-        """Lance l'analyse du modèle aux éléments finis.
-
-        Args:
-            analize_type (str): Défini le type d'analyse à réaliser
-            check_stability (bool, optional): Défini si vous voulez vérifier la stabilité du modèle. 
-                Ceci ralentit le calcul, à utiliser donc quand cas de débuguage. Defaults to False.
-        """
-        self._model_generator._analyze(analize_type, check_stability)
-
 
 if __name__ == "__main__":
 
@@ -1740,10 +1744,10 @@ if __name__ == "__main__":
     rcombi = "ELS_QP G + 0.3Q"
     # print(c1._return_combi_ELUSTR(rcombi))
     print(pd.DataFrame(c1.coef_psy))
-    # print(c1.df_load_ELScarac)
-    # print(c1.df_load_ELSqp)
-    # print(c1.df_W_inst_Q)
-    # print(c1.df_load_ELU_STR_ACC)
+    # print(c1._df_load_ELScarac)
+    # print(c1._df_load_ELSqp)
+    # print(c1._df_W_inst_Q)
+    # print(c1._df_load_ELU_STR_ACC)
 
     print(c1.list_combination)
     print(c1.get_combi_list_load("ELU_STR 1.35G + 1.5Q"))

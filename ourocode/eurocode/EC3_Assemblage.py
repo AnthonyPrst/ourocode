@@ -22,8 +22,8 @@ class Tige(Element):
             d (int): le diamètre de la tige en mm
             d0 (int): le diamètre de percage en mm
             qualite (float): classe d'acier de la tige (ex: 4.8)
-            verif_filetage (bool, optional): défini si le filetage du boulon doit être vérifier, si c'est le cas alors True. Defaults to False.
-            filetage_EN1090 (bool, optional): défini si le filetage est conforme à l'EN 1090, soit matricé. Si filetage usiné alors False. Defaults to True.
+            verif_filetage (bool, optional): définit si le filetage du boulon doit être vérifier, si c'est le cas alors True. Defaults to False.
+            filetage_EN1090 (bool, optional): définit si le filetage est conforme à l'EN 1090, soit matricé. Si filetage usiné alors False. Defaults to True.
         """
         super().__init__(*args, **kwargs)
         self.d = d * si.mm
@@ -237,7 +237,7 @@ class Tige(Element):
         Args:
             Lnt (float, optional): longueur nette soumise à la traction déduction faite des trous de boulons en mm.
             Lvt (float, optional): longueur nette soumise au cisaillement déduction faite des trous de boulons en mm.
-            effort (str, optional): défini si l'effort est centré ou excentré par rapport au cisaillement de bloc. Defaults to ("Centré", "Excentré").
+            effort (str, optional): définit si l'effort est centré ou excentré par rapport au cisaillement de bloc. Defaults to ("Centré", "Excentré").
 
         Returns:
             float: résistance de calcul en N 
@@ -436,7 +436,7 @@ class Soudure(Element):
         Args:
             b (int): voir EC3 1-8
             b1 (int): hauteur en mm de la pièce 2 soudé sur la pièce 1
-            t (int): défini dans la classe Element
+            t (int): définit dans la classe Element
             t2 (int): épaisseur en mm de la piece 2 soudé sur pièce 1
             corrosion (bool, optional): _description_. Defaults to False.
 

@@ -1290,7 +1290,7 @@ class Boulon(Assemblage):
         Args:
             d_int (float, optional): diamètre intérieur de la rondelle en mm ou du trou de perçage dans la plaque métallique. Defaults to 0.
             d_ext (float, optional): diamètre extérieur de la rondelle en mm. Defaults to 0.
-            filetage_EN1090 (bool, optional): défini si le filetage est conforme à l'EN 1090, soit matricé. Si filetage usiné alors False. Defaults to True.
+            filetage_EN1090 (bool, optional): définit si le filetage est conforme à l'EN 1090, soit matricé. Si filetage usiné alors False. Defaults to True.
 
         Returns:
             FaxRk: la résistance axial d'un boulon en N
@@ -1377,7 +1377,7 @@ class Broche(Boulon):
 # ======================================================= TIREFOND =========================================================
 
 
-class Tirefond(object):
+class _Tirefond(object):
     def __init__(self, d:si.mm, d1:si.mm, ds:si.mm, dh:si.mm, l:si.mm, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
         """Défini un object tirefond
 
@@ -1571,7 +1571,7 @@ class Tirefond(object):
         return val()
     
 
-class Tirefond_inf_7(Tirefond, Pointe):
+class Tirefond_inf_7(_Tirefond, Pointe):
     def __init__(self, d:si.mm, d1:float, ds:float, dh:float, l:float, n:int, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
         """Défini un object tirefond qui a un diamètre efficace inférieur à 6mm
 
@@ -1601,7 +1601,7 @@ class Tirefond_inf_7(Tirefond, Pointe):
                 
         if d1*1.1 <= 6:
             Pointe.__init__(self, d=d1*1.1, d_tete=dh, l=l, qualite=qualite, n=n, alpha1=alpha1, alpha2=alpha2, type_organe="Tirefond", percage=percage, **kwargs)
-            Tirefond.__init__(self, d, d1, ds, dh, l, n, rho_a, fhead, ftensk, MyRk, alpha1, alpha2, percage)
+            _Tirefond.__init__(self, d, d1, ds, dh, l, n, rho_a, fhead, ftensk, MyRk, alpha1, alpha2, percage)
         else:
             raise "Erreur, le tirefond est considéré comme un boulon et non une pointe"
         
@@ -1620,7 +1620,7 @@ class Tirefond_inf_7(Tirefond, Pointe):
             return super().MyRk
 
 
-class Tirefond_sup_6(Tirefond, Boulon):
+class Tirefond_sup_6(_Tirefond, Boulon):
     """ Défini un object tirefond avec :
         d : diamètre extérieur du filet en mm
         d1 : diamètre du noyaux en mm
@@ -1661,7 +1661,7 @@ class Tirefond_sup_6(Tirefond, Boulon):
                 
         if d1*1.1 > 6:
             Boulon.__init__(self, d=d1*1.1, qualite=qualite, n=n, alpha1=alpha1, alpha2=alpha2, type_organe="Tirefond", **kwargs)
-            Tirefond.__init__(self, d, d1, ds, dh, l, n, rho_a, fhead, ftensk, MyRk, alpha1, alpha2)
+            _Tirefond.__init__(self, d, d1, ds, dh, l, n, rho_a, fhead, ftensk, MyRk, alpha1, alpha2)
             
         else:
             print("Erreur, le tirefond est considéré comme une pointe et non un boulon")
@@ -1683,60 +1683,60 @@ class Tirefond_sup_6(Tirefond, Boulon):
 # 8.9 Assemblage par anneaux
 
 
-class Annneau(object):
-    """Défini un objet anneau avec :"""
+# class Annneau(object):
+#     """Défini un objet anneau avec :"""
 
-    def __init__(self, dc: float, t1:float, t2:float, hc:float, typeA="bois"):
-        self.type_organe = "Anneau"
-        self.dc = dc
-        self.t1 = t1
-        self.t2 = t2
-        self.he = hc/2
-        self.typeA = typeA
+#     def __init__(self, dc: float, t1:float, t2:float, hc:float, typeA="bois"):
+#         self.type_organe = "Anneau"
+#         self.dc = dc
+#         self.t1 = t1
+#         self.t2 = t2
+#         self.he = hc/2
+#         self.typeA = typeA
 
-    def ki(self, nAss:int, a3t:float, rhok:int):
-        """ Donne les facteur ki (de 1 à 4) dans un dico avec:
-            nAss : nombre d'assemblage par plan de cisaillement
-            a3t = distance d'extrémité chargé (en traction) """
-        listk = [0.0]*4
+#     def ki(self, nAss:int, a3t:float, rhok:int):
+#         """ Donne les facteur ki (de 1 à 4) dans un dico avec:
+#             nAss : nombre d'assemblage par plan de cisaillement
+#             a3t = distance d'extrémité chargé (en traction) """
+#         listk = [0.0]*4
 
-        if nAss > 1:
-            ka = 1
-        else:
-            ka = 1.25
+#         if nAss > 1:
+#             ka = 1
+#         else:
+#             ka = 1.25
 
-        listk[0] = min(1,
-                       self.t1 / (3 * self.he),
-                       self.t2 / (5 * self.he))
+#         listk[0] = min(1,
+#                        self.t1 / (3 * self.he),
+#                        self.t2 / (5 * self.he))
 
-        listk[1] = min(ka,
-                       a3t / (2 * self.dc))
+#         listk[1] = min(ka,
+#                        a3t / (2 * self.dc))
 
-        listk[2] = min(1.75,
-                       rhok / 350)
+#         listk[2] = min(1.75,
+#                        rhok / 350)
 
-        if self.typeA == "bois":
-            k4 = 1
-        else:
-            k4 = 1.25
-        listk[3] = k4
-        dico = {}
-        for i in range(1, 5):
-            cle = "k" + str(i)
-            dico[cle] = listk[i-1]
+#         if self.typeA == "bois":
+#             k4 = 1
+#         else:
+#             k4 = 1.25
+#         listk[3] = k4
+#         dico = {}
+#         for i in range(1, 5):
+#             cle = "k" + str(i)
+#             dico[cle] = listk[i-1]
 
-        return dico
+#         return dico
 
-    def Fv0Rk(self, dicoKi:dict):
-        """ Retourne la résistance en cidaillement de l'anneau en N avec:
-            dicoKi = dictionnaire des facteurs ki (def ki)"""
-        fv0rk = min(dicoKi["k1"] * dicoKi["k2"] * dicoKi["k3"] * dicoKi["k4"] * (35 * self.dc**1.5),
-                    dicoKi["k1"] * dicoKi["k3"] * self.he * (31.5 * self.dc))
-        return fv0rk
+#     def Fv0Rk(self, dicoKi:dict):
+#         """ Retourne la résistance en cidaillement de l'anneau en N avec:
+#             dicoKi = dictionnaire des facteurs ki (def ki)"""
+#         fv0rk = min(dicoKi["k1"] * dicoKi["k2"] * dicoKi["k3"] * dicoKi["k4"] * (35 * self.dc**1.5),
+#                     dicoKi["k1"] * dicoKi["k3"] * self.he * (31.5 * self.dc))
+#         return fv0rk
     
 
-    def FvaRk(self):
-        pass
+#     def FvaRk(self):
+#         pass
 
 
 if __name__ == "__main__":
