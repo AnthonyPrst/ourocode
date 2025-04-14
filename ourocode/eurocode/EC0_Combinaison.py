@@ -4,8 +4,8 @@ import os, sys
 import numpy as np
 import pandas as pd
 
-sys.path.append(os.path.join(os.getcwd(), "ourocode"))
-# from A0_Projet import Bar_generator
+# sys.path.append(os.path.join(os.getcwd(), "ourocode"))
+# # from A0_Projet import Bar_generator
 from ourocode.eurocode.A0_Projet import Projet, Model_generator
 
 

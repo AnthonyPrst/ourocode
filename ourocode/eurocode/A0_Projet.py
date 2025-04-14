@@ -12,10 +12,10 @@ from handcalcs.decorator import handcalc
 from Pynite import FEModel3D
 from Pynite.Rendering import Renderer
 
-sys.path.append(os.path.join(os.getcwd(), "ourocode"))
-from eurocode.objet import Objet
+# sys.path.append(os.path.join(os.getcwd(), "ourocode"))
+# from eurocode.objet import Objet
 
-# from ourocode.eurocode.objet import Objet
+from ourocode.eurocode.objet import Objet
 
 
 class Projet(Objet):
