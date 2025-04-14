@@ -2,6 +2,7 @@
 # by Anthony PARISOT
 
 import os
+import json
 import math as mt
 import importlib.resources as pkg_resources
 from PIL import Image
@@ -61,7 +62,8 @@ class Objet(object):
         if index:
             value = list(value)[index]
         elif key:
-            value = dict(value)[key]
+            value = fr"{value.replace("'", '"')}"
+            value = json.loads(value)[key]
         return str(value)
         
     def operation_between_values(self, value1: float, value2: float, operator: str=OPERATOR):

@@ -36,7 +36,7 @@ class Element(Projet):
 
     @property
     def __classe_acier(self):
-        """Retourne le dataframe de la classe d'acier défini 
+        """Retourne le dataframe de la classe d'acier définit 
         """
         df = self._data_from_csv("caracteristique_meca_acier.csv")
         df = df.loc[self.classe_acier]
