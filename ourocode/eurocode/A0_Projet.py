@@ -946,7 +946,7 @@ class Model_result(Projet):
 
     def __init__(
         self,
-        model_generator: Model_generator,
+        model_generator: object,
         analyze_type: str = ANALYZE_TYPE,
         check_stability: bool = ("False", "True"),
         *args,
@@ -981,10 +981,10 @@ class Model_result(Projet):
         color: str,
         fill_between: bool = True,
         savefig: bool = False,
+        filepath: str=None
     ):
         """Retourne un diagramme"""
         # plt.clf()  # Effacer le graphique précédent
-        filepath = None
         plt.figure(self.name, figsize=(12, 4))
         plt.gcf().subplots_adjust(
             left=0.1, bottom=0.25, right=0.9, top=0.75, wspace=0, hspace=0.95
@@ -1002,13 +1002,16 @@ class Model_result(Projet):
             plt.fill_between(x_values, y_values, 0, color=color, alpha=0.2)
         plt.grid()
         if savefig:
-            filepath = QFileDialog.getSaveFileName(
-                filter="PNG (*.png)",
-                selectedFilter=".png",
-            )[0]
+            if not filepath:
+                filepath = QFileDialog.getSaveFileName(
+                    filter="PNG (*.png)",
+                    selectedFilter=".png",
+                )[0]
             plt.savefig(filepath)
-        plt.show()
-        return filepath
+            return filepath
+        else:
+            plt.show()
+        
 
     def _analyze(self):
         """Lance l'analyse du modèle aux éléments finis."""
@@ -1137,7 +1140,8 @@ class Model_result(Projet):
         combination: str,
         type: str = ("Nx", "Vy", "Vz", "Mx", "My", "Mz"),
         n_points: int = 20,
-        screenshot: bool = False,
+        screenshot: bool = ("False", "True"),
+        filepath: str=None,
     ):
         """Retourne un graphique des efforts internes d'une membrure suivant le type d'effort et la combinaison choisit.
 
@@ -1147,6 +1151,8 @@ class Model_result(Projet):
             type (str): Le type d'effort interne à retourner. Defaults to ("Nx", "Vy", "Vz", "Mx", "My", "Mz").
             n_points (int, optional): le nombre de valeur à retrouner le long de la membrure. Defaults to 20.
             screenshot (bool, optional): Définit si l'on souhaite enregistrer un screenshot du graph, si oui alors True. Defaults to False
+            filepath (str, optional): Si le screenshot est souhaité, on peut rentrer un chemin de sauvegarde automatique, ce qui permettra je générer dynamiquement un rapport.
+                                      Sinon le logiciel vous demande à chaque fois le chemin de sauvegarde.
         """
         x_label = "Longueur (mm)"
         x_value, y_value = self.get_internal_force(
@@ -1176,6 +1182,7 @@ class Model_result(Projet):
             y_label,
             color=color,
             savefig=screenshot,
+            filepath=filepath
         )
 
     def get_deflection(
@@ -1224,7 +1231,8 @@ class Model_result(Projet):
         combination: str,
         direction: str = ("dx", "dy", "dz"),
         n_points: int = 20,
-        screenshot: bool = False,
+        screenshot: bool = ("False", "True"),
+        filepath: str=None,
     ):
         """Retourne un graphique des efforts internes d'une membrure suivant le type d'effort et la combinaison choisit.
 
@@ -1234,6 +1242,8 @@ class Model_result(Projet):
             direction (str): La direction locale à retourner. Defaults to ("dx", "dy", "dz").
             n_points (int, optional): le nombre de valeur à retrouner le long de la membrure. Defaults to 20.
             screenshot (bool, optional): Définit si l'on souhaite enregistrer un screenshot du graph, si oui alors True. Defaults to False
+            filepath (str, optional): Si le screenshot est souhaité, on peut rentrer un chemin de sauvegarde automatique, ce qui permettra je générer dynamiquement un rapport.
+                                      Sinon le logiciel vous demande à chaque fois le chemin de sauvegarde.
         """
         title = f'Barre {member_id}: Flèche {direction}'
         x_label = "Longueur (mm)"
@@ -1251,6 +1261,7 @@ class Model_result(Projet):
             y_label,
             color=color,
             savefig=screenshot,
+            filepath=filepath
         )
 
 
@@ -1260,7 +1271,8 @@ class Model_result(Projet):
         annotation_size: int = 70,
         deformed_shape: bool = True,
         deformed_scale: int = 20,
-        screenshot: bool = False,
+        screenshot: bool = ("False", "True"),
+        filepath: str=None,
     ):
         """Retourne le model dans un graphique 3D.
 
@@ -1270,6 +1282,8 @@ class Model_result(Projet):
             deformed_shape (bool, optional): Définit si l'on doit afficher les déformations globales. Defaults to True.
             deformed_scale (int, optional): Définit l'effet d'échelle des déformations. Defaults to 20.
             screenshot (bool, optional): Définit si l'on souhaite enregistrer un screenshot du graph, si oui alors True. Defaults to False
+            filepath (str, optional): Si le screenshot est souhaité, on peut rentrer un chemin de sauvegarde automatique, ce qui permettra je générer dynamiquement un rapport.
+                                      Sinon le logiciel vous demande à chaque fois le chemin de sauvegarde.
         """
         renderer = Renderer(self._model_generator._model)
         renderer.combo_name = combination
@@ -1277,20 +1291,23 @@ class Model_result(Projet):
         renderer.deformed_shape = deformed_shape
         renderer.deformed_scale = deformed_scale
         if screenshot:
-            filepath = QFileDialog.getSaveFileName(
-                filter="PNG (*.png)",
-                selectedFilter=".png",
-            )[0]
-            QMessageBox.information(
-                None,
-                "Screenshot",
-                "Vous pouvez bouger le modèle pour prendre le screenshot.\nUne fois prêt, cliquer sur Q pour faire le screenshot.",
-            )
-            renderer.screenshot(filepath, interact=True)
+            if not filepath:
+                interaction = True
+                filepath = QFileDialog.getSaveFileName(
+                    filter="PNG (*.png)",
+                    selectedFilter=".png",
+                )[0]
+                QMessageBox.information(
+                    None,
+                    "Screenshot",
+                    "Vous pouvez bouger le modèle pour prendre le screenshot.\nUne fois prêt, cliquer sur Q pour faire le screenshot.",
+                )
+            else:
+                interaction = False
+            renderer.screenshot(filepath, interact=interaction)
             return filepath
         else:
             renderer.render_model()
-        return None
 
     def get_global_displacement_of_node(self, node_id: str, combination: str):
         """Retourne un dictionnaire des coordonnées de déplacment global d'un noeud dans le model pour la combinaison définit.
