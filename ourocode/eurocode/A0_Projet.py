@@ -410,12 +410,17 @@ class Model_generator(Projet):
         """Retourne une membrure par son id
 
         Args:
-            node_id (str): id de la membrure à récupérer
-
-        Returns:
-            dict: dictionnaire de la membrure
+            member_id (str): id de la membrure à récupérer
         """
         return self._data["members"][member_id]
+    
+    def get_member_length(self, member_id: str):
+        """Retourne la longueur du membrure par son id
+
+        Args:
+            member_id (str): id de la membrure à récupérer
+        """
+        return self._data["members"][member_id]["Longueur"]
 
     def get_all_members(self) -> dict:
         return self._data["members"]
@@ -984,7 +989,7 @@ class Model_result(Projet):
         filepath: str=None
     ):
         """Retourne un diagramme"""
-        # plt.clf()  # Effacer le graphique précédent
+        plt.clf()  # Effacer le graphique précédent
         plt.figure(self.name, figsize=(12, 4))
         plt.gcf().subplots_adjust(
             left=0.1, bottom=0.25, right=0.9, top=0.75, wspace=0, hspace=0.95
@@ -1129,9 +1134,6 @@ class Model_result(Projet):
             else:
                 si_unit = si.N
             dict_internal_forces[type] = {"Min": min * si_unit, "Max": max * si_unit}
-        self._model_generator._data["members"][member_id][
-            "Forces internes Min/Max"
-        ] = dict_internal_forces
         return dict_internal_forces
     
     def get_absolute_internal_force(self, member_id: str, combination: str, type: str = ("Nx", "Vy", "Vz", "Mx", "My", "Mz")):
@@ -1231,9 +1233,6 @@ class Model_result(Projet):
                 type, combo_name=combination
             )
             dict_deflection[type] = {"Min": min * si.mm, "Max": max * si.mm}
-        self._model_generator._data["members"][member_id][
-            "Déformation Min/Max"
-        ] = dict_deflection
         return dict_deflection
     
     def get_absolute_max_deflection(self, member_id: str, combination: str, direction: str = ("dx", "dy", "dz")):

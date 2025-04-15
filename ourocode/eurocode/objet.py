@@ -62,7 +62,7 @@ class Objet(object):
         if index:
             value = list(value)[index]
         elif key:
-            value = fr"{value.replace("'", '"')}"
+            value = f"{value.replace("'", '"')}"
             value = json.loads(value)[key]
         return str(value)
         
