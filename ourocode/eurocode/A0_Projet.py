@@ -1133,6 +1133,17 @@ class Model_result(Projet):
             "Forces internes Min/Max"
         ] = dict_internal_forces
         return dict_internal_forces
+    
+    def get_absolute_internal_force(self, member_id: str, combination: str, type: str = ("Nx", "Vy", "Vz", "Mx", "My", "Mz")):
+        """Retourne la valeur de d'effort absolue pour le type d'effort donné.
+
+        Args:
+            member_id (str): Le nom de la membrure à analyser
+            combination (str): Le nom de la combinaison à récupérer
+            type (str): Le type d'effort interne à retourner. Defaults to ("Nx", "Vy", "Vz", "Mx", "My", "Mz").
+        """
+        ei = self.get_min_max_internal_force(member_id, combination)
+        return max(abs(ei[type]["Min"]), ei[type]["Max"])
 
     def show_internal_force_of_member(
         self,
@@ -1225,6 +1236,18 @@ class Model_result(Projet):
         ] = dict_deflection
         return dict_deflection
     
+    def get_absolute_max_deflection(self, member_id: str, combination: str, direction: str = ("dx", "dy", "dz")):
+        """Retourne la valeur de déplacement absolue pour la direction de la flèche donnée.
+
+        Args:
+            member_id (str): Le nom de la membrure à analyser
+            combination (str): Le nom de la combinaison à récupérer
+            direction (str): La direction locale à retourner. Defaults to ("dx", "dy", "dz").
+        """
+        deflection = self.get_min_max_deflection(member_id, combination)
+        return max(abs(deflection[direction]["Min"]), deflection[direction]["Max"])
+        
+
     def show_deflection_of_member(
         self,
         member_id: str,
