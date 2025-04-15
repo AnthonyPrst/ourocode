@@ -1629,11 +1629,11 @@ class Combinaison(Projet):
         """
         match type:
             case "Toutes":
-                return self._name_combination.sort()
+                return self._name_combination
             case "ELU":
-                return [name for name in self._name_combination.sort() if name.startswith("ELU")]
+                return [name for name in self._name_combination if name.startswith("ELU")]
             case "ELS":
-                return [name for name in self._name_combination.sort() if name.startswith(("ELS", "W"))]
+                return [name for name in self._name_combination if name.startswith(("ELS", "W"))]
 
     def _choice_combi_df(self):
         shape = len(self.list_combination)
