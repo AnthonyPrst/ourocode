@@ -1031,11 +1031,11 @@ class Boulon(Assemblage):
         alpha 2 : angle entre l'effort de l'organe et le fil du bois en ° pour la barre 2
 
         t1 (int, optional): longueur de contact avec la tige  pour la pièce 1 en mm. 
-                                ATTENTION : Cette argument n'est pas obligatoire par défaut, il est calculé par le type de tige utilisé.
-                                Il n'est nécessaire de le remplir uniquement si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
+            ATTENTION : Cet argument n'est pas obligatoire par défaut, il est calculé par le type de tige utilisée.
+            Il n'est nécessaire de le remplir uniquement si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
 
         t2 (int, optional): longueur de contact avec la tige  pour la pièce 2 en mm. 
-                            ATTENTION : Même chose que pour t1 mais pour la pièce 2.
+            ENTION : Même chose que pour t1 mais pour la pièce 2.
     """
         
     QUALITE_ACIER = tuple(Assemblage._data_from_csv(Assemblage, "qualite_acier.csv").index)
@@ -1243,7 +1243,7 @@ class Boulon(Assemblage):
         """Défini le nombre efficace d'organe (boulon) dans une file avec :
             a1 : l'espacement entre boulon dans le sens du fil du bois
             n : nombre de boulons dans une file 
-            d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm"""
+            d : diamètre efficace du boulon (ou du tire fond si >6mm) en mm"""
         d = self.d
         if self.type_organe == "Tirefond":
             d = self.d_vis
@@ -1333,11 +1333,11 @@ class Broche(Boulon):
         alpha : angle entre l'effort de l'organe et le fil du bois en °
 
         t1 (int, optional): longueur de contacte avec la tige  pour la pièce 1 en mm. 
-                                ATTENTION : Cette argument n'est pas obligatoire par défaut, il est calculer par le type de tige utilisé.
-                                Il n'est nécessaire de le remplir que si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
+            ATTENTION : Cet argument n'est pas obligatoire par défaut, il est calculer par le type de tige utilisée.
+            Il n'est nécessaire de le remplir que si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
 
         t2 (int, optional): longueur de contacte avec la tige  pour la pièce 2 en mm.
-                            ATTENTION : Même chose que pour t1 mais pour la pièce 2.
+            ATTENTION : Même chose que pour t1 mais pour la pièce 2.
     """
 
     def __init__(self, d:float, qualite: str=Boulon.QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, t1: int=0, t2: int=0, **kwargs):

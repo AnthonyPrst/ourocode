@@ -129,12 +129,12 @@ class Compression(Element):
             A (float | int): Aire brute si classe 1,2 ou 3 et Aeff si classe 4 en mm²
             lo (int, optional): Longueur de flambement suivant l'axe de rotation (y ou z) en mm. Defaults to {'y':0, 'z':0}.
             coeflf (float, optional): Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
-                                    fonction des du type d'appuis :
-                                                Encastré 1 côté : 2
-                                                Rotule - Rotule : 1
-                                                Encastré - Rotule : 0.7
-                                                Encastré - Encastré : 0.5
-                                                Encastré - Rouleau : 1. Defaults to 1.
+                fonction des du type d'appuis :
+                            Encastré 1 côté : 2
+                            Rotule - Rotule : 1
+                            Encastré - Rotule : 0.7
+                            Encastré - Encastré : 0.5
+                            Encastré - Rouleau : 1. Defaults to 1.
         """
         super().__init__(*args, **kwargs)
         self.A = A * si.mm**2

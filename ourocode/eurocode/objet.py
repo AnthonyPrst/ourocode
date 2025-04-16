@@ -82,10 +82,20 @@ class Objet(object):
                 result = value1 / value2
         return result
     
-    def absolute_value(self, value1: float, value2: float):
-        """Retourne la valeur absolue entre la valeur 1 et valeur 2.
+    def abs_value(self, value: float):
+        """Retourne la valeur absolue.
         """
-        return abs(float(value1), float(value2))
+        return abs(float(value))
+    
+    def max(self, value1: float, value2: float):
+        """Retourne la valeur max entre la valeur 1 et valeur 2.
+        """
+        return max(float(value1), float(value2))
+    
+    def min(self, value1: float, value2: float):
+        """Retourne la valeur min entre la valeur 1 et valeur 2.
+        """
+        return min(float(value1), float(value2))
     
     def cos(self, value: float):
         """Retourne le cosinus de la valeur donnée en degré."""
