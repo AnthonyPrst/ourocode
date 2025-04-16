@@ -70,4 +70,14 @@ class For(Objet):
                 if item == selection:
                     self.selected_item = item
         return self.selected_item
+    
+    def get_min_value_in_loop():
+        """Retourne la valeur de sortie de la boucle pour laquelle le résultat (valeur numérique uniquement) est le plus faible.
+        Le résultat peut ce trouver dans un dictionnaire, une liste, un tuple. Si c'est le cas alors on parcours toute les valeurs numérique et l'on récupère la plus faible.
+        Cette méthode permet pour exemple de trouver le taux de travail le plus faible dans une 
+
+        Args:
+            result (float): le résultat à comparer avec la précédente valeur minimal
+
+        """
                 
