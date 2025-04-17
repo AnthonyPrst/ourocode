@@ -252,14 +252,14 @@ class Assemblage(Projet):
             e = calcul[1][4] * si.N
             f = calcul[1][5] * si.N
             dicoRupture = {a: "A", b: "B", c: "C", d: "D", e: "E", f: "F"}
-            F_v_Rk_johansen = min(a, b, c, d, e, f)
-            mode_rupture = dicoRupture[F_v_Rk_johansen]
+            FvRk = min(a, b, c, d, e, f)
+            mode_rupture = dicoRupture[FvRk]
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
-                F_v_Rk_johansen = min(a, b, c, d, e, f)
+                F_v_Rk = min(a, b, c, d, e, f)
                 mode_rupture
-                return F_v_Rk_johansen, mode_rupture
+                return F_v_Rk, mode_rupture
             calcul2 = val2()
 
         else:
@@ -280,15 +280,15 @@ class Assemblage(Projet):
             h = calcul[1][1] * si.N
             j = calcul[1][2] * si.N
             k = calcul[1][3] * si.N
-            F_v_Rk_johansen = min(g, h, j, k)
+            FvRk = min(g, h, j, k)
             dicoRupture = {g: "G", h: "H", j: "J", k: "K"}
-            mode_rupture = dicoRupture[F_v_Rk_johansen]
+            mode_rupture = dicoRupture[FvRk]
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
-                F_v_Rk_johansen = min(g, h, j, k)
+                F_v_Rk = min(g, h, j, k)
                 mode_rupture
-                return F_v_Rk_johansen, mode_rupture
+                return F_v_Rk, mode_rupture
             calcul2 = val2()
             
         return (calcul[0] + calcul2[0], calcul2[1])
@@ -344,8 +344,8 @@ class Assemblage(Projet):
             a = calcul[1][0] * si.N
             b = calcul[1][1] * si.N
             dicoRupture = {a: "A", b: "B"}
-            F_v_Rk = min(a, b)
-            mode_rupture = dicoRupture[F_v_Rk]
+            FvRk = min(a, b)
+            mode_rupture = dicoRupture[FvRk]
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
@@ -370,8 +370,8 @@ class Assemblage(Projet):
             d = calcul[1][1] * si.N
             e = calcul[1][2] * si.N
             dicoRupture = {c: "C", d: "D", e: "E"}
-            F_v_Rk = min(c, d, e)
-            mode_rupture = dicoRupture[F_v_Rk]
+            FvRk = min(c, d, e)
+            mode_rupture = dicoRupture[FvRk]
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
@@ -396,8 +396,8 @@ class Assemblage(Projet):
             g = calcul[1][1] * si.N
             h = calcul[1][2] * si.N
             dicoRupture = {f: "F", g: "G", h: "H"}
-            F_v_Rk = min(f, g, h)
-            mode_rupture = dicoRupture[F_v_Rk]
+            FvRk = min(f, g, h)
+            mode_rupture = dicoRupture[FvRk]
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
@@ -419,8 +419,8 @@ class Assemblage(Projet):
             j = calcul[1][0] * si.N
             k = calcul[1][1] * si.N
             dicoRupture = {j: "J", k: "K"}
-            F_v_Rk = min(j, k)
-            mode_rupture = dicoRupture[F_v_Rk]
+            FvRk = min(j, k)
+            mode_rupture = dicoRupture[FvRk]
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
@@ -442,8 +442,8 @@ class Assemblage(Projet):
             l = calcul[1][0] * si.N
             m = calcul[1][1] * si.N
             dicoRupture = {l: "L", m: "M"}
-            F_v_Rk = min(l, m)
-            mode_rupture = dicoRupture[F_v_Rk]
+            FvRk = min(l, m)
+            mode_rupture = dicoRupture[FvRk]
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
@@ -473,7 +473,7 @@ class Assemblage(Projet):
         else:
             latex, self.Fv_Rk = self._FvRk_BoisMetal(effet_corde)
 
-        F_v_Rk = self.Fv_Rk
+        F_v_Rk = self.Fv_Rk[1][0]
         n_file = self.nfile
         n_ef = self._nef
         n_cisaillement = self.nCis
@@ -532,7 +532,7 @@ class Assemblage(Projet):
         n = self.n
         n_file = self.nfile
 
-        mode_rupture = self.FvRk_Johansen[1]
+        mode_rupture = self.Fv_Rk[1][1]
 
         # on calcul les valeur caractéristique de base de notre éléméent
         if num_beam == 1:
