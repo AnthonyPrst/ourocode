@@ -208,7 +208,7 @@ class Assemblage(Projet):
     # 8.2.2 Assemblage bois/bois bois/panneau
 
 
-    def _FvRk_BoisBois_Johansen(self):
+    def _FvRk_BoisBois(self, effet_corde: bool):
         """Calcul la capacité résistante en cisaillement de la tige en N par plan de cisaillement avec
             t1 : valeur minimale entre epaisseur de l'élément bois latéral et la profondeur de pénétration en mm
             t2 : epaisseur de l'élément bois central en mm """
@@ -220,17 +220,28 @@ class Assemblage(Projet):
         diam = self.d.value * 10**3
         M_y_Rk = self.MyRk[1].value * 10**3
 
+        coef_limit_Johansen = self.DICO_COEF_LIMITE.get(self.type_organe, 0)
+        if effet_corde:
+            F_ax_Rk = self.FaxRk.value
+        else:
+            F_ax_Rk = 0
+
         if self.nCis == 1:
             
             @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
+                effet_corde = F_ax_Rk/4 # N
                 beta = f_h2k / f_h1k
                 a = f_h1k * t_1 * diam # N
                 b = f_h2k * t_2 * diam # N
                 c = a/(1 + beta) * (sqrt(beta + 2 * beta**2 * (1 + t_2 / t_1 + (t_2 / t_1)**2) + beta**3 * (t_2 / t_1)**2) - beta * (1 + t_2 / t_1)) # N
+                c = c + min(effet_corde, c*coef_limit_Johansen) # N
                 d = 1.05 * a / (2 + beta) * (sqrt(2 * beta * (1 + beta) + (4 * beta * (2 + beta) * M_y_Rk)/(f_h1k * t_1**2 * diam)) - beta) # N
+                d = d + min(effet_corde, d*coef_limit_Johansen) # N
                 e = 1.05 * (f_h1k * t_2 * diam) / (1 + 2 * beta) * (sqrt(2 * beta**2 * (1 + beta) + (4 * beta * (1 + 2 * beta) * M_y_Rk)/(f_h1k * t_2**2 * diam)) - beta) # N
+                e = e + min(effet_corde, e*coef_limit_Johansen) # N
                 f = 1.15 * sqrt((2 * beta)/(1 + beta)) * sqrt(2 * M_y_Rk * f_h1k * diam) # N
+                f = f + min(effet_corde, f*coef_limit_Johansen) # N
                 return a, b, c, d, e, f
             
             calcul = val()
@@ -254,11 +265,14 @@ class Assemblage(Projet):
         else:
             @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
+                effet_corde = F_ax_Rk/4 # N
                 beta = f_h2k / f_h1k
                 g = f_h1k * t_1 * diam # N
                 h = 0.5 * f_h2k * t_2 * diam # N
                 j = 1.05 * g / (2 + beta) * (sqrt(2 * beta * (1 + beta) + (4 * beta * (2 + beta) * M_y_Rk)/ (f_h1k * t_1**2 * diam)) - beta) # N
+                j = j + min(effet_corde, j*coef_limit_Johansen) # N
                 k = 1.15 * sqrt((2 * beta)/(1 + beta)) * sqrt(2 * M_y_Rk * f_h1k * diam) # N
+                k = k + min(effet_corde, k*coef_limit_Johansen) # N
                 return g, h, j, k
             
             calcul = val()
@@ -281,13 +295,18 @@ class Assemblage(Projet):
 
 
     # 8.2.3 Assemblage bois métal
-    def _FvRk_BoisMetal_Johansen(self):
+    def _FvRk_BoisMetal(self, effet_corde: bool):
         """Calcul la capacité résistante en cisaillement de la tige en N par plan de cisaillement avec
             t1 : valeur minimale entre epaisseur de l'élément bois latéral et la profondeur de pénétration en mm
             t2 : epaisseur de l'élément bois central en mm
             """
         diam = self.d.value * 10**3
         M_y_Rk = self.MyRk[1].value * 10**3
+        coef_limit_Johansen = self.DICO_COEF_LIMITE.get(self.type_organe, 0)
+        if effet_corde:
+            F_ax_Rk = self.FaxRk.value
+        else:
+            F_ax_Rk = 0
 
         if self._type_beam[0] == "Métal":
             f_h2k = self.fh2k[1].value * 10**-6
@@ -315,30 +334,35 @@ class Assemblage(Projet):
         if self.type_plaque == "mince" and self.nCis == 1:
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
+                effet_corde = F_ax_Rk/4 # N
                 a = 0.4 * f_h1k * t_1 * diam # N
                 b = 1.15 * sqrt(2 * M_y_Rk * f_h1k * diam) # N
+                b = b + min(effet_corde, b*coef_limit_Johansen) # N
                 return a, b
-
+            
             calcul = val()
             a = calcul[1][0] * si.N
             b = calcul[1][1] * si.N
             dicoRupture = {a: "A", b: "B"}
-            F_v_Rk_johansen = min(a, b)
-            mode_rupture = dicoRupture[F_v_Rk_johansen]
+            F_v_Rk = min(a, b)
+            mode_rupture = dicoRupture[F_v_Rk]
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
-                F_v_Rk_johansen = min(a, b)
+                F_v_Rk = min(a, b)
                 mode_rupture
-                return F_v_Rk_johansen, mode_rupture
+                return F_v_Rk, mode_rupture
             calcul2 = val2()
 
         elif self.type_plaque == "epaisse" and self.nCis == 1:
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
+                effet_corde = F_ax_Rk/4 # N
                 c = f_h1k * t_1 * diam # N
                 d = c * (sqrt(2 + (4 * M_y_Rk) / (f_h1k * diam * t_1 ** 2)) - 1) # N
+                d = d + min(effet_corde, d*coef_limit_Johansen) # N
                 e = 2.3 * sqrt(M_y_Rk * f_h1k * diam) # N
+                e = e + min(effet_corde, e*coef_limit_Johansen) # N
                 return c, d, e
             
             calcul = val()
@@ -346,22 +370,25 @@ class Assemblage(Projet):
             d = calcul[1][1] * si.N
             e = calcul[1][2] * si.N
             dicoRupture = {c: "C", d: "D", e: "E"}
-            F_v_Rk_johansen = min(c, d, e)
-            mode_rupture = dicoRupture[F_v_Rk_johansen]
+            F_v_Rk = min(c, d, e)
+            mode_rupture = dicoRupture[F_v_Rk]
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
-                F_v_Rk_johansen = min(c, d, e)
+                F_v_Rk = min(c, d, e)
                 mode_rupture
-                return F_v_Rk_johansen, mode_rupture
+                return F_v_Rk, mode_rupture
             calcul2 = val2()
 
         elif self.nCis == 2 and self.pos_plaq == "centrale":
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
+                effet_corde = F_ax_Rk/4 # N
                 f = f_h1k * t_1 * diam # N
                 g = f * (sqrt(2 + (4 * M_y_Rk) / (f_h1k * diam * t_1 ** 2)) - 1) # N
+                g = g + min(effet_corde, g*coef_limit_Johansen) # N
                 h = 2.3 * sqrt(M_y_Rk * f_h1k * diam) # N
+                h = h + min(effet_corde, h*coef_limit_Johansen) # N
                 return f, g, h
 
             calcul = val()
@@ -369,82 +396,64 @@ class Assemblage(Projet):
             g = calcul[1][1] * si.N
             h = calcul[1][2] * si.N
             dicoRupture = {f: "F", g: "G", h: "H"}
-            F_v_Rk_johansen = min(f, g, h)
-            mode_rupture = dicoRupture[F_v_Rk_johansen]
+            F_v_Rk = min(f, g, h)
+            mode_rupture = dicoRupture[F_v_Rk]
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
-                F_v_Rk_johansen = min(f, g, h)
+                F_v_Rk = min(f, g, h)
                 mode_rupture
-                return F_v_Rk_johansen, mode_rupture
+                return F_v_Rk, mode_rupture
             calcul2 = val2()
 
         elif self.type_plaque == "mince" and self.nCis == 2 and self.pos_plaq != "centrale":
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
+                effet_corde = F_ax_Rk/4 # N
                 j = 0.5 * f_h2k * t_2 * diam # N
                 k = 1.15 * sqrt(2 * M_y_Rk * f_h2k * diam) # N
+                k = k + min(effet_corde, k*coef_limit_Johansen) # N
                 return j, k
 
             calcul = val()
             j = calcul[1][0] * si.N
             k = calcul[1][1] * si.N
             dicoRupture = {j: "J", k: "K"}
-            F_v_Rk_johansen = min(j, k)
-            mode_rupture = dicoRupture[F_v_Rk_johansen]
+            F_v_Rk = min(j, k)
+            mode_rupture = dicoRupture[F_v_Rk]
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
-                F_v_Rk_johansen = min(j, k)
+                F_v_Rk = min(j, k)
                 mode_rupture
-                return F_v_Rk_johansen, mode_rupture
+                return F_v_Rk, mode_rupture
             calcul2 = val2()
 
         else:
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
+                effet_corde = F_ax_Rk/4 # N
                 l = 0.5 * f_h2k * t_2 * diam # N
                 m = 2.3 * sqrt(M_y_Rk * f_h2k * diam) # N
+                m = m + min(effet_corde, m*coef_limit_Johansen) # N
                 return l, m
 
             calcul = val()
             l = calcul[1][0] * si.N
             m = calcul[1][1] * si.N
             dicoRupture = {l: "L", m: "M"}
-            F_v_Rk_johansen = min(l, m)
-            mode_rupture = dicoRupture[F_v_Rk_johansen]
+            F_v_Rk = min(l, m)
+            mode_rupture = dicoRupture[F_v_Rk]
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
-                F_v_Rk_johansen = min(l, m)
+                F_v_Rk = min(l, m)
                 mode_rupture
-                return F_v_Rk_johansen, mode_rupture
+                return F_v_Rk, mode_rupture
             calcul2 = val2()
 
         return (calcul[0] + calcul2[0], calcul2[1])
 
-        
-    def _FvRk_total(self, ass_bois: bool= True):
-        """Calcul la capacité résistante en cisaillement caractéristique avec la partie de Johansen + l'effet de corde si il existe dans le
-        mode de rupture avec :
-            ass_bois(bool): si assemblage bois/bois alors True sinon False
-        """
-        coeflimit = self.DICO_COEF_LIMITE.get(self.type_organe, 0)
-        if ass_bois and self.FvRk_Johansen[1] in ["C", "D", "E", "F", "J", "K"] or \
-            not ass_bois and self.FvRk_Johansen[1] in ["B", "D", "E", "G", "H", "K", "M"]:
-
-            F_ax_Rk = self.FaxRk
-            print (F_ax_Rk)
-            F_v_Rk_johansen = self.FvRk_Johansen[0]
-
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                F_ax_Rk_reel = min(F_ax_Rk / 4, coeflimit * F_v_Rk_johansen)
-                F_v_Rk = F_v_Rk_johansen + F_ax_Rk_reel
-                return F_v_Rk
-            return val()
-        else:
-            return self.FvRk_Johansen[0]
     
         # 8.1.2 Assemblage par organe multiple
 
@@ -453,24 +462,16 @@ class Assemblage(Projet):
 
         Args:
             effet_corde (bool): prise en compte de l'effet de corde, si oui alors True.
+            Attention: pour que l'effet de corde soit prit en compte, il faut que le FaxRk du type de tige est été calculé préalablement.
 
         Returns:
             float: effort de reprise caractéristique de l'assemblage en N
         """
         #     Fvrktot : capacité résistante en cisaillement caractéristique avec la partie de Johansen + l'effet de corde en N
         if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[0]:
-            latex, self.FvRk_Johansen = self._FvRk_BoisBois_Johansen()
-            assemblage_bois = True
+            latex, self.Fv_Rk = self._FvRk_BoisBois(effet_corde)
         else:
-            assemblage_bois = False
-            latex, self.FvRk_Johansen = self._FvRk_BoisMetal_Johansen()
-
-        if effet_corde:
-            FvRk_latex, self.Fv_Rk = self._FvRk_total(assemblage_bois)
-            latex = latex + FvRk_latex
-
-        else:
-            self.Fv_Rk = self.FvRk_Johansen[0]
+            latex, self.Fv_Rk = self._FvRk_BoisMetal(effet_corde)
 
         F_v_Rk = self.Fv_Rk
         n_file = self.nfile
