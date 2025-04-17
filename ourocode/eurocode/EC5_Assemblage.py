@@ -473,7 +473,7 @@ class Assemblage(Projet):
         else:
             latex, self.Fv_Rk = self._FvRk_BoisMetal(effet_corde)
 
-        F_v_Rk = self.Fv_Rk[1][0]
+        F_v_Rk = self.Fv_Rk[0]
         n_file = self.nfile
         n_ef = self._nef
         n_cisaillement = self.nCis
@@ -532,7 +532,7 @@ class Assemblage(Projet):
         n = self.n
         n_file = self.nfile
 
-        mode_rupture = self.Fv_Rk[1][1]
+        mode_rupture = self.Fv_Rk[1]
 
         # on calcul les valeur caractéristique de base de notre éléméent
         if num_beam == 1:
