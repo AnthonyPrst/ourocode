@@ -199,7 +199,7 @@ class Barre(Projet):
         else:
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                f_type_Rd = (f_type_k * K_mod) / gamma_M
+                f_type_Rd = f_type_k * K_mod / gamma_M
                 return f_type_Rd
         value = val()
         latex = self.__convert_latex_ftyped(value[0], typeCarac)
@@ -229,7 +229,7 @@ class Barre(Projet):
         return kh       
     
     
-    def Emean_fin (self, psy_2: float):
+    def Emean_fin(self, psy_2: float):
         """Renvoie le E,mean,fin en fonction du Kdef et du psy2"""
         self.psy_2 = psy_2
         E0_mean = int(self.caract_meca.loc["E0mean"]) * si.MPa
@@ -287,9 +287,9 @@ class Barre(Projet):
                 Rd_W_net_fin = long / limit_W_net_fin
                 Rd_W_fin = min(long / limit_W_fin, limit_U_fin_max)
 
-                taux_W_inst_Q = Ed_W_inst_Q / Rd_W_inst_Q * 100 #(%)
-                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin * 100 #(%)
-                taux_W_fin = Ed_W_fin / Rd_W_fin * 100 #(%)
+                taux_W_inst_Q = Ed_W_inst_Q / Rd_W_inst_Q * 100 #%
+                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin * 100 #%
+                taux_W_fin = Ed_W_fin / Rd_W_fin * 100 #%
                 return taux_W_inst_Q, taux_W_net_fin, taux_W_fin
             
             value = val()
@@ -303,8 +303,8 @@ class Barre(Projet):
                 Rd_W_net_fin = long / limit_W_net_fin
                 Rd_W_fin = min(long / limit_W_fin, limit_U_fin_max)
 
-                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin * 100 #(%)
-                taux_W_fin = Ed_W_fin / Rd_W_fin * 100 #(%)
+                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin * 100 #%
+                taux_W_fin = Ed_W_fin / Rd_W_fin * 100 #%
                 return taux_W_net_fin, taux_W_fin
             
             value = val()
