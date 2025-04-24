@@ -85,10 +85,10 @@ class Feu(Barre):
         super().__init__(**kwargs)
         self.t_expo = t_expo
         self.protection = {
-            "haut": haut,
-            "bas": bas,
-            "gauche": gauche,
-            "droite": droite,
+            "Haut": haut,
+            "Bas": bas,
+            "Gauche": gauche,
+            "Droite": droite,
         }
         self.double_couches = double_couches
         self.hp = hp * si.mm
@@ -114,10 +114,10 @@ class Feu(Barre):
         rho_k = int(self.caract_meca.loc["rhok"])
         if self.classe[0:1] == "C" and rho_k >= 290:
             beta_0 = 0.65
-            beta_n = 0.7
+            beta_n = 0.8
         elif self.classe[0:2] == "GL" and rho_k >= 290:
             beta_0 = 0.65
-            beta_n = 0.8
+            beta_n = 0.7
         elif self.classe[0:1] == "D":
             if rho_k >= 290 and rho_k < 450:
                 beta_0 = interpolation_lineaire(rho_k, 290, 450, 0.65, 0.5)
@@ -172,13 +172,7 @@ class Feu(Barre):
             t (int): le temps approprié d'exposition au feu en minutes.
         """
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             d_char_0 = beta_0 * t
             return d_char_0
@@ -207,13 +201,7 @@ class Feu(Barre):
         d_0 = self.D0
         k_0 = self._k0(t)
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             d_ef = d_char_n + k_0 * d_0
             return d_ef
@@ -235,13 +223,7 @@ class Feu(Barre):
             "Panneaux de fibres ou de particules",
         ):
 
-            @handcalc(
-                override="short",
-                precision=2,
-                jupyter_display=self.JUPYTER_DISPLAY,
-                left="\\[",
-                right="\\]",
-            )
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 t_ch = self.hp.value * 10**3 / beta_0  # en min/equa3.10
                 t_f = t_ch  # en min/equa3.14
@@ -260,13 +242,7 @@ class Feu(Barre):
                 or "type H" in self.protection[orientation]
             ):
 
-                @handcalc(
-                    override="short",
-                    precision=2,
-                    jupyter_display=self.JUPYTER_DISPLAY,
-                    left="\\[",
-                    right="\\]",
-                )
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     t_ch = 2.8 * h_p - 14  # en min/equa3.11
                     t_f = t_ch  # en min/equa3.15
@@ -274,13 +250,7 @@ class Feu(Barre):
 
             else:
 
-                @handcalc(
-                    override="short",
-                    precision=2,
-                    jupyter_display=self.JUPYTER_DISPLAY,
-                    left="\\[",
-                    right="\\]",
-                )
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     t_ch = 2.8 * h_p - 14  # en min/equa3.11
                     t_f  # Temps de rupture de la plaque de platre type F
@@ -293,13 +263,7 @@ class Feu(Barre):
                 or "type H" in self.protection[orientation]
             ):
 
-                @handcalc(
-                    override="short",
-                    precision=2,
-                    jupyter_display=self.JUPYTER_DISPLAY,
-                    left="\\[",
-                    right="\\]",
-                )
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     t_ch = 2.8 * h_p - 23  # en min/equa3.12
                     t_f = t_ch  # en min/equa3.15
@@ -307,13 +271,7 @@ class Feu(Barre):
 
             else:
 
-                @handcalc(
-                    override="short",
-                    precision=2,
-                    jupyter_display=self.JUPYTER_DISPLAY,
-                    left="\\[",
-                    right="\\]",
-                )
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     t_ch = 2.8 * h_p - 23  # en min/equa3.12
                     t_f  # Temps de rupture de la plaque de platre type F
@@ -323,13 +281,7 @@ class Feu(Barre):
         elif self.protection[orientation] == "Fibre de roche":
             rho_k_protect = self.rho_k_protect
 
-            @handcalc(
-                override="short",
-                precision=2,
-                jupyter_display=self.JUPYTER_DISPLAY,
-                left="\\[",
-                right="\\]",
-            )
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 t_ch = 0.07 * (h_p - 20) * sqrt(rho_k_protect)  # en min/equa3.13
                 t_f  # Temps de rupture de la plaque en fibre de roche
@@ -338,13 +290,7 @@ class Feu(Barre):
         # Aucune protection
         else:
 
-            @handcalc(
-                override="short",
-                precision=2,
-                jupyter_display=self.JUPYTER_DISPLAY,
-                left="\\[",
-                right="\\]",
-            )
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 t_ch = 0  # en min/equa3.12
                 t_f = t_ch  # en min/equa3.15
@@ -376,28 +322,13 @@ class Feu(Barre):
         if t_f:
             if t_ch < t_f:
 
-                @handcalc(
-                    override="short",
-                    precision=2,
-                    jupyter_display=self.JUPYTER_DISPLAY,
-                    left="\\[",
-                    right="\\]",
-                )
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    t_a = (25 - (t_f - t_ch) * k_2 * beta_n) / (
-                        2 * beta_n
-                    ) + t_f  # en min/equa3.9
+                    t_a = (25 - (t_f - t_ch) * k_2 * beta_n) / (2 * beta_n) + t_f  # en min/equa3.9
                     return t_a
 
             else:
-
-                @handcalc(
-                    override="short",
-                    precision=2,
-                    jupyter_display=self.JUPYTER_DISPLAY,
-                    left="\\[",
-                    right="\\]",
-                )
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     t_a = min(2 * t_f, 12.5 / beta_n + t_f)  # en min/equa3.8
                     return t_a
@@ -407,6 +338,8 @@ class Feu(Barre):
             return ("", 0)
 
     def _get_section_reduction(self):
+        self._base_b_calcul = self.b_calcul
+        self._base_h_calcul = self.h_calcul
         self._def = {}
         # Index des lignes
         index = ["0", "tch", "tf", "ta", "t_expo", "d_ef"]
@@ -468,7 +401,9 @@ class Feu(Barre):
                 self._def[orientation] = (latex_tch_tf + latex_ta + d_ef[0], d_ef[1])
             else:
                 self._def[orientation] = ("\\[\text{Pas d'exposition}\\]", 0 * si.mm)
-        print(self._def)
+            
+        self.b_calcul = self.b_calcul - self._def["Gauche"][1] - self._def["Droite"][1] # Réduction de la section
+        self.h_calcul = self.h_calcul - self._def["Haut"][1] - self._def["Bas"][1] # Réduction de la section
 
     def get_def(self, orientation: str = ORIENTATION):
         """Retourne la profondeur de carbonisation effective en mm suivant l'orientation donnée"""
@@ -493,26 +428,14 @@ class Feu(Barre):
         if typeCarac == "fm0k" and self.k_sys > 1:
             k_sys = self.k_sys
 
-            @handcalc(
-                override="short",
-                precision=2,
-                jupyter_display=self.JUPYTER_DISPLAY,
-                left="\\[",
-                right="\\]",
-            )
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 f_type_Rd = k_sys * f_type_k * K_fi * K_mod_fi / gamma_M_fi
                 return f_type_Rd
 
         else:
 
-            @handcalc(
-                override="short",
-                precision=2,
-                jupyter_display=self.JUPYTER_DISPLAY,
-                left="\\[",
-                right="\\]",
-            )
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 f_type_Rd = f_type_k * K_fi * K_mod_fi / gamma_M_fi
                 return f_type_Rd
@@ -525,7 +448,7 @@ class Feu(Barre):
     def _K_h(self):
         """Retourne le coef. Kh qui peut augmenter la resistance caractéristique fm,k et ft,k"""
         kh = {}
-        dim = {"y": self.h_calcul.value * 10**3, "z": self.b_calcul.value * 10**3}
+        dim = {"y": self._base_h_calcul.value * 10**3, "z": self._base_b_calcul.value * 10**3}
 
         for cle, valeur in dim.items():
             if self.type_bois == "Massif":
@@ -550,13 +473,7 @@ class Feu(Barre):
         K_fi = self.K_fi
         K_def = self.K_def
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             E_mean_fin_fi = E0_mean * K_fi / (1 + psy_2 * K_def)
             return E_mean_fin_fi
@@ -617,13 +534,7 @@ class Flexion_feu(Feu, Flexion):
         E_0_05 = int(self.caract_meca.loc["E005"]) * si.MPa
         K_fi = self.K_fi
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             sigma_m_crit_fi = (0.78 * b_calcul**2 * E_0_05 * K_fi) / (h_calcul * l_ef)
             return sigma_m_crit_fi
@@ -637,13 +548,7 @@ class Flexion_feu(Feu, Flexion):
         K_fi = self.K_fi
         sigma_m_crit = self.sigma_m_crit[1]
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             lamb_rel_m_fi = sqrt(f_m0k * K_fi / sigma_m_crit)
             return lamb_rel_m_fi
@@ -657,44 +562,31 @@ class Flexion_feu(Feu, Flexion):
 
         if lamb_rel_m_fi <= 0.75:
 
-            @handcalc(
-                override="short",
-                precision=2,
-                jupyter_display=self.JUPYTER_DISPLAY,
-                left="\\[",
-                right="\\]",
-            )
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 K_crit_fi = 1
                 return K_crit_fi
 
         elif 0.75 < lamb_rel_m_fi <= 1.4:
 
-            @handcalc(
-                override="short",
-                precision=2,
-                jupyter_display=self.JUPYTER_DISPLAY,
-                left="\\[",
-                right="\\]",
-            )
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 K_crit_fi = 1.56 - 0.75 * lamb_rel_m_fi
                 return K_crit_fi
 
         else:
 
-            @handcalc(
-                override="short",
-                precision=2,
-                jupyter_display=self.JUPYTER_DISPLAY,
-                left="\\[",
-                right="\\]",
-            )
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 K_crit_fi = 1 / (lamb_rel_m_fi**2)
                 return K_crit_fi
 
         return val()
+    
+    def f_m_d(self):
+        """Retourne la résistance f,m,d au feu de l'élément en MPa
+        """
+        return super()._f_type_d("fm0k")
 
     def taux_m_d(self, compression: object = None, traction: object = None):
         """Retourne les différents taux de travaux en flexion.
@@ -717,13 +609,7 @@ class Flexion_feu(Feu, Flexion):
         K_m = self.K_m
         K_crit_fi = self.K_crit[1]
 
-        @handcalc(
-            override="short",
-            precision=3,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def base():
             taux_6_11 = sigma_my_d_fi / (f_m_d_fi * K_h_y) + K_m * sigma_mz_d_fi / (
                 f_m_d_fi * K_h_z
@@ -751,13 +637,7 @@ class Flexion_feu(Feu, Flexion):
 
             # taux_6_23 = compression.taux_c_0_rd['equ6.23']
             # taux_6_24 = compression.taux_c_0_rd['equ6.24']
-            @handcalc(
-                override="short",
-                precision=3,
-                jupyter_display=self.JUPYTER_DISPLAY,
-                left="\\[",
-                right="\\]",
-            )
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def comp(taux_6_11, taux_6_12, taux_6_2, taux_6_33y, taux_6_33z):
                 taux_6_19 = taux_6_2**2 + taux_6_11  # equ6.19
                 taux_6_20 = taux_6_2**2 + taux_6_12  # equ6.20
@@ -804,13 +684,7 @@ class Flexion_feu(Feu, Flexion):
         if traction and isinstance(traction, Traction):
             taux_6_1 = traction.taux_t_0_rd["equ6.1"]
 
-            @handcalc(
-                override="short",
-                precision=3,
-                jupyter_display=self.JUPYTER_DISPLAY,
-                left="\\[",
-                right="\\]",
-            )
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def tract(taux_6_11, taux_6_12):
                 taux_6_17 = taux_6_11 + taux_6_1  # equ6.17
                 taux_6_18 = taux_6_12 + taux_6_1  # equ6.18
@@ -834,6 +708,11 @@ class Traction(Feu, Traction):
         """
         Feu.__init__(**kwargs)
         Traction.__init__(**kwargs)
+    
+    def f_t_0_d(self):
+        """Retourne la résistance f,t,0,d au feu de l'élément en MPa
+        """
+        return super()._f_type_d("ft0k")
 
     def taux_t_0_d(self):
         """Retourne le taux de travail en traction axial.
@@ -847,13 +726,7 @@ class Traction(Feu, Traction):
         sigma_t_0_d_fi = self.sigma_t_0_rd
         f_t_0_d_fi = self.f_type_rd
 
-        @handcalc(
-            override="short",
-            precision=3,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             K_h = min(K_h_y, K_h_z)
             taux_6_1 = sigma_t_0_d_fi / (K_h * f_t_0_d_fi)  # equ6.1
@@ -903,13 +776,7 @@ class Compression_feu(Feu, Compression):
         E_0_05 = int(self.caract_meca.loc["E005"]) * si.MPa
         K_fi = self.K_fi
 
-        @handcalc(
-            override="short",
-            precision=3,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             lamb_rel_y_fi = (lamb_y / pi) * sqrt(f_c0k * K_fi / (E_0_05 * K_fi))
             lamb_rel_z_fi = (lamb_z / pi) * sqrt(f_c0k * K_fi / (E_0_05 * K_fi))
@@ -924,13 +791,7 @@ class Compression_feu(Feu, Compression):
         lamb_rel_y_fi = self.lamb_rel_Axe[1]["y"]
         lamb_rel_z_fi = self.lamb_rel_Axe[1]["z"]
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             k_y_fi = 0.5 * (1 + beta_C * (lamb_rel_y_fi - 0.3) + lamb_rel_y_fi**2)
             k_z_fi = 0.5 * (1 + beta_C * (lamb_rel_z_fi - 0.3) + lamb_rel_z_fi**2)
@@ -946,19 +807,18 @@ class Compression_feu(Feu, Compression):
         lamb_rel_y_fi = self.lamb_rel_Axe[1]["y"]
         lamb_rel_z_fi = self.lamb_rel_Axe[1]["z"]
 
-        @handcalc(
-            override="short",
-            precision=2,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             k_c_y = 1 / (k_y_fi + sqrt(k_y_fi**2 - lamb_rel_y_fi**2))
             k_c_z = 1 / (k_z_fi + sqrt(k_z_fi**2 - lamb_rel_z_fi**2))
             return {"y": min(k_c_y, 1), "z": min(k_c_z, 1)}
 
         return val()
+    
+    def f_c_0_d(self):
+        """Retourne la résistance f,c,0,d au feu de l'élément en MPa
+        """
+        return super()._f_type_d("fc0k")
 
     def taux_c_0_d(self, flexion: object = None):
         """Retourne les taux de travaux de la compression axial.
@@ -988,13 +848,7 @@ class Compression_feu(Feu, Compression):
 
         if lamb_rel_y < 0.3 and lamb_rel_z < 0.3:
 
-            @handcalc(
-                override="short",
-                precision=3,
-                jupyter_display=self.JUPYTER_DISPLAY,
-                left="\\[",
-                right="\\]",
-            )
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 taux_6_2 = sigma_c_0_d_fi / f_c_0_d_fi  # equ6.2
                 taux_6_19 = (
@@ -1010,13 +864,7 @@ class Compression_feu(Feu, Compression):
             self.taux_c_0_rd["equ6.20"] = value[1][2]
         else:
 
-            @handcalc(
-                override="short",
-                precision=3,
-                jupyter_display=self.JUPYTER_DISPLAY,
-                left="\\[",
-                right="\\]",
-            )
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 taux_6_2 = sigma_c_0_d_fi / f_c_0_d_fi  # equ6.2
                 taux_6_23 = (
@@ -1044,13 +892,13 @@ class Cisaillement_feu(Feu, Cisaillement):
         Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
         """
         super(Feu, self).__init__(**kwargs)
-        super(Cisaillement, self).__init__(**kwargs)
+        Cisaillement._from_parent_class(Feu)
 
-    def Kv(self, hef: int, x: int, i_lo: int, ent=("Dessous", "Dessus")):
+    def Kv(self, hef: si.mm, x: si.mm, i_lo: si.mm, ent=("Dessous", "Dessus")):
         """Retourne le facteur d'entaille Kv pour une entaille au niveau d'un appuis
 
         Args:
-            hef (int): Hauteur efficace de la poutre (hauteur - hauteur de l'entaille) en mm
+            hef (int): Hauteur efficace à froid de la poutre (hauteur - hauteur de l'entaille) en mm
             x (int):Distance entre le centre de réaction à l'appuis et le coin de l'entaille en mm
             i_lo (float): longueur horizontal de l'entaille en mm
             ent (tuple, optional): Entaille sur le dessus ou dessous de la poutre.
@@ -1058,55 +906,13 @@ class Cisaillement_feu(Feu, Cisaillement):
         Returns:
             float: facteur Kv
         """
-        K_n = self.DICT_KN[self.type_bois]
-        x = x * si.mm
-        h_ef = hef * si.mm
-        i = i_lo * si.mm / h_ef
-        h_calcul = self.h_calcul
-
-        if ent == "Dessus":
-            self.K_v = 1
-            return self.K_v
-        else:
-
-            @handcalc(
-                override="long",
-                precision=3,
-                jupyter_display=self.JUPYTER_DISPLAY,
-                left="\\[",
-                right="\\]",
-            )
-            def val():
-                alpha = h_ef / h_calcul
-                K_v = min(
-                    1,
-                    (K_n * (1 + (1.1 * i**1.5) / sqrt(h_calcul)))
-                    / (
-                        sqrt(h_calcul)
-                        * (
-                            sqrt(alpha * (1 - alpha))
-                            + 0.8 * x / h_calcul * sqrt(1 / alpha - alpha**2)
-                        )
-                    ),
-                )
-                return K_v
-
-            self.h_ef = h_ef
-            value = val()
-            self.K_v = value[1]
-            return value
+        super().Kv(hef, x, i_lo, ent)
+        self.h_ef = hef*si.mm - self._def["Bas"][1] - self._def["Haut"][1]  # Réduction de la section
     
-    def f_v_d(self, loadtype=Barre.LOAD_TIME):
-        """Retourne la résistance f,v,d de l'élément en MPa
-
-        Args:
-            loadtype (str): chargement de plus courte durée sur l'élément.
-            typecombi (str): type de combinaison, fondamentale ou accidentelle.
-
-        Returns:
-            float: f,v,d en MPa
+    def f_v_d(self):
+        """Retourne la résistance f,v,d au feu de l'élément en MPa
         """
-        return super()._f_type_d("fvk", loadtype)
+        return super()._f_type_d("fvk")
 
     def taux_tau_d(self):
         """Retourne le taux de travail en cisaillement en %"""
@@ -1115,13 +921,7 @@ class Cisaillement_feu(Feu, Cisaillement):
         f_v_d_fi = self.f_type_rd
         K_v = self.K_v
 
-        @handcalc(
-            override="short",
-            precision=3,
-            jupyter_display=self.JUPYTER_DISPLAY,
-            left="\\[",
-            right="\\]",
-        )
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             taux_6_13 = tau_d_fi / f_v_d_fi
             taux_6_60 = tau_d_fi / (K_v * f_v_d_fi)

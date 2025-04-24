@@ -1052,7 +1052,7 @@ class Cisaillement(Barre):
             return 0.67
 
 
-    def Kv(self, hef:int, x:int, i_lo:int, ent=("Dessous", "Dessus")):
+    def Kv(self, hef:si.mm, x:si.mm, i_lo:si.mm, ent=("Dessous", "Dessus")):
         """Retourne le facteur d'entaille Kv pour une entaille au niveau d'un appuis
 
         Args:
@@ -1070,6 +1070,7 @@ class Cisaillement(Barre):
         i = i_lo * si.mm / h_ef
         h_calcul = self.h_calcul
 
+        self.h_ef = h_ef
         if ent == "Dessus":
             self.K_v = 1
             return self.K_v
@@ -1077,9 +1078,11 @@ class Cisaillement(Barre):
             @handcalc(override="long", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 alpha = h_ef / h_calcul
-                K_v = min(1, (K_n * (1 + (1.1 * i ** 1.5) / sqrt(h_calcul))) / (sqrt(h_calcul) * (sqrt(alpha * (1 - alpha)) + 0.8 * x / h_calcul * sqrt(1 / alpha - alpha ** 2))))
+                K_v = min(
+                    1, 
+                    (K_n * (1 + (1.1 * i ** 1.5) / sqrt(h_calcul))) / (sqrt(h_calcul) * (sqrt(alpha * (1 - alpha)) + 0.8 * x / h_calcul * sqrt(1 / alpha - alpha ** 2)))
+                )
                 return K_v
-            self.h_ef = h_ef
             value = val()
             self.K_v = value[1]
             return value
