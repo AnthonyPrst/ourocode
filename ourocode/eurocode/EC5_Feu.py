@@ -2,8 +2,8 @@
 # Encoding in UTF-8 by Anthony PARISOT
 
 import math as mt
-from math import sqrt, pi, cos, sin, radians
-import numpy as np
+from math import sqrt, pi
+import pandas as pd
 
 import forallpeople as si
 
@@ -19,15 +19,19 @@ from ourocode.eurocode.EC5_Element_droit import (
     Cisaillement,
 )
 
+
 def interpolation_lineaire(x, xa, xb, ya, yb):
     """Fait une interpolation linéaire pour trouver un résultat y entre deux valeur xa et xb"""
     y = ya + (x - xa) * ((yb - ya) / (xb - xa))
     return y
+
+
 # ================================ GLOBAL ==================================
 
 
 class Feu(Barre):
-    PROTECTION = (
+    EXPOSITION = (
+        "Pas d'exposition",
         "Aucune protection",
         "1 plaque de platre type A joints comblés",
         "1 plaque de platre type A joints vides",
@@ -40,20 +44,21 @@ class Feu(Barre):
         "Contreplaqué",
         "Panneaux de fibres ou de particules",
     )
-    D0 = 7*si.mm
+    D0 = 7 * si.mm
     KMOD_FI = 1
+    ORIENTATION = ("Haut", "Bas", "Gauche", "Droite")
 
     def __init__(
         self,
-        t_expo: si.min=30,
-        protection_haut: str = PROTECTION,
-        protection_bas: str = PROTECTION,
-        protection_gauche: str = PROTECTION,
-        protection_droite: str = PROTECTION,
-        double_couches: bool = False,
-        hp: si.mm=0,
-        rho_k_protect: float=0,
-        tf: si.min=None,
+        t_expo: int = 30,
+        haut: str = EXPOSITION,
+        bas: str = EXPOSITION,
+        gauche: str = EXPOSITION,
+        droite: str = EXPOSITION,
+        double_couches: bool = ("False", "True"),
+        hp: si.mm = 0,
+        rho_k_protect: float = 0,
+        tf: int = None,
         **kwargs,
     ):
         """Classe qui définit les caractéristiques d'un élément droit au feu.
@@ -61,29 +66,29 @@ class Feu(Barre):
 
         Args:
             t_expo (int, optional): Durée d'exposition au feu en minutes. Defaults to 30.
-            
-            Attention : 
+
+            Attention :
                 Pour la détermination des joints vides ou comblés en cas de protection rapportée:
                     un joint est considéré comme comblé si le vide est <= à 2mm.
 
-            protection_haut (str): Type de protection au feu sur le haut de l'élément.
-            protection_bas (str): Type de protection au feu sur le bas de l'élément.
-            protection_gauche (str): Type de protection au feu sur le gauche de l'élément.
-            protection_droite (str): Type de protection au feu sur le droite de l'élément.
+            haut (str): Type d'expostion ou de protection au feu sur le haut de l'élément.
+            bas (str): Type d'expostion ou de protection au feu sur le bas de l'élément.
+            gauche (str): Type d'expostion ou de protection au feu sur le gauche de l'élément.
+            droite (str): Type d'expostion ou de protection au feu sur le droite de l'élément.
             hp (int)): épaisseur totale (si double couches) des panneaux de protection en mm. Defaults to 0.
-            rho_k_protect (float): A définir uniquement si il y a un ou des panneaux de protection bois ou en fibre de roche. 
+            rho_k_protect (float): A définir uniquement si il y a un ou des panneaux de protection bois ou en fibre de roche.
                 Masse volumique des panneaux de protection en kg/m3. Defaults to 0.
             tf (int, optional): Durée avant rupture du matériaux de protection au feu en minutes. Defaults to None.
                 Attention uniquement pour les plaques de platre de type F ou les panneaux de fibres de roche.
                 On ne peut par conséquent pas définir des plaques de platre de type F en même temps que des panneaux de fibres de roche.
         """
         super().__init__(**kwargs)
-        self.t_expo = t_expo * si.min
+        self.t_expo = t_expo
         self.protection = {
-            "haut": protection_haut,
-            "bas": protection_bas,
-            "gauche": protection_gauche,
-            "droite": protection_droite,
+            "haut": haut,
+            "bas": bas,
+            "gauche": gauche,
+            "droite": droite,
         }
         self.double_couches = double_couches
         self.hp = hp * si.mm
@@ -123,12 +128,12 @@ class Feu(Barre):
         elif self.type_bois == "LVL" and rho_k >= 480:
             beta_0 = 0.65
             beta_n = 0.7
-        elif self.b_calcul.value*10**3 >= 20 and rho_k >= 450:
+        elif self.b_calcul.value * 10**3 >= 20 and rho_k >= 450:
             if self.type_bois == "CP":
                 beta_0 = 1
             else:
                 beta_0 = 0.9
-        elif self.b_calcul.value*10**3 < 20 or rho_k < 450:
+        elif self.b_calcul.value * 10**3 < 20 or rho_k < 450:
             kp = mt.sqrt(450 / rho_k)
             kh = mt.sqrt(20 / self.b_calcul.value * 10**3)
             if self.type_bois == "CP":
@@ -137,31 +142,36 @@ class Feu(Barre):
                 beta_0 = 0.9
             beta_0 = beta_0 * kp * kh
         return beta_0, beta_n
-    
+
     def _get_wood_protect_beta0_and_betan(self, type_wood_protect: str):
         beta_0 = None
         beta_n = None
-        if self.hp.value*10**3 >= 20 and self.rho_k_protect >= 450:
-            if self.type_bois == "Contreplaqué":
-                beta_0 = 1
-            else:
-                beta_0 = 0.9
-        elif self.hp.value*10**3 < 20 or self.rho_k_protect < 450:
-            kp = mt.sqrt(450 / self.rho_k_protect)
-            kh = mt.sqrt(20 / self.hp.value * 10**3)
-            if self.type_bois == "Contreplaqué":
-                beta_0 = 1
-            else:
-                beta_0 = 0.9
-            beta_0 = beta_0 * kp * kh
+        if type_wood_protect in (
+            "Panneautage bois",
+            "Contreplaqué",
+            "Panneaux de fibres ou de particules",
+        ):
+            if self.hp.value * 10**3 >= 20 and self.rho_k_protect >= 450:
+                if type_wood_protect == "Contreplaqué":
+                    beta_0 = 1
+                else:
+                    beta_0 = 0.9
+            elif self.hp.value * 10**3 < 20 or self.rho_k_protect < 450:
+                kp = mt.sqrt(450 / self.rho_k_protect)
+                kh = mt.sqrt(20 / self.hp.value * 10**3)
+                if type_wood_protect == "Contreplaqué":
+                    beta_0 = 1
+                else:
+                    beta_0 = 0.9
+                beta_0 = beta_0 * kp * kh
         return beta_0, beta_n
-        
-        
-    def d_char_0(self, t:int, beta_0:float):
+
+    def d_char_0(self, t: int, beta_0: float):
         """Retourne la valeur de la profondeur de carbonisation en mm pour une carbonisation uni-dimensionnelle
         Args:
             t (int): le temps approprié d'exposition au feu en minutes.
         """
+
         @handcalc(
             override="short",
             precision=2,
@@ -172,22 +182,23 @@ class Feu(Barre):
         def val():
             d_char_0 = beta_0 * t
             return d_char_0
+
         return val()
-    
-    def _d_char_n(self, t:int, beta_n:float):
+
+    def _d_char_n(self, t: int, beta_n: float):
         """Retourne la valeur de la profondeur de carbonisation fictive qui tient compte de l'effet des arrondis en coins
         Args:
             t (int): le temps approprié d'exposition au feu en minutes.
         """
-        return beta_n * t
+        return beta_n * t * si.mm
 
-    def _k0(self, t:int):
+    def _k0(self, t: int):
         if t < 20:
-            return t/20
+            return t / 20
         else:
             return 1
-        
-    def _d_ef(self, d_char_n: si.mm, t:si.min):
+
+    def _d_ef(self, d_char_n: si.mm, t: int):
         """Retourne la valeur de la profondeur de carbonisation effective en mm
         Args:
             d_char_n (si.mm): profondeur de carbonisation fictive
@@ -195,12 +206,19 @@ class Feu(Barre):
         """
         d_0 = self.D0
         k_0 = self._k0(t)
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+
+        @handcalc(
+            override="short",
+            precision=2,
+            jupyter_display=self.JUPYTER_DISPLAY,
+            left="\\[",
+            right="\\]",
+        )
         def val():
-            d_char_n = d_char_n + k_0 * d_0
-            return d_char_n
+            d_ef = d_char_n + k_0 * d_0
+            return d_ef
+
         return val()
-    
 
     def _get_tch_and_tf(self, orientation: str, beta_0: float):
         """Retorune le temps de démarrage de la carbonisation en minute (tch) et le temps de rupture de la protection (tf) en minute
@@ -208,83 +226,147 @@ class Feu(Barre):
         Args:
             orientation (str, optional): Orientation sur la barre. Defaults to "Bas".
         """
-        h_p = self.hp.value*10**3
+        h_p = self.hp.value * 10**3
         t_f = self.t_f
 
-        if self.protection[orientation] in ("Panneautage bois","Contreplaqué","Panneaux de fibres ou de particules"):
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        if self.protection[orientation] in (
+            "Panneautage bois",
+            "Contreplaqué",
+            "Panneaux de fibres ou de particules",
+        ):
+
+            @handcalc(
+                override="short",
+                precision=2,
+                jupyter_display=self.JUPYTER_DISPLAY,
+                left="\\[",
+                right="\\]",
+            )
             def val():
-                t_ch =  self.hp.value*10**3 / beta_0 # 3.10 (min)
-                t_f = t_ch # 3.14 (min)
+                t_ch = self.hp.value * 10**3 / beta_0  # en min/equa3.10
+                t_f = t_ch  # en min/equa3.14
                 return t_ch, t_f
 
         # platre à joint vide A,H,F
         elif "joints comblés" in self.protection[orientation]:
             if self.double_couches:
-                if "Type F" in self.protection[orientation]:
+                if "type F" in self.protection[orientation]:
                     h_p = (h_p / 2) * 1.8
                 else:
                     h_p = (h_p / 2) * 1.5
-            
-            if "Type A" in self.protection[orientation] or "Type H" in self.protection[orientation]:
-                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+
+            if (
+                "type A" in self.protection[orientation]
+                or "type H" in self.protection[orientation]
+            ):
+
+                @handcalc(
+                    override="short",
+                    precision=2,
+                    jupyter_display=self.JUPYTER_DISPLAY,
+                    left="\\[",
+                    right="\\]",
+                )
                 def val():
-                    t_ch = 2.8 * h_p - 14 # 3.11 (min)
-                    t_f = t_ch # 3.15 (min)
+                    t_ch = 2.8 * h_p - 14  # en min/equa3.11
+                    t_f = t_ch  # en min/equa3.15
                     return t_ch, t_f
+
             else:
-                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+
+                @handcalc(
+                    override="short",
+                    precision=2,
+                    jupyter_display=self.JUPYTER_DISPLAY,
+                    left="\\[",
+                    right="\\]",
+                )
                 def val():
-                    t_ch = 2.8 * h_p - 14 # 3.11 (min)
-                    t_f # Temps de rupture de la plaque de platre type F
+                    t_ch = 2.8 * h_p - 14  # en min/equa3.11
+                    t_f  # Temps de rupture de la plaque de platre type F
                     return t_ch, t_f
 
         # platre à joint comblé A,H,F
         elif "joints vides" in self.protection[orientation]:
-            if "Type A" in self.protection[orientation] or "Type H" in self.protection[orientation]:
-                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            if (
+                "type A" in self.protection[orientation]
+                or "type H" in self.protection[orientation]
+            ):
+
+                @handcalc(
+                    override="short",
+                    precision=2,
+                    jupyter_display=self.JUPYTER_DISPLAY,
+                    left="\\[",
+                    right="\\]",
+                )
                 def val():
-                    t_ch = 2.8 * h_p - 23 # 3.12 (min)
-                    t_f = t_ch # 3.15 (min)
+                    t_ch = 2.8 * h_p - 23  # en min/equa3.12
+                    t_f = t_ch  # en min/equa3.15
                     return t_ch, t_f
+
             else:
-                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+
+                @handcalc(
+                    override="short",
+                    precision=2,
+                    jupyter_display=self.JUPYTER_DISPLAY,
+                    left="\\[",
+                    right="\\]",
+                )
                 def val():
-                    t_ch = 2.8 * h_p - 23 # 3.12 (min)
-                    t_f # Temps de rupture de la plaque de platre type F
+                    t_ch = 2.8 * h_p - 23  # en min/equa3.12
+                    t_f  # Temps de rupture de la plaque de platre type F
                     return t_ch, t_f
+
         # Fibre de roche
         elif self.protection[orientation] == "Fibre de roche":
             rho_k_protect = self.rho_k_protect
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+
+            @handcalc(
+                override="short",
+                precision=2,
+                jupyter_display=self.JUPYTER_DISPLAY,
+                left="\\[",
+                right="\\]",
+            )
             def val():
-                t_ch = 0.07 * (h_p-20) * sqrt(rho_k_protect) # 3.13 (min)
-                t_f # Temps de rupture de la plaque en fibre de roche
+                t_ch = 0.07 * (h_p - 20) * sqrt(rho_k_protect)  # en min/equa3.13
+                t_f  # Temps de rupture de la plaque en fibre de roche
                 return t_ch, t_f
+
         # Aucune protection
         else:
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+
+            @handcalc(
+                override="short",
+                precision=2,
+                jupyter_display=self.JUPYTER_DISPLAY,
+                left="\\[",
+                right="\\]",
+            )
             def val():
-                t_ch = 0 # 3.12 (min)
-                t_f = t_ch # 3.15 (min)
+                t_ch = 0  # en min/equa3.12
+                t_f = t_ch  # en min/equa3.15
                 return t_ch, t_f
+
         return val()
-    
-    def _get_k2(self, orientation:str):
+
+    def _get_k2(self, orientation: str):
         k2 = 1
-        hp = self.hp.value*10**3
-        if "Type F" in self.protection[orientation]:
+        hp = self.hp.value * 10**3
+        if "type F" in self.protection[orientation]:
             if self.double_couches:
-                hp = self.hp.value*10**3 / 2
-            k2 = 1 - 0.018 * hp # 3.7
+                hp = self.hp.value * 10**3 / 2
+            k2 = 1 - 0.018 * hp  # 3.7
         elif self.protection[orientation] == "Fibre de roche":
             if 45 > hp >= 20:
-                k2 = interpolation_lineaire(hp, 20,  45, 1, 0.6)
+                k2 = interpolation_lineaire(hp, 20, 45, 1, 0.6)
             elif hp >= 45:
                 k2 = 0.6
         return k2
 
-    def _get_ta(self, t_ch: int, t_f: int, beta_n: float, k_2:float):
+    def _get_ta(self, t_ch: int, t_f: int, beta_n: float, k_2: float):
         """Retourne le temps de rupture de la protection en minutes (ta)
         Args:
             t_ch (int): Temps de démarrage de la carbonisation en minutes
@@ -292,48 +374,113 @@ class Feu(Barre):
             beta_n (float): Coefficient de carbonisation fictif
             k_2 (float): Coefficient d'accelération de la carbonisation'"""
         if t_f:
-            if t_ch < t_f :
-                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            if t_ch < t_f:
+
+                @handcalc(
+                    override="short",
+                    precision=2,
+                    jupyter_display=self.JUPYTER_DISPLAY,
+                    left="\\[",
+                    right="\\]",
+                )
                 def val():
-                    t_a = (25 - (t_f - t_ch) * k_2 * beta_n) / (2 * beta_n) + t_f # 3.9
+                    t_a = (25 - (t_f - t_ch) * k_2 * beta_n) / (
+                        2 * beta_n
+                    ) + t_f  # en min/equa3.9
                     return t_a
+
             else:
-                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+
+                @handcalc(
+                    override="short",
+                    precision=2,
+                    jupyter_display=self.JUPYTER_DISPLAY,
+                    left="\\[",
+                    right="\\]",
+                )
                 def val():
-                    t_a = min(2*t_f, 12.5/beta_n + t_f) # 3.8
+                    t_a = min(2 * t_f, 12.5 / beta_n + t_f)  # en min/equa3.8
                     return t_a
+
             return val()
         else:
             return ("", 0)
-    
+
     def _get_section_reduction(self):
         self._def = {}
-        for key, orientation in self.protection.items():
-            d_char_n = 0
-            beta_0, beta_n = self._get_bar_beta0_and_betan(orientation)
-            beta_0_protect, beta_n_protect = self._get_wood_protect_beta0_and_betan(orientation)
-            latex_tch_tf, res_tch_tf = self._get_tch_and_tf(orientation, beta_0_protect)
-            tch = res_tch_tf[0]
-            tf = res_tch_tf[1]
-            k2 = self._get_k2(orientation)
-            latex_ta, ta = self._get_ta(tch, tf, beta_n, k2)
-            if tch < tf:
-                d_char_n = self._d_char_n(tf-tch, beta_n*k2)
-            k3 = 2
-            d_char_n += self._d_char_n(ta-tf, beta_n*k3)
-            d_char_n += self._d_char_n(self.t_expo-ta, beta_n*k3)
-            d_ef = self._d_ef(d_char_n, self.t_expo)
-            self._def[orientation] = (latex_tch_tf + latex_ta + d_ef[0], d_ef[1])
-        print(self._def[orientation])
-    
+        # Index des lignes
+        index = ["0", "tch", "tf", "ta", "t_expo", "d_ef"]
+        # Colonnes multi-index : (orientation, type de valeur)
+        cols = pd.MultiIndex.from_product(
+            [("Haut", "Bas", "Gauche", "Droite"), ("Temps(min)", "d_char_n(mm)")],
+            names=["Orientation", "Type"],
+        )
+        # DataFrame vide
+        self.d_ef = pd.DataFrame(index=index, columns=cols)
+
+        for orientation, protection in self.protection.items():
+            if protection != "Pas d'exposition":
+                d_char_n = 0
+                d_char_n_values = {"0": 0, "tch": 0, "tf": 0, "ta": 0, "t_expo": 0}
+
+                beta_0, beta_n = self._get_bar_beta0_and_betan()
+                beta_0_protect, beta_n_protect = self._get_wood_protect_beta0_and_betan(
+                    orientation
+                )
+                latex_tch_tf, res_tch_tf = self._get_tch_and_tf(
+                    orientation, beta_0_protect
+                )
+                tch = res_tch_tf[0]
+                tf = res_tch_tf[1]
+                k2 = self._get_k2(orientation)
+                latex_ta, ta = self._get_ta(tch, tf, beta_n, k2)
+
+                # Insertion des temps
+                self.d_ef.loc["0", (orientation, "Temps(min)")] = 0
+                self.d_ef.loc["tch", (orientation, "Temps(min)")] = tch
+                self.d_ef.loc["tf", (orientation, "Temps(min)")] = tf
+                self.d_ef.loc["ta", (orientation, "Temps(min)")] = ta
+                self.d_ef.loc["t_expo", (orientation, "Temps(min)")] = self.t_expo
+
+                # Calcul de d_char_n sur chaque phase
+                if tch < tf:
+                    d1 = self._d_char_n(tf - tch, beta_n * k2)
+                    d_char_n = d_char_n + d1
+                    d_char_n_values["tf"] = d_char_n
+
+                k3 = 2
+                d2 = self._d_char_n(ta - tf, beta_n * k3)
+                d_char_n = d_char_n + d2
+                d_char_n_values["ta"] = d_char_n
+
+                d3 = self._d_char_n(self.t_expo - ta, beta_n)
+                d_char_n = d_char_n + d3
+                d_char_n_values["t_expo"] = d_char_n
+
+                # Stockage dans le DataFrame des d_char_n
+                for key, dcharn in d_char_n_values.items():
+                    self.d_ef.loc[key, (orientation, "d_char_n(mm)")] = dcharn
+
+                # Calcul de d_ef final
+                d_ef = self._d_ef(d_char_n, self.t_expo)
+                self.d_ef.loc["d_ef", (orientation, "Temps(min)")] = self.t_expo
+                self.d_ef.loc["d_ef", (orientation, "d_char_n(mm)")] = d_ef[1]
+                self._def[orientation] = (latex_tch_tf + latex_ta + d_ef[0], d_ef[1])
+            else:
+                self._def[orientation] = ("\\[\text{Pas d'exposition}\\]", 0 * si.mm)
+        print(self._def)
+
+    def get_def(self, orientation: str = ORIENTATION):
+        """Retourne la profondeur de carbonisation effective en mm suivant l'orientation donnée"""
+        return self._def[orientation]
 
     def _f_type_d(self, typeCarac=Barre.CARACTERISTIQUE[0:6]):
         """Méthode donnant la résistance de calcul de l'élément fonction de la vérification
 
         Args:
-            typeCarac (str, optional): Type de résistance caractéristique (flexion = "fm0k", compression = "fc0k" etc.). Defaults to "fm0k".
+            typeCarac (str, optional): type de résistance caractéristique (flexion = "fm0k", compression = "fc0k" etc.). Defaults to "fm0k".
             loadtype (str, optional): Durée de chargement (Permanente, Court terme etc.). Defaults to "Permanente".
-            typecombi (str, optional): Type de combinaison étudiée ("Fondamentales" ou " Accidentelles"). Defaults to "Fondamentales".
+            typecombi (str, optional): type de combinaison étudiée ("Fondamentales" ou " Accidentelles"). Defaults to "Fondamentales".
 
         Returns:
             float: Résistance de calcul en N/mm2 du type de vérification étudié.
@@ -948,6 +1095,18 @@ class Cisaillement_feu(Feu, Cisaillement):
             value = val()
             self.K_v = value[1]
             return value
+    
+    def f_v_d(self, loadtype=Barre.LOAD_TIME):
+        """Retourne la résistance f,v,d de l'élément en MPa
+
+        Args:
+            loadtype (str): chargement de plus courte durée sur l'élément.
+            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+
+        Returns:
+            float: f,v,d en MPa
+        """
+        return super()._f_type_d("fvk", loadtype)
 
     def taux_tau_d(self):
         """Retourne le taux de travail en cisaillement en %"""
@@ -974,8 +1133,8 @@ class Cisaillement_feu(Feu, Cisaillement):
         return value
 
 
-if __name__=='__main__':
-    beam = Barre(60,200,"Rectangulaire", classe="C24", cs=1)
+if __name__ == "__main__":
+    beam = Barre(60, 200, "Rectangulaire", classe="C24", cs=1)
 #     beam3 = Barre(60,100,"Rectangulaire", classe="C24", cs=1)
 #     beam_ass = Poutre_assemblee_meca(beam_2=beam2, l=5000, disposition="Latérale", recouvrement=[0,120], Kser=[None,None,700], entraxe=[None,None,250], psy_2=0, beam_3=beam3)
 #     pole_ass = Poteau_assemble_meca._from_parent_class(beam_ass, lo_y=5000, lo_z=5000, type_appuis="Rotule - Rotule")
