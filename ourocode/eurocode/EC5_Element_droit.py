@@ -328,12 +328,12 @@ class Flexion(Barre):
         Args:
             lo (int): longueur de déversemment en mm
             coeflef (float): appuis simple :
-                                                    Moment constant : 1
-                                                    Charge répartie constante : 0.9
-                                                    Charge concentrée au milieu de la portée : 0.8
-                                    porte à faux :
-                                                    Charge répartie constante : 0.5
-                                                    Charge concentrée agissant à l'extrémité libre : 0.8.
+                                            Moment constant : 1
+                                            Charge répartie constante : 0.9
+                                            Charge concentrée au milieu de la portée : 0.8
+                            porte à faux :
+                                            Charge répartie constante : 0.5
+                                            Charge concentrée agissant à l'extrémité libre : 0.8.
 
             pos (str): positionnement de la charge sur la hauteur de poutre
         """
@@ -578,7 +578,7 @@ class Traction(Barre):
         return super()._f_type_d("ft0k", loadtype, typecombi)
     
     
-    def sigma_t_0_d(self, Ft0d: float):
+    def sigma_t_0_d(self, Ft0d: si.kN):
         """ Retourne la contrainte de traxion axial en MPa avec:
             Ft0d : la charge en kN de compression """
         self.Ft_0_d = Ft0d * si.kN
@@ -644,8 +644,8 @@ class Compression(Barre):
         self.lo_comp = {"y":lo_y * si.mm, "z":lo_z * si.mm}
         self.lo_y = self.lo_comp['y']
         self.lo_z = self.lo_comp['z']
+        self.type_appuis = type_appuis
         self.coef_lef = __class__.COEF_LF[type_appuis]
-
 
     @property
     def lamb(self):
@@ -734,7 +734,7 @@ class Compression(Barre):
         return super()._f_type_d("fc0k", loadtype, typecombi)
     
     
-    def sigma_c_0_d(self, Fc0d: float):
+    def sigma_c_0_d(self, Fc0d: si.kN):
         """ Retourne la contrainte de compression axial en MPa avec:
             Fc0d : la charge en kN de compression """
         self.Fc_0_d = Fc0d * si.kN
@@ -910,7 +910,7 @@ class Compression_perpendiculaire(Barre):
         return super()._f_type_d("fc90k", loadtype, typecombi)
     
     
-    def sigma_c_90_d(self, Fc90d: float):
+    def sigma_c_90_d(self, Fc90d: si.kN):
         """ Retourne la contrainte normal de compression à 90 degrés en MPa avec pour argument:
 
             Fc90d : Charge en compression perpendiculaire en kN
@@ -972,7 +972,7 @@ class Compression_inclinees(Compression, Compression_perpendiculaire):
         super(Compression_perpendiculaire, self).__init__(**kwargs)
         self.alpha = alpha
     
-    def sigma_c_alpha_d(self, Fcad: float):
+    def sigma_c_alpha_d(self, Fcad: si.kN):
         """ Retourne la contrainte de compression inclinée en MPa avec:
             Fcad : la charge en kN de compression inclinée """
         b_appuis = self.b_appuis
@@ -1015,14 +1015,13 @@ class Compression_inclinees(Compression, Compression_perpendiculaire):
 
 class Cisaillement(Barre):
     DICT_KN = {"Massif": 5,"BLC": 6.5, "LVL": 4.5}
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         """Classe qui permet de calculer le cisaillement d'une poutre comme décrit à l'EN 1995 §6.1.7 et §6.5.
         Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self.K_v = 1
         self.h_ef = self.h_calcul
-
 
     @property
     def K_cr(self):
@@ -1101,7 +1100,7 @@ class Cisaillement(Barre):
         return super()._f_type_d("fvk", loadtype, typecombi)
        
     
-    def tau_d(self, Vd:float):
+    def tau_d(self, Vd:si.kN):
         """ Retourne la contrainte tau en  MPa pour le cisaillement longitudinale d'une poutre rectangulaire
               Vd : Effort de cisaillement sur la poutre en kN"""
         self.V_d = Vd * si.kN

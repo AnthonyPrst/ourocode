@@ -1,6 +1,7 @@
 #! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
-
+import sys
+import os
 import math as mt
 from math import sqrt, pi
 import pandas as pd
@@ -10,7 +11,7 @@ import forallpeople as si
 si.environment("structural")
 from handcalcs.decorator import handcalc
 
-from ourocode.eurocode.A0_Projet import Projet
+sys.path.append(os.path.join(os.getcwd()))
 from ourocode.eurocode.EC5_Element_droit import (
     Barre,
     Flexion,
@@ -84,6 +85,10 @@ class Feu(Barre):
         """
         super().__init__(**kwargs)
         self.t_expo = t_expo
+        self.haut = haut
+        self.bas = bas
+        self.gauche = gauche
+        self.droite = droite
         self.protection = {
             "Haut": haut,
             "Bas": bas,
@@ -205,7 +210,6 @@ class Feu(Barre):
         def val():
             d_ef = d_char_n + k_0 * d_0
             return d_ef
-
         return val()
 
     def _get_tch_and_tf(self, orientation: str, beta_0: float):
@@ -338,6 +342,7 @@ class Feu(Barre):
             return ("", 0)
 
     def _get_section_reduction(self):
+        print(self.b_calcul, self.h_calcul)
         self._base_b_calcul = self.b_calcul
         self._base_h_calcul = self.h_calcul
         self._def = {}
@@ -507,17 +512,16 @@ class Flexion_feu(Feu, Flexion):
         Args:
             lo (int): longueur de déversemment en mm
             coeflef (float): appuis simple :
-                                                    Moment constant : 1
-                                                    Charge répartie constante : 0.9
-                                                    Charge concentrée au milieu de la portée : 0.8
-                                    porte à faux :
-                                                    Charge répartie constante : 0.5
-                                                    Charge concentrée agissant à l'extrémité libre : 0.8.
+                                            Moment constant : 1
+                                            Charge répartie constante : 0.9
+                                            Charge concentrée au milieu de la portée : 0.8
+                            porte à faux :
+                                            Charge répartie constante : 0.5
+                                            Charge concentrée agissant à l'extrémité libre : 0.8.
 
             pos (str): positionnement de la charge sur la hauteur de poutre
         """
-        Feu.__init__(**kwargs)
-        Flexion.__init__(lo, coeflef, pos, **kwargs)
+        super().__init__(lo, coeflef, pos, **kwargs)
 
     @property
     def sigma_m_crit(self):
@@ -706,8 +710,7 @@ class Traction(Feu, Traction):
         """Classe permettant le calcul de la Traction d'un élément bois selon l'EN 1995.
         Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
         """
-        Feu.__init__(**kwargs)
-        Traction.__init__(**kwargs)
+        super().__init__(**kwargs)
     
     def f_t_0_d(self):
         """Retourne la résistance f,t,0,d au feu de l'élément en MPa
@@ -764,8 +767,7 @@ class Compression_feu(Feu, Compression):
                                                         Encastré - Encastré : 0.5
                                                         Encastré - Rouleau : 1
         """
-        Feu.__init__(**kwargs)
-        Compression.__init__(lo_y, lo_z, type_appuis, **kwargs)
+        super().__init__(lo_y, lo_z, type_appuis, **kwargs)
 
     @property
     def lamb_rel_Axe(self):
@@ -885,14 +887,12 @@ class Compression_feu(Feu, Compression):
 
 # ================================ CISAILLEMENT ==================================
 
-
-class Cisaillement_feu(Feu, Cisaillement):
+class Cisaillement_feu(Cisaillement, Feu):
     def __init__(self, **kwargs):
         """Classe qui permet de calculer le cisaillement d'une poutre comme décrit à l'EN 1995 §6.1.7 et §6.5.
         Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
         """
-        super(Feu, self).__init__(**kwargs)
-        Cisaillement._from_parent_class(Feu)
+        super().__init__(**kwargs)
 
     def Kv(self, hef: si.mm, x: si.mm, i_lo: si.mm, ent=("Dessous", "Dessus")):
         """Retourne le facteur d'entaille Kv pour une entaille au niveau d'un appuis
@@ -934,10 +934,19 @@ class Cisaillement_feu(Feu, Cisaillement):
 
 
 if __name__ == "__main__":
-    beam = Barre(60, 200, "Rectangulaire", classe="C24", cs=1)
-#     beam3 = Barre(60,100,"Rectangulaire", classe="C24", cs=1)
-#     beam_ass = Poutre_assemblee_meca(beam_2=beam2, l=5000, disposition="Latérale", recouvrement=[0,120], Kser=[None,None,700], entraxe=[None,None,250], psy_2=0, beam_3=beam3)
-#     pole_ass = Poteau_assemble_meca._from_parent_class(beam_ass, lo_y=5000, lo_z=5000, type_appuis="Rotule - Rotule")
-#     # print(pole_ass.__dict__)
-#     # print(pole_ass.lamb)
-#     print(pole_ass.kc_Axe)
+    beam = Barre(b=100, h=200, section="Rectangulaire", classe="C24", cs=1)
+    feu = Feu._from_parent_class(
+        beam, 
+        t_expo= 60,
+        haut="Aucune protection",
+        bas="Aucune protection",
+        gauche="1 plaque de platre type A joints comblés",
+        droite="Pas d'exposition",
+        double_couches=False,
+        hp= 12,
+    )
+    print(feu.d_ef)
+    print("Feu", feu.b_calcul, feu.h_calcul)
+    cisai = Cisaillement_feu._from_parent_class(feu)
+    print(cisai.tau_d(5))
+    print("Cisailllemnt", cisai.b_calcul, cisai.h_calcul)
