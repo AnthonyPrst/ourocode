@@ -310,7 +310,6 @@ class Barre(Projet):
             value = val()
             self.taux_ELS["Wnet,fin"] = value[1][0]
             self.taux_ELS["Wfin"] = value[1][1]
-
         return value 
 
 
@@ -436,9 +435,7 @@ class Flexion(Barre):
         """ Retourne la contrainte sigma,m,d suivant sont axes de flexion avec :
             M : Moment max dans la barre en kN.m
             axe : Axe d'inertie quadratique à considérer
-
-            Attention il n'est pas possible de prendre en compte le déversement
-            """
+        """
         if not hasattr(self, "Md"):
             self.Md = {'y': 0* si.kN*si.m, 'z': 0 * si.kN*si.m}
             self.sigma_m_rd = {'y': 0 * si.MPa, 'z': 0 * si.MPa}
