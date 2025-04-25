@@ -1,16 +1,16 @@
 
-# 📐 Eurocode - Bibliothèque Python pour le calcul structurel selon les Eurocodes
+# 📐 Ourocode - Bibliothèque Python pour le calcul de structure selon les Eurocodes
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![PyPI](https://img.shields.io/pypi/v/eurocode-calc.svg)](https://pypi.org/project/eurocode-calc/)
+[![PyPI](https://img.shields.io/pypi/v/eurocode-calc.svg)](https://pypi.org/project/ourocode/)
 [![Tests](https://img.shields.io/github/actions/workflow/status/ton-org/eurocode/python-app.yml?branch=main)](https://github.com/ton-org/eurocode/actions)
-[![Coverage](https://img.shields.io/codecov/c/github/ton-org/eurocode)](https://codecov.io/gh/ton-org/eurocode)
+[![Coverage](https://img.shields.io/codecov/c/github/ton-org/eurocode)](https://codecov.io/gh/ton-org/ourocode)
 
 ---
 
 ## 🔍 Description
 
-**Eurocode** est une bibliothèque Python regroupant les formules normalisées issues des différentes parties des Eurocodes :
+**Ourocode** est une bibliothèque Python regroupant les formules normalisées issues des différentes parties des Eurocodes :
 
 - **EN 1990** : Bases de calcul
 - **EN 1991** : Actions sur les structures
@@ -32,24 +32,24 @@ Elle permet de construire un **catalogue de fonctions réutilisables** pour gén
 ## 📦 Installation
 
 ```bash
-pip install eurocode-calc
+pip install ourocode
 ```
 
 > Ou installez directement depuis le dépôt :
 ```bash
-pip install git+https://github.com/ton-org/eurocode.git
+pip install git+https://github.com/Icelone73/ourocode.git
 ```
 
 ---
 
 ## ✨ Fonctionnalités
 
-- Calculs normalisés : flexion, traction, cisaillement, flambement, stabilité, flèche…
+- Calculs normalisés : flexion, traction, cisaillement, flambement, assemblage EC5 et EC3, flèche…
 - Support des classes de résistance bois (C24, GL24h, etc.) et acier (S235, S355…)
 - Prise en compte des effets de feu (EN 1995-1-2)
 - Intégration avec `handcalcs` pour génération LaTeX des formules
-- Compatible `PySide6` pour des interfaces graphiques
-- Organisé en modules clairs par norme (EN1990, EN1991, etc.)
+- Compatible avec le logiciel `OUREA-NoCode`
+- Organisé en modules clairs par norme et fonction (EN1990, EN1991, etc.)
 
 ---
 
@@ -59,20 +59,11 @@ pip install git+https://github.com/ton-org/eurocode.git
 from eurocode.EC5_Element_droit import Barre
 
 panne = Barre(b=100, h=200, section="Rectangulaire", classe="C24", cs=2, Hi=12, Hf=12)
-latex, fmd = panne._f_type_d("fm0k", "Moyen terme", "Fondamentales")
-
-print(f"Résistance de flexion : {fmd:.2f} MPa")
+panne_flexion = Flexion(lo=5000, coeflef=0.9, pos="Charge sur fibre comprimée")
+latex_fmd, fmd = panne_flexion.f_m_d("Moyen terme", "Fondamentales")
+latex_sigmamd, sigmamd = panne_flexion.sigma_m_d(20, axe="y")
+latex_taux, taux = panne_flexion.taux_m_d()
 ```
-
----
-
-## 📚 Documentation
-
-Une documentation détaillée avec exemples d’utilisation, formules LaTeX et visualisations est en cours de rédaction.
-
-📘 Accès (prochainement) : [eurocode.readthedocs.io](https://eurocode.readthedocs.io)
-
----
 
 ## ✅ Tests & couverture
 
@@ -80,7 +71,7 @@ Une documentation détaillée avec exemples d’utilisation, formules LaTeX et v
 pytest --cov=eurocode --cov-report=html
 ```
 
-Les tests couvrent les modules principaux : `Barre`, `Flexion`, `Cisaillement`, `Feu`, `Traction`, etc.
+Les tests couvrent les modules principaux.
 
 ---
 
@@ -109,4 +100,4 @@ Développé par **Anthony PARISOT**, ingénieur structure bois & développeur, d
 
 ## ⭐ Si vous trouvez ce projet utile...
 
-N'hésitez pas à [⭐️ le repo GitHub](https://github.com/ton-org/eurocode) pour le soutenir !
+N'hésitez pas à [⭐️ le repo GitHub](https://github.com/Icelone73/ourocode) pour le soutenir !
