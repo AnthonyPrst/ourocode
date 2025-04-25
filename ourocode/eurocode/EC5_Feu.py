@@ -381,29 +381,39 @@ class Feu(Barre):
                 self.d_ef.loc["t_expo", (orientation, "Temps(min)")] = self.t_expo
 
                 # Calcul de d_char_n sur chaque phase
-                if tch < tf:
-                    d1 = self._d_char_n(tf - tch, beta_n * k2)
-                    d_char_n = d_char_n + d1
-                    d_char_n_values["tf"] = d_char_n
+                if self.t_expo > tf:
+                    if tch < tf:
+                        d1 = self._d_char_n(tf - tch, beta_n * k2)
+                        d_char_n = d_char_n + d1
+                        d_char_n_values["tf"] = d_char_n
 
-                k3 = 2
-                d2 = self._d_char_n(ta - tf, beta_n * k3)
-                d_char_n = d_char_n + d2
-                d_char_n_values["ta"] = d_char_n
+                    k3 = 2
+                    if ta < self.t_expo:
+                        d2 = self._d_char_n(ta - tf, beta_n * k3)
+                        d_char_n = d_char_n + d2
+                        d_char_n_values["ta"] = d_char_n
 
-                d3 = self._d_char_n(self.t_expo - ta, beta_n)
-                d_char_n = d_char_n + d3
-                d_char_n_values["t_expo"] = d_char_n
+                        d3 = self._d_char_n(self.t_expo - ta, beta_n)
+                        d_char_n = d_char_n + d3
+                        d_char_n_values["t_expo"] = d_char_n
+                    else:
+                        d2 = self._d_char_n(ta - tf, beta_n * k3)
+                        d_charn_sup_texpo = d_char_n + d2
+                        d_char_n_values["ta"] = d_charn_sup_texpo
 
-                # Stockage dans le DataFrame des d_char_n
-                for key, dcharn in d_char_n_values.items():
-                    self.d_ef.loc[key, (orientation, "d_char_n(mm)")] = dcharn
+                        d3 = self._d_char_n(self.t_expo - tf, beta_n * k3)
+                        d_char_n = d_char_n + d3
+                    d_char_n_values["t_expo"] = d_char_n
 
-                # Calcul de d_ef final
-                d_ef = self._d_ef(d_char_n, self.t_expo)
-                self.d_ef.loc["d_ef", (orientation, "Temps(min)")] = self.t_expo
-                self.d_ef.loc["d_ef", (orientation, "d_char_n(mm)")] = d_ef[1]
-                self._def[orientation] = (latex_tch_tf + latex_ta + d_ef[0], d_ef[1])
+                    # Stockage dans le DataFrame des d_char_n
+                    for key, dcharn in d_char_n_values.items():
+                        self.d_ef.loc[key, (orientation, "d_char_n(mm)")] = dcharn
+
+                    # Calcul de d_ef final
+                    d_ef = self._d_ef(d_char_n, self.t_expo)
+                    self.d_ef.loc["d_ef", (orientation, "Temps(min)")] = self.t_expo
+                    self.d_ef.loc["d_ef", (orientation, "d_char_n(mm)")] = d_ef[1]
+                    self._def[orientation] = (latex_tch_tf + latex_ta + d_ef[0], d_ef[1])
             else:
                 self._def[orientation] = ("\\[\text{Pas d'exposition}\\]", 0 * si.mm)
             
@@ -521,7 +531,7 @@ class Flexion_feu(Feu, Flexion):
 
             pos (str): positionnement de la charge sur la hauteur de poutre
         """
-        super().__init__(lo, coeflef, pos, **kwargs)
+        super().__init__(lo=lo, coeflef=coeflef, pos=pos, **kwargs)
 
     @property
     def sigma_m_crit(self):
@@ -693,7 +703,7 @@ class Flexion_feu(Feu, Flexion):
 # ================================ Traction ==================================
 
 
-class Traction(Feu, Traction):
+class Traction_feu(Feu, Traction):
     def __init__(self, **kwargs):
         """Classe permettant le calcul de la Traction d'un élément bois selon l'EN 1995.
         Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
@@ -755,7 +765,7 @@ class Compression_feu(Feu, Compression):
                                                         Encastré - Encastré : 0.5
                                                         Encastré - Rouleau : 1
         """
-        super().__init__(lo_y, lo_z, type_appuis, **kwargs)
+        super().__init__(lo_y=lo_y, lo_z=lo_z, type_appuis=type_appuis, **kwargs)
 
     @property
     def lamb_rel_Axe(self):

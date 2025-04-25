@@ -1618,11 +1618,11 @@ class Combinaison(Projet):
         self._name_combination.sort()
         return pd.DataFrame(self._name_combination, columns=["Combinaison"])
 
-    def get_list_combination(self, type: str=("Toutes", "ELU", "ELS")):
+    def get_list_combination(self, type: str=("Toutes", "ELU_ALL", "ELU_STR", "ELU_STR_ACC", "ELS_ALL", "ELS_C", "ELS_QP", "W")):
         """Retourne la liste des combinaisons pour le type sélectionné.
 
         Args:
-            type (str): Le type de combinaison à retourner. Defaults to ("Toutes", "ELU", "ELS").
+            type (str): Le type de combinaison à retourner. Defaults to ("Toutes", "ELU_ALL", "ELU_STR", "ELU_STR_ACC", "ELS_ALL", "ELS_C", "ELS_QP", "Flèche bois").
 
         Returns:
             list: Liste des combinaisons
@@ -1630,10 +1630,20 @@ class Combinaison(Projet):
         match type:
             case "Toutes":
                 return self._name_combination
-            case "ELU":
+            case "ELU_ALL":
                 return [name for name in self._name_combination if name.startswith("ELU")]
-            case "ELS":
+            case "ELU_STR":
+                return [name for name in self._name_combination if name.startswith("ELU_STR ")]
+            case "ELU_STR_ACC":
+                return [name for name in self._name_combination if name.startswith("ELU_STR_ACC")]
+            case "ELS_ALL":
                 return [name for name in self._name_combination if name.startswith(("ELS", "W"))]
+            case "ELS_C":
+                return [name for name in self._name_combination if name.startswith("ELS_C")]
+            case "ELS_QP":
+                return [name for name in self._name_combination if name.startswith("ELS_QP")]
+            case "Flèche bois":
+                return [name for name in self._name_combination if name.startswith("W")]
 
     def _choice_combi_df(self):
         shape = len(self.list_combination)
