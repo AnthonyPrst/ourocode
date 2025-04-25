@@ -615,12 +615,8 @@ class Flexion_feu(Feu, Flexion):
 
         @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def base():
-            taux_6_11 = sigma_my_d_fi / (f_m_d_fi * K_h_y) + K_m * sigma_mz_d_fi / (
-                f_m_d_fi * K_h_z
-            )  # equ6.11
-            taux_6_12 = K_m * sigma_my_d_fi / (f_m_d_fi * K_h_y) + sigma_mz_d_fi / (
-                f_m_d_fi * K_h_z
-            )  # equ6.12
+            taux_6_11 = sigma_my_d_fi / (f_m_d_fi * K_h_y) + K_m * sigma_mz_d_fi / (f_m_d_fi * K_h_z)  # equ6.11
+            taux_6_12 = K_m * sigma_my_d_fi / (f_m_d_fi * K_h_y) + sigma_mz_d_fi / (f_m_d_fi * K_h_z)  # equ6.12
             taux_6_33y = sigma_my_d_fi / (f_m_d_fi * K_h_y * K_crit_fi)  # equ6.33
             taux_6_33z = sigma_mz_d_fi / (f_m_d_fi * K_h_z * K_crit_fi)  # equ6.33
             return taux_6_11, taux_6_12, taux_6_33y, taux_6_33z
@@ -647,18 +643,10 @@ class Flexion_feu(Feu, Flexion):
                 taux_6_20 = taux_6_2**2 + taux_6_12  # equ6.20
                 taux_6_23 = sigma_c_0_d / (f_c_0_d * K_c_y)  # equ6.23
                 taux_6_24 = sigma_c_0_d / (f_c_0_d * K_c_z)  # equ6.24
-                taux_6_35zyz = (
-                    taux_6_33y**2 + (sigma_mz_d_fi / (f_m_d_fi * K_h_z)) + taux_6_24
-                )  # equ6.35
-                taux_6_35yzz = (
-                    taux_6_33y + (sigma_mz_d_fi / (f_m_d_fi * K_h_z)) ** 2 + taux_6_24
-                )  # equ6.35 interprétation
-                taux_6_35yzy = (
-                    taux_6_33z**2 + (sigma_my_d_fi / (f_m_d_fi * K_h_y)) + taux_6_23
-                )  # equ6.35
-                taux_6_35zyy = (
-                    taux_6_33z + (sigma_my_d_fi / (f_m_d_fi * K_h_y)) ** 2 + taux_6_23
-                )  # equ6.35 interprétation
+                taux_6_35zyz = (taux_6_33y**2 + (sigma_mz_d_fi / (f_m_d_fi * K_h_z)) + taux_6_24)  # equ6.35
+                taux_6_35yzz = (taux_6_33y + (sigma_mz_d_fi / (f_m_d_fi * K_h_z)) ** 2 + taux_6_24)  # equ6.35 interprétation
+                taux_6_35yzy = (taux_6_33z**2 + (sigma_my_d_fi / (f_m_d_fi * K_h_y)) + taux_6_23)  # equ6.35
+                taux_6_35zyy = (taux_6_33z + (sigma_my_d_fi / (f_m_d_fi * K_h_y)) ** 2 + taux_6_23)  # equ6.35 interprétation
                 return (
                     taux_6_19,
                     taux_6_20,
@@ -853,12 +841,8 @@ class Compression_feu(Feu, Compression):
             @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 taux_6_2 = sigma_c_0_d_fi / f_c_0_d_fi  # equ6.2
-                taux_6_19 = (
-                    sigma_c_0_d_fi / (f_c_0_d_fi * K_c_y_fi)
-                ) ** 2 + taux_6_11  # equ6.19
-                taux_6_20 = (
-                    sigma_c_0_d_fi / (f_c_0_d_fi * K_c_z_fi)
-                ) ** 2 + taux_6_12  # equ6.20
+                taux_6_19 = (sigma_c_0_d_fi / (f_c_0_d_fi * K_c_y_fi)) ** 2 + taux_6_11  # equ6.19
+                taux_6_20 = (sigma_c_0_d_fi / (f_c_0_d_fi * K_c_z_fi)) ** 2 + taux_6_12  # equ6.20
                 return taux_6_2, taux_6_19, taux_6_20
 
             value = val()
@@ -869,12 +853,8 @@ class Compression_feu(Feu, Compression):
             @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 taux_6_2 = sigma_c_0_d_fi / f_c_0_d_fi  # equ6.2
-                taux_6_23 = (
-                    sigma_c_0_d_fi / (f_c_0_d_fi * K_c_y_fi) + taux_6_11
-                )  # equ6.23
-                taux_6_24 = (
-                    sigma_c_0_d_fi / (f_c_0_d_fi * K_c_z_fi) + taux_6_12
-                )  # equ6.24
+                taux_6_23 = (sigma_c_0_d_fi / (f_c_0_d_fi * K_c_y_fi) + taux_6_11)  # equ6.23
+                taux_6_24 = (sigma_c_0_d_fi / (f_c_0_d_fi * K_c_z_fi) + taux_6_12)  # equ6.24
                 return taux_6_2, taux_6_23, taux_6_24
 
             value = val()
@@ -906,8 +886,8 @@ class Cisaillement_feu(Cisaillement, Feu):
         Returns:
             float: facteur Kv
         """
-        super().Kv(hef, x, i_lo, ent)
-        self.h_ef = hef*si.mm - self._def["Bas"][1] - self._def["Haut"][1]  # Réduction de la section
+        h_ef = hef*si.mm - self._def["Bas"][1] - self._def["Haut"][1]  # Réduction de la section
+        return super().Kv(h_ef.value*10**3, x, i_lo, ent)
     
     def f_v_d(self):
         """Retourne la résistance f,v,d au feu de l'élément en MPa
@@ -937,7 +917,7 @@ if __name__ == "__main__":
     beam = Barre(b=100, h=200, section="Rectangulaire", classe="C24", cs=1)
     feu = Feu._from_parent_class(
         beam, 
-        t_expo= 60,
+        t_expo= 30,
         haut="Aucune protection",
         bas="Aucune protection",
         gauche="1 plaque de platre type A joints comblés",
@@ -948,5 +928,6 @@ if __name__ == "__main__":
     print(feu.d_ef)
     print("Feu", feu.b_calcul, feu.h_calcul)
     cisai = Cisaillement_feu._from_parent_class(feu)
+    print(cisai.Kv(140, 50, 0))
     print(cisai.tau_d(5))
     print("Cisailllemnt", cisai.b_calcul, cisai.h_calcul)
