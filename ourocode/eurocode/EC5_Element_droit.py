@@ -23,7 +23,7 @@ from ourocode.eurocode.A0_Projet import Projet
 
 class Barre(Projet):
     LIST_SECTION = ["Rectangulaire","Circulaire"]
-    LIST_TYPE_B = ["Massif","BLC", "LVL", "OSB 2", "OSB 3/4", "CP"]
+    LIST_TYPE_B = ["Massif", "BLC", "LVL", "OSB 2", "OSB 3/4", "CP"]
     CLASSE_WOOD = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").index)[2:]
     CS = ["1","2","3"]
     CARACTERISTIQUE = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").columns)
@@ -318,7 +318,11 @@ class Barre(Projet):
 class Flexion(Barre):
     COEF_LEF = {"Appuis simple" : [1, 0.9, 0.8], 
                 "Porte à faux": [0.5, 0.8]}
-    LOAD_POS =  {"Charge sur fibre comprimée": 0, "Charge sur fibre neutre": 1, "Charge sur fibre tendu" : 2}
+    LOAD_POS = (
+        "Charge sur fibre comprimée",
+        "Charge sur fibre neutre",
+        "Charge sur fibre tendue"
+        )
 
     def __init__(self, lo:si.mm, coeflef: float=COEF_LEF['Appuis simple'][1], pos: str=LOAD_POS, *args, **kwargs):
         """Classe permettant le calcul de la flexion d'une poutre bois selon l'EN 1995 §6.1.6, §6.2.3, §6.2.4 et §6.3.3.
@@ -339,7 +343,7 @@ class Flexion(Barre):
         super().__init__(*args, **kwargs)
         self.lo = lo * si.mm
         self.coeflef = coeflef
-        self.pos = __class__.LOAD_POS[pos]
+        self.pos = pos
 
 
     @property
@@ -365,9 +369,9 @@ class Flexion(Barre):
     def sigma_m_crit(self):
         """ Retourne sigma m,crit pour la prise en compte du déversement d'une poutre """
         self.l_ef = self.lo * self.coeflef
-        if self.pos == 0:
+        if self.pos == "Charge sur fibre comprimée":
             self.l_ef = self.l_ef + 2 * self.h_calcul
-        elif self.pos == 2:
+        elif self.pos == "Charge sur fibre tendue":
             self.l_ef = self.l_ef - 0.5 * self.h_calcul
 
         b_calcul = self.b_calcul
@@ -803,7 +807,7 @@ class Compression(Barre):
 
 class Compression_perpendiculaire(Barre):
     TYPE_APPUIS = ("Appuis discret", "Appuis continu")
-    def __init__(self, b_appuis:si.mm, l_appuis: si.mm, l1d: si.mm=10000, l1g: si.mm=10000, ad: si.mm=0, ag: si.mm=0, type_appuis: str=TYPE_APPUIS, *args, **kwargs):
+    def __init__(self, b_appuis:si.mm, l_appuis: si.mm, l1d: si.mm=10000, l1g: si.mm=10000, ad: si.mm=0, ag: si.mm=0, type_appuis_90: str=TYPE_APPUIS, *args, **kwargs):
         """Classe intégrant les formules de compression perpendiculaire selon l'EN 1995 §6.1.5.
         Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
 
@@ -814,7 +818,7 @@ class Compression_perpendiculaire(Barre):
             l1g(int) : Distance entre les charges en mm (l et l) (si pas de l1g ne rien mettre).
             ad(int) : Distance depuis le bord jusqu'à l'appuis à droite (l) en mm (si pas de ad et au bord ne rien mettre).
             ag(int) : Distance depuis le bord jusqu'à l'appuis à gauche (l) en mm (si pas de ad et au bord ne rien mettre).
-            type_appuis(str) : Type d'appuis (Appui continu, Appui discret)
+            type_appuis_90(str) : Type d'appuis (Appui continu, Appui discret)
         """
 
         super().__init__(*args, **kwargs)
@@ -824,7 +828,7 @@ class Compression_perpendiculaire(Barre):
         self.l1g = l1g * si.mm
         self.ad = ad * si.mm
         self.ag = ag * si.mm
-        self.type_appuis = type_appuis
+        self.type_appuis_90 = type_appuis_90
 
 
     @property
@@ -844,7 +848,7 @@ class Compression_perpendiculaire(Barre):
         else:
             l1 = min(self.l1d, self.l1g)
 
-        if self.type_appuis == __class__.TYPE_APPUIS[0]:
+        if self.type_appuis_90 == "Appuis discret":
             if self.type_bois == 'Massif':
                 if self.h_calcul.value * 10**3 <= 300:
                     if l1 >= 2 * self.h_calcul:
@@ -965,8 +969,9 @@ class Compression_inclinees(Compression, Compression_perpendiculaire):
         Args:
             alpha (float, optional): angle d'inclinaison en degrés de la compression. Defaults to 0.
         """
-        super(Compression, self).__init__(**kwargs)
-        super(Compression_perpendiculaire, self).__init__(**kwargs)
+        # super(Compression, self).__init__(**kwargs)
+        # super(Compression_perpendiculaire, self).__init__(**kwargs)
+        super().__init__(**kwargs)
         self.alpha = alpha
     
     def sigma_c_alpha_d(self, Fcad: si.kN):
@@ -1033,14 +1038,14 @@ class Cisaillement(Barre):
                                 BLC : 1
                                 Autre : 2 """
         if self.cs == 1:
-            if self.h_calcul.value * 10**3 > 150 and self.type_bois == self.LIST_TYPE_B[0]:
+            if self.h_calcul.value * 10**3 > 150 and self.type_bois == "Massif":
                 return 0.67
             else:
                 return 1
         elif self.cs == 2:
-            if self.h_calcul.value * 10**3 > 150 and self.type_bois == self.LIST_TYPE_B[0]:
+            if self.h_calcul.value * 10**3 > 150 and self.type_bois == "Massif":
                 return 0.67
-            elif self.type_bois == self.LIST_TYPE_B[1]:
+            elif self.type_bois == "BLC":
                 return 0.67
             else:
                 return 1
