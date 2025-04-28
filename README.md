@@ -10,7 +10,7 @@
 
 ## 🔍 Description
 
-**Ourocode** est une bibliothèque Python regroupant les formules normalisées issues des différentes parties des Eurocodes :
+**Ourocode** est une bibliothèque Python regroupant les formules normalisées issues des différentes parties des Eurocodes aux Annexes Nationales Française :
 
 - **EN 1990** : Bases de calcul
 - **EN 1991** : Actions sur les structures
@@ -56,7 +56,7 @@ pip install git+https://github.com/AnthonyPrst/ourocode.git
 ## 🛠 Exemple d'utilisation
 
 ```python
-from eurocode.EC5_Element_droit import Barre
+from ourocode.eurocode.EC5_Element_droit import Barre, Flexion
 
 panne = Barre(b=100, h=200, section="Rectangulaire", classe="C24", cs=2, Hi=12, Hf=12)
 panne_flexion = Flexion(lo=5000, coeflef=0.9, pos="Charge sur fibre comprimée")
@@ -77,12 +77,7 @@ Les tests couvrent les modules principaux.
 
 ## 🤝 Contribuer
 
-Les contributions sont les bienvenues ! Pour proposer une amélioration ou corriger un bug :
-
-1. Fork le dépôt
-2. Crée une branche (`git checkout -b feature/ta-fonction`)
-3. Commits (`git commit -am "feat: ajout nouvelle vérif"`),
-4. Pull request 📥
+Les contributions sont les bienvenues ! Pour proposer une amélioration ou corriger un bug n'hésité pas à fork le dépôt !
 
 ---
 
