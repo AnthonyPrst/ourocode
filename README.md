@@ -1,9 +1,10 @@
 
 # 📐 Ourocode - Bibliothèque Python pour le calcul de structure selon les Eurocodes
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Apache License 2.0](https://img.shields.io/badge/License-A-blue.svg)](LICENSE)
 <!-- [![PyPI](https://img.shields.io/pypi/v/eurocode-calc.svg)](https://pypi.org/project/ourocode/) -->
-[![Tests](https://img.shields.io/github/actions/workflow/status/AnthonyPrst/ourocode/pyptoject.toml?version)](https://github.com/AnthonyPrst/ourocode/pyptoject.toml)
+[![Tests](https://img.shields.io/github/v/release/AnthonyPrst/ourocode
+)](https://github.com/AnthonyPrst/ourocode/pyptoject.toml)
 [![Coverage](https://img.shields.io/codecov/c/github/ton-org/eurocode)](https://codecov.io/gh/ton-org/ourocode)
 
 ---
