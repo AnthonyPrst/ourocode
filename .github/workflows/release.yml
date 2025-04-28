@@ -1,0 +1,39 @@
+name: Release OUROCODE on Merge to Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'  # Version cohérente avec ton pyproject.toml
+
+    - name: Install toml library
+      run: pip install toml
+
+    - name: Read version from pyproject.toml
+      id: get_version
+      run: |
+        VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ env.VERSION }}
+        name: Release v${{ env.VERSION }}
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
