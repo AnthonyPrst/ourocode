@@ -31,9 +31,9 @@ Elle permet de construire un **catalogue de fonctions réutilisables** pour gén
 
 ## 📦 Installation
 
-<!-- ```bash
+```bash
 pip install ourocode
-``` -->
+```
 
 > Installez directement depuis le dépôt :
 ```bash
@@ -88,7 +88,7 @@ Les contributions sont les bienvenues ! Pour proposer une amélioration ou corri
 
 ## 📄 Licence
 
-Distribué sous licence **MIT** – libre d’usage, même commercial, avec attribution.
+Distribué sous licence **Apache License 2.0**.
 
 ---
 
@@ -100,4 +100,4 @@ Développé par **Anthony PARISOT**, ingénieur structure bois & développeur, d
 
 ## ⭐ Si vous trouvez ce projet utile...
 
-N'hésitez pas à [⭐️ le repo GitHub](https://github.com/Icelone73/ourocode) pour le soutenir !
+N'hésitez pas à [⭐️ le repo GitHub](https://github.com/AnthonyPrst/ourocode) pour le soutenir !
