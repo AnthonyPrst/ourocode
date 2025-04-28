@@ -1,4 +1,4 @@
-name: Release OUROCODE on Merge to Main
+name: Tag and Release OUROCODE on Merge to Main
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  release:
+  tag_and_release:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,7 +16,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'  # Version cohérente avec ton pyproject.toml
+        python-version: '3.12'
 
     - name: Install toml library
       run: pip install toml
@@ -27,13 +27,33 @@ jobs:
         VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
         echo "VERSION=$VERSION" >> $GITHUB_ENV
 
+    - name: Check if tag already exists
+      id: check_tag
+      run: |
+        if git ls-remote --tags origin v${{ env.VERSION }} | grep v${{ env.VERSION }}; then
+          echo "Tag already exists."
+          echo "TAG_EXISTS=true" >> $GITHUB_ENV
+        else
+          echo "Tag does not exist."
+          echo "TAG_EXISTS=false" >> $GITHUB_ENV
+        fi
+
+    - name: Create Tag
+      if: env.TAG_EXISTS == 'false'
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag v${{ env.VERSION }}
+        git push origin v${{ env.VERSION }}
+
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v2
       with:
         tag_name: v${{ env.VERSION }}
         name: Release v${{ env.VERSION }}
         draft: false
-        prerelease: false
+        prerelease: ${{ contains(env.VERSION, '-rc') || contains(env.VERSION, '-beta') }}
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
