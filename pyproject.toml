@@ -7,7 +7,7 @@ packages = ["ourocode"]
 
 [project]
 name = "ourocode"
-version = "1.6.2"
+version = "1.6.3"
 description = "Ceci est un catalogue de fonction permettant une utilisation rapide pour la réalisation de note de calcul personnalisée."
 readme = "README.md"
 authors = [{name = "Anthony PARISOT", email = "contact@ourea-structure.fr"}]
