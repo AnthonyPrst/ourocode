@@ -98,7 +98,7 @@ class Feu(Barre):
         self.double_couches = double_couches
         self.hp = hp * si.mm
         self.rho_k_protect = rho_k_protect
-        self.t_f = tf
+        self.tf = tf
         self._get_section_reduction()
 
     def __convert_latex_ftyped(self, latex: str, type_caract: str):
@@ -219,7 +219,7 @@ class Feu(Barre):
             orientation (str, optional): Orientation sur la barre. Defaults to "Bas".
         """
         h_p = self.hp.value * 10**3
-        t_f = self.t_f
+        t_f = self.tf
 
         if self.protection[orientation] in (
             "Panneautage bois",
@@ -253,11 +253,10 @@ class Feu(Barre):
                     return t_ch, t_f
 
             else:
-
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     t_ch = 2.8 * h_p - 14  # en min/equa3.11
-                    t_f  # Temps de rupture de la plaque de platre type F
+                    t_f # Temps de rupture de la plaque de platre type F
                     return t_ch, t_f
 
         # platre à joint comblé A,H,F
@@ -266,7 +265,6 @@ class Feu(Barre):
                 "type A" in self.protection[orientation]
                 or "type H" in self.protection[orientation]
             ):
-
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     t_ch = 2.8 * h_p - 23  # en min/equa3.12
@@ -274,7 +272,6 @@ class Feu(Barre):
                     return t_ch, t_f
 
             else:
-
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     t_ch = 2.8 * h_p - 23  # en min/equa3.12
@@ -342,7 +339,6 @@ class Feu(Barre):
             return ("", 0)
 
     def _get_section_reduction(self):
-        print(self.b_calcul, self.h_calcul)
         self._base_b_calcul = self.b_calcul
         self._base_h_calcul = self.h_calcul
         self._def = {}
@@ -502,18 +498,11 @@ class Feu(Barre):
 
 
 class Flexion_feu(Feu, Flexion):
-    COEF_LEF = {"Appuis simple": [1, 0.9, 0.8], "Porte à faux": [0.5, 0.8]}
-    LOAD_POS = {
-        "Charge sur fibre comprimée": 0,
-        "Charge sur fibre neutre": 1,
-        "Charge sur fibre tendu": 2,
-    }
-
     def __init__(
         self,
         lo: si.mm,
-        coeflef: float = COEF_LEF["Appuis simple"][1],
-        pos: str = LOAD_POS,
+        coeflef: float = Flexion.COEF_LEF["Appuis simple"][1],
+        pos: str = Flexion.LOAD_POS,
         **kwargs,
     ):
         """Classe permettant le calcul de la flexion d'une poutre bois selon l'EN 1995 §6.1.6, §6.2.3, §6.2.4 et §6.3.3.
@@ -537,9 +526,9 @@ class Flexion_feu(Feu, Flexion):
     def sigma_m_crit(self):
         """Retourne sigma m,crit pour la prise en compte du déversement d'une poutre"""
         self.l_ef = self.lo * self.coeflef
-        if self.pos == 0:
+        if self.pos == "Charge sur fibre comprimée":
             self.l_ef = self.l_ef + 2 * self.h_calcul
-        elif self.pos == 2:
+        elif self.pos == "Charge sur fibre tendue":
             self.l_ef = self.l_ef - 0.5 * self.h_calcul
 
         b_calcul = self.b_calcul
@@ -676,9 +665,7 @@ class Flexion_feu(Feu, Flexion):
             latex = latex + compression_val[0]
             self.taux_m_rd["equ6.19"] = compression_val[1][0]
             self.taux_m_rd["equ6.20"] = compression_val[1][1]
-            self.taux_m_rd["equ6.35zyz"] = compression_val[1][
-                2
-            ]  # 1er item axe de flexion pas au carré, 2eme item axe de flexion au carré, 3eme axe de compression
+            self.taux_m_rd["equ6.35zyz"] = compression_val[1][2]  # 1er item axe de flexion pas au carré, 2eme item axe de flexion au carré, 3eme axe de compression
             self.taux_m_rd["equ6.35yzz"] = compression_val[1][3]
             self.taux_m_rd["equ6.35yzy"] = compression_val[1][4]
             self.taux_m_rd["equ6.35zyy"] = compression_val[1][5]
@@ -743,15 +730,7 @@ class Traction_feu(Feu, Traction):
 
 
 class Compression_feu(Feu, Compression):
-    COEF_LF = {
-        "Encastré 1 côté": 2,
-        "Rotule - Rotule": 1,
-        "Encastré - Rotule": 0.7,
-        "Encastré - Encastré": 0.5,
-        "Encastré - Rouleau": 1,
-    }
-
-    def __init__(self, lo_y: si.mm, lo_z: si.mm, type_appuis: str = COEF_LF, **kwargs):
+    def __init__(self, lo_y: si.mm, lo_z: si.mm, type_appuis: str = Compression.COEF_LF, **kwargs):
         """Classe permettant le calcul de la Compression d'un élément bois selon l'EN 1995.
         Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
 
@@ -923,21 +902,21 @@ class Cisaillement_feu(Cisaillement, Feu):
         return value
 
 
-if __name__ == "__main__":
-    beam = Barre(b=100, h=200, section="Rectangulaire", classe="C24", cs=1)
-    feu = Feu._from_parent_class(
-        beam, 
-        t_expo= 30,
-        haut="Aucune protection",
-        bas="Aucune protection",
-        gauche="1 plaque de platre type A joints comblés",
-        droite="Pas d'exposition",
-        double_couches=False,
-        hp= 12,
-    )
-    print(feu.d_ef)
-    print("Feu", feu.b_calcul, feu.h_calcul)
-    cisai = Cisaillement_feu._from_parent_class(feu)
-    print(cisai.Kv(140, 50, 0))
-    print(cisai.tau_d(5))
-    print("Cisailllemnt", cisai.b_calcul, cisai.h_calcul)
+# if __name__ == "__main__":
+#     beam = Barre(b=100, h=200, section="Rectangulaire", classe="C24", cs=1)
+#     feu = Feu._from_parent_class(
+#         beam, 
+#         t_expo= 30,
+#         haut="Aucune protection",
+#         bas="Aucune protection",
+#         gauche="1 plaque de platre type A joints comblés",
+#         droite="Pas d'exposition",
+#         double_couches=False,
+#         hp= 12,
+#     )
+#     print(feu.d_ef)
+#     print("Feu", feu.b_calcul, feu.h_calcul)
+#     cisai = Cisaillement_feu._from_parent_class(feu)
+#     print(cisai.Kv(140, 50, 0))
+#     print(cisai.tau_d(5))
+#     print("Cisailllemnt", cisai.b_calcul, cisai.h_calcul)

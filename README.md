@@ -2,8 +2,8 @@
 # 📐 Ourocode - Bibliothèque Python pour le calcul de structure selon les Eurocodes
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![PyPI](https://img.shields.io/pypi/v/eurocode-calc.svg)](https://pypi.org/project/ourocode/)
-[![Tests](https://img.shields.io/github/actions/workflow/status/ton-org/eurocode/python-app.yml?branch=main)](https://github.com/ton-org/eurocode/actions)
+<!-- [![PyPI](https://img.shields.io/pypi/v/eurocode-calc.svg)](https://pypi.org/project/ourocode/) -->
+[![Tests](https://img.shields.io/github/actions/workflow/status/AnthonyPrst/ourocode/pyptoject.toml?version)](https://github.com/AnthonyPrst/ourocode/pyptoject.toml)
 [![Coverage](https://img.shields.io/codecov/c/github/ton-org/eurocode)](https://codecov.io/gh/ton-org/ourocode)
 
 ---
@@ -31,13 +31,13 @@ Elle permet de construire un **catalogue de fonctions réutilisables** pour gén
 
 ## 📦 Installation
 
-```bash
+<!-- ```bash
 pip install ourocode
-```
+``` -->
 
-> Ou installez directement depuis le dépôt :
+> Installez directement depuis le dépôt :
 ```bash
-pip install git+https://github.com/Icelone73/ourocode.git
+pip install git+https://github.com/AnthonyPrst/ourocode.git
 ```
 
 ---
@@ -48,7 +48,7 @@ pip install git+https://github.com/Icelone73/ourocode.git
 - Support des classes de résistance bois (C24, GL24h, etc.) et acier (S235, S355…)
 - Prise en compte des effets de feu (EN 1995-1-2)
 - Intégration avec `handcalcs` pour génération LaTeX des formules
-- Compatible avec le logiciel `OUREA-NoCode`
+- Compatible avec le logiciel [OUREA-NoCode](https://ourea-structure.fr/telechargement)
 - Organisé en modules clairs par norme et fonction (EN1990, EN1991, etc.)
 
 ---
