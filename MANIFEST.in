@@ -1,1 +1,3 @@
-include ourocode/data/
+include ourocode/data/*
+include ourocode/data/vent/*
+include ourocode/data/screenshot/*
