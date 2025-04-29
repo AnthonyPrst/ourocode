@@ -7,11 +7,12 @@ packages = ["ourocode"]
 
 [project]
 name = "ourocode"
-version = "1.6.3"
+version = "1.6.4"
 description = "Ceci est un catalogue de fonction permettant une utilisation rapide pour la réalisation de note de calcul personnalisée."
 readme = "README.md"
 authors = [{name = "Anthony PARISOT", email = "contact@ourea-structure.fr"}]
-license = {file = "LICENSE"}
+license = "Apache-2.0"
+license-files = ["LICEN[CS]E"]
 dependencies = [
     "handcalcs",
     "forallpeople",
@@ -24,9 +25,8 @@ dependencies = [
 ]
 requires-python = ">=3.12"
 classifiers = [
-    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent",
-    "License :: OSI Approved :: Apache Software License",
 ]
 
 [project.urls]

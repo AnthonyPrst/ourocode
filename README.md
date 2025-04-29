@@ -68,7 +68,7 @@ latex_taux, taux = panne_flexion.taux_m_d()
 ## ✅ Tests & couverture
 
 ```bash
-pytest --cov=eurocode --cov-report=html
+pytest --cov=. --cov-report html
 ```
 
 Les tests couvrent les modules principaux.
