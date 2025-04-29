@@ -30,6 +30,9 @@ on:
           required: true
   release:
     types: [published]
+  push:
+    tags:
+      - 'Release v*'  # ex: v1.6.5 déclenche la release
 
 permissions:
   contents: read
