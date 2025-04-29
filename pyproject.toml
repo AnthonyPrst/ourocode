@@ -2,12 +2,13 @@
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-packages = ["ourocode"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ourocode*"]
 
 [project]
 name = "ourocode"
-version = "1.6.4"
+version = "1.6.5"
 description = "Ceci est un catalogue de fonction permettant une utilisation rapide pour la réalisation de note de calcul personnalisée."
 readme = "README.md"
 authors = [{name = "Anthony PARISOT", email = "contact@ourea-structure.fr"}]
