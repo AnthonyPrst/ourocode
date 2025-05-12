@@ -577,16 +577,19 @@ class Flexion_feu(Feu, Flexion):
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     K_crit_fi = 1
+                    axe
                     return K_crit_fi
             elif 0.75 < lamb_rel_m_fi <= 1.4:
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     K_crit_fi = 1.56 - 0.75 * lamb_rel_m_fi
+                    axe
                     return K_crit_fi
             else:
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     K_crit_fi = 1 / (lamb_rel_m_fi ** 2)
+                    axe
                     return K_crit_fi
             kcrit_axe = val()
             if result[0]:
@@ -621,14 +624,15 @@ class Flexion_feu(Feu, Flexion):
         K_h_y = self.K_h["y"]
         K_h_z = self.K_h["z"]
         K_m = self.K_m
-        K_crit_fi = self.K_crit[1]
+        K_crit_y_fi = self.K_crit[1]["y"]
+        K_crit_z_fi = self.K_crit[1]["z"]
 
         @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def base():
             taux_6_11 = sigma_my_d_fi / (f_m_d_fi * K_h_y) + K_m * sigma_mz_d_fi / (f_m_d_fi * K_h_z)  # equ6.11
             taux_6_12 = K_m * sigma_my_d_fi / (f_m_d_fi * K_h_y) + sigma_mz_d_fi / (f_m_d_fi * K_h_z)  # equ6.12
-            taux_6_33y = sigma_my_d_fi / (f_m_d_fi * K_h_y * K_crit_fi)  # equ6.33
-            taux_6_33z = sigma_mz_d_fi / (f_m_d_fi * K_h_z * K_crit_fi)  # equ6.33
+            taux_6_33y = sigma_my_d_fi / (f_m_d_fi * K_h_y * K_crit_y_fi)  # equ6.33
+            taux_6_33z = sigma_mz_d_fi / (f_m_d_fi * K_h_z * K_crit_z_fi)  # equ6.33
             return taux_6_11, taux_6_12, taux_6_33y, taux_6_33z
 
         base_val = base()
@@ -638,7 +642,7 @@ class Flexion_feu(Feu, Flexion):
         self.taux_m_rd["equ6.33y"] = base_val[1][2]
         self.taux_m_rd["equ6.33z"] = base_val[1][3]
 
-        if compression and isinstance(compression, Compression):
+        if compression and isinstance(compression, Compression_feu):
             sigma_c_0_d = compression.sigma_c_0_rd
             f_c_0_d = compression.f_type_rd
             K_c_y = compression.kc_Axe[1]["y"]
@@ -657,14 +661,7 @@ class Flexion_feu(Feu, Flexion):
                 taux_6_35yzz = (taux_6_33y + (sigma_mz_d_fi / (f_m_d_fi * K_h_z)) ** 2 + taux_6_24)  # equ6.35 interprétation
                 taux_6_35yzy = (taux_6_33z**2 + (sigma_my_d_fi / (f_m_d_fi * K_h_y)) + taux_6_23)  # equ6.35
                 taux_6_35zyy = (taux_6_33z + (sigma_my_d_fi / (f_m_d_fi * K_h_y)) ** 2 + taux_6_23)  # equ6.35 interprétation
-                return (
-                    taux_6_19,
-                    taux_6_20,
-                    taux_6_35zyz,
-                    taux_6_35yzz,
-                    taux_6_35yzy,
-                    taux_6_35zyy,
-                )
+                return (taux_6_19, taux_6_20, taux_6_35zyz, taux_6_35yzz, taux_6_35yzy, taux_6_35zyy)
 
             compression_val = comp(
                 self.taux_m_rd["equ6.11"],
@@ -681,7 +678,7 @@ class Flexion_feu(Feu, Flexion):
             self.taux_m_rd["equ6.35yzy"] = compression_val[1][4]
             self.taux_m_rd["equ6.35zyy"] = compression_val[1][5]
 
-        if traction and isinstance(traction, Traction):
+        if traction and isinstance(traction, Traction_feu):
             taux_6_1 = traction.taux_t_0_rd["equ6.1"]
 
             @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -829,7 +826,7 @@ class Compression_feu(Feu, Compression):
         K_c_y_fi = self.kc_Axe[1]["y"]
         K_c_z_fi = self.kc_Axe[1]["z"]
 
-        if flexion and isinstance(flexion, Flexion):
+        if flexion and isinstance(flexion, Flexion_feu):
             taux_6_11 = flexion.taux_m_rd["equ6.11"]
             taux_6_12 = flexion.taux_m_rd["equ6.12"]
         else:

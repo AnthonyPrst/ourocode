@@ -78,9 +78,9 @@ def compression(feu):
 @pytest.fixture
 def flexion(feu):
     flexion = EC5_feu.Flexion_feu._from_parent_class(
-        feu, lo=7000, coeflef=0.8, pos="Charge sur fibre tendue"
+        feu, lo_rel_y=7000, lo_rel_z=3500, coeflef_y=0.9, coeflef_z=0.8, pos="Charge sur fibre tendue"
     )
-    flexion.sigma_m_d(100, axe="y")
+    flexion.sigma_m_d(100, 50)
     flexion.f_m_d()
     flexion.taux_m_d()
     return flexion
@@ -90,11 +90,13 @@ class Test_Flexion(object):
     @pytest.fixture(autouse=True)
     def setup_method(self, flexion, compression, traction):
         self.flexion = flexion
-        self.flexion.taux_m_d(traction=traction)
+        self.flexion.taux_m_d(traction=traction, compression=compression)
 
     def test_init(self):
-        assert self.flexion.lo == 7 * si.m
-        assert self.flexion.coeflef == 0.8
+        assert self.flexion.lo_rel_y == 7 * si.m
+        assert self.flexion.lo_rel_z == 3.5 * si.m
+        assert self.flexion.coeflef_y == 0.9
+        assert self.flexion.coeflef_z == 0.8
         assert self.flexion.pos == "Charge sur fibre tendue"
 
     def test_Kh(self):
@@ -102,7 +104,7 @@ class Test_Flexion(object):
 
     def test_sigma_m_d(self):
         assert self.flexion.sigma_m_rd["y"].value == 163675555.10053056
-        assert self.flexion.sigma_m_rd["z"].value == 0
+        assert self.flexion.sigma_m_rd["z"].value == 437396117.6737902
 
     def test_f_m_d(self):
         assert self.flexion.f_type_rd == 30.360 * si.MPa
@@ -110,10 +112,16 @@ class Test_Flexion(object):
     def test_taux_m_d(self):
         # print(self.flexion.taux_m_rd)
         assert self.flexion.taux_m_rd == {
-            "equ6.11": 5.092280445969156,
-            "equ6.12": 3.583241979399042,
-            "equ6.33y": 9.345977483810818,
-            "equ6.33z": 0.0,
+            "equ6.11": 14.260362922063692,
+            "equ6.12": 16.680502659534092,
+            "equ6.19": 14.215959920703218,
+            "equ6.20": 16.63609965817362,
+            "equ6.33y": 10.532177484564267,
+            "equ6.33z": 13.097260680135049,
+            "equ6.35yzy": 176.8685066512106,
+            "equ6.35yzz": 189.9693597600049,
+            "equ6.35zyy": 38.69959171479235,
+            "equ6.35zyz": 131.92296819852655,
         }
 
 
@@ -147,8 +155,8 @@ class Test_Compression:
     def test_taux_c_0_d(self):
         # print(self.compression.taux_c_0_rd)
         assert self.compression.taux_c_0_rd == {
-            "equ6.23": 5.330269327798991,
-            "equ6.24": 11.420034707359275,
+            "equ6.23": 14.498351803893526,
+            "equ6.24": 24.517295387494325,
             "equ6.2": 0.13322620878904579,
         }
 

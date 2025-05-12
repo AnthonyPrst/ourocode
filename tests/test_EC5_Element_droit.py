@@ -45,9 +45,9 @@ def compression(barre, load_and_combi_data):
 @pytest.fixture
 def flexion(barre, load_and_combi_data):
     flexion = EC5.Flexion._from_parent_class(
-        barre, lo=7000, coeflef=0.8, pos="Charge sur fibre comprimée"
+        barre, lo_rel_y=7000, lo_rel_z=3500, coeflef_y=0.9, coeflef_z=0.8, pos="Charge sur fibre comprimée"
     )
-    flexion.sigma_m_d(100, axe="y")
+    flexion.sigma_m_d(100, 50)
     flexion.f_m_d(**load_and_combi_data)
     flexion.taux_m_d()
     return flexion
@@ -100,8 +100,10 @@ class Test_Flexion(object):
         self.flexion.taux_m_d(compression, traction)
 
     def test_init(self):
-        assert self.flexion.lo == 7 * si.m
-        assert self.flexion.coeflef == 0.8
+        assert self.flexion.lo_rel_y == 7 * si.m
+        assert self.flexion.lo_rel_z == 3.5 * si.m
+        assert self.flexion.coeflef_y == 0.9
+        assert self.flexion.coeflef_z == 0.8
         assert self.flexion.pos == "Charge sur fibre comprimée"
 
     def test_Kh(self):
@@ -111,30 +113,32 @@ class Test_Flexion(object):
         assert self.flexion.K_m == 0.7
 
     def test_sig_m_crit(self):
-        assert self.flexion.sigma_m_crit[1].value == 40258064.51612905
+        assert self.flexion.sigma_m_crit[1]['y'].value == 36173913.04347827
+        assert self.flexion.sigma_m_crit[1]['z'].value == 1982117647.058823
 
     def test_lamb_rel_m(self):
-        assert self.flexion.lamb_rel_m[1] == 0.7721099961494126
+        assert self.flexion.lamb_rel_m[1]['y'] == 0.8145314840210526
+        assert self.flexion.lamb_rel_m[1]['z'] == 0.1100375486289208
 
     def test_sigma_m_d(self):
         assert self.flexion.sigma_m_rd["y"].value == 66666666.66666668
-        assert self.flexion.sigma_m_rd["z"].value == 0
+        assert self.flexion.sigma_m_rd["z"].value == 99999999.99999997
 
     def test_f_m_d(self):
         assert self.flexion.f_type_rd == 16.896 * si.MPa
 
     def test_taux_m_d(self):
         assert self.flexion.taux_m_rd == {
-            "equ6.11": 3.7320951513985103,
-            "equ6.12": 2.627652689825585,
-            "equ6.33y": 3.7530932632673393,
-            "equ6.33z": 0.0,
-            "equ6.19": 3.693248628902421,
-            "equ6.20": 2.5888061673294955,
-            "equ6.35zyz": 15.743161072121572,
-            "equ6.35yzz": 5.410545292606226,
-            "equ6.35yzy": 3.8840891485379205,
-            "equ6.35zyy": 13.755871509131088,
+            "equ6.11": 7.498451900709802,
+            "equ6.12": 8.008162331698859,
+            "equ6.33y": 3.8789057969957397,
+            "equ6.33z": 5.3805096418732745,
+            "equ6.19": 7.4596053782137135,
+            "equ6.20": 7.9693158092027705,
+            "equ6.35zyz": 22.083871853179318,
+            "equ6.35yzz": 34.4862418326259,
+            "equ6.35yzy": 32.833973154829195,
+            "equ6.35zyy": 19.13638115100436,
         }
 
 
@@ -168,8 +172,8 @@ class Test_Compression:
     def test_taux_c_0_d(self):
         print(self.compression.taux_c_0_rd)
         assert self.compression.taux_c_0_rd == {
-            "equ6.23": 3.8840891485379205,
-            "equ6.24": 4.234484439675713,
+            "equ6.23": 7.650445897849212,
+            "equ6.24": 9.614994081548987,
             "equ6.2": 0.10850694444444445,
         }
 

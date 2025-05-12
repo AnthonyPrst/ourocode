@@ -424,16 +424,19 @@ class Flexion(Barre):
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     K_crit = 1
+                    axe
                     return K_crit
             elif 0.75 < lamb_rel_m <= 1.4:
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     K_crit = 1.56 - 0.75 * lamb_rel_m
+                    axe
                     return K_crit
             else:
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     K_crit = 1 / (lamb_rel_m ** 2)
+                    axe
                     return K_crit
             kcrit_axe = val()
             if result[0]:
