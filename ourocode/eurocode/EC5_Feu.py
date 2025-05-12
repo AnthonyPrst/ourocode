@@ -500,91 +500,101 @@ class Feu(Barre):
 class Flexion_feu(Feu, Flexion):
     def __init__(
         self,
-        lo: si.mm,
-        coeflef: float = Flexion.COEF_LEF["Appuis simple"][1],
+        lo_rel_y:si.mm, lo_rel_z:si.mm, 
+        coeflef_y: float=0.9, 
+        coeflef_z: float=0.9,
         pos: str = Flexion.LOAD_POS,
         **kwargs,
     ):
         """Classe permettant le calcul de la flexion d'une poutre bois selon l'EN 1995 §6.1.6, §6.2.3, §6.2.4 et §6.3.3.
-        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
+        Cette classe est hérité de la classe Feu, provenant du module EC5_Feu.py.
 
         Args:
-            lo (int): longueur de déversemment en mm
-            coeflef (float): appuis simple :
+            lo_rel_y/z (int): longueur de déversemment autour de l'axe défini en mm
+            coeflef_y/z (float): appuis simple :
                                             Moment constant : 1
                                             Charge répartie constante : 0.9
                                             Charge concentrée au milieu de la portée : 0.8
-                            porte à faux :
+                                porte à faux :
                                             Charge répartie constante : 0.5
                                             Charge concentrée agissant à l'extrémité libre : 0.8.
-
             pos (str): positionnement de la charge sur la hauteur de poutre
         """
-        super().__init__(lo=lo, coeflef=coeflef, pos=pos, **kwargs)
+        super().__init__(lo_rel_y=lo_rel_y, lo_rel_z=lo_rel_z, coeflef_y=coeflef_y, coeflef_z=coeflef_z, pos=pos, **kwargs)
 
     @property
     def sigma_m_crit(self):
-        """Retourne sigma m,crit pour la prise en compte du déversement d'une poutre"""
-        self.l_ef = self.lo * self.coeflef
+        """ Retourne sigma m,crit pour la prise en compte du déversement d'une poutre """
+        self.l_ef_y = self.lo_rel_y * self.coeflef['y']
+        self.l_ef_z = self.lo_rel_z * self.coeflef['z']
         if self.pos == "Charge sur fibre comprimée":
-            self.l_ef = self.l_ef + 2 * self.h_calcul
+            self.l_ef_y = self.l_ef_y + 2 * self.h_calcul
+            self.l_ef_z = self.l_ef_z + 2 * self.h_calcul
         elif self.pos == "Charge sur fibre tendue":
-            self.l_ef = self.l_ef - 0.5 * self.h_calcul
-
+            self.l_ef_y = self.l_ef_y - 0.5 * self.h_calcul
+            self.l_ef_z = self.l_ef_z - 0.5 * self.h_calcul
+        
+        self.l_ef = {"y": self.l_ef_y, "z": self.l_ef_z}
         b_calcul = self.b_calcul
         h_calcul = self.h_calcul
-        l_ef = self.l_ef
-        E_0_05 = int(self.caract_meca.loc["E005"]) * si.MPa
+        l_ef_y = self.l_ef['y']
+        l_ef_z = self.l_ef['z']
+        E_0_05 = int(self.caract_meca.loc['E005']) * si.MPa
         K_fi = self.K_fi
-
+        
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            sigma_m_crit_fi = (0.78 * b_calcul**2 * E_0_05 * K_fi) / (h_calcul * l_ef)
-            return sigma_m_crit_fi
-
+            sigma_m_crit_y_fi = (0.78 * b_calcul ** 2 * E_0_05 * K_fi) / (h_calcul * l_ef_y)
+            sigma_m_crit_z_fi = (0.78 * h_calcul ** 2 * E_0_05 * K_fi) / (b_calcul * l_ef_z)
+            return {"y": sigma_m_crit_y_fi, "z": sigma_m_crit_z_fi}
         return val()
 
     @property
     def lamb_rel_m(self):
-        """Retourne l'élancement relatif de la section avec pour argument"""
-        f_m0k = float(self.caract_meca.loc["fm0k"]) * si.MPa
+        """ Retourne l'élancement relatif de la section avec pour argument """
+        f_m0k = float(self.caract_meca.loc['fm0k']) *si.MPa
+        sigma_m_crit_y_fi = self.sigma_m_crit[1]['y']
+        sigma_m_crit_z_fi = self.sigma_m_crit[1]['z']
         K_fi = self.K_fi
-        sigma_m_crit = self.sigma_m_crit[1]
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            lamb_rel_m_fi = sqrt(f_m0k * K_fi / sigma_m_crit)
-            return lamb_rel_m_fi
-
+            lamb_rel_m_y_fi = sqrt(f_m0k * K_fi / sigma_m_crit_y_fi)
+            lamb_rel_m_z_fi = sqrt(f_m0k * K_fi / sigma_m_crit_z_fi)
+            return {"y": lamb_rel_m_y_fi, "z": lamb_rel_m_z_fi}
         return val()
 
     @property
     def K_crit(self):
-        """Retourne K,crit le coef. de minoration de la résistance en flexion au déversement"""
-        lamb_rel_m_fi = self.lamb_rel_m[1]
+        """ Retourne K,crit le coef. de minoration de la résistance en flexion au déversement"""
+        lamb_rel_m_y = self.lamb_rel_m[1]['y']
+        lamb_rel_m_z = self.lamb_rel_m[1]['z']
+        result = ["", {"y": None, "z": None}]
 
-        if lamb_rel_m_fi <= 0.75:
-
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                K_crit_fi = 1
-                return K_crit_fi
-
-        elif 0.75 < lamb_rel_m_fi <= 1.4:
-
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                K_crit_fi = 1.56 - 0.75 * lamb_rel_m_fi
-                return K_crit_fi
-
-        else:
-
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                K_crit_fi = 1 / (lamb_rel_m_fi**2)
-                return K_crit_fi
-
-        return val()
+        for axe in ["y", "z"]:
+            lamb_rel_m_fi = lamb_rel_m_y if axe == "y" else lamb_rel_m_z
+            if lamb_rel_m_fi <= 0.75:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    axe
+                    K_crit_fi = 1
+                    return K_crit_fi
+            elif 0.75 < lamb_rel_m_fi <= 1.4:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    axe
+                    K_crit_fi = 1.56 - 0.75 * lamb_rel_m_fi
+                    return K_crit_fi
+            else:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    axe
+                    K_crit_fi = 1 / (lamb_rel_m_fi ** 2)
+                    return K_crit_fi
+            kcrit_axe = val()
+            result[0] = result[0] + kcrit_axe[0]
+            result[1][axe] = kcrit_axe[1]
+        return result
     
     def f_m_d(self):
         """Retourne la résistance f,m,d au feu de l'élément en MPa
@@ -693,7 +703,7 @@ class Flexion_feu(Feu, Flexion):
 class Traction_feu(Feu, Traction):
     def __init__(self, **kwargs):
         """Classe permettant le calcul de la Traction d'un élément bois selon l'EN 1995.
-        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
+        Cette classe est hérité de la classe Feu, provenant du module EC5_Feu.py.
         """
         super().__init__(**kwargs)
     
@@ -732,7 +742,7 @@ class Traction_feu(Feu, Traction):
 class Compression_feu(Feu, Compression):
     def __init__(self, lo_y: si.mm, lo_z: si.mm, type_appuis: str = Compression.COEF_LF, **kwargs):
         """Classe permettant le calcul de la Compression d'un élément bois selon l'EN 1995.
-        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
+        Cette classe est hérité de la classe Feu, provenant du module EC5_Feu.py.
 
         Args:
             lo : Longueur de flambement suivant l'axe de rotation (y ou z) en mm si pas de flambement alors 0
@@ -859,7 +869,7 @@ class Compression_feu(Feu, Compression):
 class Cisaillement_feu(Cisaillement, Feu):
     def __init__(self, **kwargs):
         """Classe qui permet de calculer le cisaillement d'une poutre comme décrit à l'EN 1995 §6.1.7 et §6.5.
-        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
+        Cette classe est hérité de la classe Feu, provenant du module EC5_Feu.py.
         """
         super().__init__(**kwargs)
 
