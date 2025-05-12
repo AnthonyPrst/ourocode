@@ -324,33 +324,40 @@ class Flexion(Barre):
         "Charge sur fibre tendue"
         )
 
-    def __init__(self, lo:si.mm, coeflef: float=COEF_LEF['Appuis simple'][1], pos: str=LOAD_POS, *args, **kwargs):
+    def __init__(self, 
+        lo_rel_y:si.mm, 
+        lo_rel_z:si.mm, 
+        coeflef_y: float=0.9, 
+        coeflef_z: float=0.9, 
+        pos: str=LOAD_POS, 
+        *args, **kwargs):
         """Classe permettant le calcul de la flexion d'une poutre bois selon l'EN 1995 §6.1.6, §6.2.3, §6.2.4 et §6.3.3.
         Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
 
         Args:
-            lo (int): longueur de déversemment en mm
-            coeflef (float): appuis simple :
+            lo_rel_y/z (int): longueur de déversemment autour de l'axe défini en mm
+            coeflef_y/z (float): appuis simple :
                                             Moment constant : 1
                                             Charge répartie constante : 0.9
                                             Charge concentrée au milieu de la portée : 0.8
-                            porte à faux :
+                                porte à faux :
                                             Charge répartie constante : 0.5
                                             Charge concentrée agissant à l'extrémité libre : 0.8.
-
             pos (str): positionnement de la charge sur la hauteur de poutre
         """
         super().__init__(*args, **kwargs)
-        self.lo = lo * si.mm
-        self.coeflef = coeflef
+        self.lo_rel_y = lo_rel_y* si.mm
+        self.lo_rel_z = lo_rel_z* si.mm
+        self.lo_rel = {"y": lo_rel_y, "z": lo_rel_z}
+        self.coeflef_y = coeflef_y
+        self.coeflef_z = coeflef_z
+        self.coeflef = {"y": coeflef_y, "z": coeflef_z}
         self.pos = pos
-
 
     @property
     def K_h(self):
         """ Retourne le coef. Kh qui peut augmenter la resistance caractéristique fm,k et ft,k """
         return self._K_h()
-
 
     @property
     def K_m(self):
@@ -363,64 +370,82 @@ class Flexion(Barre):
         else:
             km = 1
         return km
-    
 
     @property
     def sigma_m_crit(self):
         """ Retourne sigma m,crit pour la prise en compte du déversement d'une poutre """
-        self.l_ef = self.lo * self.coeflef
+        self.l_ef_y = self.lo_rel_y * self.coeflef['y']
+        self.l_ef_z = self.lo_rel_z * self.coeflef['z']
         if self.pos == "Charge sur fibre comprimée":
-            self.l_ef = self.l_ef + 2 * self.h_calcul
+            self.l_ef_y = self.l_ef_y + 2 * self.h_calcul
+            self.l_ef_z = self.l_ef_z + 2 * self.h_calcul
         elif self.pos == "Charge sur fibre tendue":
-            self.l_ef = self.l_ef - 0.5 * self.h_calcul
-
+            self.l_ef_y = self.l_ef_y - 0.5 * self.h_calcul
+            self.l_ef_z = self.l_ef_z - 0.5 * self.h_calcul
+        
+        self.l_ef = {"y": self.l_ef_y, "z": self.l_ef_z}
         b_calcul = self.b_calcul
         h_calcul = self.h_calcul
-        l_ef = self.l_ef
+        l_ef_y = self.l_ef['y']
+        l_ef_z = self.l_ef['z']
         E_0_05 = int(self.caract_meca.loc['E005']) * si.MPa
         
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            sigma_m_crit = (0.78 * b_calcul ** 2 * E_0_05) / (h_calcul * l_ef)
-            return sigma_m_crit
+            sigma_m_crit_y = (0.78 * b_calcul ** 2 * E_0_05) / (h_calcul * l_ef_y)
+            sigma_m_crit_z = (0.78 * h_calcul ** 2 * E_0_05) / (b_calcul * l_ef_z)
+            return {"y": sigma_m_crit_y, "z": sigma_m_crit_z}
         return val()
-    
 
     @property
     def lamb_rel_m(self):
         """ Retourne l'élancement relatif de la section avec pour argument """
         f_m0k = float(self.caract_meca.loc['fm0k']) *si.MPa
-        sigma_m_crit = self.sigma_m_crit[1]
+        sigma_m_crit_y = self.sigma_m_crit[1]['y']
+        sigma_m_crit_z = self.sigma_m_crit[1]['z']
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            lamb_rel_m = sqrt(f_m0k / sigma_m_crit)
-            return lamb_rel_m
+            lamb_rel_m_y = sqrt(f_m0k / sigma_m_crit_y)
+            lamb_rel_m_z = sqrt(f_m0k / sigma_m_crit_z)
+            return {"y": lamb_rel_m_y, "z": lamb_rel_m_z}
         return val()
-    
 
     @property
     def K_crit(self):
         """ Retourne K,crit le coef. de minoration de la résistance en flexion au déversement"""
-        lamb_rel_m = self.lamb_rel_m[1]
+        lamb_rel_m_y = self.lamb_rel_m[1]['y']
+        lamb_rel_m_z = self.lamb_rel_m[1]['z']
+        result = [None, {"y": None, "z": None}]
 
-        if lamb_rel_m <= 0.75:
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                K_crit = 1
-                return K_crit
-        elif 0.75 < lamb_rel_m <= 1.4:
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                K_crit = 1.56 - 0.75 * lamb_rel_m
-                return K_crit
-        else:
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                K_crit = 1 / (lamb_rel_m ** 2)
-                return K_crit
-        return val()
-    
+        for axe in ["y", "z"]:
+            lamb_rel_m = lamb_rel_m_y if axe == "y" else lamb_rel_m_z
+            if lamb_rel_m <= 0.75:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    K_crit = 1
+                    axe
+                    return K_crit
+            elif 0.75 < lamb_rel_m <= 1.4:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    K_crit = 1.56 - 0.75 * lamb_rel_m
+                    axe
+                    return K_crit
+            else:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    K_crit = 1 / (lamb_rel_m ** 2)
+                    axe
+                    return K_crit
+            kcrit_axe = val()
+            if result[0]:
+                result[0] = result[0] + kcrit_axe[0]
+            else:
+                result[0] = kcrit_axe[0]
+            result[1][axe] = kcrit_axe[1]
+        result = (result[0], result[1])
+        return result
     
     def f_m_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
         """Retourne la résistance f,m,d de l'élément en MPa
@@ -435,35 +460,29 @@ class Flexion(Barre):
         return self._f_type_d("fm0k", loadtype, typecombi)
     
     
-    def sigma_m_d(self, M: float, axe=['y', 'z']):
+    def sigma_m_d(self, My: float, Mz: float):
         """ Retourne la contrainte sigma,m,d suivant sont axes de flexion avec :
-            M : Moment max dans la barre en kN.m
-            axe : Axe d'inertie quadratique à considérer
+            My/z : Moment autour de l'axe y et/ou z dans la barre en kN.m
         """
-        if not hasattr(self, "Md"):
-            self.Md = {'y': 0* si.kN*si.m, 'z': 0 * si.kN*si.m}
-            self.sigma_m_rd = {'y': 0 * si.MPa, 'z': 0 * si.MPa}
+        self.Md = {'y': My* si.kN*si.m, 'z': Mz * si.kN*si.m}
+        self.sigma_m_rd = {'y': 0 * si.MPa, 'z': 0 * si.MPa}
         
-        self.Md[axe] = M * si.kN*si.m
-
-        if axe == 'y':
-            I = self.inertie[0]
-            h_calcul = self.h_calcul
-        elif axe == 'z':
-            I = self.inertie[1]
-            h_calcul = self.b_calcul
-        #prend en compte une section circulaire si aucun des deux axes
-        else: 
-            I = self.inertie
+        Iy = self.inertie[0]
+        h_calcul = self.h_calcul
+        Iz = self.inertie[1]
+        b_calcul = self.b_calcul
         
-        M_d = self.Md[axe]
+        M_y = self.Md['y']
+        M_z = self.Md['z']
         
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            sigma_m_d = M_d * h_calcul / (I * 2)
-            return sigma_m_d
+            sigma_my_d = M_y * h_calcul / (Iy * 2)
+            sigma_mz_d = M_z * b_calcul / (Iz * 2)
+            return {"y": sigma_my_d, "z": sigma_mz_d}
         value = val()
-        self.sigma_m_rd[axe] = value[1]
+        self.sigma_m_rd["y"] = value[1]["y"]
+        self.sigma_m_rd["z"] = value[1]["z"]
         return value
     
 
@@ -486,14 +505,15 @@ class Flexion(Barre):
         K_h_y = self.K_h['y']
         K_h_z = self.K_h['z']
         K_m = self.K_m
-        K_crit = self.K_crit[1]
+        K_crit_y = self.K_crit[1]["y"]
+        K_crit_z = self.K_crit[1]["z"]
 
         @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def base():
             taux_6_11 = sigma_my_d / (f_m_d * K_h_y) + K_m * sigma_mz_d / (f_m_d * K_h_z) # equ6.11
             taux_6_12 = K_m * sigma_my_d / (f_m_d * K_h_y) + sigma_mz_d / (f_m_d * K_h_z) # equ6.12
-            taux_6_33y = sigma_my_d / (f_m_d * K_h_y * K_crit) # equ6.33
-            taux_6_33z = sigma_mz_d / (f_m_d * K_h_z * K_crit) # equ6.33
+            taux_6_33y = sigma_my_d / (f_m_d * K_h_y * K_crit_y) # equ6.33
+            taux_6_33z = sigma_mz_d / (f_m_d * K_h_z * K_crit_z) # equ6.33
             return taux_6_11, taux_6_12, taux_6_33y, taux_6_33z
         
         base_val = base()

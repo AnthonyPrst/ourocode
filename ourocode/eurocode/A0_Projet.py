@@ -990,7 +990,7 @@ class Model_result(Projet):
     ):
         """Retourne un diagramme"""
         plt.clf()  # Effacer le graphique précédent
-        plt.figure(self.name, figsize=(12, 4))
+        plt.figure(self.name, figsize=(11, 4))
         plt.gcf().subplots_adjust(
             left=0.1, bottom=0.25, right=0.9, top=0.75, wspace=0, hspace=0.95
         )
