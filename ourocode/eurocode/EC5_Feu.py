@@ -569,31 +569,32 @@ class Flexion_feu(Feu, Flexion):
         """ Retourne K,crit le coef. de minoration de la résistance en flexion au déversement"""
         lamb_rel_m_y = self.lamb_rel_m[1]['y']
         lamb_rel_m_z = self.lamb_rel_m[1]['z']
-        result = ["", {"y": None, "z": None}]
+        result = [None, {"y": None, "z": None}]
 
         for axe in ["y", "z"]:
             lamb_rel_m_fi = lamb_rel_m_y if axe == "y" else lamb_rel_m_z
             if lamb_rel_m_fi <= 0.75:
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    axe
                     K_crit_fi = 1
                     return K_crit_fi
             elif 0.75 < lamb_rel_m_fi <= 1.4:
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    axe
                     K_crit_fi = 1.56 - 0.75 * lamb_rel_m_fi
                     return K_crit_fi
             else:
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    axe
                     K_crit_fi = 1 / (lamb_rel_m_fi ** 2)
                     return K_crit_fi
             kcrit_axe = val()
-            result[0] = result[0] + kcrit_axe[0]
+            if result[0]:
+                result[0] = result[0] + kcrit_axe[0]
+            else:
+                result[0] = kcrit_axe[0]
             result[1][axe] = kcrit_axe[1]
+        result = (result[0], result[1])
         return result
     
     def f_m_d(self):
