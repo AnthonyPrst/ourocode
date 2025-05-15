@@ -19,7 +19,6 @@ from ourocode.eurocode.objet import Objet
 
 
 class Projet(Objet):
-    JUPYTER_DISPLAY = False
     DICO_COMBI_ACTION = {
         "Permanente G": "G",
         "Exploitation Q": "Q",
