@@ -27,6 +27,12 @@ jobs:
         VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
         echo "VERSION=$VERSION" >> $GITHUB_ENV
 
+    - name: Build release distributions
+      run: |
+        # NOTE: put your own distribution build steps here.
+        python -m pip install build
+        python -m build
+
     - name: Check if tag already exists
       id: check_tag
       run: |
@@ -53,6 +59,9 @@ jobs:
         name: Release v${{ env.VERSION }}
         draft: false
         prerelease: ${{ contains(env.VERSION, '-rc') || contains(env.VERSION, '-beta') }}
+        files: |
+          dist/*.whl
+          dist/*.tar.gz
         generate_release_notes: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
