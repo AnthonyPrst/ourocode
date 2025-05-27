@@ -14,10 +14,16 @@ jobs:
           fetch-depth: 2
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install pytest pytest-cov
+        run: 
+          pip install forallpeople
+          pip install numpy
+          pip install pandas
+          pip install pytest pytest-cov
 
       - name: Run tests
         run: pytest --cov --cov-branch --cov-report=xml
