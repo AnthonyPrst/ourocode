@@ -56,7 +56,6 @@ class Assemblage(Projet):
         for i, beam in enumerate([self.beam_1, self.beam_2]):
             try:
                 if beam.type_bois:
-                    print(beam.type_bois)
                     if beam.type_bois in ["Massif","BLC", "LVL"]:
                         self._type_beam.append(self.TYPE_BOIS_ASSEMBLAGE[0])
                     elif beam.type_bois in ["OSB 2", "OSB 3/4"]:
@@ -664,7 +663,7 @@ class Assemblage(Projet):
         Fv_Ed = abs(Fv_Ed) * si.kN
         @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            taux_cisaillement = Fv_Ed / Fv_Rd_ass * 100
+            taux_cisaillement = Fv_Ed / Fv_Rd_ass
             return taux_cisaillement
         return val()
     
@@ -673,25 +672,23 @@ class Assemblage(Projet):
 # 8.3 Assemblage par pointes
 
 class Pointe(Assemblage):
-    """ Créer une classe Pointe hérité de la classe Assemblage du module EC5_Assemblage.py.
-    
-    Args:
-        d (float): diamètre de la pointe en mm (pour les pointe carrée = coté de la pointe)
-        dh (float): diamètre de la tête en mm
-        l (int): longueur sous la tête en mm
-        qualite (str): qualité de l'acier
-        n (int): nombre d'organe dans une file 
-        alpha1 (float, optional): angle entre l'effort de l'organe et le fil du bois 1 en °
-        alpha2 (float, optional): angle entre l'effort de l'organe et le fil du bois 2 en °
-        type_organe (str): type de l'organe "Pointe circulaire lisse", "Pointe carrée lisse", "Autres pointes" pour les pointes torsadées, annelées, crantées
-        percage (bool): Si il y a un prépercage de la pointe alors True sinon False. Defaults to False".
-        """
-
-    # TYPE_ASSEMBLAGE = ("Bois/Bois", ("CP", "Panneau dur", "PP/OSB"), "Bois/Métal")
     QUALITE_ACIER = ('6.8', '8.8', '9.8', '10.9', '12.9')
     TYPE_ORGANE = ("Pointe circulaire lisse", "Pointe carrée lisse", "Autres pointes")
-
     def __init__(self, d:si.mm, dh:si.mm, l:si.mm, qualite: str=QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, type_organe: str=TYPE_ORGANE, percage: bool=("False", "True"), *args, **kwargs):
+        """ 
+        Créer une classe Pointe hérité de la classe Assemblage du module EC5_Assemblage.py.
+        
+        Args:
+            d (float): diamètre de la pointe en mm (pour les pointe carrée = coté de la pointe)
+            dh (float): diamètre de la tête en mm
+            l (int): longueur sous la tête en mm
+            qualite (str): qualité de l'acier
+            n (int): nombre d'organe dans une file 
+            alpha1 (float, optional): angle entre l'effort de l'organe et le fil du bois 1 en °
+            alpha2 (float, optional): angle entre l'effort de l'organe et le fil du bois 2 en °
+            type_organe (str): type de l'organe "Pointe circulaire lisse", "Pointe carrée lisse", "Autres pointes" pour les pointes torsadées, annelées, crantées
+            percage (bool): Si il y a un prépercage de la pointe alors True sinon False. Defaults to False".
+        """
         super().__init__(*args, **kwargs)
         self.d = d * si.mm
         self.dh = dh * si.mm
@@ -715,7 +712,7 @@ class Pointe(Assemblage):
         if self.type_assemblage == self.TYPE_ASSEMBLAGE[0]: #Si assemblage bois bois
             if self.type_organe in ("Pointe circulaire lisse", "Pointe carrée lisse") and self.t2 < 8*self.d:
                 raise ValueError(f"Erreur, la longueur de pénétration t2 est inférieur à 8 fois le diamètre de la pointe. La longueur de pénétration minimal est de {self.d*8}")
-            elif self.type_organe == "Autres pointes" and self.t2 < 6*self.d:
+            elif self.type_organe in ("Autres pointes", "Tirefond") and self.t2 < 6*self.d:
                 raise ValueError(f"Erreur, la longueur de pénétration t2 est inférieur à 6 fois le diamètre de la pointe. La longueur de pénétration minimal est de {self.d*6}")
 
 
@@ -748,6 +745,8 @@ class Pointe(Assemblage):
 
             if self._type_beam[1] in self.TYPE_BOIS_ASSEMBLAGE:
                 self.t2 = self.l - self.t1 - l_pointe
+            else:
+                raise ValueError("Il n'est pas considéré possible d'avoir un assemblage simple cisaillement avec flasque métalique en position 2")
 
         else:
             if self._type_beam[0] in self.TYPE_BOIS_ASSEMBLAGE:
@@ -1109,21 +1108,22 @@ class Pointe(Assemblage):
 # 8.4 Assemblage par Agrafe
 
 class Agrafe(Pointe):
-    """ Créer une classe Agrafe hérité de la classe Assemblage du module EC5_Assemblage.py.
-    
-    Args:
-        d (float): diamètre de l'agrafe en mm, si l'agrafe est de section rectangulaire alors c'est la racine carrée du produit des 2 dimensions selon EN1995 §8.4(2).
-        b_agrafe (float): dimension du dos de l'agrafe en mm.
-        l (int): longueur sous la tête en mm
-        qualite (str): qualité de l'acier
-        n (int): nombre d'agrafe dans une file 
-        angle_sup_30 (str): Si l'angle entre la tête de l'agrafe et le fil du bois est supérieur à 30° alors True sinon False. Defaults to True.
-        alpha1 (float, optional): angle entre l'effort de l'agrafe et le fil du bois 1 en °. Defaults to 0.
-        alpha2 (float, optional): angle entre l'effort de l'agrafe et le fil du bois 2 en °. Defaults to 0.
-    """
     TYPE_ASSEMBLAGE = ("Bois/Bois", ("CP", "Panneau dur", "PP/OSB"), "Bois/Métal")
     QUALITE_ACIER = ('8.8', '9.8', '10.9', '12.9')
     def __init__(self, d:si.mm, b_agrafe:si.mm, l:si.mm, qualite: str=QUALITE_ACIER, n: int=1, angle_sup_30: bool=["True", "False"], alpha1: float=0, alpha2: float=0, **kwargs):
+        """
+        Créer une classe Agrafe hérité de la classe Assemblage du module EC5_Assemblage.py.
+        
+        Args:
+            d (float): diamètre de l'agrafe en mm, si l'agrafe est de section rectangulaire alors c'est la racine carrée du produit des 2 dimensions selon EN1995 §8.4(2).
+            b_agrafe (float): dimension du dos de l'agrafe en mm.
+            l (int): longueur sous la tête en mm
+            qualite (str): qualité de l'acier
+            n (int): nombre d'agrafe dans une file 
+            angle_sup_30 (str): Si l'angle entre la tête de l'agrafe et le fil du bois est supérieur à 30° alors True sinon False. Defaults to True.
+            alpha1 (float, optional): angle entre l'effort de l'agrafe et le fil du bois 1 en °. Defaults to 0.
+            alpha2 (float, optional): angle entre l'effort de l'agrafe et le fil du bois 2 en °. Defaults to 0.
+        """
         super().__init__(d=d, dh=0, l=l, qualite=qualite, n=n, alpha1=alpha1, alpha2=alpha2, type_organe="Agrafe", percage=False, **kwargs)
         self.b_agrafe = b_agrafe * si.mm
         self.angle_sup_30 = angle_sup_30
@@ -1181,24 +1181,23 @@ class Agrafe(Pointe):
 # 8.5 Assemblage par boulon
 
 class Boulon(Assemblage):
-    """
-    Créer une classe Boulon hérité de la classe Assemblage du module EC5_Assemblage.py.
-    
-    Args:
-        d (int): diamètre efficace du boulon (ou du tire fond si >6mm) en mm
-        qualite (str): qualité de l'acier
-        n (int): nombre de boulons dans une file
-        alpha1 (float, optional): angle entre l'effort de l'organe et le fil du bois en ° pour la barre 1. Defaults to 0.
-        alpha2 (float, optional): angle entre l'effort de l'organe et le fil du bois en ° pour la barre 2. Defaults to 0.
-        t1 (int, optional): longueur de contact avec la tige  pour la pièce 1 en mm. 
-            ATTENTION : Cet argument n'est pas obligatoire par défaut, il est calculé par le type de tige utilisée.
-            Il n'est nécessaire de le remplir uniquement si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
-        t2 (int, optional): longueur de contact avec la tige  pour la pièce 2 en mm. 
-            ATTENTION : Même chose que pour t1 mais pour la pièce 2.
-    """
     QUALITE_ACIER = tuple(Assemblage._data_from_csv(Assemblage, "qualite_acier.csv").index)
-    
     def __init__(self, d:si.mm, qualite: str=QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, t1: int=0, t2: int=0, **kwargs):
+        """
+        Créer une classe Boulon hérité de la classe Assemblage du module EC5_Assemblage.py.
+        
+        Args:
+            d (int): diamètre efficace du boulon (ou du tire fond si >6mm) en mm
+            qualite (str): qualité de l'acier
+            n (int): nombre de boulons dans une file
+            alpha1 (float, optional): angle entre l'effort de l'organe et le fil du bois en ° pour la barre 1. Defaults to 0.
+            alpha2 (float, optional): angle entre l'effort de l'organe et le fil du bois en ° pour la barre 2. Defaults to 0.
+            t1 (int, optional): longueur de contact avec la tige  pour la pièce 1 en mm. 
+                ATTENTION : Cet argument n'est pas obligatoire par défaut, il est calculé par le type de tige utilisée.
+                Il n'est nécessaire de le remplir uniquement si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
+            t2 (int, optional): longueur de contact avec la tige  pour la pièce 2 en mm. 
+                ATTENTION : Même chose que pour t1 mais pour la pièce 2.
+        """
         super().__init__(**kwargs)
         self.type_organe = "Boulon"
         if "type_organe" in kwargs.keys():
@@ -1483,22 +1482,21 @@ class Boulon(Assemblage):
 # 8.6 Assemblage par broche
 
 class Broche(Boulon):
-    """
-    Créer une classe Broche hérité de la classe Assemblage du module EC5_Assemblage.py.
-
-    Args:
-        d (int): diamètre efficace de la broche ( entre 6 et 30 mm) en mm
-        qualite (str): qualite de la broche
-        n (int): nombre de broche dans une file
-        alpha (float): angle entre l'effort de l'organe et le fil du bois en °
-        t1 (int, optional): longueur de contacte avec la tige  pour la pièce 1 en mm. 
-            ATTENTION : Cet argument n'est pas obligatoire par défaut, il est calculer par le type de tige utilisée.
-            Il n'est nécessaire de le remplir que si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
-        t2 (int, optional): longueur de contacte avec la tige  pour la pièce 2 en mm.
-            ATTENTION : Même chose que pour t1 mais pour la pièce 2.
-    """
-
     def __init__(self, d:float, qualite: str=Boulon.QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, t1: int=0, t2: int=0, **kwargs):
+        """
+        Créer une classe Broche hérité de la classe Assemblage du module EC5_Assemblage.py.
+
+        Args:
+            d (int): diamètre efficace de la broche ( entre 6 et 30 mm) en mm
+            qualite (str): qualite de la broche
+            n (int): nombre de broche dans une file
+            alpha (float): angle entre l'effort de l'organe et le fil du bois en °
+            t1 (int, optional): longueur de contacte avec la tige  pour la pièce 1 en mm. 
+                ATTENTION : Cet argument n'est pas obligatoire par défaut, il est calculer par le type de tige utilisée.
+                Il n'est nécessaire de le remplir que si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
+            t2 (int, optional): longueur de contacte avec la tige  pour la pièce 2 en mm.
+                ATTENTION : Même chose que pour t1 mais pour la pièce 2.
+        """
         super().__init__(d, qualite, n, alpha1, alpha2, **kwargs)
         self.type_organe = "Broche"
         self.FaxRk = 0
@@ -1692,7 +1690,7 @@ class _Tirefond(object):
             l_ef (int): longueur de pénétration de la partie filetée en mm
             alpha (int): angle formé entre l'axe du tirefond et le fil du bois, doit être supérieur à 30°
         """
-        F_ax_a_Rk_value = self._FaxaRk(faxk, l_ef, alpha, beam)
+        F_ax_a_Rk_value = self._FaxaRk(faxk, l_ef, alpha)
         F_ax_a_Rk = F_ax_a_Rk_value[1]
         F_head_Rk_value = self._FaxaRkHead()
         F_head_Rk = F_head_Rk_value[1]
@@ -1729,7 +1727,8 @@ class _Tirefond(object):
 
 class Tirefond_inf_7(_Tirefond, Pointe):
     def __init__(self, d:si.mm, d1:float, ds:float, dh:float, l:float, n:int, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
-        """Crée une classe Tirefond_inf_7 pour les tirefonds avec un diamètre efficace inférieur à 7mm.
+        """
+        Crée une classe Tirefond_inf_7 pour les tirefonds avec un diamètre efficace inférieur à 7mm.
         Cette classe hérite de la classe Assemblage du module EC5_Assemblage.py.
 
         Args:
@@ -1766,20 +1765,23 @@ class Tirefond_inf_7(_Tirefond, Pointe):
     @property
     def MyRk(self):
         if hasattr(self, "_MyRk_fourni"):
+            M_y_Rk_fourni = self._MyRk_fourni
             @handcalc(override="short", precision=2, left="\\[", right="\\]")
             def val():
-                MyRk = self._MyRk_fourni
-                return MyRk
+                M_y_Rk = M_y_Rk_fourni
+                return M_y_Rk
             return val()
         else:
             return super().MyRk
 
 
 class Tirefond_sup_6(_Tirefond, Boulon):
-    """Crée une classe Tirefond_sup_6 pour les tirefonds avec un diamètre efficace supérieur à 6mm
-    Cette classe hérite de la classe Assemblage du module EC5_Assemblage.py.
+    def __init__(self, d:si.mm, d1:float, ds:float, dh:float, l:si.mm, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, **kwargs):
+        """
+        Crée une classe Tirefond_sup_6 pour les tirefonds avec un diamètre efficace supérieur à 6mm
+        Cette classe hérite de la classe Assemblage du module EC5_Assemblage.py.
 
-    Args:
+        Args:
             d (int): diamètre extérieur du filet en mm
             d1 (float): diamètre du noyaux en mm
             ds (float): diamètre de la tige en mm
@@ -1794,9 +1796,7 @@ class Tirefond_sup_6(_Tirefond, Boulon):
                 Defaults to 0.
             alpha1 (float, optional): angle entre l'effort de l'organe et le fil du bois 1 en °. Defaults to 0.
             alpha2 (float, optional): angle entre l'effort de l'organe et le fil du bois 2 en °. Defaults to 0.
-    """
-
-    def __init__(self, d:si.mm, d1:float, ds:float, dh:float, l:si.mm, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, **kwargs):
+        """
         qualite = "6.8"
         self.d_vis = d * si.mm
         self.l = l * si.mm
@@ -1816,10 +1816,11 @@ class Tirefond_sup_6(_Tirefond, Boulon):
     @property
     def MyRk(self):
         if hasattr(self, "_MyRk_fourni"):
+            M_y_Rk_fourni = self._MyRk_fourni
             @handcalc(override="short", precision=2, left="\\[", right="\\]")
             def val():
-                MyRk = self._MyRk_fourni
-                return MyRk
+                M_y_Rk = M_y_Rk_fourni
+                return M_y_Rk
             return val()
         else:
             return super().MyRk

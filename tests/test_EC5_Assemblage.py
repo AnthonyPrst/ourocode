@@ -195,25 +195,25 @@ class Test_Agrafe:
 
 class Test_Boulon:
     @pytest.fixture
-    def boulon(self, barre_bois, barre_metal):
+    def boulon(self, barre_bois):
         return EC5_Assem.Boulon(
             d=12,
             qualite="4.6",
             n=2,
-            alpha1=0,
-            alpha2=90,
+            alpha1=45,
+            alpha2=0,
             beam_1=barre_bois,
-            beam_2=barre_metal,
+            beam_2=barre_bois,
             nfile=2,
             nCis=2
         )
 
     def test_init(self, boulon):
-        assert boulon.type_assemblage == "Bois/Métal"
+        assert boulon.type_assemblage == "Bois/Bois"
         assert boulon.d == 12 * si.mm
         assert boulon.qualite == "4.6"
         assert boulon.n == 2
-        assert boulon.alpha == [0, 90]
+        assert boulon.alpha == [45, 0]
         assert boulon.type_organe == "Boulon"
 
     def test_MyRk(self, boulon):
@@ -225,30 +225,242 @@ class Test_Boulon:
 
     def test_Kser_ass(self, boulon):
         kser = boulon.Kser_ass
-        assert kser[1].value == 71853400.84930278
+        assert kser[1].value == 35926700.42465139
 
     def test_Ku_ass(self, boulon):
         ku = boulon.Ku_ass
-        assert ku[1].value == 47902267.23286852
+        assert ku[1].value == 23951133.61643426
 
     def test_pince(self, boulon):
         pinces_b1 = boulon.pince["barre 1"]
-        assert pinces_b1["a1"] == 60 * si.mm
+        pinces_b2 = boulon.pince["barre 2"]
+        assert pinces_b1["a1"].value == 0.056485281374238576
         assert pinces_b1["a2"] == 48 * si.mm
         assert pinces_b1["a3t"] == 84 * si.mm
-        assert pinces_b1["a3c"] == 48 * si.mm
-        assert pinces_b1["a4t"] == 36 * si.mm
-        assert pinces_b1["a4c"] == 36 * si.mm
+        assert pinces_b1["a3c"].value == 0.06291168824543143
+        assert pinces_b1["a4t"].value == 0.040970562748477136
+        assert pinces_b1["a4c"].value == 0.036000000000000004
+        assert pinces_b2["a1"] == 60 * si.mm
+        assert pinces_b2["a2"] == 48 * si.mm
+        assert pinces_b2["a3t"] == 84 * si.mm
+        assert pinces_b2["a3c"] == 48 * si.mm
+        assert pinces_b2["a4t"] == 36 * si.mm
+        assert pinces_b2["a4c"] == 36 * si.mm
 
     def test_FvRk(self, boulon):
         boulon.nef(a1_beam1=100, a1_beam2=100)
         boulon.Fax_Rk(d_int=13, d_ext=24, filetage_EN1090=True)
         Fvrk = boulon.FvRk(effet_corde=True)
-        assert Fvrk[1].value == 81704.51133271086
+        assert Fvrk[1].value == 55632.21408197254
 
     def test_FbsRk(self, boulon):
         boulon.FvRk(effet_corde=False)
         FbsRk = boulon.FbsRk(dp=12, a1=100, a2=100, a3t=100, num_beam=1)
-        assert FbsRk[1].value == 18170552.3689843
-        
+        assert FbsRk[1].value == 253440.0
 
+    def test_F90Rk(self, boulon):
+        F90Rk = boulon.F90Rk(b=100, h=200, he=150)
+        F90Rd = boulon.F_Rd(F90Rk[1].value*10**-3, loadtype="Moyen terme")
+        assert F90Rk[1].value == 34292.85639896449
+        assert F90Rd[1].value == 21103.29624551661
+
+
+class Test_Broche:
+    @pytest.fixture
+    def broche(self, barre_bois, barre_metal):
+        return EC5_Assem.Broche(
+            d=16,
+            qualite="4.6",
+            n=2,
+            alpha1=0,
+            alpha2=90,
+            beam_1=barre_bois,
+            beam_2=barre_metal,
+            nfile=2,
+            nCis=2
+        )
+
+    def test_init(self, broche):
+        assert broche.type_assemblage == "Bois/Métal"
+        assert broche.d == 16 * si.mm
+        assert broche.qualite == "4.6"
+        assert broche.n == 2
+        assert broche.alpha == [0, 90]
+        assert broche.type_organe == "Broche"
+        assert broche.FaxRk == 0
+
+    def test_pince(self, broche):
+        pinces = broche.pince
+        assert pinces["barre 1"]["a1"] == 80 * si.mm    
+        assert pinces["barre 1"]["a2"] == 48 * si.mm
+        assert pinces["barre 1"]["a3t"] == 112 * si.mm
+        assert pinces["barre 1"]["a3c"] == 56 * si.mm
+        assert pinces["barre 1"]["a4t"] == 48 * si.mm
+        assert pinces["barre 1"]["a4c"] == 48 * si.mm
+    
+    def test_Kser_ass(self, broche):
+        kser = broche.Kser_ass
+        assert kser[1].value == 95804534.46573706
+
+    def test_Ku_ass(self, broche):
+        ku = broche.Ku_ass
+        assert ku[1].value == 63869689.643824704
+
+    def test_FvRk(self, broche):
+        broche.nef(a1_beam1=100, a1_beam2=100)
+        Fvrk = broche.FvRk(effet_corde=False)
+        assert Fvrk[1].value == 118572.10105692707
+
+    def test_FbsRk(self, broche):
+        broche.FvRk(effet_corde=False)
+        FbsRk = broche.FbsRk(dp=22, a1=100, a2=100, a3t=100, num_beam=1)
+        assert FbsRk[1].value == 21467088.26594395
+
+
+class Test_Tirefond_inf_7:
+    @pytest.fixture
+    def tirefond(self, barre_bois):
+        return EC5_Assem.Tirefond_inf_7(
+            d=6,
+            d1=4.5,
+            ds=3.5,
+            dh=10,
+            l=180,
+            n=2,
+            rho_a=380,
+            fhead=15,
+            ftensk=10000,
+            alpha1=0,
+            alpha2=90,
+            percage=False,
+            beam_1=barre_bois,
+            beam_2=barre_bois,
+            nfile=2,
+            nCis=1
+        )
+
+    def test_init(self, tirefond):
+        assert tirefond.type_assemblage == "Bois/Bois"
+        assert tirefond.d == 4.95 * si.mm
+        assert tirefond.qualite == "6.8"
+        assert tirefond.n == 2
+        assert tirefond.alpha == [0, 90]
+        assert tirefond.type_organe == "Tirefond"
+        assert tirefond.percage is False
+
+    def test_MyRk(self, tirefond):
+        assert tirefond.MyRk[1].value == 11.514524874935903
+    
+    def test_nef(self, tirefond):
+        tirefond.nef(a1_beam1=60, a1_beam2=60)
+        assert tirefond._nef == 1.8025009252216604
+
+    def test_nefTraction(self, tirefond):
+        assert tirefond.nefTraction[1] == 3.4822022531844965
+
+    def test_pince(self, tirefond):
+        pinces = tirefond.pince
+        assert pinces["barre 1"]["a1"] == 60 * si.mm
+        assert pinces["barre 1"]["a2"] == 30 * si.mm
+        assert pinces["barre 1"]["a3t"] == 90 * si.mm
+        assert pinces["barre 1"]["a3c"] == 60 * si.mm
+        assert pinces["barre 1"]["a4t"] == 30 * si.mm
+        assert pinces["barre 1"]["a4c"] == 30 * si.mm
+        assert pinces["barre 2"]["a1"] == 30 * si.mm
+        assert pinces["barre 2"]["a2"] == 30 * si.mm
+        assert pinces["barre 2"]["a3t"] == 60 * si.mm
+        assert pinces["barre 2"]["a3c"] == 60 * si.mm
+        assert pinces["barre 2"]["a4t"] == 42 * si.mm
+        assert pinces["barre 2"]["a4c"] == 30 * si.mm
+
+    def test_FvRk(self, tirefond):
+        tirefond.nef(a1_beam1=60, a1_beam2=60)
+        tirefond.Fax_Rk(faxk=10, l_ef=80, alpha=90)
+        Fvrk = tirefond.FvRk(effet_corde=True)
+        assert Fvrk[1].value == 7553.234585878883
+
+    def test_FaxRk(self, tirefond):
+        FaxRk = tirefond.Fax_Rk(faxk=10, l_ef=80, alpha=90)
+        assert FaxRk[1].value == 5278.213553724563
+
+    def test_FtRk(self, tirefond):
+        FtRk = tirefond.FtRk()
+        assert FtRk[1].value == 34822.02253184497
+
+    def test_FbsRk(self, tirefond):
+        tirefond.nef(a1_beam1=60, a1_beam2=60)
+        tirefond.Fax_Rk(faxk=10, l_ef=80, alpha=90)
+        tirefond.FvRk(effet_corde=True)
+        FbsRk = tirefond.FbsRk(dp=6, a1=60, a2=60, a3t=100, num_beam=1)
+        assert FbsRk[1].value == 155520.0
+
+class Test_Tirefond_sup_6:
+    @pytest.fixture
+    def tirefond(self, barre_bois):
+        return EC5_Assem.Tirefond_sup_6(
+            d=11,
+            d1=9.5,
+            ds=7,
+            dh=18,
+            l=180,
+            n=2,
+            rho_a=380,
+            fhead=15,
+            ftensk=10000,
+            MyRk=80000,
+            alpha1=0,
+            alpha2=90,
+            beam_1=barre_bois,
+            beam_2=barre_bois,
+            nfile=1,
+            nCis=1
+        )
+
+    def test_init(self, tirefond):
+        assert tirefond.type_assemblage == "Bois/Bois"
+        assert tirefond.d == 10.45 * si.mm
+        assert tirefond.qualite == "6.8"
+        assert tirefond.n == 2
+        assert tirefond.alpha == [0, 90]
+        assert tirefond.type_organe == "Tirefond"
+
+    def test_MyRk(self, tirefond):
+        assert tirefond.MyRk[1].value == 80.0
+    
+    def test_nef(self, tirefond):
+        tirefond.nef(a1_beam1=100, a1_beam2=100)
+        assert tirefond._nef == 1.7064477171757193
+
+    def test_nefTraction(self, tirefond):
+        assert tirefond.nefTraction[1] == 1.8660659830736148
+
+    def test_pince(self, tirefond):
+        pinces = tirefond.pince
+        assert pinces["barre 1"]["a1"] == 55 * si.mm
+        assert pinces["barre 1"]["a2"] == 44 * si.mm
+        assert pinces["barre 1"]["a3t"] == 80 * si.mm
+        assert pinces["barre 1"]["a3c"] == 44 * si.mm
+        assert pinces["barre 1"]["a4t"] == 33 * si.mm
+        assert pinces["barre 1"]["a4c"] == 33 * si.mm
+        assert pinces["barre 2"]["a1"] == 44 * si.mm
+        assert pinces["barre 2"]["a2"] == 44 * si.mm
+        assert pinces["barre 2"]["a3t"] == 80 * si.mm
+        assert pinces["barre 2"]["a3c"] == 77 * si.mm
+        assert pinces["barre 2"]["a4t"] == 44 * si.mm
+        assert pinces["barre 2"]["a4c"] == 33 * si.mm
+
+    def test_FvRk(self, tirefond):
+        tirefond.nef(a1_beam1=60, a1_beam2=60)
+        tirefond.Fax_Rk(faxk=10, l_ef=80, alpha=90)
+        Fvrk = tirefond.FvRk(effet_corde=True)
+        assert Fvrk[1].value == 11295.461411468756
+
+    def test_FaxRk(self, tirefond):
+        FaxRk = tirefond.Fax_Rk(faxk=10, l_ef=80, alpha=90)
+        assert FaxRk[1].value == 9164.41973069982
+
+    def test_FtRk(self, tirefond):
+        FtRk = tirefond.FtRk()
+        assert FtRk[1].value == 18660.65983073615
+
+        
