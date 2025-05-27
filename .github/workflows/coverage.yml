@@ -19,11 +19,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: 
-          pip install forallpeople
-          pip install numpy
-          pip install pandas
-          pip install pytest pytest-cov
+        run: python -m pip install -r requirements.txt
 
       - name: Run tests
         run: pytest --cov --cov-branch --cov-report=xml
