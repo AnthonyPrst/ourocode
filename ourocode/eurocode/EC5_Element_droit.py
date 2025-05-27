@@ -797,7 +797,7 @@ class Compression(Barre):
             taux_6_11 = 0
             taux_6_12 = 0
         
-        if lamb_rel_y < 0.3 and lamb_rel_z < 0.3:
+        if lamb_rel_y <= 0.3 and lamb_rel_z <= 0.3:
             @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 taux_6_2 = sigma_c_0_d / f_c_0_d # equ6.2

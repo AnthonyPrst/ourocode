@@ -23,20 +23,20 @@ def interpolationLineaire(x, xa, xb, ya, yb):
 # 8.1 Généralité
 class Assemblage(Projet):
     GAMMA_M_ASS = 1.3
-    DICO_COEF_LIMITE = {"Pointe circulaire": 0.15, "Pointe carrée": 0.25,
+    DICO_COEF_LIMITE = {"Pointe circulaire lisse": 0.15, "Agrafe": 0.15,"Pointe carrée lisse": 0.25,
                      "Boulon": 0.25, "Autres pointes": 0.5, "Tirefond": 1}
     TYPE_BOIS_ASSEMBLAGE = ("Bois","PP/OSB", "CP", "Panneau dur")
     TYPE_ASSEMBLAGE = ("Bois/Bois", "Bois/Métal")
 
     def __init__(self,beam_1:object, beam_2:object, nfile: int=1, nCis: int=("1","2"), **kwargs):
         """Créer un objet Assemblage qui permet de calculer un assemblage bois/bois ou bois/métal à l'EN 1995.
-        Cette classe est dérivé de la classe Projet du module A0_Project.py
+        Cette classe est hérité de la classe Projet du module A0_Project.py
 
         Args:
-            beam_1 (object): objet correspondant à i=1, Beam  ou dérivé de cet objet provenant du module EC5_Element_droit.py
+            beam_1 (object): objet correspondant à i=1, Barre ou dérivé de cet objet provenant du module EC5_Element_droit.py
                              ou bien objet Element ou dérivé de cet objet provenant du module EC3_Element_droit.py
                              
-            beam_2 (object): objet correspondant à i=2, Beam ou dérivé de cet objet provenant du module EC5_Element_droit.py
+            beam_2 (object): objet correspondant à i=2, Barre ou dérivé de cet objet provenant du module EC5_Element_droit.py
                              ou bien objet Element ou dérivé de cet objet provenant du module EC3_Element_droit.py
                              
             nfile (int, optional): le nombre de file dans l'assemblage. Defaults to 1.
@@ -44,7 +44,6 @@ class Assemblage(Projet):
         """
         
         super().__init__(**kwargs)
-        #type_organe : le type d'organe de l'assemblage "Pointe circulaire", "Pointe carrée", "Autres pointes", "Agrafe", "Tirefond", "Boulon"ou"Broche", "plaque", "Anneau", "Crampon C1/C9","Crampon C10/C11".
         self.beam_1 = beam_1
         self.beam_2 = beam_2
         self.nfile = nfile
@@ -117,13 +116,9 @@ class Assemblage(Projet):
         
         
     # 7.1 Glissement des assemblages
+    @property
     def Kser(self):
-        """Calcul le kser du type d'un organe et de l'asssemblage en N/mm 
-
-
-        Returns:
-            list: retourne une liste du kser d'un organe par plan de cisaillement et celui de l'assemblage
-        """
+        """Retourne le module de glissement de l'organe pour les états limites de services."""
         rho_mean = self.rho_mean_ass
         if self.type_organe == "Anneau" or self.type_organe == "Crampon C10/C11":
             dc = self.dc.value*10**3
@@ -135,7 +130,7 @@ class Assemblage(Projet):
             def val():
                 K_ser = rho_mean**1.5 * d / 23 # N/mm
                 return K_ser * si.N / si.mm
-        elif self.type_organe == "Pointe circulaire" or self.type_organe == "Pointe carrée" or self.type_organe == "Autres pointes":
+        elif self.type_organe == "Pointe circulaire lisse" or self.type_organe == "Pointe carrée lisse" or self.type_organe == "Autres pointes":
             if self.percage:
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
@@ -149,7 +144,7 @@ class Assemblage(Projet):
         elif self.type_organe == "Agrafe":
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                K_ser = rho_mean**1.5 * self.d**0.8 / 80 # N/mm
+                K_ser = 2 * rho_mean**1.5 * self.d**0.8 / 80 # N/mm
                 return K_ser * si.N / si.mm
         elif self.type_organe == "Anneau" or self.type_organe == "Crampon C10/C11":
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -162,14 +157,16 @@ class Assemblage(Projet):
                 K_ser = 1.5 * rho_mean * d / 4 # N/mm
                 return K_ser * si.N / si.mm
         return val()
-    
+
+    @property
     def Kser_ass(self):
+        """Retourne le module de glissement de l'assemblage pour les états limites de services."""
         n_file = self.nfile
-        K_ser = self.Kser()[1]
+        K_ser = self.Kser[1]
         n = self.n
         n_Cis = self.nCis
         k_type = 1
-        if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[1]:
+        if self.type_assemblage == self.TYPE_ASSEMBLAGE[1]:
             k_type = 2
         @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():    
@@ -177,6 +174,31 @@ class Assemblage(Projet):
             return K_ser_ass
         return val()
 
+    @property
+    def Ku(self):
+        """Retourne le module de glissement de l'organe pour les états limites ultimes."""
+        K_ser = self.Kser[1]
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            K_u = K_ser * 2 / 3
+            return K_u
+        return val()
+
+    @property
+    def Ku_ass(self):
+        """Retourne le module de glissement de l'assemblage pour les états limites ultimes."""
+        n_file = self.nfile
+        K_u = self.Ku[1]
+        n = self.n
+        n_Cis = self.nCis
+        k_type = 1
+        if self.type_assemblage == self.TYPE_ASSEMBLAGE[1]:
+            k_type = 2
+        @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():    
+            K_u_ass = K_u * n_file * n * n_Cis * k_type
+            return K_u_ass
+        return val()
 
     # 8.1.4 Effort d'assemblage inclinés par rapport au fil
 
@@ -468,7 +490,7 @@ class Assemblage(Projet):
             float: effort de reprise caractéristique de l'assemblage en N
         """
         #     Fvrktot : capacité résistante en cisaillement caractéristique avec la partie de Johansen + l'effet de corde en N
-        if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[0]:
+        if self.type_assemblage == self.TYPE_ASSEMBLAGE[0]:
             latex, self.Fv_Rk = self._FvRk_BoisBois(effet_corde)
         else:
             latex, self.Fv_Rk = self._FvRk_BoisMetal(effet_corde)
@@ -477,10 +499,22 @@ class Assemblage(Projet):
         n_file = self.nfile
         n_ef = self._nef
         n_cisaillement = self.nCis
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-        def val():
-            F_v_Rk_ass = F_v_Rk * n_file * n_ef * n_cisaillement
-            return F_v_Rk_ass
+        if self.type_organe == "Agrafe":
+            if not self.angle_sup_30:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    F_v_Rk_ass = F_v_Rk * 0.7 * n_file * n_ef * n_cisaillement
+                    return F_v_Rk_ass
+            else:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    F_v_Rk_ass = F_v_Rk * 2 * n_file * n_ef * n_cisaillement
+                    return F_v_Rk_ass
+        else:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                F_v_Rk_ass = F_v_Rk * n_file * n_ef * n_cisaillement
+                return F_v_Rk_ass
         FvRkass_latex, self.Fv_Rk_ass = val()
         latex = latex + FvRkass_latex
         return (latex, self.Fv_Rk_ass)
@@ -629,7 +663,7 @@ class Assemblage(Projet):
         Fv_Ed = abs(Fv_Ed) * si.kN
         @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            taux_cisaillement = Fv_Ed / Fv_Rd_ass * 100
+            taux_cisaillement = Fv_Ed / Fv_Rd_ass
             return taux_cisaillement
         return val()
     
@@ -638,26 +672,26 @@ class Assemblage(Projet):
 # 8.3 Assemblage par pointes
 
 class Pointe(Assemblage):
-    """ Défini un objet pointe avec :
-        d : diamètre de la pointe en mm (pour les pointe carrée = coté de la pointe)
-        d_tete : diamètre de la tête en mm
-        l : longueur sous la tête en mm
-        qualite = qualité de l'acier
-        n : nombre d'organe dans une file 
-        alpha1 : angle entre l'effort de l'organe et le fil du bois 1 en °
-        alpha2 : angle entre l'effort de l'organe et le fil du bois 2 en °
-        type_organe : "Carrée" = False "Circulaire" = True
-        percage : "False", "True"
-        """
-
-    TYPE_ASSEMBLAGE = ("Bois/Bois", ("CP", "Panneau dur", "PP/OSB"), "Bois/Métal")
     QUALITE_ACIER = ('6.8', '8.8', '9.8', '10.9', '12.9')
-    TYPE_ORGANE = ("Pointe circulaire", "Pointe carrée", "Autres pointes")
-
-    def __init__(self, d:si.mm, d_tete:si.mm, l:si.mm, qualite: str=QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, type_organe: str=TYPE_ORGANE, percage: bool=("False", "True"), *args, **kwargs):
+    TYPE_ORGANE = ("Pointe circulaire lisse", "Pointe carrée lisse", "Autres pointes")
+    def __init__(self, d:si.mm, dh:si.mm, l:si.mm, qualite: str=QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, type_organe: str=TYPE_ORGANE, percage: bool=("False", "True"), *args, **kwargs):
+        """ 
+        Créer une classe Pointe hérité de la classe Assemblage du module EC5_Assemblage.py.
+        
+        Args:
+            d (float): diamètre de la pointe en mm (pour les pointe carrée = coté de la pointe)
+            dh (float): diamètre de la tête en mm
+            l (int): longueur sous la tête en mm
+            qualite (str): qualité de l'acier
+            n (int): nombre d'organe dans une file 
+            alpha1 (float, optional): angle entre l'effort de l'organe et le fil du bois 1 en °
+            alpha2 (float, optional): angle entre l'effort de l'organe et le fil du bois 2 en °
+            type_organe (str): type de l'organe "Pointe circulaire lisse", "Pointe carrée lisse", "Autres pointes" pour les pointes torsadées, annelées, crantées
+            percage (bool): Si il y a un prépercage de la pointe alors True sinon False. Defaults to False".
+        """
         super().__init__(*args, **kwargs)
         self.d = d * si.mm
-        self.d_tete = d_tete * si.mm
+        self.dh = dh * si.mm
         self.l = l * si.mm #longueur sous tête
         self.qualite = qualite
         self.n = n
@@ -665,9 +699,21 @@ class Pointe(Assemblage):
         self.alpha = [alpha1, alpha2]
         self.percage = percage
         self.type_organe = type_organe
-
         self.__t1_t2()
+        self._caracteristique_min()
         self._fhik()
+    
+    def _caracteristique_min(self):
+        """ Vérifie si les caractéristiques minimales sont respectées """
+        if self.fu < 600*si.MPa:
+            raise ValueError("La résistance du fil en traction est inférieur à 600 MPa, vérifier vos données !")
+        if not self.percage and self.d > 6*si.mm:
+            raise ValueError(f"Erreur, le diamètre de la pointe est supérieur à 6mm, le prépercage est obligatoire")
+        if self.type_assemblage == self.TYPE_ASSEMBLAGE[0]: #Si assemblage bois bois
+            if self.type_organe in ("Pointe circulaire lisse", "Pointe carrée lisse") and self.t2 < 8*self.d:
+                raise ValueError(f"Erreur, la longueur de pénétration t2 est inférieur à 8 fois le diamètre de la pointe. La longueur de pénétration minimal est de {self.d*8}")
+            elif self.type_organe in ("Autres pointes", "Tirefond") and self.t2 < 6*self.d:
+                raise ValueError(f"Erreur, la longueur de pénétration t2 est inférieur à 6 fois le diamètre de la pointe. La longueur de pénétration minimal est de {self.d*6}")
 
 
     @property
@@ -678,7 +724,7 @@ class Pointe(Assemblage):
 
     @property
     def _type_circulaire(self):
-        if self.type_organe == "Pointe carrée":
+        if self.type_organe == "Pointe carrée lisse":
             return False
         else:
             return True
@@ -699,6 +745,8 @@ class Pointe(Assemblage):
 
             if self._type_beam[1] in self.TYPE_BOIS_ASSEMBLAGE:
                 self.t2 = self.l - self.t1 - l_pointe
+            else:
+                raise ValueError("Il n'est pas considéré possible d'avoir un assemblage simple cisaillement avec flasque métalique en position 2")
 
         else:
             if self._type_beam[0] in self.TYPE_BOIS_ASSEMBLAGE:
@@ -708,7 +756,7 @@ class Pointe(Assemblage):
                     b_beam_2 = self.beam_2.b_calcul
                     self.t1 = min(self.beam_1.b_calcul, self.l - self.beam_1.b_calcul - b_beam_2 - l_pointe)
             else:
-                print("Il n'est pas possible sauf erreur d'avoir un assemblage double cisaillement avec une pointe !")
+                raise ValueError("Il n'est pas considéré possible d'avoir un assemblage double cisaillement avec flasque métalique et un organe de type pointe!")
             if self._type_beam[1] in self.TYPE_BOIS_ASSEMBLAGE:
                 self.t2 = self.beam_2.b_calcul
             else:
@@ -724,18 +772,18 @@ class Pointe(Assemblage):
         d = self.d.value * 10**3
         if self.fu >= 600:
             if self._type_circulaire == True:
-                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                @handcalc(override="short", precision=2, left="\\[", right="\\]")
                 def val():
                     M_y_Rk = 0.3 * f_u* d**2.6 # N.mm
                     return M_y_Rk * si.N*si.mm
             else:
-                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                @handcalc(override="short", precision=2, left="\\[", right="\\]")
                 def val():
                     M_y_Rk = 0.45 * f_u* d**2.6 # N.mm
                     return M_y_Rk * si.N*si.mm
             return val()
         else:
-            print("La résistance du fil en traction est inférieur à 600 MPa, vérifier vos données !")
+            raise ValueError("La résistance du fil en traction est inférieur à 600 MPa, vérifier vos données !")
 
 
     def _fhk_bois(self, beam:object):
@@ -761,7 +809,7 @@ class Pointe(Assemblage):
 
         Args:
             t (int): épaisseur du panneau en mm
-            self.d_tete (int): diamètre de la tête de la pointe
+            self.dh (int): diamètre de la tête de la pointe
 
         Returns:
             float: portance locale en MPa
@@ -769,7 +817,7 @@ class Pointe(Assemblage):
         d = self.d.value * 10**3
         b_calcul = beam.b_calcul
         rho_k = beam.rho_k
-        if self.d_tete >= 2*d:
+        if self.dh >= 2*self.d or self.type_organe == "Agrafe":
             if beam.type_bois == "CP":
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
@@ -787,7 +835,7 @@ class Pointe(Assemblage):
                     return fhk * si.MPa
             return val()
         else:
-            print(f"La tête de la pointe doit être au moins égale à {2*d} mm")
+            raise ValueError(f"La tête de la pointe doit être au moins égale à {2*d} mm")
 
 
     def _fhik(self) -> tuple:
@@ -814,11 +862,65 @@ class Pointe(Assemblage):
             #         self.t2 = self.beam_2.b_calcul
             #     else:
             #         self.t1 = self.beam_1.b_calcul
-        
-        
         self.fh1k = dict_beam["1"]["fhk"]
         self.fh2k = dict_beam["2"]["fhk"]
         return self.fh1k, self.fh2k
+    
+    
+    def Fax_Rk(self):
+        """Calcul la valeur caractéristique de résistance axial entre la résistance caractéristique de la tête et du corps de la tige dans le bois en N.
+        """
+        if self._type_beam[1] == "Métal":
+            rho_k_ax  = self.beam_1.rho_k
+        else:
+            rho_k_ax  = self.beam_2.rho_k
+        rho_k_head  = self.beam_1.rho_k
+        d = self.d
+        d_h = self.dh
+        t = self.t1
+        t_pen = self.t2
+        
+        if self.type_organe == "Autres pointes":
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                f_ax_k = 70 * 10**-6 * rho_k_ax**2 * si.MPa
+                F_ax_a_Rk = f_ax_k * d * t_pen
+                f_head_k = 70 * 10**-6 * rho_k_head**2 * si.MPa
+                F_head_Rk = f_head_k * d_h**2
+                F_ax_Rk = min(F_ax_a_Rk, F_head_Rk)
+                return F_ax_Rk
+        else:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                f_ax_k = 70 * 10**-6 * rho_k_ax**2 * si.MPa
+                F_ax_a_Rk = f_ax_k * d * t_pen
+                f_head_k = 70 * 10**-6 * rho_k_head**2 * si.MPa
+                F_head_Rk = f_ax_k * d * t + f_head_k * d_h**2
+                F_ax_Rk = min(F_ax_a_Rk, F_head_Rk)
+                return F_ax_Rk
+        
+        F_ax_Rk = val()
+        if self.type_organe == "Autres pointes" and self.t2 < 8 * self.d:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val2():
+                F_ax_Rk_min = F_ax_Rk * (t_pen / (2 * d) - 3)
+                return F_ax_Rk_min
+            minoration = val2()
+            self.FaxRk = minoration[1]
+            return (F_ax_Rk[0] + minoration[0], minoration[1])
+
+        elif self.type_organe and self.t2 < 12 * self.d:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val2():
+                F_ax_Rk_min = F_ax_Rk * (t_pen / (4 * d) - 2)
+                return F_ax_Rk_min
+            minoration = val2()
+            self.FaxRk = minoration[1]
+            return (F_ax_Rk[0] + minoration[0], minoration[1])
+            
+        else:
+            self.FaxRk = F_ax_Rk[1]
+            return F_ax_Rk
 
 
     def _kef(self, a1:int):
@@ -883,7 +985,7 @@ class Pointe(Assemblage):
             if n == 1:
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    n_ef =1
+                    n_ef = 1
                     return n_ef
                 nef_list.append(val())
             else :
@@ -895,39 +997,16 @@ class Pointe(Assemblage):
         result = self._min_nef(nef_list)
         self._nef = result[1]
         return result
-    
-    # def FvRk(self, effet_corde: bool=("True", "False")):
-    #     """Calcul la valeur de calcul caractéristique de résistance au cisaillement de l'assemblage en N
-
-    #     Args:
-    #         effet_corde (bool): prise en compte de l'effet de corde, si oui alors True.
-
-    #     Returns:
-    #         float: effort de reprise caractéristique de l'assemblage en N
-    #     """
-    #     super()._FvRk(effet_corde)
-
-    # def FbsRk(self, dp:float, a1:float, a2:float, a3t:float, Kcr: float=0.67, num_beam: int=("1", "2")):
-    #     """Calcul la valeur caractéristique en cisaillement de bloc en N pour l'élément 1 ou 2 de l'assemblage.
-    #     Attention pour que cette fonction puisse s'éxecuter il faut avoir préalablement éxécuté la fontion FvRk.
-
-    #     Args:
-    #         dp (float): diamètre de perçage en mm
-    #         a1 (float): pince longitudinale en mm
-    #         a2 (float):  pince perpendiculaire en mm
-    #         a3t (float): pince en bord chargée suivant le file en mm
-    #         kcr (float, optional): coeff de réduction largeur en cisaillement. 
-    #             Si aucune valeur n'est rentrée alors il sera automatiquement calculé. Defaults to 0.67.
-    #         num_beam (int, optional): numéro de l'élément à vérifier. Defaults to 1.
-    #     """
-    #     super()._FbsRk(dp, a1, a2, a3t, Kcr, num_beam)
 
     @property
     def pince(self):
-        """Défini les différentes pinces minimales pour une pointe en mm avec :
+        """
+        Défini les différentes pinces minimales pour une pointe en mm.
+
+        Args:
             alpha : angle entre l'effort de l'organe et le fil du bois en °
-            d : diamètre efficace de la pointe ou du tire fond si d<=6mm en mm """
-            
+            d : diamètre efficace de la pointe ou du tire fond si d<=6mm en mm
+        """
         dict_pince = {}
         if self.type_organe == "Tirefond":
             self.d = self.d_vis
@@ -975,16 +1054,9 @@ class Pointe(Assemblage):
                     else:
                         a4t = round((7 + 5 * mt.sin(mt.radians(alpha))) * self.d, 1)
                 else:
-                    print("Il faut absolument prépercer au dessus de rho,k: 500 kg/m3")
+                    raise ValueError("Il faut absolument prépercer au dessus de rho,k: 500 kg/m3")
 
-            if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[0]: #Si assemblage bois bois
-                pass
-
-            elif self.type_assemblage == __class__.TYPE_ASSEMBLAGE[1]: #Si assemblage bois métal
-                a1 = round(a1 * 0.7, 1)
-                a2 = round(a2 * 0.7, 1)
-
-            else: #Si assemblage bois panneau
+            if self._type_beam[i] in self.TYPE_BOIS_ASSEMBLAGE[1:]: #Si assemblage bois panneau
                 a1 = round(a1 * 0.85, 1)
                 a2 = round(a2 * 0.85, 1)
                 if beam.type_bois == "CP":
@@ -993,55 +1065,139 @@ class Pointe(Assemblage):
                     a4t = a3t
                     a4c = a3c
 
+            elif self.type_assemblage == "Bois/Bois": #Si assemblage bois bois
+                pass
+
+            elif self.type_assemblage == "Bois/Métal": #Si assemblage bois métal
+                a1 = round(a1 * 0.7, 1)
+                a2 = round(a2 * 0.7, 1)
+
             dict_pince["barre "+str(i+1)] = {"a1": a1, "a2":a2, "a3t": a3t, "a3c": a3c, "a4t": a4t, "a4c": a4c}
         return dict_pince
 
 
-    def prepercage(self, sensible: bool=("False", "True")):
-        """Défini l'épaisseur en mm minimale pour éviter le pré-perçage des pointes
+    def prepercage(self, beam: str=["1", "2"], sensible: bool=("False", "True")):
+        """Retourne l'épaisseur en mm minimale pour éviter le pré-perçage des pointes
 
         Args:
+            beam (str, optional): Défini la barre à calculer entre 1 et 2 selon l'EN1995. Defaults to "1".
             sensible (bool, optional): Défini si le bois utilisé est sensible à la fissuration (selon AN §8.3.1.2(7) douglas et pin maritime). Defaults to False.
 
         Returns:
-            int: l'épaisseur du bois en mm
+            int: l'épaisseur minimale du bois en mm
         """
-        if sensible:
-            t = max(14 * self.d,
-                    (13 * self.d - 30) * (self.pk / 200))
+        d = self.d
+        if beam == "1":
+            rho_k  = self.beam_1.rho_k
         else:
-            t = max(7 * self.d,
-                    (13 * self.d - 30) * (self.pk / 400))
-        print(f"l'épaisseur minimale pour éviter le pré-perçage est de {t} mm")
-        return int(t) 
-        
-        
+            rho_k  = self.beam_2.rho_k
+        if sensible:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                t_min = max(14 * d, (13 * d - 30) * (rho_k / 200))
+                return t_min
+        else:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                t_min = max(7 * d, (13 * d - 30) * (rho_k / 400))
+                return t_min
+        return val() 
         
 
+# ======================================================= Agrafe =========================================================
+# 8.4 Assemblage par Agrafe
 
+class Agrafe(Pointe):
+    TYPE_ASSEMBLAGE = ("Bois/Bois", ("CP", "Panneau dur", "PP/OSB"), "Bois/Métal")
+    QUALITE_ACIER = ('8.8', '9.8', '10.9', '12.9')
+    def __init__(self, d:si.mm, b_agrafe:si.mm, l:si.mm, qualite: str=QUALITE_ACIER, n: int=1, angle_sup_30: bool=["True", "False"], alpha1: float=0, alpha2: float=0, **kwargs):
+        """
+        Créer une classe Agrafe hérité de la classe Assemblage du module EC5_Assemblage.py.
+        
+        Args:
+            d (float): diamètre de l'agrafe en mm, si l'agrafe est de section rectangulaire alors c'est la racine carrée du produit des 2 dimensions selon EN1995 §8.4(2).
+            b_agrafe (float): dimension du dos de l'agrafe en mm.
+            l (int): longueur sous la tête en mm
+            qualite (str): qualité de l'acier
+            n (int): nombre d'agrafe dans une file 
+            angle_sup_30 (str): Si l'angle entre la tête de l'agrafe et le fil du bois est supérieur à 30° alors True sinon False. Defaults to True.
+            alpha1 (float, optional): angle entre l'effort de l'agrafe et le fil du bois 1 en °. Defaults to 0.
+            alpha2 (float, optional): angle entre l'effort de l'agrafe et le fil du bois 2 en °. Defaults to 0.
+        """
+        super().__init__(d=d, dh=0, l=l, qualite=qualite, n=n, alpha1=alpha1, alpha2=alpha2, type_organe="Agrafe", percage=False, **kwargs)
+        self.b_agrafe = b_agrafe * si.mm
+        self.angle_sup_30 = angle_sup_30
+        self._dimension_min()
+
+    def _dimension_min(self):
+        """ Vérifie si les dimensions minimales sont respectées """
+        if self.b_agrafe < self.d*6:
+            raise ValueError(f"Erreur, la dimension du dos de l'agrafe est inférieur à 6 fois le diamètre de l'agrafe, le dos de l'agrafe minimal est de {self.d*6}")
+        if self.t2 < self.d*14:
+            raise ValueError(f"Erreur, la longueur de pénétration t2 est inférieur à 14 fois le diamètre de l'agrafe. La longueur d'agrafe minimal est de {self.t1 + self.d*14}")
+        
+    @property
+    def MyRk(self):
+        """ Défini le moment d'écoulement plastique d'une pointe en N.mm avec"""
+        d = self.d.value * 10**3
+        @handcalc(override="short", precision=2, left="\\[", right="\\]")
+        def val():
+            M_y_Rk = 150 * d**3 # N.mm
+            return M_y_Rk * si.N*si.mm
+        return val()
+
+    def nef(self):
+        """Retourne le nombre efficace d'organe dans une file"""
+        self._nef = self.n
+        return self._nef
+
+    @property
+    def pince(self):
+        """
+        Défini les différentes pinces minimales pour une pointe en mm.
+
+        Args:
+            alpha : angle entre l'effort de l'organe et le fil du bois en °
+            d : diamètre efficace de la pointe ou du tire fond si d<=6mm en mm
+        """
+        dict_pince = {}
+        for i, beam in enumerate([self.beam_1, self.beam_2]):
+            if not self._type_beam[i] in self.TYPE_BOIS_ASSEMBLAGE:
+                continue
+            alpha = self.alpha[i]
+            if not self.angle_sup_30:
+                a1 = round((10 + 5 * mt.cos(mt.radians(alpha))) * self.d, 1)
+            else:
+                a1 = round((15 + 5 * mt.cos(mt.radians(alpha))) * self.d, 1)
+            a2 = round(15 * self.d, 1)
+            a3t = round((15 + 5 * mt.cos(mt.radians(alpha))) * self.d, 1)
+            a3c = round(15 * self.d, 1)
+            a4t = round((15 + 5 * mt.sin(mt.radians(alpha))) * self.d, 1)
+            a4c = round(10 * self.d, 1)
+            dict_pince["barre "+str(i+1)] = {"a1": a1, "a2":a2, "a3t": a3t, "a3c": a3c, "a4t": a4t, "a4c": a4c}
+        return dict_pince
 
 # ======================================================= BOULON =========================================================
 # 8.5 Assemblage par boulon
 
 class Boulon(Assemblage):
-    """ Défini un objet boulon avec :
-        d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm
-        fuk : la valeur caractéristique de résistance à la traction du boulon en N/mm2
-        n : nombre de boulons dans une file
-        alpha 1 : angle entre l'effort de l'organe et le fil du bois en ° pour la barre 1
-        alpha 2 : angle entre l'effort de l'organe et le fil du bois en ° pour la barre 2
-
-        t1 (int, optional): longueur de contact avec la tige  pour la pièce 1 en mm. 
-            ATTENTION : Cet argument n'est pas obligatoire par défaut, il est calculé par le type de tige utilisée.
-            Il n'est nécessaire de le remplir uniquement si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
-
-        t2 (int, optional): longueur de contact avec la tige  pour la pièce 2 en mm. 
-            ENTION : Même chose que pour t1 mais pour la pièce 2.
-    """
-        
     QUALITE_ACIER = tuple(Assemblage._data_from_csv(Assemblage, "qualite_acier.csv").index)
-    
     def __init__(self, d:si.mm, qualite: str=QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, t1: int=0, t2: int=0, **kwargs):
+        """
+        Créer une classe Boulon hérité de la classe Assemblage du module EC5_Assemblage.py.
+        
+        Args:
+            d (int): diamètre efficace du boulon (ou du tire fond si >6mm) en mm
+            qualite (str): qualité de l'acier
+            n (int): nombre de boulons dans une file
+            alpha1 (float, optional): angle entre l'effort de l'organe et le fil du bois en ° pour la barre 1. Defaults to 0.
+            alpha2 (float, optional): angle entre l'effort de l'organe et le fil du bois en ° pour la barre 2. Defaults to 0.
+            t1 (int, optional): longueur de contact avec la tige  pour la pièce 1 en mm. 
+                ATTENTION : Cet argument n'est pas obligatoire par défaut, il est calculé par le type de tige utilisée.
+                Il n'est nécessaire de le remplir uniquement si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
+            t2 (int, optional): longueur de contact avec la tige  pour la pièce 2 en mm. 
+                ATTENTION : Même chose que pour t1 mais pour la pièce 2.
+        """
         super().__init__(**kwargs)
         self.type_organe = "Boulon"
         if "type_organe" in kwargs.keys():
@@ -1064,7 +1220,6 @@ class Boulon(Assemblage):
         df = df.loc[self.qualite]
         return df
 
-        
     # 8.5.1 Boulons chargés latéralement
     # 8.5.1.1 Généralité et assemblage bois/bois
     
@@ -1207,7 +1362,7 @@ class Boulon(Assemblage):
             d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm"""
         f_uk = self.fuk.value * 10**-6
         d = self.d.value * 10**3
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        @handcalc(override="short", precision=2, left="\\[", right="\\]")
         def val():
             M_y_Rk = 0.3 * f_uk * d ** 2.6 # N.mm
             return M_y_Rk * si.N*si.mm
@@ -1327,28 +1482,28 @@ class Boulon(Assemblage):
 # 8.6 Assemblage par broche
 
 class Broche(Boulon):
-    """ Créer une classe Broche.
-        d : diamètre efficace de la broche ( entre 6 et 30 mm) en  mm
-        qualite : qualite de la broche
-        n : nombre de broche dans une file
-        alpha : angle entre l'effort de l'organe et le fil du bois en °
-
-        t1 (int, optional): longueur de contacte avec la tige  pour la pièce 1 en mm. 
-            ATTENTION : Cet argument n'est pas obligatoire par défaut, il est calculer par le type de tige utilisée.
-            Il n'est nécessaire de le remplir que si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
-
-        t2 (int, optional): longueur de contacte avec la tige  pour la pièce 2 en mm.
-            ATTENTION : Même chose que pour t1 mais pour la pièce 2.
-    """
-
     def __init__(self, d:float, qualite: str=Boulon.QUALITE_ACIER, n: int=1, alpha1: float=0, alpha2: float=0, t1: int=0, t2: int=0, **kwargs):
+        """
+        Créer une classe Broche hérité de la classe Assemblage du module EC5_Assemblage.py.
+
+        Args:
+            d (int): diamètre efficace de la broche ( entre 6 et 30 mm) en mm
+            qualite (str): qualite de la broche
+            n (int): nombre de broche dans une file
+            alpha (float): angle entre l'effort de l'organe et le fil du bois en °
+            t1 (int, optional): longueur de contacte avec la tige  pour la pièce 1 en mm. 
+                ATTENTION : Cet argument n'est pas obligatoire par défaut, il est calculer par le type de tige utilisée.
+                Il n'est nécessaire de le remplir que si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
+            t2 (int, optional): longueur de contacte avec la tige  pour la pièce 2 en mm.
+                ATTENTION : Même chose que pour t1 mais pour la pièce 2.
+        """
         super().__init__(d, qualite, n, alpha1, alpha2, **kwargs)
         self.type_organe = "Broche"
+        self.FaxRk = 0
 
     @property
     def Fax_Rk(self):
-        self.FaxRk = 0
-        return 0
+        return self.FaxRk
         
     @property
     def pince(self):
@@ -1385,7 +1540,7 @@ class _Tirefond(object):
         Args:
             d (si.mm): diamètre extérieur du filet en mm
             d1 (float): diamètre du noyaux en mm
-            ds (float): diamètre de la tête en mm
+            ds (float): diamètre de la tige en mm
             dh (float): diamètre de la tête en mm
             l (float): longueur total de la vis en mm
             n (int): le nombre de vis dans une file
@@ -1472,8 +1627,8 @@ class _Tirefond(object):
         if 6 <= d <= 12 and 0.6 <= d1 / d <= 0.75:
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                f_axk = 0.52 * (d ** -0.5) * (l_ef ** -0.1) * (rho_k ** 0.8)
-                return f_axk
+                f_ax_k = 0.52 * (d ** -0.5) * (l_ef ** -0.1) * (rho_k ** 0.8)
+                return f_ax_k
             return val()
 
         else:
@@ -1481,7 +1636,7 @@ class _Tirefond(object):
                 "le diamètre ne répond pas aux spécifications demandées en 8.7.2(4) de l'EN 1995 partie assemblage")
 
 
-    def _FaxaRk(self, faxk:float, l_ef:int, alpha:int, beam:str=["1", "2"]):
+    def _FaxaRk(self, faxk:float, l_ef:int, alpha:int):
         """
         Calcul la valeur caractéristique de la résistance à l'arrachement du tirefond à un angle alpha par rapport au fil en N.
 
@@ -1489,12 +1644,11 @@ class _Tirefond(object):
             faxk (float): Valeur caractéristique de résistance à l'arrachement perpendiculaire au fil en N/mm2
             l_ef (int): longueur de pénétration de la partie filetée en mm
             alpha (int): angle formé entre l'axe du tirefond et le fil du bois, doit être supérieur à 30°
-            beam (str): élement à calculer 1 ou 2
         """
         d = self.d_vis.value*10**3
         d_1 = self.d1
         rho_a = self.rho_a.value
-        if beam == "1":
+        if self._type_beam[1] == "Métal":
             rho_k  = self.beam_1.rho_k
         else:
             rho_k  = self.beam_2.rho_k
@@ -1504,12 +1658,12 @@ class _Tirefond(object):
             def val():
                 kd = min((d / 8), 1)
                 F_ax_a_Rk = (faxk * d * l_ef * kd) / (1.2 * cos(radians(alpha)) ** 2 + sin(radians(alpha)) ** 2)
-                return F_ax_a_Rk
+                return F_ax_a_Rk * si.N
         else:
             @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 F_ax_a_Rk = ((faxk * d * l_ef) / (1.2 * (cos(radians(alpha))) ** 2 + (sin(radians(alpha))) ** 2)) * ((rho_k / rho_a) ** 0.8) #N
-                return F_ax_a_Rk
+                return F_ax_a_Rk * si.N
         return val()
 
     def _FaxaRkHead(self):
@@ -1522,12 +1676,12 @@ class _Tirefond(object):
         rho_k = self.beam_1.rho_k
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            F_axRkhead = f_head * d_h**2 * ((rho_k/rho_a)**0.8) #N
-            return F_axRkhead
+            F_head_Rk = f_head * d_h**2 * ((rho_k/rho_a)**0.8) #N
+            return F_head_Rk * si.N
         return val()
     
     
-    def Fax_Rk(self, faxk:float, l_ef:int, alpha:int, beam:str=["1", "2"]):
+    def Fax_Rk(self, faxk:float, l_ef:int, alpha:int):
         """Calcul la valeur caractéristique de résistance du tirefond axialement entre la résistance caractéristique de la tête et du pas de vis dans le bois en N.
         Cette fonction détermine ensuite la valeur de résistance caractéristique de l'assemblage en prenant compte du nombre efficace de tirefond en traction.
 
@@ -1535,16 +1689,15 @@ class _Tirefond(object):
             faxk (float): Valeur caractéristique de résistance à l'arrachement perpendiculaire au fil en N/mm2
             l_ef (int): longueur de pénétration de la partie filetée en mm
             alpha (int): angle formé entre l'axe du tirefond et le fil du bois, doit être supérieur à 30°
-            beam (str, optional): élément à calculer 1 ou 2
         """
-        F_ax_a_Rk_value = self._FaxaRk(faxk, l_ef, alpha, beam)
+        F_ax_a_Rk_value = self._FaxaRk(faxk, l_ef, alpha)
         F_ax_a_Rk = F_ax_a_Rk_value[1]
-        F_ax_a_Rk_head_value = self._FaxaRkHead()
-        F_ax_a_Rk_head = F_ax_a_Rk_head_value[1]
+        F_head_Rk_value = self._FaxaRkHead()
+        F_head_Rk = F_head_Rk_value[1]
         
         @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            F_ax_Rk = min(F_ax_a_Rk, F_ax_a_Rk_head) #N
+            F_ax_Rk = min(F_ax_a_Rk, F_head_Rk)
             return F_ax_Rk
         FaxRk = val()
         self.FaxRk = FaxRk[1]
@@ -1554,11 +1707,11 @@ class _Tirefond(object):
 
         @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val_ass():
-            F_ax_Rk_ass = f_ax_Rk * n_ef_traction # N
+            F_ax_Rk_ass = f_ax_Rk * n_ef_traction
             return F_ax_Rk_ass
         F_ax_Rk_ass = val_ass()
         
-        return (F_ax_a_Rk_value[0] + F_ax_a_Rk_head_value[0] + FaxRk[0] + F_ax_Rk_ass[0], F_ax_Rk_ass[1])
+        return (F_ax_a_Rk_value[0] + F_head_Rk_value[0] + FaxRk[0] + F_ax_Rk_ass[0], F_ax_Rk_ass[1])
 
 
     def FtRk(self):
@@ -1574,23 +1727,23 @@ class _Tirefond(object):
 
 class Tirefond_inf_7(_Tirefond, Pointe):
     def __init__(self, d:si.mm, d1:float, ds:float, dh:float, l:float, n:int, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
-        """Défini un object tirefond qui a un diamètre efficace inférieur à 6mm
+        """
+        Crée une classe Tirefond_inf_7 pour les tirefonds avec un diamètre efficace inférieur à 7mm.
+        Cette classe hérite de la classe Assemblage du module EC5_Assemblage.py.
 
         Args:
-            d (si.mm): diamètre extérieur du filet en mm
+            d (int): diamètre extérieur du filet en mm
             d1 (float): diamètre du noyaux en mm
-            ds (float): diamètre de la tête en mm
+            ds (float): diamètre de la tige en mm
             dh (float): diamètre de la tête en mm
             l (float): longueur total de la vis en mm
             n (int): le nombre de vis dans une file
             rho_a (float): masse volumique associée au tirefond en fax,k en kg/m3
             fhead (float): valeur caractéristique de traversée de la tête du tirefond à l'EN 14592 en Mpa
             ftensk (float): valeur caractéristique en traction du tirefond en N
-
             MyRk (float, optional): le moment d'écoulement plastique de la vis en N.mm. 
                 Si cette attribut est remplie, alors on récupère la valeur founis sinon on le calcul à l'EC5. 
                 Defaults to 0.
-
             alpha1 (float, optional): angle entre l'effort de l'organe et le fil du bois 1 en °. Defaults to 0.
             alpha2 (float, optional): angle entre l'effort de l'organe et le fil du bois 2 en °. Defaults to 0.
             percage (bool, optional): l'élément est-il préperçé ? Si oui alors True. Defaults to ("False", "True").
@@ -1601,10 +1754,10 @@ class Tirefond_inf_7(_Tirefond, Pointe):
             qualite = kwargs.pop("qualite")
                 
         if d1*1.1 <= 6:
-            Pointe.__init__(self, d=d1*1.1, d_tete=dh, l=l, qualite=qualite, n=n, alpha1=alpha1, alpha2=alpha2, type_organe="Tirefond", percage=percage, **kwargs)
+            Pointe.__init__(self, d=d1*1.1, dh=dh, l=l, qualite=qualite, n=n, alpha1=alpha1, alpha2=alpha2, type_organe="Tirefond", percage=percage, **kwargs)
             _Tirefond.__init__(self, d, d1, ds, dh, l, n, rho_a, fhead, ftensk, MyRk, alpha1, alpha2, percage)
         else:
-            raise "Erreur, le tirefond est considéré comme un boulon et non une pointe"
+            raise ValueError("Erreur, le tirefond est considéré comme un boulon et non une pointe")
         
         if MyRk:
             self._MyRk_fourni = MyRk * si.N*si.mm
@@ -1612,45 +1765,35 @@ class Tirefond_inf_7(_Tirefond, Pointe):
     @property
     def MyRk(self):
         if hasattr(self, "_MyRk_fourni"):
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            M_y_Rk_fourni = self._MyRk_fourni
+            @handcalc(override="short", precision=2, left="\\[", right="\\]")
             def val():
-                MyRk = self._MyRk_fourni
-                return MyRk
+                M_y_Rk = M_y_Rk_fourni
+                return M_y_Rk
             return val()
         else:
             return super().MyRk
 
 
 class Tirefond_sup_6(_Tirefond, Boulon):
-    """ Défini un object tirefond avec :
-        d : diamètre extérieur du filet en mm
-        d1 : diamètre du noyaux en mm
-        dh : diamètre de la tête en mm
-        rho_a : masse volumique associée au tirefond en fax,k en kg/m3
-        fhead : valeur caractéristique de traversée de la tête du tirefond à l'EN14592 en Mpa
-        ftensk : valeur caractéristique en traction du tirefond en N
-        n : nombre de boulons dans une file
-        alpha1 : angle entre l'effort de l'organe et le fil du bois 1 en °
-        alpha2 : angle entre l'effort de l'organe et le fil du bois 2 en °"""
-
     def __init__(self, d:si.mm, d1:float, ds:float, dh:float, l:si.mm, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, **kwargs):
-        """Défini un object tirefond qui a un diamètre efficace supérieur à 6mm
+        """
+        Crée une classe Tirefond_sup_6 pour les tirefonds avec un diamètre efficace supérieur à 6mm
+        Cette classe hérite de la classe Assemblage du module EC5_Assemblage.py.
 
         Args:
-            d (si.mm): diamètre extérieur du filet en mm
+            d (int): diamètre extérieur du filet en mm
             d1 (float): diamètre du noyaux en mm
-            ds (float): diamètre de la tête en mm
+            ds (float): diamètre de la tige en mm
             dh (float): diamètre de la tête en mm
             l (float): longueur total de la vis en mm
             n (int): le nombre de vis dans une file
             rho_a (float): masse volumique associée au tirefond en fax,k en kg/m3
             fhead (float): valeur caractéristique de traversée de la tête du tirefond à l'EN 14592 en Mpa
             ftensk (float): valeur caractéristique en traction du tirefond en N
-
             MyRk (float, optional): le moment d'écoulement plastique de la vis en N.mm. 
                 Si cette attribut est remplie, alors on récupère la valeur founis sinon on le calcul à l'EC5. 
                 Defaults to 0.
-
             alpha1 (float, optional): angle entre l'effort de l'organe et le fil du bois 1 en °. Defaults to 0.
             alpha2 (float, optional): angle entre l'effort de l'organe et le fil du bois 2 en °. Defaults to 0.
         """
@@ -1665,7 +1808,7 @@ class Tirefond_sup_6(_Tirefond, Boulon):
             _Tirefond.__init__(self, d, d1, ds, dh, l, n, rho_a, fhead, ftensk, MyRk, alpha1, alpha2)
             
         else:
-            print("Erreur, le tirefond est considéré comme une pointe et non un boulon")
+            raise ValueError("Erreur, le tirefond est considéré comme une pointe et non un boulon")
         
         if MyRk:
             self._MyRk_fourni = MyRk * si.N*si.mm
@@ -1673,10 +1816,11 @@ class Tirefond_sup_6(_Tirefond, Boulon):
     @property
     def MyRk(self):
         if hasattr(self, "_MyRk_fourni"):
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            M_y_Rk_fourni = self._MyRk_fourni
+            @handcalc(override="short", precision=2, left="\\[", right="\\]")
             def val():
-                MyRk = self._MyRk_fourni
-                return MyRk
+                M_y_Rk = M_y_Rk_fourni
+                return M_y_Rk
             return val()
         else:
             return super().MyRk
@@ -1740,21 +1884,4 @@ class Tirefond_sup_6(_Tirefond, Boulon):
 #         pass
 
 
-if __name__ == "__main__":
-    from EC5_Element_droit import Barre
-    from EC3_Element_droit import Element
-    
-    beam1 = Barre(60, 140, "Rectangulaire", classe="C24", cs=2)
-    beam1._f_type_d("fm0k", "Instantanee", "Fondamentales")
-
-    beam2 = Barre(160, 160, "Rectangulaire", classe="GL24h", cs=2)
-    beam1._f_type_d("fm0k", "Instantanee", "Fondamentales")
-
-    ass = Assemblage(beam1, beam2, nfile=1, nCis=2)
-    bl = Boulon._from_parent_class(ass, d=12, qualite="4.6", n=2, alpha=0)
-    bl.FaxRk(14,30,True,"Court terme", "Fondamentales")
-    print(bl.FvRk(True))
-
-    # pointe = Pointe._from_parent_class(ass, d=6, d_tete=12, l=120, qualite="10.9", n=1, alpha=0, type_organe="Autres pointes", percage="False")
-    # print(pointe.pince_ass)
 

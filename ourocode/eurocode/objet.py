@@ -10,6 +10,7 @@ import pandas as pd
 import pickle
 import inspect
 from PySide6.QtWidgets import QFileDialog
+from IPython.display import display, Latex
 # from tkinter import filedialog
 
 import forallpeople as si
@@ -25,6 +26,7 @@ def get_package_path(package):
 class Objet(object):
     """Classe permetant la sauvegarde ou l'ouverture d'un objet ou de plusieur sous un fichier .ec
     """
+    JUPYTER_DISPLAY = False
     OPERATOR = ("+", "-", "x", "/")
     try:
         import ourocode
@@ -43,7 +45,25 @@ class Objet(object):
         repertory = os.path.join(self.PATH_CATALOG, "data", data_file)
         data_json = pd.read_json(repertory)
         return data_json
-    
+
+    def _load_json(self, data_file: str):
+        """ Retourne un dict d'un fichier JSON """
+        repertory = os.path.join(self.PATH_CATALOG, "data", "prdata", data_file)
+        with open(repertory, "r", encoding="utf-8") as json_file:
+            data = json.load(json_file)
+        return data
+
+    def _assign_handcalcs_value(self, handcalc_value: tuple, args: list[str]):
+        """Assigne les valeurs des calculs handcalc aux arguments de l'objet.
+        Les arguments doivent être dans le même ordre que les valeurs des calculs handcalc."""
+        if isinstance(handcalc_value, tuple):
+            if self.JUPYTER_DISPLAY:
+                for i, value in enumerate(handcalc_value):
+                    print(args[i], value)
+                    setattr(self, args[i], value)
+            else:
+                for i, value in enumerate(handcalc_value[1]):
+                    setattr(self, args[i], value)
     
     @property
     def objet(self):

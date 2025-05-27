@@ -19,7 +19,6 @@ from ourocode.eurocode.objet import Objet
 
 
 class Projet(Objet):
-    JUPYTER_DISPLAY = False
     DICO_COMBI_ACTION = {
         "Permanente G": "G",
         "Exploitation Q": "Q",
@@ -428,6 +427,11 @@ class Model_generator(Projet):
     ################## Matériaux ##################
 
     def add_material_by_class(self, classe: str = CLASSE_WOOD) -> str:
+        """Ajoute un matériau bois au model MEF par sa classe de résitance.
+
+        Args:
+            classe (str): classe du matériau ex: "C24", "GL24h".
+        """
         if not self._data["materials"].get(classe):
             data_csv_meca = self._data_from_csv("caracteristique_meca_bois.csv")
             material_properties = data_csv_meca.loc[classe]
