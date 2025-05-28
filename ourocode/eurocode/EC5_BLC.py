@@ -1,11 +1,7 @@
 # coding in UTF-8 
 # by Anthony PARISOT
-
-############# Le but de ce fichier est de regrouper toute les fonctions du BLC dans l'EN-1995 #############
 import math as mt
-
 from ourocode.eurocode.EC5_Element_droit import Flexion
-
 
 class Poutre_simple_decroissance(Flexion):
     """ Défini une classe poutre à simple décroissance hérité à partir de la classe Beam du fichier EC5_Element_droit.py.

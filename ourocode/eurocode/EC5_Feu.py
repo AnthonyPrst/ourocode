@@ -7,11 +7,9 @@ from math import sqrt, pi
 import pandas as pd
 
 import forallpeople as si
-
 si.environment("structural")
 from handcalcs.decorator import handcalc
 
-sys.path.append(os.path.join(os.getcwd()))
 from ourocode.eurocode.EC5_Element_droit import (
     Barre,
     Flexion,
