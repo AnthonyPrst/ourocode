@@ -1,5 +1,4 @@
 from ourocode.eurocode.objet import Objet
-    
 class And(Objet):
     def __init__(self):
         super().__init__()

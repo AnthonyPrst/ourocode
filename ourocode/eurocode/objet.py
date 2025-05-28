@@ -1,6 +1,5 @@
 # coding in UTF-8 
 # by Anthony PARISOT
-
 import os
 import json
 import math as mt
@@ -9,7 +8,6 @@ from PIL import Image
 import pandas as pd
 import pickle
 import inspect
-from PySide6.QtWidgets import QFileDialog
 from IPython.display import display, Latex
 # from tkinter import filedialog
 
