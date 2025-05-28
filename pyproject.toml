@@ -8,7 +8,7 @@ include = ["ourocode*"]
 
 [project]
 name = "ourocode"
-version = "1.6.7"
+version = "1.6.8"
 description = "Ceci est un catalogue de fonction permettant une utilisation rapide pour la réalisation de note de calcul personnalisée."
 readme = "README.md"
 authors = [{name = "Anthony PARISOT", email = "contact@ourea-structure.fr"}]
