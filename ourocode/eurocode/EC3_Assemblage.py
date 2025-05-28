@@ -1,6 +1,5 @@
 # coding in UTF-8 
 
-############# Le but de ce fichier est de regrouper toute les fonctions d'assemblage par organe métalique dans l'EN-1993 #############
 from math import *
 import pandas as pd
 

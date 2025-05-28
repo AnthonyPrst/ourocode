@@ -1,10 +1,5 @@
 #! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
-
-
-
-# Code permettant le calcul des principaux coef. EC5 (EN 1995) ainsi que les calculs simple de vérification au
-# élément droit.
 from copy import deepcopy
 import matplotlib.pyplot as plt
 

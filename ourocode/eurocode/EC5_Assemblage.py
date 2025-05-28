@@ -1,6 +1,5 @@
 # coding in UTF-8
 # by Anthony PARISOT
-# under Python  3.9.4
 
 ############# Le but de ce fichier est de regrouper toute les fonctions d'assemblage par organe métalique dans l'EN-1995 #############
 from copy import deepcopy
@@ -116,7 +115,6 @@ class Assemblage(Projet):
         
         
     # 7.1 Glissement des assemblages
-    @property
     def Kser(self):
         """Retourne le module de glissement de l'organe pour les états limites de services."""
         rho_mean = self.rho_mean_ass
@@ -158,11 +156,10 @@ class Assemblage(Projet):
                 return K_ser * si.N / si.mm
         return val()
 
-    @property
     def Kser_ass(self):
         """Retourne le module de glissement de l'assemblage pour les états limites de services."""
         n_file = self.nfile
-        K_ser = self.Kser[1]
+        K_ser = self.Kser()[1]
         n = self.n
         n_Cis = self.nCis
         k_type = 1
@@ -174,21 +171,19 @@ class Assemblage(Projet):
             return K_ser_ass
         return val()
 
-    @property
     def Ku(self):
         """Retourne le module de glissement de l'organe pour les états limites ultimes."""
-        K_ser = self.Kser[1]
+        K_ser = self.Kser()[1]
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             K_u = K_ser * 2 / 3
             return K_u
         return val()
 
-    @property
     def Ku_ass(self):
         """Retourne le module de glissement de l'assemblage pour les états limites ultimes."""
         n_file = self.nfile
-        K_u = self.Ku[1]
+        K_u = self.Ku()[1]
         n = self.n
         n_Cis = self.nCis
         k_type = 1
