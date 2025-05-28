@@ -36,10 +36,6 @@ def interpolation_logarithmique(x, xa, xb, ya, yb):
 
 
 class Vent(Batiment):
-    """Créer une classe qui permet de calculer l'action de vent.
-    Cette classe est hérité de la classe Batiment du module A0_Projet.py.
-    """
-
     RHO_AIR = 1.225 * si.kg / si.m**3
     CPI = [0.2, -0.3]
     VB0 = {
@@ -67,6 +63,9 @@ class Vent(Batiment):
 
     def __init__(self, z: si.m, terrain: str = CAT_TERRAIN, oro: str = CAT_ORO, CsCd: float = 1, **kwargs):
         """
+        Créer une classe qui permet de calculer l'action de vent.
+        Cette classe est hérité de la classe Batiment du module A0_Projet.py.
+
         Args:
                 z (float): hauteur en m sur le bâtiment ou est étudié le vent (Ze suivant EN 1991-1-4 §7.2.2).
                 alt (int): altitude du batiment étudié en m.
