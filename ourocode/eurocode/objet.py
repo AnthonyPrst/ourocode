@@ -46,7 +46,7 @@ class Objet(object):
 
     def _load_json(self, data_file: str):
         """ Retourne un dict d'un fichier JSON """
-        repertory = os.path.join(self.PATH_CATALOG, "data", "prdata", data_file)
+        repertory = os.path.join(self.PATH_CATALOG, "data", data_file)
         with open(repertory, "r", encoding="utf-8") as json_file:
             data = json.load(json_file)
         return data

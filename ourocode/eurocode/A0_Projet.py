@@ -28,6 +28,7 @@ class Projet(Objet):
         "Neige accidentelle Sx": "Sx",
         "Sismique Ae": "Ae",
     }
+    PAYS = ("France")
 
     def __init__(
         self,
@@ -36,7 +37,7 @@ class Projet(Objet):
         name: str = None,
         adresse: str = None,
         code_INSEE: int = None,
-        pays: str = "France",
+        pays: str = PAYS,
         alt: si.m = 0,
         **kwargs,
     ):
@@ -49,6 +50,7 @@ class Projet(Objet):
             adresse (str, optional): adresse du projet. Defaults to None.
             region (int, optional): numéro INSEE départementale du projet en 5 chiffres. Defaults to None.
             pays (str, optional): pays ou ce situe le projet. Defaults to "France".
+                Attention, ce package est conçu pour être utilisé en France, il n'intègre que les annexes nationales Françaises.
             alt (int, optional): altitude du projet en m. Defaults to 0.
         """
         super().__init__()

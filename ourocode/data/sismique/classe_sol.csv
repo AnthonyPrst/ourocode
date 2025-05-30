@@ -1,0 +1,6 @@
+﻿classe;description;Vs30;Nspt;Cu
+A;Rocher ou autre formation géologique de ce type comportant une couche superficielle d'au plus 5 m de matériau moins résistant.;>800;;
+B;Dépôts raides de sable, de gravier ou d'argile sur-consolidée, d'au moins plusieurs dizaines de mêtres d'épaisseur, caractérisés par une augmentation progressive de propriétés mécaniques avec la profondeur.;360-800;>50;>250
+C;Dépôts profonds de sable de densité moyenne, de gravier ou d'argile moyennement raide, ayant des épaisseurs de quelques dizaines à plusieurs centaines de mètres.;180-360;15-50;70-250
+D;Dépôts de sol sans cohésion de densité faible à moyenne ou comprenant une majorité de sols cohérents mous à fermes.;<180;<15;<70
+E;Profil de sol comprenant une couche superficielle d'alluvions avec des valeurs de vs de classe C ou D et une épaisseur comprise entre 5 m et 20 m reposant sur un matériau plus raide avec vs>800m/s.;;;
