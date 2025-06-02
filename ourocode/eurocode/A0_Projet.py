@@ -28,6 +28,17 @@ class Projet(Objet):
         "Neige accidentelle Sx": "Sx",
         "Sismique Ae": "Ae",
     }
+    CAT_TYPE = (
+        "Aucune",
+        "Cat A : habitation",
+        "Cat B : bureaux",
+        "Cat C : lieu de réunion",
+        "Cat D : zones commerciales",
+        "Cat E : stockage",
+        "Cat F : véhicule <= 30kN",
+        "Cat G : véhicule <= 160kN",
+        "Cat H : toits",
+    )
     PAYS = ("France")
 
     def __init__(
@@ -64,19 +75,12 @@ class Projet(Objet):
         self.pays = pays
         self.alt = alt * si.m
 
-    def __str__(self) -> str:
-        return "Créer une classe Projet hérité de la classe Objet du fichier objet.py. Cette classe définit le projet, d'ou découle l'ensemble des objets du catalogue."
-
-    def __repr__(self) -> str:
-        return super().__repr__()
-
-
 class Batiment(Projet):
     def __init__(
         self,
-        h_bat: float,
-        d_bat: float,
-        b_bat: float,
+        h_bat: si.m,
+        d_bat: si.m,
+        b_bat: si.m,
         alpha_toit: float,
         alpha_toit2: float = 0,
         *args,
@@ -85,16 +89,17 @@ class Batiment(Projet):
         """Créer une classe Batiment héritée de Projet, cette classe définit les dimension du bâtiment
 
         Args:
-            h_bat (float): hauteur du bâtiment en m.
+            h_bat (float): hauteur du bâtiment en m depuis le soubassement rigide 
+                ou les fondations dans le cas d'un calcul sismique.
             d_bat (float): largeur du bâtiment en m.
             b_bat (float): longueur du bâtiment en m.
             alpha_toit (float): angle de toiture en ° du versant 1.
             alpha_toit2 (float): angle de toiture en ° du versant 2 si il existe sinon 0.
         """
         super().__init__(*args, **kwargs)
-        self.h_bat = h_bat
-        self.d_bat = d_bat
-        self.b_bat = b_bat  # coté perpendiculaire au vent longpant
+        self.h_bat = h_bat * si.m
+        self.d_bat = d_bat * si.m
+        self.b_bat = b_bat * si.m  # coté perpendiculaire au vent longpant
         self.alpha_toit = alpha_toit
         self.alpha_toit2 = alpha_toit2
 
