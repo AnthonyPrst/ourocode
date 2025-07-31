@@ -2,6 +2,7 @@
 # Encoding in UTF-8 by Anthony PARISOT
 from math import sin, radians
 import pandas as pd
+import warnings
 
 import forallpeople as si
 from handcalcs.decorator import handcalc
@@ -266,10 +267,10 @@ class Neige(Batiment):
 		if self.alpha_toit < 1.718:
 			match self.type_toit:
 				case "1 versant":
-					S_n = value[1]
+					S_nb = value[1]
 					@handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
 					def val():
-						S_n = S_n + 0.2 # Majoration faible pente
+						S_n = S_nb + 0.2 * si.kN/si.m**2 # Majoration faible pente
 						return S_n
 					value2 = val()
 					value = (value[0]+value2[0], value2[1])
@@ -327,11 +328,11 @@ class Neige(Batiment):
 				S_n (float): charge de neige normal
 			"""
 			if self.alt.value > 900:
-				gam = 3 # poid de reférence de la neige en kN/m3
+				gam = 3 * si.kN/si.m**3 # poid de reférence de la neige en kN/m3
 				d = S_n / gam
-				k = 3 / d
+				k = 3 / d.value
 				
-				if k > (d * gam):
+				if (k * si.kN / si.m**2) > (d * gam):
 					k = d * gam
 				Se = k * S_n**2 / gam
 			else:
@@ -355,6 +356,45 @@ class Neige(Batiment):
 						dict_Se["Versant 1"] = Se
 				return dict_Se
 	
+	def mu2_construction_attenante(self, b1: si.m, b2: si.m, h: si.m, alpha_toit_attenant: float):
+		"""Retourne le coefficient de forme mu2 comprenant mu_W et mu_S ainsi que la longueur d'application ls
+
+		Args:
+			b1 (si.m): longueur du bâtiment attenant en m
+			b2 (si.m): longueur du bâtiment considéré en m
+			h (si.m): hauteur entre les toitures des deux bâtiments en m
+			alpha_toit_attenant (float): angle de toiture de la construction attenante en °
+		"""
+		b_1 = b1
+		b_2 = b2
+		gam = 2 * si.kN/si.m**2
+		S_k_alt = self.Sk_alt[1]
+		muW = (b_1 + b_2) / (2 * h)
+		if muW <= gam * h / S_k_alt:
+			@handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+			def muW():
+				mu_W = (b_1 + b_2) / (2 * h)
+				return mu_W
+		else:
+			@handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+			def muW():
+				mu_W = gam * h / S_k_alt
+				return mu_W
+		dict_mu = {"mu_W": muW()[1]}
+		if alpha_toit_attenant <= 15:
+			dict_mu["mu_S"] = 0
+		else:
+			warnings.warn("Attention mu_S ne peut pas être calculé car l'angle de toiture de la construction attenante est supérieur à 15°.\n \
+			Le coeff. est donc calculé via une charge aditionnelle égale à la moitié de la charge maximale totale sur le versant adjacent de la toiture supérieure calculée selon §5.3.3")
+			dict_mu["mu_S"] = None
+		dict_mu["mu2"] = 0 + dict_mu["mu_W"]
+		if 5 * si.m <= 2*h <= 15 * si.m:
+			dict_mu["ls"] = 2*h
+		elif 2*h > 15 * si.m:
+			dict_mu["ls"] = 15 * si.m
+		else:
+			dict_mu["ls"] = 5 * si.m
+		return dict_mu
 	
 	def fs(self, S_n: float, entraxe:float, alpha: float):
 		"""Retourne la charge de neige en kN/m sur un obstacle ou une barre à neige

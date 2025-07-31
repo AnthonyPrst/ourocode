@@ -17,7 +17,6 @@ class Sismique(Batiment):
         "Exploitation Q",
         "Neige normale Sn"
     )
-    ETAGE = ("RDC", "R+1", "R+2", "R+3", "R+4", "Toiture")
     OCCUPATION = {"Étages à occupations corrélées": 0.8, "Étages à occupations indépendantes": 0.5, "Toiture": 1, "Autres": 1}
     CAT_IMPORTANCE = tuple(Batiment._data_from_csv(Batiment, os.path.join("sismique", "categorie_importance.csv")).index)
     CAT_IMPORTANCE_NS = tuple(Batiment._data_from_csv(Batiment, os.path.join("sismique", "categorie_importance_ns.csv")).index)
@@ -135,13 +134,13 @@ class Sismique(Batiment):
         else:
             return True 
     
-    def add_gravity_load(self,name: str, load: float, surface: si.m**2, etage: str=ETAGE, z_i: float=0, action: str=ACTION, categorie_Q: str=Batiment.CAT_TYPE, occupations: str=OCCUPATION, comment: str=""):
-        """Ajoute une charge permanente gravitaire au bâtiment, cela permet de considérer la masse par niveau sur le bâtiment.
+    def add_gravity_load(self,name: str, load: float, surface: si.m**2, etage: str=Batiment.ETAGE, z_i: float=0, action: str=ACTION, categorie_Q: str=Batiment.CAT_TYPE, occupations: str=OCCUPATION, comment: str=""):
+        """Ajoute une charge gravitaire au bâtiment, cela permet de considérer la masse par niveau sur le bâtiment.
         Attention ne pas oublier les charges G de mur, de menuiserie, d'élément technique et autre.
 
         Args:
             name (str): nom de la charge.
-            load (float): charge permanente gravitaire en kN/m².
+            load (float): charge gravitaire en kN/m².
             surface (float): surface d'application de la charge.
             etage (str): étage auquel est appliquée la charge.
             z_i (float): est la hauteur de l'étage i en mètres depuis les fondations ou le sommet d'un soubassement rigide.
@@ -178,7 +177,7 @@ class Sismique(Batiment):
                     index = "Neige <= 1000m"
             return index
             
-        load = load * si.kN / si.m**2
+        load = abs(load) * si.kN / si.m**2
         surface = surface * si.m**2
         value = {
             "Zi": z_i * si.m,
@@ -326,7 +325,13 @@ class Sismique(Batiment):
         filepath: str=None
         ):
         """
-        Affiche le spectre elastique de calcul
+        Affiche le spectre de calcul pour l'analyse élastique.
+
+        Args:
+            direction (str): direction du spectre ("x" ou "y")
+            screenshot (bool): si True, enregistre le graphique
+            filepath (str): chemin d'enregistrement du graphique, si ce dernier est vide, 
+                alors une boite de dialogue s'ouvre pour choisir le chemin.
         """
         q = self.coeff_comportement[direction]["q"]
         array = np.array([])
@@ -350,12 +355,15 @@ class Sismique(Batiment):
                 res2 = a_g * beta
                 S_d_t1 = max(res1, res2)
             array = np.append(array, S_d_t1.value)
+        color = "blue"
+        if direction == "y":
+            color = "red"
         plt.figure(figsize=(10, 5))
-        plt.plot(np.arange(0, 4, 0.01), array, color="blue")
+        plt.plot(np.arange(0, 4, 0.01), array, color=color)
         plt.title(f"Spectre élastique de calcul / classe de sol {self.classe_sol} / direction {direction} / q={q}")
         plt.xlabel("Période T (s)")
         plt.ylabel("Accélération Sd,T1 (m/s^2)")
-        plt.fill_between(np.arange(0, 4, 0.01), array, color="blue", alpha=0.2)
+        plt.fill_between(np.arange(0, 4, 0.01), array, color=color, alpha=0.2)
         plt.grid()
         if screenshot:
             if not filepath:
@@ -371,7 +379,7 @@ class Sismique(Batiment):
     @property
     def T1(self):
         """
-        Retourne les periodes de calcul selon EN 1998-1 §3.2.2.5
+        Retourne les periodes de calcul selon EN 1998-1 §4.3.3.2.2
         """
         K_b_x = self.Kbx.value
         K_b_y = self.Kby.value
@@ -434,7 +442,7 @@ class Sismique(Batiment):
             return delta
         return val()
 
-    def Fi(self, etage: str=ETAGE):
+    def Fi(self, etage: str=Batiment.ETAGE):
         """
         Retourne l'effort horizontal équivalent à l'étage i selon EN 1998-1 §4.3.3.2.3.
         Attention cette formule ne fonctionne que si les déplacements horizontaux croissent linéairement suivant la hauteur.
@@ -500,7 +508,7 @@ class Sismique(Batiment):
             return d_s
         return val()
 
-    def coeff_second_ordre(self, dr: float, V_tot: si.kN, etage: str=ETAGE):
+    def coeff_second_ordre(self, dr: float, V_tot: si.kN, etage: str=Batiment.ETAGE):
         """
         Retourne le coefficient de second ordre selon EN 1998-1 §4.3.5.2.2
         
@@ -534,7 +542,7 @@ class Sismique(Batiment):
             return coeff_P_delta
         return val()
     
-    def taux_limitations_dommages(self, dr: float, etage: str=ETAGE, type_dommages: str=TYPE_DOMMAGES):
+    def taux_limitations_dommages(self, dr: float, etage: str=Batiment.ETAGE, type_dommages: str=TYPE_DOMMAGES):
         """
         Retourne le taux de limitation des dommages selon EN 1998-1 §4.4.3.2.
         
@@ -611,7 +619,7 @@ class Sismique(Batiment):
 
     def F_sismique_final_capacite(
         self,
-        etage: str=ETAGE, 
+        etage: str=Batiment.ETAGE, 
         gamma_d_x: str=("Rupture fragile", "Rupture ductile"), 
         gamma_d_y: str=("Rupture fragile", "Rupture ductile"), 
         Omega_x: float=1, 
@@ -654,7 +662,7 @@ class Sismique(Batiment):
 
     def F_sismique_final_dissipatif(
         self,
-        etage: str=ETAGE, 
+        etage: str=Batiment.ETAGE, 
         eta_torsion_x: float=1, 
         eta_torsion_y: float=1, 
         P_delta_x: float=1, 

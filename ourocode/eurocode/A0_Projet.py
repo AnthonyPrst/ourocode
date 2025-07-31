@@ -76,6 +76,7 @@ class Projet(Objet):
         self.alt = alt * si.m
 
 class Batiment(Projet):
+    ETAGE = ("RDC", "R+1", "R+2", "R+3", "R+4", "Toiture")
     def __init__(
         self,
         h_bat: si.m,
@@ -86,7 +87,8 @@ class Batiment(Projet):
         *args,
         **kwargs,
     ):
-        """Créer une classe Batiment héritée de Projet, cette classe définit les dimension du bâtiment
+        """
+        Créer une classe Batiment héritée de Projet, cette classe définit les dimension du bâtiment
 
         Args:
             h_bat (float): hauteur du bâtiment en m depuis le soubassement rigide 
@@ -102,9 +104,6 @@ class Batiment(Projet):
         self.b_bat = b_bat * si.m  # coté perpendiculaire au vent longpant
         self.alpha_toit = alpha_toit
         self.alpha_toit2 = alpha_toit2
-
-    def height_ref(self):
-        pass  # 7.2.1 bâtiment de grande hauteur
 
 
 class Model_generator(Projet):
@@ -1047,6 +1046,14 @@ class Model_result(Projet):
                 self._model_generator._model.analyze_PDelta(
                     check_stability=self.check_stability
                 )
+
+    def get_member_length(self, member_id: str):
+        """Retourne la longueur du membrure par son id
+
+        Args:
+            member_id (str): id de la membrure à récupérer
+        """
+        return self._model_generator._data["members"][member_id]["Longueur"]
 
     def get_internal_force(
         self,

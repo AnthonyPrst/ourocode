@@ -3,13 +3,15 @@
 import os
 import json
 import math as mt
+import csv
 import importlib.resources as pkg_resources
+from collections.abc import Mapping, Iterable
 from PIL import Image
 import pandas as pd
 import pickle
 import inspect
 from IPython.display import display, Latex
-# from tkinter import filedialog
+from PySide6.QtWidgets import QFileDialog
 
 import forallpeople as si
 si.environment("structural")
@@ -69,20 +71,53 @@ class Objet(object):
         """
         return self
 
-    def get_value(self, value: str, index: int=None, key: str=None):
+    def _physical_to_dict(self, obj):
+        """Convertit un objet Physical en dictionnaire sérialisable."""
+        if isinstance(obj, dict):
+            return {k: self._physical_to_dict(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [self._physical_to_dict(x) for x in obj]
+        elif isinstance(obj, si.Physical):
+            split_vals = obj.split(base_value=True)
+            return {
+                '_physical_value': float(split_vals[0]),
+                '_physical_unit': str(split_vals[1])
+            }
+        return obj
+
+    def _dict_to_physical(self, data):
+        """Reconstruit un objet Physical à partir d'un dictionnaire."""
+        if isinstance(data, dict):
+            if '_physical_value' in data:
+                # Reconstruire l'objet Physical
+                value = data['_physical_value']
+                unit = data['_physical_unit'].split()[-1]  # extraire l'unité
+                if "/" in unit:
+                    unit = unit.replace("/", "_")
+                return value * getattr(si, unit)
+            return {k: self._dict_to_physical(v) for k, v in data.items()}
+        elif isinstance(data, (list, tuple)):
+            return [self._dict_to_physical(x) for x in data]
+        return data
+
+    def get_value(self, value: dict|list|str, index: int=None, key: str=None):
         """Retourne l'argument transmit.
 
         Args:
+            value (dict|list|str): la valeur à retourner.
             index (int, optional): index à retourner dans une liste python. 
                 Attention sous pyhon le premier élément d'une liste ce trouve à l'index 0.
             key (str, optional): clé à renvoyer dans un dictionnaire python.
         """
-        if index:
+        if index and isinstance(value, list):
+            value = value[index]
+        elif index and isinstance(value, str):
             value = list(value)[index]
-        elif key:
-            value = f"{value.replace("'", '"')}"
-            value = json.loads(value)[key]
-        return str(value)
+        elif key and isinstance(value, dict):
+            value = value[key]
+        elif key and isinstance(value, str):
+            value = json.loads(f"{value}".replace("'", "\"")).get(key)
+        return value
         
     def operation_between_values(self, value1: float, value2: float, operator: str=OPERATOR):
         """Retourne l'opération donnée entre la valeur 1 et la valeur 2.
@@ -114,19 +149,75 @@ class Objet(object):
         """Retourne la valeur min entre la valeur 1 et valeur 2.
         """
         return min(float(value1), float(value2))
+
+    def get_trigonometric_value(self, value: float, operator: str=("COS", "SIN", "TAN", "ACOS", "ASIN", "ATAN")):
+        """Retourne la valeur trigonométrique donnée en degré."""
+        if operator not in ("COS", "SIN", "TAN", "ACOS", "ASIN", "ATAN"):
+            raise ValueError(f"Mauvaise fonction trigonométrique: {operator}")
+        match operator:
+            case "COS":
+                result = mt.cos(mt.radians(float(value)))
+            case "SIN":
+                result = mt.sin(mt.radians(float(value)))
+            case "TAN":
+                result = mt.tan(mt.radians(float(value)))
+            case "ACOS":
+                result = mt.acos(mt.radians(float(value)))
+            case "ASIN":
+                result = mt.asin(mt.radians(float(value)))
+            case "ATAN":
+                result = mt.atan(mt.radians(float(value)))
+        return result
     
-    def cos(self, value: float):
-        """Retourne le cosinus de la valeur donnée en degré."""
-        return mt.cos(mt.radians(float(value)))
-    
-    def sin(self, value: float):
-        """Retourne le sinus de la valeur donnée en degré."""
-        return mt.sin(mt.radians(float(value)))
-    
-    def tan(self, value: float):
-        """Retourne la tangente de la valeur donnée en degré."""
-        return mt.tan(mt.radians(float(value)))
-    
+    def save_data(self, data: dict, type_data: str=("JSON", "CSV"), path: str=None):
+        """Sauvegarde les données dans un fichier JSON ou CSV.
+
+        Args:
+            type_data (str): le type de données à sauvegarder (JSON, CSV).
+            data (dict): les données à sauvegarder sous forme de dictionnaire.
+            path (str, optional): Chemin du fichier à créer, s'il n'est pas fourni, une boite de dialogue s'ouvre pour choisir le fichier. 
+            Defaults to None.
+        """
+        if type_data == "JSON":
+            save_file_path = path if path else QFileDialog.getSaveFileName(
+                filter="JSON (*.json)",
+                selectedFilter=".json",
+            )[0]
+            with open(save_file_path, "w") as f:
+                json.dump(data, f)
+        elif type_data == "CSV":
+            save_file_path = path if path else QFileDialog.getSaveFileName(
+                filter="CSV (*.csv)",
+                selectedFilter=".csv",
+            )[0]
+            with open(save_file_path, "w", newline="") as f:
+                w = csv.DictWriter(f, data.keys())
+                w.writeheader()
+                w.writerow(data)
+
+    def load_data(self, type_data: str=("JSON", "CSV"), path: str=None):
+        """Charge les données depuis un fichier JSON ou CSV.
+
+        Args:
+            type_data (str): le type de données à charger (JSON, CSV).
+            path (str, optional): Chemin du fichier à charger, s'il n'est pas fourni, une boite de dialogue s'ouvre pour choisir le fichier. 
+            Defaults to None.
+        """
+        if type_data == "JSON":
+            file_path = path if path else QFileDialog.getOpenFileName(
+                filter="JSON (*.json)",
+                selectedFilter=".json",
+            )[0]
+            with open(file_path, "r") as f:
+                return json.load(f)
+        elif type_data == "CSV":
+            file_path = path if path else QFileDialog.getOpenFileName(
+                filter="CSV (*.csv)",
+                selectedFilter=".csv",
+            )[0]
+            with open(file_path, "r") as f:
+                reader = csv.DictReader(f)
+                return {row['key']: row['value'] for row in reader}
 
     @classmethod
     def _convert_unit_physical(cls, value: int|float, si_unit: si.Physical, unit_to_convert: si.Physical):
@@ -142,20 +233,32 @@ class Objet(object):
                 if si_unit == str(si.m):
                     if unit_to_convert == str(si.mm):
                         return value * 10**3
+                    elif unit_to_convert == str(si.cm):
+                        return value * 10**2
                 elif si_unit == str(si.m**2):
                     if unit_to_convert == str(si.mm**2):
                         return value * 10**6
+                    elif unit_to_convert == str(si.cm**2):
+                        return value * 10**4
                 elif si_unit == str(si.m**3):
                     if unit_to_convert == str(si.mm**3):
                         return value * 10**9
+                    elif unit_to_convert == str(si.cm**3):
+                        return value * 10**6
                 elif si_unit == str(si.m**4):
                     if unit_to_convert == str(si.mm**4):
                         return value * 10**12
+                    elif unit_to_convert == str(si.cm**4):
+                        return value * 10**8
                 elif si_unit == str(si.N):
                     if unit_to_convert == str(si.kN):
                         return value * 10**-3
+                    elif unit_to_convert == str(si.daN):
+                        return value * 10**-1
                 elif si_unit == str(si.Pa):
-                    if unit_to_convert == str(si.MPa):
+                    if unit_to_convert == str(si.kPa):
+                        return value * 10**-3
+                    elif unit_to_convert == str(si.MPa):
                         return value * 10**-6
             return value
     
@@ -209,20 +312,34 @@ class Objet(object):
     
     @classmethod
     def _from_parent_class(cls, objet: list|object, **kwargs):
-        """Class méthode permetant l'intanciation des classe hérité de la classe parent, par une classe déjà instanciée.
-
+        """Class méthode permetant l'intanciation des classes héritées de la classe parent, par une classe déjà instanciée.
+        
+        Les clés dans kwargs écrasent les clés existantes dans dict_objet.
+        
         Args:
-            object (class object): l'objet Element déjà créer par l'utilisateur
+            objet (object|list): L'objet ou la liste d'objets à partir desquels créer la nouvelle instance
+            **kwargs: Arguments additionnels qui écraseront les attributs des objets sources
+            
+        Returns:
+            Une nouvelle instance de la classe avec les attributs des objets sources et des kwargs
         """
         dict_objet = {}
+        
+        # Récupération des attributs des objets sources
         if isinstance(objet, list):
+            # Pour une liste d'objets, chaque objet écrase les précédents
             for obj in objet:
-                dict_objet.update(obj.__dict__)
-                dict_objet.update(Objet._reset_physical_object(obj))
-        else:
-            dict_objet = objet.__dict__
-            dict_objet.update(Objet._reset_physical_object(objet))
-        return cls(**dict_objet, **kwargs)
+                if hasattr(obj, "__dict__"):
+                    dict_objet.update(obj.__dict__)
+                    dict_objet.update(cls._reset_physical_object(obj))
+        elif hasattr(objet, "__dict__"):
+            # Pour un seul objet
+            dict_objet.update(objet.__dict__)
+            dict_objet.update(cls._reset_physical_object(objet))
+        
+        # On met à jour avec les kwargs qui écrase tout
+        dict_objet.update(kwargs)
+        return cls(**dict_objet)
 
     
     def _save_muliple_objects(self, object: list):
@@ -243,6 +360,7 @@ class Objet(object):
             )[0]
         with open(save_file_path, "wb") as f:
             pickle.dump(self, f)
+
 
     
     def _show_element(self, picture: str):

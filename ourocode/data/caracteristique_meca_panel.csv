@@ -1,0 +1,13 @@
+﻿classe;fm0k;ft0k;ft90k;fc0k;fc90k;fvk;E0mean;E005;E90mean;Gmoy;rhok;rhomean
+;Flexion;Traction Axiale;Traction Transversale;Compression Axiale;Compression Transversale;Cisaillement;Module Moyen d'Elasticité Axial;Module d'Elasticité Axial au Fractile 5%;Module Moyen d'Elasticité Transversal;Module Moyen de Cisaillement;Masse Volumique au Fractile 5%;Masse Volumique moyenne
+;MPa;MPa;MPa;MPa;MPa;MPa;MPa;MPa;MPa;MPa;kg/m3;kg/m3
+OSB/2 6-10 mm;16;9.9;7.2;15.9;12.9;6.8;4930;**;**;1080;550;620
+OSB/2 11-18 mm;16.4;9.4;7;15.4;12.7;6.8;4930;**;**;1080;550;620
+OSB/2 19-25 mm;14.8;9;6.8;14.8;12.4;6.8;4930;**;**;1080;550;620
+OSB/3 6-10 mm;16;9.9;7.2;15.9;12.9;6.8;4930;**;**;1080;550;620
+OSB/3 11-18 mm;16.4;9.4;7;15.4;12.7;6.8;4930;**;**;1080;550;620
+OSB/3 19-25 mm;14.8;9;6.8;14.8;12.4;6.8;4930;**;**;1080;550;620
+OSB/4 6-10 mm;24.5;11.9;8.5;18.1;14.3;6.9;6780;**;**;1090;550;620
+OSB/4 11-17 mm;23;11.4;8.2;17.6;14;6.9;6780;**;**;1090;550;620
+OSB/4 18-25 mm;21;10.9;8;17;13.7;6.9;6780;**;**;1090;550;620
+
