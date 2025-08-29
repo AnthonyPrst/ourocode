@@ -815,9 +815,18 @@ class Toiture_1_pant(Vent):
 
         df.reset_index(drop=False, inplace=True)
         list_alpha_toit = df["alpha_toit"].unique()
+        touch_min = self.alpha_toit < list_alpha_toit.min()
+        touch_max = self.alpha_toit > list_alpha_toit.max()
+
         if not self.alpha_toit in list_alpha_toit:
-            minimum = list_alpha_toit[list_alpha_toit < self.alpha_toit].max()
-            maximum = list_alpha_toit[list_alpha_toit > self.alpha_toit].min()
+            if touch_min:
+                minimum = list_alpha_toit.min()
+            else:
+                minimum = list_alpha_toit[list_alpha_toit < self.alpha_toit].max()
+            if touch_max:
+                maximum = list_alpha_toit.max()
+            else:
+                maximum = list_alpha_toit[list_alpha_toit > self.alpha_toit].min()
             df_min = df[df["alpha_toit"] == minimum]
             df_max = df[df["alpha_toit"] == maximum]
 
@@ -828,15 +837,20 @@ class Toiture_1_pant(Vent):
             for i, cpe in enumerate(["CPE 10", "CPE 1"]):
                 row = [round(self.alpha_toit, 2), cpe]
                 for j in range(2, num_columns):
-                    row.append(
-                        interpolation_lineaire(
-                            self.alpha_toit,
-                            minimum,
-                            maximum,
-                            df_min.iloc[i, j],
-                            df_max.iloc[i, j],
+                    if touch_min:
+                        row.append(df_min.iloc[i, j])
+                    elif touch_max:
+                        row.append(df_max.iloc[i, j])
+                    else:
+                        row.append(
+                            interpolation_lineaire(
+                                self.alpha_toit,
+                                minimum,
+                                maximum,
+                                df_min.iloc[i, j],
+                                df_max.iloc[i, j],
+                            )
                         )
-                    )
                 df.loc[df.shape[0]] = row
 
         if self.load_area > 1 and self.load_area < 10:
@@ -1009,9 +1023,18 @@ class Toiture_2_pants(Vent):
 
         df.reset_index(drop=False, inplace=True)
         list_alpha_toit = df["alpha_toit"].unique()
+        touch_min = self.alpha_toit < list_alpha_toit.min()
+        touch_max = self.alpha_toit > list_alpha_toit.max()
+
         if not self.alpha_toit in list_alpha_toit:
-            minimum = list_alpha_toit[list_alpha_toit < self.alpha_toit].max()
-            maximum = list_alpha_toit[list_alpha_toit > self.alpha_toit].min()
+            if touch_min:
+                minimum = list_alpha_toit.min()
+            else:
+                minimum = list_alpha_toit[list_alpha_toit < self.alpha_toit].max()
+            if touch_max:
+                maximum = list_alpha_toit.max()
+            else:
+                maximum = list_alpha_toit[list_alpha_toit > self.alpha_toit].min()
             df_min = df[df["alpha_toit"] == minimum]
             df_max = df[df["alpha_toit"] == maximum]
 
@@ -1022,15 +1045,20 @@ class Toiture_2_pants(Vent):
             for i, cpe in enumerate(["CPE 10", "CPE 1"]):
                 row = [round(self.alpha_toit, 2), cpe]
                 for j in range(2, num_columns):
-                    row.append(
-                        interpolation_lineaire(
-                            self.alpha_toit,
-                            minimum,
-                            maximum,
-                            df_min.iloc[i, j],
-                            df_max.iloc[i, j],
+                    if touch_min:
+                        row.append(df_min.iloc[i, j])
+                    elif touch_max:
+                        row.append(df_max.iloc[i, j])
+                    else:
+                        row.append(
+                            interpolation_lineaire(
+                                self.alpha_toit,
+                                minimum,
+                                maximum,
+                                df_min.iloc[i, j],
+                                df_max.iloc[i, j],
+                            )
                         )
-                    )
                 print(row)
                 df.loc[df.shape[0]] = row
 
@@ -1163,10 +1191,18 @@ class Toiture_isolee_1_pant(Vent):
             self._df = self._df[self._df["phi"].isin(["0", "max"])]
 
         list_alpha_toit = self._df["alpha_toit"].unique()
+        touch_min = self.alpha_toit < list_alpha_toit.min()
+        touch_max = self.alpha_toit > list_alpha_toit.max()
 
         if not self.alpha_toit in list_alpha_toit:
-            minimum = list_alpha_toit[list_alpha_toit < self.alpha_toit].max()
-            maximum = list_alpha_toit[list_alpha_toit > self.alpha_toit].min()
+            if touch_min:
+                minimum = list_alpha_toit.min()
+            else:
+                minimum = list_alpha_toit[list_alpha_toit < self.alpha_toit].max()
+            if touch_max:
+                maximum = list_alpha_toit.max()
+            else:
+                maximum = list_alpha_toit[list_alpha_toit > self.alpha_toit].min()
             df_min = self._df[self._df["alpha_toit"] == minimum]
             df_max = self._df[self._df["alpha_toit"] == maximum]
 
@@ -1174,15 +1210,20 @@ class Toiture_isolee_1_pant(Vent):
             for i, phi in enumerate(["max", self.phi]):
                 row = [round(self.alpha_toit, 2), phi]
                 for j in range(2, 6):
-                    row.append(
-                        interpolation_lineaire(
-                            self.alpha_toit,
-                            minimum,
-                            maximum,
-                            df_min.iloc[i, j],
-                            df_max.iloc[i, j],
+                    if touch_min:
+                        row.append(df_min.iloc[i, j])
+                    elif touch_max:
+                        row.append(df_max.iloc[i, j])
+                    else:
+                        row.append(
+                            interpolation_lineaire(
+                                self.alpha_toit,
+                                minimum,
+                                maximum,
+                                df_min.iloc[i, j],
+                                df_max.iloc[i, j],
+                            )
                         )
-                    )
                 self._df.loc[self._df.shape[0]] = row
             self._df = self._df[self._df["phi"].isin([self.phi, "max"])]
 
@@ -1312,10 +1353,18 @@ class Toiture_isolee_2_pants(Vent):
             self._df = self._df[self._df["phi"].isin(["0", "max"])]
 
         list_alpha_toit = self._df["alpha_toit"].unique()
+        touch_min = self.alpha_toit < list_alpha_toit.min()
+        touch_max = self.alpha_toit > list_alpha_toit.max()
 
         if not self.alpha_toit in list_alpha_toit:
-            minimum = list_alpha_toit[list_alpha_toit < self.alpha_toit].max()
-            maximum = list_alpha_toit[list_alpha_toit > self.alpha_toit].min()
+            if touch_min:
+                minimum = list_alpha_toit.min()
+            else:
+                minimum = list_alpha_toit[list_alpha_toit < self.alpha_toit].max()
+            if touch_max:
+                maximum = list_alpha_toit.max()
+            else:
+                maximum = list_alpha_toit[list_alpha_toit > self.alpha_toit].min()
             df_min = self._df[self._df["alpha_toit"] == minimum]
             df_max = self._df[self._df["alpha_toit"] == maximum]
 
@@ -1323,15 +1372,20 @@ class Toiture_isolee_2_pants(Vent):
             for i, phi in enumerate(["max", self.phi]):
                 row = [round(self.alpha_toit, 2), phi]
                 for j in range(2, 7):
-                    row.append(
-                        interpolation_lineaire(
-                            self.alpha_toit,
-                            minimum,
-                            maximum,
-                            df_min.iloc[i, j],
-                            df_max.iloc[i, j],
+                    if touch_min:
+                        row.append(df_min.iloc[i, j])
+                    elif touch_max:
+                        row.append(df_max.iloc[i, j])
+                    else:
+                        row.append(
+                            interpolation_lineaire(
+                                self.alpha_toit,
+                                minimum,
+                                maximum,
+                                df_min.iloc[i, j],
+                                df_max.iloc[i, j],
+                            )
                         )
-                    )
                 self._df.loc[self._df.shape[0]] = row
             self._df = self._df[self._df["phi"].isin([self.phi, "max"])]
 

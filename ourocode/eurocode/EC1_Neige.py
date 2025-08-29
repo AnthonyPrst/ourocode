@@ -112,7 +112,7 @@ class Neige(Batiment):
 						def val():
 							mu_2 = 0.8 * (60 - alpha) / 30
 							return mu_2
-						value = val()
+						value = val()[1]
 					elif alpha >= 60:
 						value = 0.8
 					
