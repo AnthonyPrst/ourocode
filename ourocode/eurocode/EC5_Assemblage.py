@@ -350,13 +350,22 @@ class Assemblage(Projet):
             print("ATTENTION interpolation linéaire à faire ! EC5-8.2.3.1")
 
         if self.type_plaque == "mince" and self.nCis == 1:
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                effet_corde = F_ax_Rk/4 # N
-                a = 0.4 * f_h1k * t_1 * diam # N
-                b = 1.15 * sqrt(2 * M_y_Rk * f_h1k * diam) # N
-                b = b + min(effet_corde, b*coef_limit_Johansen) # N
-                return a, b
+            if self._type_beam[0] == "Métal":
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    effet_corde = F_ax_Rk/4 # N
+                    a = 0.4 * f_h2k * t_2 * diam # N
+                    b = 1.15 * sqrt(2 * M_y_Rk * f_h2k * diam) # N
+                    b = b + min(effet_corde, b*coef_limit_Johansen) # N
+                    return a, b
+            else:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    effet_corde = F_ax_Rk/4 # N
+                    a = 0.4 * f_h1k * t_1 * diam # N
+                    b = 1.15 * sqrt(2 * M_y_Rk * f_h1k * diam) # N
+                    b = b + min(effet_corde, b*coef_limit_Johansen) # N
+                    return a, b
             
             calcul = val()
             a = calcul[1][0] * si.N
@@ -373,15 +382,26 @@ class Assemblage(Projet):
             calcul2 = val2()
 
         elif self.type_plaque == "epaisse" and self.nCis == 1:
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                effet_corde = F_ax_Rk/4 # N
-                c = f_h1k * t_1 * diam # N
-                d = c * (sqrt(2 + (4 * M_y_Rk) / (f_h1k * diam * t_1 ** 2)) - 1) # N
-                d = d + min(effet_corde, d*coef_limit_Johansen) # N
-                e = 2.3 * sqrt(M_y_Rk * f_h1k * diam) # N
-                e = e + min(effet_corde, e*coef_limit_Johansen) # N
-                return c, d, e
+            if self._type_beam[0] == "Métal":
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    effet_corde = F_ax_Rk/4 # N
+                    c = f_h2k * t_2 * diam # N
+                    d = c * (sqrt(2 + (4 * M_y_Rk) / (f_h2k * diam * t_2 ** 2)) - 1) # N
+                    d = d + min(effet_corde, d*coef_limit_Johansen) # N
+                    e = 2.3 * sqrt(M_y_Rk * f_h2k * diam) # N
+                    e = e + min(effet_corde, e*coef_limit_Johansen) # N
+                    return c, d, e
+            else:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    effet_corde = F_ax_Rk/4 # N
+                    c = f_h1k * t_1 * diam # N
+                    d = c * (sqrt(2 + (4 * M_y_Rk) / (f_h1k * diam * t_1 ** 2)) - 1) # N
+                    d = d + min(effet_corde, d*coef_limit_Johansen) # N
+                    e = 2.3 * sqrt(M_y_Rk * f_h1k * diam) # N
+                    e = e + min(effet_corde, e*coef_limit_Johansen) # N
+                    return c, d, e
             
             calcul = val()
             c = calcul[1][0] * si.N
@@ -649,18 +669,38 @@ class Assemblage(Projet):
         self.F_bs_Rk = result[1]
         return (latex + result[0], self.F_bs_Rk)
     
-    def taux_cisaillement(self, Fv_Ed: si.kN, loadtype=Barre.LOAD_TIME):
-        """Détermine le taux de cisaillement de l'assemblage
+    def taux_cisaillement(self, Fv_Ed: si.kN, Fax_Ed: si.kN=0, loadtype=Barre.LOAD_TIME):
+        """Détermine le taux de cisaillement ou du chargement combiné de l'assemblage
 
         Args:
             Fv_Ed (float): effort de cisaillement à reprendre en kN
+            Fax_Ed (float, optional): effort axialement à reprendre en kN. Defaults to 0.
+            loadtype (str, optional): type de durée de chargement.
         """
         Fv_Rd_ass = self.F_Rd(self.Fv_Rk_ass.value*10**-3, loadtype)[1]
         Fv_Ed = abs(Fv_Ed) * si.kN
-        @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-        def val():
-            taux_cisaillement = Fv_Ed / Fv_Rd_ass
-            return taux_cisaillement
+        Fax_Ed = abs(Fax_Ed) * si.kN
+        if Fax_Ed:
+            if self.type_organe in ("Pointe circulaire lisse", "Pointe carrée lisse", "Agrafe", "Boulon"):
+                self.Fax_Rk_ass = self.FaxRk * self.nfile * self.n
+                Fax_Rd_ass = self.F_Rd(self.Fax_Rk_ass.value*10**-3, loadtype)[1]
+                @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    taux_combi = Fax_Ed / Fax_Rd_ass + Fv_Ed / Fv_Rd_ass
+                    return taux_combi
+            elif self.type_organe in ("Tirefond", "Autres pointes"):
+                Fax_Rd_ass = self.F_Rd(self.Fax_Rk_ass.value*10**-3, loadtype)[1]
+                @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    taux_combi = (Fax_Ed / Fax_Rd_ass)**2 + (Fv_Ed / Fv_Rd_ass)**2
+                    return taux_combi
+            else:
+                raise f"L'organe {self.type_organe} ne peut pas être pris en compte pour une vérification de l'élément chargées à la fois axialement et latéralement"
+        else:
+            @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                taux_cisaillement = Fv_Ed / Fv_Rd_ass
+                return taux_cisaillement
         return val()
     
 
@@ -1710,6 +1750,7 @@ class _Tirefond(object):
             F_ax_Rk_ass = f_ax_Rk * n_ef_traction
             return F_ax_Rk_ass
         F_ax_Rk_ass = val_ass()
+        self.Fax_Rk_ass = F_ax_Rk_ass[1]
         
         return (F_ax_a_Rk_value[0] + F_head_Rk_value[0] + FaxRk[0] + F_ax_Rk_ass[0], F_ax_Rk_ass[1])
 
