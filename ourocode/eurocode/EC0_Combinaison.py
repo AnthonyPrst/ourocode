@@ -111,7 +111,8 @@ class Combinaison(Projet):
 
         for psy_i in psy_columns:
             for key in dict_psy.keys():
-                dict_psy[key][psy_i] = data_csv_psy.loc[key].loc[psy_i]
+                if key != "Aucune":
+                    dict_psy[key][psy_i] = data_csv_psy.loc[key].loc[psy_i]
         return dict_psy
     
     def _key_action_psy(self, action_variable):
@@ -1606,11 +1607,11 @@ class Combinaison(Projet):
         self._name_combination.sort()
         return pd.DataFrame(self._name_combination, columns=["Combinaison"])
 
-    def get_list_combination(self, type: str=("Toutes", "ELU_ALL", "ELU_STR", "ELU_STR_ACC", "ELS_ALL", "ELS_C", "ELS_QP", "W")):
+    def get_list_combination(self, type: str=("Toutes", "ELU_ALL", "ELU_STR", "ELU_STR_ACC", "ELS_ALL", "ELS_C", "ELS_QP", "W_inst_Q", "W_net_fin")):
         """Retourne la liste des combinaisons pour le type sélectionné.
 
         Args:
-            type (str): Le type de combinaison à retourner. Defaults to ("Toutes", "ELU_ALL", "ELU_STR", "ELU_STR_ACC", "ELS_ALL", "ELS_C", "ELS_QP", "Flèche bois").
+            type (str): Le type de combinaison à retourner. Defaults to ("Toutes").
 
         Returns:
             list: Liste des combinaisons
@@ -1630,8 +1631,10 @@ class Combinaison(Projet):
                 return [name for name in self._name_combination if name.startswith("ELS_C")]
             case "ELS_QP":
                 return [name for name in self._name_combination if name.startswith("ELS_QP")]
-            case "Flèche bois":
-                return [name for name in self._name_combination if name.startswith("W")]
+            case "W_inst_Q":
+                return [name for name in self._name_combination if name.startswith("W_inst")]
+            case "W_net_fin":
+                return [name for name in self._name_combination if name.startswith("W_net_fin")]
 
     def _choice_combi_df(self):
         shape = len(self.list_combination)
