@@ -461,11 +461,11 @@ class Flexion(Barre):
         return self._f_type_d("fm0k", loadtype, typecombi)
     
     
-    def sigma_m_d(self, My: float, Mz: float):
+    def sigma_m_d(self, My: si.kN*si.m, Mz: si.kN*si.m):
         """ Retourne la contrainte sigma,m,d suivant sont axes de flexion avec :
             My/z : Moment autour de l'axe y et/ou z dans la barre en kN.m
         """
-        self.Md = {'y': My* si.kN*si.m, 'z': Mz * si.kN*si.m}
+        self.Md = {'y': My * si.kN*si.m, 'z': Mz * si.kN*si.m}
         self.sigma_m_rd = {'y': 0 * si.MPa, 'z': 0 * si.MPa}
         
         Iy = self.inertie[0]

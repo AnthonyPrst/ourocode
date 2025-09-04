@@ -100,7 +100,7 @@ class Objet(object):
             return [self._dict_to_physical(x) for x in data]
         return data
 
-    def get_value(self, value: dict|list|str, index: int=None, key: str=None):
+    def get_value(self, value: dict|list|str, index: int=None, key: str=None, get_keys: bool=("False", "True"),):
         """Retourne l'argument transmit.
 
         Args:
@@ -108,11 +108,14 @@ class Objet(object):
             index (int, optional): index à retourner dans une liste python. 
                 Attention sous pyhon le premier élément d'une liste ce trouve à l'index 0.
             key (str, optional): clé à renvoyer dans un dictionnaire python.
+            get_keys (bool, optional): permet de retourner les clés d'un dictionnaire python.
         """
         if index and isinstance(value, list):
             value = value[index]
         elif index and isinstance(value, str):
             value = list(value)[index]
+        elif get_keys and isinstance(value, dict):
+            value = list(value.keys())
         elif key and isinstance(value, dict):
             value = value[key]
         elif key and isinstance(value, str):
@@ -235,6 +238,8 @@ class Objet(object):
                         return value * 10**3
                     elif unit_to_convert == str(si.cm):
                         return value * 10**2
+                    elif unit_to_convert == str(si.km):
+                        return value * 10**-3
                 elif si_unit == str(si.m**2):
                     if unit_to_convert == str(si.mm**2):
                         return value * 10**6
@@ -255,6 +260,13 @@ class Objet(object):
                         return value * 10**-3
                     elif unit_to_convert == str(si.daN):
                         return value * 10**-1
+                elif si_unit == str(si.N*si.m):
+                    if unit_to_convert == str(si.kN*si.m):
+                        return value * 10**-3
+                    elif unit_to_convert == str(si.daN*si.m):
+                        return value * 10**-1
+                    elif unit_to_convert == str(si.N*si.mm):
+                        return value * 10**3
                 elif si_unit == str(si.Pa):
                     if unit_to_convert == str(si.kPa):
                         return value * 10**-3

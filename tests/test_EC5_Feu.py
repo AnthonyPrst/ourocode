@@ -114,14 +114,14 @@ class Test_Flexion(object):
         assert self.flexion.taux_m_rd == {
             "equ6.11": 14.260362922063692,
             "equ6.12": 16.680502659534092,
-            "equ6.19": 14.215959920703218,
-            "equ6.20": 16.63609965817362,
+            "equ6.19": 14.201857224168222,
+            "equ6.20": 16.621996961638622,
             "equ6.33y": 10.532177484564267,
             "equ6.33z": 13.097260680135049,
-            "equ6.35yzy": 176.8685066512106,
-            "equ6.35yzz": 189.9693597600049,
-            "equ6.35zyy": 38.69959171479235,
-            "equ6.35zyz": 131.92296819852655,
+            "equ6.35yzy": 176.85536603459653,
+            "equ6.35yzz": 189.9370741374112,
+            "equ6.35zyy": 38.68645109817827,
+            "equ6.35zyz": 131.89068257593286,
         }
 
 
@@ -150,14 +150,14 @@ class Test_Compression:
         assert self.compression.f_type_rd == 27.600 * si.MPa
 
     def test_sigma_c_0_d(self):
-        assert self.compression.sigma_c_0_rd.value == 3677043.3625776633
+        assert self.compression.sigma_c_0_rd.value == 1666666.6666666667
 
     def test_taux_c_0_d(self):
         # print(self.compression.taux_c_0_rd)
         assert self.compression.taux_c_0_rd == {
-            "equ6.23": 14.498351803893526,
-            "equ6.24": 24.517295387494325,
-            "equ6.2": 0.13322620878904579,
+            "equ6.23": 14.485211187279445,
+            "equ6.24": 24.485009764900642,
+            "equ6.2": 0.0603864734299517,
         }
 
 

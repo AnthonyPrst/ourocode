@@ -128,12 +128,12 @@ class Model_generator(Projet):
         Voici les étapes de modélisation:
             1) Créer les sections avec la méthode "add_section"
             2) Créer les matériaux avec la méthode "add_material"
-            3) Créer les barres avec la méthode "add_member"
-            4) Créer les appuis avec la méthode "create_support"
-            5) Créer les charges sur les barres avec les méthodes "create_dist_load" et "create_point_load"
-            7) Transmettre cette classe dans les argument de la classe Combinaison du module EC0_Combinaison pour le calcul des combinaisons.
-            8) Exécuté la méthode "generate_model" avec la classe Combinaison.
-            9) Récupérer les efforts internes , les déformations et afficher les graphiques associés avec les méthodes correspondante.
+            3) Créer les noeuds avec la méthode "add_node"
+            4) Créer les barres avec la méthode "add_member"
+            5) Créer les appuis avec la méthode "create_support"
+            6) Créer les charges sur les barres avec les méthodes "create_dist_load" et "create_point_load"
+            7) Transmettre cette classe dans l'argument model_generator de la classe Combinaison du module EC0_Combinaison pour le calcul des combinaisons.
+            8) Récupérer les efforts internes , les déformations et afficher les graphiques associés avec les méthodes correspondante de la classe Model_result du même module.
         """
         super().__init__(*args, **kwargs)
         self._data = {
@@ -304,6 +304,7 @@ class Model_generator(Projet):
         node2: str,
         material: str,
         section: str,
+        poids_propre: bool = ("True", "False"),
         rotation: float = 0,
         tension_only: bool = ("False", "True"),
         compression_only: bool = ("False", "True"),
@@ -317,10 +318,11 @@ class Model_generator(Projet):
             node2 (str): id du noeud 2
             material (str): id du matériaux
             section (str): id de la section
+            poids_propre (bool, optional): Défini si le poids propre de la poutre doit être généré. Defaults to True.
             rotation (float, optional): angle de rotation de la poutre en °. Defaults to 0.
             tension_only (bool, optional): si True, la poutre ne peut que subir des efforts de traction. Defaults to False.
             compression_only (bool, optional): si True, la poutre ne peut que subir des efforts de compression. Defaults to False.
-            name (str, optional): Nom de la membrure, si vous remplissez cet argument alors c'est le nom de la membrure,
+            name (str, optional): Nom de la membrure (doit être unique!), si vous remplissez cet argument alors c'est le nom de la membrure,
                                   sinon la fonction en génère un automatique.
             comment (str, optional): commentaire sur la poutre. Defaults to None.
         """
@@ -351,10 +353,28 @@ class Model_generator(Projet):
             "Longueur": length,
             "Section": section,
             "Matériaux": material,
+            "Poids propre": poids_propre,
             "Rotation": rotation,
             "Relaxation": {"start": None, "end": None},
             "Commentaire": comment,
         }
+        if poids_propre:
+            rho = self._data["materials"][material]["rho"].value # en kg/m^3
+            aire = self._data["sections"][section]["Aire"].value
+            pp = rho * aire * 10**-2
+            # Important: appeler explicitement la méthode de la classe de base pour éviter
+            # le dispatch vers Wood_beam_model.create_dist_load (signature différente)
+            Model_generator.create_dist_load(
+                self,
+                member_id,
+                f"PP_{member_id}",
+                -pp,
+                -pp,
+                "start",
+                "end",
+                action="Permanente G",
+                direction="FY",
+                comment=f"Poids propre {member_id}")
         if tension_only:
             self._data["members"][member_id]["Tension uniquement"] = True
         elif compression_only:
@@ -769,7 +789,7 @@ class Model_generator(Projet):
         direction: str = ("Fx", "Fy", "Fz", "FX", "FY", "FZ"),
         comment: str = None,
     ):
-        """Ajoute une charge dans la liste de chargement de la classe chargement
+        """Ajoute une charge distribuée sur la barre
 
         Args:
                 member_id (str): id de la barre à charger.
@@ -777,9 +797,9 @@ class Model_generator(Projet):
                 start_load (int): effort de départ en kN/m.
                 end_load (int): effort de fin en kN/m.
                 start_pos (str, optional): position de début de la charge sur la barre en mm. En complément il est possible de mettre "start", "middle"
-                                           ou un pourcentage pour définitr la position de la charge.
+                                           ou un pourcentage pour définir la position de la charge.
                 end_pos (str, optional): position de début de la charge sur la barre en mm. En complément il est possible de mettre "end", "middle"
-                                         ou un pourcentage pour définitr la position de la charge.
+                                         ou un pourcentage pour définir la position de la charge.
                 action (str): type d'action de l'effort.
                 direction (str): sens de l'effort sur la barre.
                 comment (str, optional): commentaire sur la charge.
@@ -831,17 +851,17 @@ class Model_generator(Projet):
         ),
         comment: str = None,
     ):
-        """Ajoute une charge dans la liste de chargement de la classe chargement
+        """Ajoute une charge nodale sur la barre
 
         Args:
-                member_id (str): id de la barre à charger.
-                name (str): nom de la charge.
-                load (int): effort de départ en kN ou kN.m.
-                pos (str, optional): position de la charge sur la barre en mm. En complément il est possible de mettre "start", "middle", "end"
-                                     ou un pourcentage pour définitr la position de la charge.
-                action (str): type d'action de l'effort.
-                direction (str): sens de l'effort sur la barre.
-                comment (str, optional): commentaire sur la charge.
+            member_id (str): id de la barre à charger.
+            name (str): nom de la charge.
+            load (int): effort de départ en kN ou kN.m.
+            pos (str, optional): position de la charge sur la barre en mm. En complément il est possible de mettre "start", "middle", "end"
+                                    ou un pourcentage pour définir la position de la charge.
+            action (str): type d'action de l'effort.
+            direction (str): sens de l'effort sur la barre.
+            comment (str, optional): commentaire sur la charge.
         """
         load_id = "L" + str(len(self._data["loads"]) + 1)
         if "F" in direction:
@@ -955,6 +975,202 @@ class Model_generator(Projet):
         for combo, factor in combos.items():
             self._model.add_load_combo(combo, factor, tag)
 
+class Wood_beam_model(Model_generator):
+    def __init__(
+        self,
+        longueur: si.mm,
+        b: si.mm,
+        h: si.mm,
+        section: str=Model_generator.LIST_SECTION,
+        classe: str = Model_generator.CLASSE_WOOD,
+        poids_propre: bool = ("True", "False"),
+        nbr_appuis: int = 2,
+        l_appuis: float = 0,
+        devers: float = 0,
+        inclinaison: float = 0,
+        *args,
+        **kwargs,
+    ):
+        """Génère un modèle MEF poutre 1D simplifié d'une barre bois avec comme hypothèses:
+            - appuis rotulés
+            - distance entre appuis identique
+            - pas de porte à faux
+        On peut gérer l'inclinaison et le dévers de la barre. Ce qui permet avec une inclinaison de 90° de calculer un poteau vertical pour exemple.
+
+        Une fois le modèle généré, il faut:
+            1) Créer les charges sur les barres avec les méthodes "create_dist_load" et "create_point_load"
+            2) Transmettre cette classe dans l'argument model_generator de la classe Combinaison du module EC0_Combinaison pour le calcul des combinaisons.
+            3) Récupérer les efforts internes , les déformations et afficher les graphiques associés avec les méthodes correspondante de la classe Model_result du même module.
+
+        Args:
+            longueur (si.mm): longueur de la barre en mm.
+            b (si.mm): épaisseur de la barre en mm.
+            h (si.mm): hauteur de la barre en mm.
+            section (str, optional): type de section.
+            classe (str, optional): classe de la barre.
+            poids_propre (bool, optional): Défini si le poids propre de la poutre doit être généré. Defaults to True.
+            nbr_appuis (int, optional): nombre d'appuis sur la barre. Defaults to 2.
+            l_appuis (float, optional): longueur des appuis en mm. Defaults to 0.
+            devers (float, optional): rotation en ° de la barre autour de l'axe de la longueur (X) 
+                pour le calcul d'une panne à dévers par exemple. Defaults to 0.
+            inclinaison (float, optional): inclinaison en ° de la barre autour de l'axe de la largeur (Z) 
+                pour le calcul d'un chevrons ou d'un poteau vertical pour exemple. Defaults to 0.
+        """
+        super().__init__(*args, **kwargs)
+        self.longueur = longueur * si.mm
+        self.b = b * si.mm
+        self.h = h * si.mm
+        self.section = section
+        self.classe = classe
+        self.poids_propre = poids_propre
+        self.nbr_appuis = nbr_appuis
+        self.l_appuis = l_appuis
+        self.devers = devers
+        self.inclinaison = inclinaison
+
+        material = self.add_material_by_class(classe)
+        section = self.add_section(b, h, 0, section)
+
+        d_appuis = longueur / (nbr_appuis - 1)
+        for i in range(nbr_appuis):
+            node = self.add_node(int(float(i * d_appuis * mt.cos(mt.radians(inclinaison)))), int(float(i * d_appuis * mt.sin(mt.radians(inclinaison)))), 0)
+            self.add_support(node, DX=True, DY=True, DZ=True, RX=True, RY=False, RZ=False, l_appuis=l_appuis)
+
+        for i in range(nbr_appuis-1):
+            self.add_member(f"N{i+1}", f"N{i+2}", material, section, poids_propre, rotation=devers, tension_only=False, compression_only=False)
+
+    def _convert_beam_pos(self, pos_index: int | str) -> int:
+        """Converti la position en valeur recevable par la fonction create_load
+
+        Args:
+                pos_index (int | str): position de la charge sur la barre
+
+        Returns:
+                int: la position numérique sur la barre
+        """
+        match pos_index:
+            case "start":
+                pos_index = 0 * si.mm
+                member_id = "M1"
+            case "end":
+                member_id = "M" + str(len(self._data["members"]))
+                pos_index = self._data["members"][member_id]["Longueur"]
+            case "middle":
+                dist = self.longueur / 2
+                sum_dist = 0
+                for member_id in self._data["members"].keys():
+                    sum_dist = sum_dist + self._data["members"][member_id]["Longueur"]
+                    if sum_dist >= dist:
+                        delta_end_dist = sum_dist - dist
+                        pos_index = self._data["members"][member_id]["Longueur"] - delta_end_dist
+                        break
+                pos_index = round(pos_index, 0)
+            case str(x) if "%" in x:
+                pos_index = pos_index.split("%")[0]
+                pos_index.replace(" ", "")
+                dist = round(
+                    self.longueur * int(pos_index) / 100,
+                    0,
+                )
+                sum_dist = 0
+                for member_id in self._data["members"].keys():
+                    sum_dist = sum_dist + self._data["members"][member_id]["Longueur"]
+                    if sum_dist >= dist:
+                        delta_end_dist = sum_dist - dist
+                        pos_index = self._data["members"][member_id]["Longueur"] - delta_end_dist
+                        break
+                pos_index = round(pos_index, 0)
+            case _:
+                dist = float(pos_index) * si.mm
+                sum_dist = 0
+                for member_id in self._data["members"].keys():
+                    sum_dist = sum_dist + self._data["members"][member_id]["Longueur"]
+                    if sum_dist >= dist:
+                        delta_end_dist = sum_dist - dist
+                        pos_index = self._data["members"][member_id]["Longueur"] - delta_end_dist
+                        break
+                pos_index = round(pos_index, 0)
+        return pos_index.value*10**3, member_id
+
+    def create_dist_load(
+        self,
+        name: str,
+        start_load: float,
+        end_load: float,
+        start_pos: str = None,
+        end_pos: str = None,
+        action: str = Model_generator.ACTION,
+        direction: str = ("Fx", "Fy", "Fz", "FX", "FY", "FZ"),
+        comment: str = None,
+    ):
+        """Ajoute une charge distribuée sur la barre
+
+        Args:
+            name (str): nom de la charge.
+            start_load (int): effort de départ en kN/m.
+            end_load (int): effort de fin en kN/m.
+            start_pos (str, optional): position de début de la charge sur la barre en mm. En complément il est possible de mettre "start", "middle"
+                                        ou un pourcentage pour définir la position de la charge.
+            end_pos (str, optional): position de début de la charge sur la barre en mm. En complément il est possible de mettre "end", "middle"
+                                        ou un pourcentage pour définir la position de la charge.
+            action (str): type d'action de l'effort.
+            direction (str): sens de l'effort sur la barre.
+            comment (str, optional): commentaire sur la charge.
+        """
+        if not start_pos:
+            start_pos = "start"
+        if not end_pos:
+            end_pos = "end"
+        start_pos, member_id_start = self._convert_beam_pos(start_pos)
+        end_pos, member_id_end = self._convert_beam_pos(end_pos)
+        if member_id_start != member_id_end:
+            id_start = int(member_id_start.split("M")[1])
+            id_end = int(member_id_end.split("M")[1])
+            super().create_dist_load(f"M{id_start}", name, start_load, end_load, start_pos, 'end', action, direction, comment)
+            if id_start != id_end-1:
+                for i in range(id_start, id_end-1):
+                    super().create_dist_load(f"M{i+1}", name, start_load, end_load, 'start', 'end', action, direction, comment)
+            super().create_dist_load(f"M{id_end}", name, start_load, end_load, 'start', end_pos, action, direction, comment)
+        else:
+            super().create_dist_load(member_id_start, name, start_load, end_load, start_pos, end_pos, action, direction, comment)
+
+    def create_point_load(
+        self,
+        name: str,
+        load: float,
+        pos: str = None,
+        action: str = Model_generator.ACTION, 
+        direction: str = (
+                "Fx",
+                "Fy",
+                "Fz",
+                "Mx",
+                "My",
+                "Mz",
+                "FX",
+                "FY",
+                "FZ",
+                "MX",
+                "MY",
+                "MZ",
+            ),
+            comment: str = None
+    ):
+        """Ajoute une charge nodale sur la barre
+
+        Args:
+            name (str): nom de la charge.
+            load (int): effort de départ en kN ou kN.m.
+            pos (str, optional): position de la charge sur la barre en mm. En complément il est possible de mettre "start", "middle", "end"
+                                    ou un pourcentage pour définir la position de la charge.
+            action (str): type d'action de l'effort.
+            direction (str): sens de l'effort sur la barre.
+            comment (str, optional): commentaire sur la charge.
+        """
+        pos, member_id = self._convert_beam_pos(pos)
+        return super().create_point_load(member_id, name, load, pos, action, direction, comment)
+        
+
 
 class Model_result(Projet):
     ANALYZE_TYPE = ("Général", "Linéaire", "Second ordre")
@@ -999,7 +1215,7 @@ class Model_result(Projet):
         filepath: str=None
     ):
         """Retourne un diagramme"""
-        plt.clf()  # Effacer le graphique précédent
+        # plt.clf()  # Effacer le graphique précédent
         plt.figure(self.name, figsize=(11, 4))
         plt.gcf().subplots_adjust(
             left=0.1, bottom=0.25, right=0.9, top=0.75, wspace=0, hspace=0.95
@@ -1100,65 +1316,83 @@ class Model_result(Projet):
         """Retourne le maximum et minimum des efforts internes d'une membrure donnée.
 
         Args:
-            member_id (str): Le nom de la membrure à analyser
+            member_id (str): Le nom de la membrure à analyser. On peut rentrer plusieurs membrures en créant une liste de membrures,
+                            ex: ["M1", "M2", "M3"] dans le cas par exemple d'une barre continue.
             combination (str): Le nom de la combinaison à récupérer
         """
         dict_internal_forces = {}
         for type in ("Nx", "Vy", "Vz", "Mx", "My", "Mz"):
-            if type == "Nx":
-                max = self._model_generator._model.members[member_id].max_axial(
-                    combo_name=combination
-                )
-                min = self._model_generator._model.members[member_id].min_axial(
-                    combo_name=combination
-                )
-            elif type == "Vy":
-                max = self._model_generator._model.members[member_id].max_shear(
-                    "Fy", combo_name=combination
-                )
-                min = self._model_generator._model.members[member_id].min_shear(
-                    "Fy", combo_name=combination
-                )
-            elif type == "Vz":
-                max = self._model_generator._model.members[member_id].max_shear(
-                    "Fz", combo_name=combination
-                )
-                min = self._model_generator._model.members[member_id].min_shear(
-                    "Fz", combo_name=combination
-                )
-            elif type == "Mx":
-                max = self._model_generator._model.members[member_id].max_torque(
-                    combo_name=combination
-                )
-                min = self._model_generator._model.members[member_id].min_torque(
-                    combo_name=combination
-                )
-            elif type == "My":
-                max = self._model_generator._model.members[member_id].max_moment(
-                    "My", combo_name=combination
-                )
-                min = self._model_generator._model.members[member_id].min_moment(
-                    "My", combo_name=combination
-                )
-            elif type == "Mz":
-                max = self._model_generator._model.members[member_id].max_moment(
-                    "Mz", combo_name=combination
-                )
-                min = self._model_generator._model.members[member_id].min_moment(
-                    "Mz", combo_name=combination
-                )
+            if "[" in member_id:
+                import json
+                member_id = json.loads(member_id.replace("'", "\""))
+            elif isinstance(member_id, str):
+                member_id = [member_id]
+            max_value = 0
+            min_value = 0
+            for member in member_id:
+                if member not in self._model_generator._model.members:
+                    raise ValueError(f"La membrure {member} n'est pas dans le model MEF")
+                
+                if type == "Nx":
+                    max = self._model_generator._model.members[member].max_axial(
+                        combo_name=combination
+                    )
+                    min = self._model_generator._model.members[member].min_axial(
+                        combo_name=combination
+                    )
+                elif type == "Vy":
+                    max = self._model_generator._model.members[member].max_shear(
+                        "Fy", combo_name=combination
+                    )
+                    min = self._model_generator._model.members[member].min_shear(
+                        "Fy", combo_name=combination
+                    )
+                elif type == "Vz":
+                    max = self._model_generator._model.members[member].max_shear(
+                        "Fz", combo_name=combination
+                    )
+                    min = self._model_generator._model.members[member].min_shear(
+                        "Fz", combo_name=combination
+                    )
+                elif type == "Mx":
+                    max = self._model_generator._model.members[member].max_torque(
+                        combo_name=combination
+                    )
+                    min = self._model_generator._model.members[member].min_torque(
+                        combo_name=combination
+                    )
+                elif type == "My":
+                    max = self._model_generator._model.members[member].max_moment(
+                        "My", combo_name=combination
+                    )
+                    min = self._model_generator._model.members[member].min_moment(
+                        "My", combo_name=combination
+                    )
+                elif type == "Mz":
+                    max = self._model_generator._model.members[member].max_moment(
+                        "Mz", combo_name=combination
+                    )
+                    min = self._model_generator._model.members[member].min_moment(
+                        "Mz", combo_name=combination
+                    )
+                if max > max_value:
+                    max_value = max
+                if min < min_value:
+                    min_value = min
+            
             if "M" in type:
                 si_unit = si.N * si.mm
             else:
                 si_unit = si.N
-            dict_internal_forces[type] = {"Min": min * si_unit, "Max": max * si_unit}
+            dict_internal_forces[type] = {"Min": min_value * si_unit, "Max": max_value * si_unit}
         return dict_internal_forces
     
     def get_absolute_internal_force(self, member_id: str, combination: str, type: str = ("Nx", "Vy", "Vz", "Mx", "My", "Mz")):
         """Retourne la valeur de d'effort absolue pour le type d'effort donné.
 
         Args:
-            member_id (str): Le nom de la membrure à analyser
+            member_id (str): Le nom de la membrure à analyser. On peut rentrer plusieurs membrures en créant une liste de membrures,
+                            ex: ["M1", "M2", "M3"] dans le cas par exemple d'une barre continue.
             combination (str): Le nom de la combinaison à récupérer
             type (str): Le type d'effort interne à retourner. Defaults to ("Nx", "Vy", "Vz", "Mx", "My", "Mz").
         """
@@ -1177,7 +1411,8 @@ class Model_result(Projet):
         """Retourne un graphique des efforts internes d'une membrure suivant le type d'effort et la combinaison choisit.
 
         Args:
-            member_id (str): Le nom de la membrure à analyser
+            member_id (str): Le nom de la membrure à analyser. On peut rentrer plusieurs membrures en créant une liste de membrures,
+                            ex: ["M1", "M2", "M3"] dans le cas par exemple d'une barre continue.
             combination (str): Le nom de la combinaison à récupérer
             type (str): Le type d'effort interne à retourner. Defaults to ("Nx", "Vy", "Vz", "Mx", "My", "Mz").
             n_points (int, optional): le nombre de valeur à retrouner le long de la membrure. Defaults to 20.
@@ -1186,9 +1421,27 @@ class Model_result(Projet):
                                       Sinon le logiciel vous demande à chaque fois le chemin de sauvegarde.
         """
         x_label = "Longueur (mm)"
-        x_value, y_value = self.get_internal_force(
-            member_id, combination, type, n_points
-        )
+        if "[" in member_id:
+            import json
+            member_id = json.loads(member_id.replace("'", "\""))
+        elif isinstance(member_id, str):
+            member_id = [member_id]
+        x_value = []
+        y_value = []
+        for member in member_id:
+            if member not in self._model_generator._model.members:
+                raise ValueError(f"La membrure {member} n'est pas dans le model MEF")
+            x_local, y_local = self.get_internal_force(
+                member, combination, type, n_points
+            )
+            if len(x_value) == 0:
+                x_value = x_local
+                y_value = y_local
+            else:
+                x_local = x_local + x_value[-1]
+                x_value = np.concatenate((x_value, x_local))
+                y_value = np.concatenate((y_value, y_local))
+            
         if type.startswith("N"):
             title = f"Barre {member_id}: Effort normal {type}"
             color = "orange"
@@ -1239,25 +1492,42 @@ class Model_result(Projet):
         """Retourne le maximum et minimum des efforts internes d'une membrure donnée.
 
         Args:
-            member_id (str): Le nom de la membrure à analyser
+            member_id (str): Le nom de la membrure à analyser. On peut rentrer plusieurs membrures en créant une liste de membrures,
+                            ex: ["M1", "M2", "M3"] dans le cas par exemple d'une barre continue.
             combination (str): Le nom de la combinaison à récupérer
         """
         dict_deflection = {}
         for type in ("dx", "dy", "dz"):
-            max = self._model_generator._model.members[member_id].max_deflection(
-                type, combo_name=combination
-            )
-            min = self._model_generator._model.members[member_id].min_deflection(
-                type, combo_name=combination
-            )
-            dict_deflection[type] = {"Min": min * si.mm, "Max": max * si.mm}
+            if "[" in member_id:
+                import json
+                member_id = json.loads(member_id.replace("'", "\""))
+            elif isinstance(member_id, str):
+                member_id = [member_id]
+            max_value = 0
+            min_value = 0
+            for member in member_id:
+                if member not in self._model_generator._model.members:
+                    raise ValueError(f"La membrure {member} n'est pas dans le model MEF")
+                max = self._model_generator._model.members[member].max_deflection(
+                    type, combo_name=combination
+                )
+
+                min = self._model_generator._model.members[member].min_deflection(
+                    type, combo_name=combination
+                )
+                if max > max_value:
+                    max_value = max
+                if min < min_value:
+                    min_value = min
+            dict_deflection[type] = {"Min": min_value * si.mm, "Max": max_value * si.mm}
         return dict_deflection
     
     def get_absolute_max_deflection(self, member_id: str, combination: str, direction: str = ("dx", "dy", "dz")):
         """Retourne la valeur de déplacement absolue pour la direction de la flèche donnée.
 
         Args:
-            member_id (str): Le nom de la membrure à analyser
+            member_id (str): Le nom de la membrure à analyser. On peut rentrer plusieurs membrures en créant une liste de membrures,
+                            ex: ["M1", "M2", "M3"] dans le cas par exemple d'une barre continue.
             combination (str): Le nom de la combinaison à récupérer
             direction (str): La direction locale à retourner. Defaults to ("dx", "dy", "dz").
         """
@@ -1277,7 +1547,8 @@ class Model_result(Projet):
         """Retourne un graphique des efforts internes d'une membrure suivant le type d'effort et la combinaison choisit.
 
         Args:
-            member_id (str): Le nom de la membrure à analyser
+            member_id (str): Le nom de la membrure à analyser. On peut rentrer plusieurs membrures en créant une liste de membrures,
+                            ex: ["M1", "M2", "M3"] dans le cas par exemple d'une barre continue.
             combination (str): Le nom de la combinaison à récupérer
             direction (str): La direction locale à retourner. Defaults to ("dx", "dy", "dz").
             n_points (int, optional): le nombre de valeur à retrouner le long de la membrure. Defaults to 20.
@@ -1289,9 +1560,27 @@ class Model_result(Projet):
         x_label = "Longueur (mm)"
         y_label = "Déplacement\n(mm)"
         color = "g"
-        x_value, y_value = self.get_deflection(
-            member_id, combination, direction, n_points
-        )
+        if "[" in member_id:
+            import json
+            member_id = json.loads(member_id.replace("'", "\""))
+        elif isinstance(member_id, str):
+            member_id = [member_id]
+        x_value = []
+        y_value = []
+        for member in member_id:
+            if member not in self._model_generator._model.members:
+                raise ValueError(f"La membrure {member} n'est pas dans le model MEF")
+            x_local, y_local = self.get_deflection(
+                member, combination, direction, n_points
+            )
+            if len(x_value) == 0:
+                x_value = x_local
+                y_value = y_local
+            else:
+                x_local = x_local + x_value[-1]
+                x_value = np.concatenate((x_value, x_local))
+                y_value = np.concatenate((y_value, y_local))
+
         return self._base_graph(
             title,
             combination,
@@ -1309,7 +1598,7 @@ class Model_result(Projet):
         self,
         combination: str,
         annotation_size: int = 70,
-        deformed_shape: bool = True,
+        deformed_shape: bool = ("False", "True"),
         deformed_scale: int = 20,
         screenshot: bool = ("False", "True"),
         filepath: str=None,
