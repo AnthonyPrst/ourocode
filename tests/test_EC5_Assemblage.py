@@ -109,10 +109,10 @@ class Test_Pointe:
         assert pointe._nef == 9
 
     def test_Kser_ass(self, pointe):
-        assert pointe.Kser_ass[1].value == 7197869.965862667
+        assert pointe.Kser_ass()[1].value == 7197869.965862667
 
     def test_Ku_ass(self, pointe):
-        assert pointe.Ku_ass[1].value == 4798579.977241778
+        assert pointe.Ku_ass()[1].value == 4798579.977241778
     
     def test_prepercage(self, pointe):
         assert pointe.prepercage(beam="1", sensible=True)[1] == 35 * si.mm
@@ -164,10 +164,10 @@ class Test_Agrafe:
         assert agrafe._nef == 9
 
     def test_Kser_ass(self, agrafe):
-        assert agrafe.Kser_ass[1].value == 14281.908958018748
+        assert agrafe.Kser_ass()[1].value == 14281.908958018748
 
     def test_Ku_ass(self, agrafe):
-        assert agrafe.Ku_ass[1].value == 9521.272638679166
+        assert agrafe.Ku_ass()[1].value == 9521.272638679166
 
     def test_pince(self, agrafe):
         print(agrafe.pince["barre 2"])
@@ -224,11 +224,11 @@ class Test_Boulon:
         assert boulon._nef == 1.6697284479494683
 
     def test_Kser_ass(self, boulon):
-        kser = boulon.Kser_ass
+        kser = boulon.Kser_ass()
         assert kser[1].value == 35926700.42465139
 
     def test_Ku_ass(self, boulon):
-        ku = boulon.Ku_ass
+        ku = boulon.Ku_ass()
         assert ku[1].value == 23951133.61643426
 
     def test_pince(self, boulon):
@@ -299,11 +299,11 @@ class Test_Broche:
         assert pinces["barre 1"]["a4c"] == 48 * si.mm
     
     def test_Kser_ass(self, broche):
-        kser = broche.Kser_ass
+        kser = broche.Kser_ass()
         assert kser[1].value == 95804534.46573706
 
     def test_Ku_ass(self, broche):
-        ku = broche.Ku_ass
+        ku = broche.Ku_ass()
         assert ku[1].value == 63869689.643824704
 
     def test_FvRk(self, broche):

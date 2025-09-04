@@ -10,17 +10,6 @@ from ourocode.eurocode.A0_Projet import Projet, Model_generator
 
 
 class Combinaison(Projet):
-    CAT_TYPE = (
-        "Aucune",
-        "Cat A : habitation",
-        "Cat B : bureaux",
-        "Cat C : lieu de réunion",
-        "Cat D : zones commerciales",
-        "Cat E : stockage",
-        "Cat F : véhicule <= 30kN",
-        "Cat G : véhicule <= 160kN",
-        "Cat H : toits",
-    )
     COEF_G = (1, 1.35)  # Ginf, Gsup
     COEF_Q = 1.5  # Qsup
     ANALYZE_TYPE = ("Général", "Linéaire", "Second ordre")
@@ -32,7 +21,7 @@ class Combinaison(Projet):
         ELU_STR_ACC: bool = ("True", "False"),
         ELS_C: bool = ("True", "False"),
         ELS_QP: bool = ("True", "False"),
-        cat: str = CAT_TYPE,
+        cat: str = Projet.CAT_TYPE,
         kdef: float = None,
         type_psy_2: str = ["Court terme", "Moyen terme", "Long terme"],
         **kwargs,
@@ -124,7 +113,7 @@ class Combinaison(Projet):
             for key in dict_psy.keys():
                 dict_psy[key][psy_i] = data_csv_psy.loc[key].loc[psy_i]
         return dict_psy
-
+    
     def _key_action_psy(self, action_variable):
         if action_variable == "Q":
             index = self.cat
@@ -133,7 +122,6 @@ class Combinaison(Projet):
                 index = "Neige > 1000m"
             else:
                 index = "Neige <= 1000m"
-
         elif action_variable == "W+" or action_variable == "W-":
             index = "Vent"
         else:

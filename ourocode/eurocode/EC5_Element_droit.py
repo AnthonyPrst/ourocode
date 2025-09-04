@@ -19,7 +19,9 @@ from ourocode.eurocode.A0_Projet import Projet
 class Barre(Projet):
     LIST_SECTION = ["Rectangulaire","Circulaire"]
     LIST_TYPE_B = ["Massif", "BLC", "LVL", "OSB 2", "OSB 3/4", "CP"]
-    CLASSE_WOOD = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").index)[2:]
+    CLASSE_WOOD = list(Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").index)[2:]
+    CLASSE_PANEL = list(Projet._data_from_csv(Projet, "caracteristique_meca_panel.csv").index)[2:]
+    CLASSE = CLASSE_WOOD + CLASSE_PANEL
     CS = ["1","2","3"]
     CARACTERISTIQUE = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").columns)
     LOAD_TIME = tuple(Projet._data_from_csv(Projet, "kmod.csv").columns)[1:]
@@ -28,7 +30,7 @@ class Barre(Projet):
     TYPE_ELE = tuple(Projet._data_from_csv(Projet, "limite_fleche.csv").index.unique())
     B90 = 0.25
 
-    def __init__(self, b:si.mm, h:si.mm, section: str=LIST_SECTION, Hi: int=12, Hf: int=12, classe: str=CLASSE_WOOD, cs: int=CS, effet_systeme: bool=("False", "True"), **kwargs):
+    def __init__(self, b:si.mm, h:si.mm, section: str=LIST_SECTION, Hi: int=12, Hf: int=12, classe: str=CLASSE, cs: int=CS, effet_systeme: bool=("False", "True"), **kwargs):
         """Classe qui définit les caractéristiques d'un élément droit. 
         Cette classe est hérité de la classe Projet du module A0_Projet.py.
 
@@ -66,7 +68,7 @@ class Barre(Projet):
     
     @property
     def aire(self):
-        if self.section == __class__.LIST_SECTION[0]:
+        if self.section == self.LIST_SECTION[0]:
             return self.b_calcul * self.h_calcul
         else:
             return mt.pi * (self.b_calcul/2)**2
@@ -94,8 +96,12 @@ class Barre(Projet):
     @property
     def caract_meca(self):
         """ Retourne les caractéristiques méca du bois sous forme de dataframe pandas """
-        data_csv_meca = self._data_from_csv("caracteristique_meca_bois.csv")
-        return data_csv_meca.loc[self.classe]
+        if self.classe in self.CLASSE_WOOD:
+            data_csv_meca = self._data_from_csv("caracteristique_meca_bois.csv")
+            return data_csv_meca.loc[self.classe]
+        elif self.classe in self.CLASSE_PANEL:
+            data_csv_meca = self._data_from_csv("caracteristique_meca_panel.csv")
+            return data_csv_meca.loc[self.classe]
     
 
     @property
@@ -594,12 +600,19 @@ class Traction(Barre):
         return super()._f_type_d("ft0k", loadtype, typecombi)
     
     
-    def sigma_t_0_d(self, Ft0d: si.kN):
-        """ Retourne la contrainte de traxion axial en MPa avec:
-            Ft0d : la charge en kN de compression """
+    def sigma_t_0_d(self, Ft0d: si.kN, Anet: si.mm**2=None):
+        """Retourne la contrainte de traxion axial en MPa avec:
+
+        Args:
+            Ft0d (float): la charge en kN de compression 
+            Anet (float|optional): si il y a une réduction de la section en traction alors renseigner l'aire nette de traction en mm2
+        """
         self.Ft_0_d = Ft0d * si.kN
         Ft_0_d = self.Ft_0_d
-        A = self.aire
+        if Anet and Anet * si.mm**2<= self.aire:
+            A = Anet * si.mm**2
+        else:
+            A = self.aire
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
@@ -662,6 +675,7 @@ class Compression(Barre):
         self.lo_z = self.lo_comp['z']
         self.type_appuis = type_appuis
         self.coef_lef = __class__.COEF_LF[type_appuis]
+        self._Anet = self.aire
 
     @property
     def lamb(self):
@@ -671,7 +685,7 @@ class Compression(Barre):
         coef_lef = self.coef_lef
         I_y = self.inertie[0].value * 10**12
         I_z = self.inertie[1].value * 10**12
-        A = self.aire.value * 10**6
+        A = self._Anet.value * 10**6
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
@@ -750,12 +764,18 @@ class Compression(Barre):
         return super()._f_type_d("fc0k", loadtype, typecombi)
     
     
-    def sigma_c_0_d(self, Fc0d: si.kN):
-        """ Retourne la contrainte de compression axial en MPa avec:
-            Fc0d : la charge en kN de compression """
+    def sigma_c_0_d(self, Fc0d: si.kN, Anet: si.mm**2=None):
+        """Retourne la contrainte de compression axial en MPa avec:
+
+        Args:
+            Fc0d (float): la charge en kN de compression 
+            Anet (float|optional): si il y a une réduction de la section en compression alors renseigner l'aire nette de compression en mm2
+        """
         self.Fc_0_d = Fc0d * si.kN
         Fc_0_d = self.Fc_0_d
-        A = self.aire
+        if Anet and Anet * si.mm**2 <= self.aire:
+            self._Anet = Anet * si.mm**2
+        A = self._Anet
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():

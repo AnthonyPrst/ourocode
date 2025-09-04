@@ -1,3 +1,4 @@
 include ourocode/data/*
 include ourocode/data/vent/*
+include ourocode/data/sismique/*
 include ourocode/data/screenshot/*

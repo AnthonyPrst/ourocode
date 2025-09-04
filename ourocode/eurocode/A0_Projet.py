@@ -28,6 +28,18 @@ class Projet(Objet):
         "Neige accidentelle Sx": "Sx",
         "Sismique Ae": "Ae",
     }
+    CAT_TYPE = (
+        "Aucune",
+        "Cat A : habitation",
+        "Cat B : bureaux",
+        "Cat C : lieu de réunion",
+        "Cat D : zones commerciales",
+        "Cat E : stockage",
+        "Cat F : véhicule <= 30kN",
+        "Cat G : véhicule <= 160kN",
+        "Cat H : toits",
+    )
+    PAYS = ("France")
 
     def __init__(
         self,
@@ -36,7 +48,7 @@ class Projet(Objet):
         name: str = None,
         adresse: str = None,
         code_INSEE: int = None,
-        pays: str = "France",
+        pays: str = PAYS,
         alt: si.m = 0,
         **kwargs,
     ):
@@ -49,6 +61,7 @@ class Projet(Objet):
             adresse (str, optional): adresse du projet. Defaults to None.
             region (int, optional): numéro INSEE départementale du projet en 5 chiffres. Defaults to None.
             pays (str, optional): pays ou ce situe le projet. Defaults to "France".
+                Attention, ce package est conçu pour être utilisé en France, il n'intègre que les annexes nationales Françaises.
             alt (int, optional): altitude du projet en m. Defaults to 0.
         """
         super().__init__()
@@ -62,42 +75,35 @@ class Projet(Objet):
         self.pays = pays
         self.alt = alt * si.m
 
-    def __str__(self) -> str:
-        return "Créer une classe Projet hérité de la classe Objet du fichier objet.py. Cette classe définit le projet, d'ou découle l'ensemble des objets du catalogue."
-
-    def __repr__(self) -> str:
-        return super().__repr__()
-
-
 class Batiment(Projet):
+    ETAGE = ("RDC", "R+1", "R+2", "R+3", "R+4", "Toiture")
     def __init__(
         self,
-        h_bat: float,
-        d_bat: float,
-        b_bat: float,
+        h_bat: si.m,
+        d_bat: si.m,
+        b_bat: si.m,
         alpha_toit: float,
         alpha_toit2: float = 0,
         *args,
         **kwargs,
     ):
-        """Créer une classe Batiment héritée de Projet, cette classe définit les dimension du bâtiment
+        """
+        Créer une classe Batiment héritée de Projet, cette classe définit les dimension du bâtiment
 
         Args:
-            h_bat (float): hauteur du bâtiment en m.
+            h_bat (float): hauteur du bâtiment en m depuis le soubassement rigide 
+                ou les fondations dans le cas d'un calcul sismique.
             d_bat (float): largeur du bâtiment en m.
             b_bat (float): longueur du bâtiment en m.
             alpha_toit (float): angle de toiture en ° du versant 1.
             alpha_toit2 (float): angle de toiture en ° du versant 2 si il existe sinon 0.
         """
         super().__init__(*args, **kwargs)
-        self.h_bat = h_bat
-        self.d_bat = d_bat
-        self.b_bat = b_bat  # coté perpendiculaire au vent longpant
+        self.h_bat = h_bat * si.m
+        self.d_bat = d_bat * si.m
+        self.b_bat = b_bat * si.m  # coté perpendiculaire au vent longpant
         self.alpha_toit = alpha_toit
         self.alpha_toit2 = alpha_toit2
-
-    def height_ref(self):
-        pass  # 7.2.1 bâtiment de grande hauteur
 
 
 class Model_generator(Projet):
@@ -1040,6 +1046,14 @@ class Model_result(Projet):
                 self._model_generator._model.analyze_PDelta(
                     check_stability=self.check_stability
                 )
+
+    def get_member_length(self, member_id: str):
+        """Retourne la longueur du membrure par son id
+
+        Args:
+            member_id (str): id de la membrure à récupérer
+        """
+        return self._model_generator._data["members"][member_id]["Longueur"]
 
     def get_internal_force(
         self,
