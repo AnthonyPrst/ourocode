@@ -25,15 +25,23 @@ class MOB(Batiment):
         Cette classe est hérité de la classe Batiment, provenant du module A0_Projet.py.
 
 
+
         Un système de mur à ossature bois est composé de plusieurs murs servant aux contreventements, 
         ces murs sont intérompus par les portes et fenêtres. Ces murs sont eux même composés de plusieurs panneaux.
 
-        Il convient donc d'ajouter une classe MOB puis d'ajouter via la méthode "add_wall" chaque système de mur. 
-        Ensuite d'ajouter les murs internes au système de mur via la méthode "add_internal_wall", puis d'ajouter ensuite les panneaux
+        Il convient donc d'ajouter une classe MOB puis d'ajouter via la méthode "add_sys_wall" chaque système de mur. 
+        Ensuite d'ajouter les murs internes au système de mur via la méthode "add_wall_to_sys", puis d'ajouter ensuite les panneaux
         à chaque murs via la méthode "add_panel_to_wall".
-
         Une méthode plus efficace consiste à écrire dans un fichier JSON les informations pour chaque système de mur, 
-        puis d'utiliser la méthode "load_data" pour charger les informations.
+        puis d'utiliser la méthode "load_walls_data" pour charger les informations.
+
+        Ensuite on peu utiliser la méthode "calculate_loads_and_deformations" pour calculer les efforts de contreventements et les déformations,
+        suivant le centre de gravité et la raideur des systèmes de mur. 
+        Sinon on peux donner directement les efforts Fv_Ed_ELS et Fv_Ed_ELU par système de mur dans la méthode "add_sys_wall".
+
+        Enfin on utilise les méthodes "taux_walls" et "taux_ancrage" pour récupérer les taux de contreventements et les taux d'ancrage.
+        Attention cette classe ne calcule pas les montants bois notamment au flambement, ni la compression perpendiculaire des montants sur la lisse basse.
+        Pour réaliser ces calculs, il faut utiliser la classe Barre et les classes de vérification associées du module EC5_Element_droit.py
 
         Args:
             connecteurs_int (Agrafe, Pointe, optional): Objet Agrafe ou Pointe, représentant les connecteurs intérieurs du mur à ossature bois provenant du module EC5_Assemblage.py.
@@ -103,11 +111,11 @@ class MOB(Batiment):
         alpha_Fw_rad = radians(alpha_Fw)
         Ks = self.get_Kser_wall()
         sys_walls_names = self._get_all_sys_walls_names()
+        df_sw = pd.DataFrame(index=sys_walls_names, columns=["dn_p_sw", "dn_sw", "a", "b", "c", "d", "e", "C1", "C2", "C3", "C6"])
         if not hasattr(self, "data_sys_walls_loads"):
             self.data_sys_walls_loads = pd.DataFrame(index=sys_walls_names, columns=["Étage", "delta,v,Ed,i ELS", "Fv,Ed,i ELU"])
             self.data_walls_loads = pd.DataFrame(index=self.data_walls.keys(), columns=["Étage", "Fv,Ed,i ELU", "Ft,Ed,i ELU (soulèvement)"])
             self.data_panels_loads = pd.DataFrame(index=self.data_panels.keys(), columns=["Étage", "Fv,Ed,i ELU"])
-            df_sw = pd.DataFrame(index=sys_walls_names, columns=["dn_p_sw", "dn_sw", "a", "b", "c", "d", "e", "C1", "C2", "C3", "C6"])
 
         for etage_data, sys in self.data.items():
             if etage_data != etage:
@@ -608,12 +616,10 @@ class MOB(Batiment):
                         k_wall[1] = k_wall[1] + panel['Nombre'] * self.data_Kser_panels.loc[panel_name]['Kser,p unit.']
                         k_wall[2] = k_wall[2] + panel['Nombre'] * self.data_Kser_panels.loc[panel_name]['Coeff. équivalence']
                         k_wall[3] = self.data_Kser_panels.loc[panel_name]['Kser,p,ref']
+                        k_sys_wall[3] = self.data_Kser_panels.loc[panel_name]['Kser,p,ref']
                     self.data_Kser_walls.loc[wall_name] = k_wall
                     k_sys_wall[1] = k_sys_wall[1] + k_wall[1]
                     k_sys_wall[2] = k_sys_wall[2] + k_wall[2]
-
-                if self.data_Kser_panels.get(panel_name):
-                    k_sys_wall[3] = self.data_Kser_panels.loc[panel_name]['Kser,p,ref']
                 self.data_Kser_sys_walls.loc[sys_name] = k_sys_wall
 
         # Trier par index (nommés 'Système de mur' et 'Mur')
@@ -788,7 +794,7 @@ class MOB(Batiment):
         Fv_Rk_anc_li = Fv_Rk_anc_li * si.kN
         e_anc_lb = e_anc_lb * si.mm
         e_anc_li = e_anc_li * si.mm
-        self.taux_ancr_walls = pd.DataFrame(columns=['Étage', 'Longueur mur', 'Ft,Ed', 'Ft,Rd', 'Taux ancrage soulèvement (%)', 'Fv,anc,Ed', 'Fv,anc,lb,Rd', 'Nbr ancr,lb', 'entraxe anc,lb',  'Taux ancr. lisse basse (%)', 'Fv,anc,li,Rd', 'Nbr ancr,li', 'entraxe anc,li', 'Taux ancr. lisse impl. (%)'])
+        self.taux_ancr_walls = pd.DataFrame(columns=['Étage', 'Longueur mur', 'Ft,Ed', 'Ft,Rd', 'Taux ancr. soulèvement (%)', 'Fv,anc,Ed', 'Fv,anc,lb,Rd', 'Nbr ancr,lb', 'entraxe anc,lb',  'Taux ancr. lisse basse (%)', 'Fv,anc,li,Rd', 'Nbr ancr,li', 'entraxe anc,li', 'Taux ancr. lisse impl. (%)'])
         
         for wall_name, wall in self.data_walls_loads.iterrows():
             if etage and wall['Étage'] != etage:
