@@ -246,7 +246,7 @@ class Barre(Projet):
         return value   
     
 
-    def fleche(self, long:si.mm, Ed_WinstQ:si.mm=0, Ed_Wnetfin:si.mm=0, Ed_Wfin:si.mm=0, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
+    def fleche(self, long:si.mm, Ed_WinstQ:si.mm=0, Ed_Wnetfin:si.mm=0, Ed_Wfin:si.mm=0, Ed_W2:si.mm=0, limit_W2:int=500, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
         """Retourne le taux de travail de la flèche en % avec pour argument:
 
         Args:
@@ -254,11 +254,13 @@ class Barre(Projet):
             Ed_WinstQ (float, optional): La flèche instanténée sous charge variable Q en mm. Defaults to 0.
             Ed_Wnetfin (float, optional): La flèche net finale en mm. Defaults to 0.
             Ed_Wfin (float, optional): La flèche finale en mm. Defaults to 0.
+            Ed_W2 (float, optional): La flèche w2 en mm qui est la flèche fragile tenant compte du phasage de pose des éléments fragiles. Defaults to 0.
+            limit_W2 (int, optional): La limite de flèche w2 des éléments fragiles. Defaults to 500.
             type_ele (_type_, optional): Le type d'élément à vérifier. Defaults to TYPE_ELE.
             type_bat (_type_, optional): Le type de bâtiment sur lequel on vérifie notre élémennt. Defaults to TYPE_BAT.
 
         Returns:
-            dict: Retourne le dictionnaire des taux de travail.
+            dict: Retourne le dictionnaire des taux de travails.
         """
         data_csv_fleche = self._data_from_csv("limite_fleche.csv")
         self.data_fleche= data_csv_fleche.loc[type_ele]
@@ -269,6 +271,8 @@ class Barre(Projet):
         Ed_W_inst_Q = Ed_WinstQ * si.mm
         Ed_W_net_fin = Ed_Wnetfin * si.mm
         Ed_W_fin = Ed_Wfin * si.mm
+        Ed_W2 = Ed_W2 * si.mm
+        limit_W2 = int(limit_W2)
 
         limit_W_inst_Q = self.data_fleche['Winst(Q)'].iloc[0]
         limit_W_net_fin = int(self.data_fleche['Wnet,fin'].iloc[0])
@@ -287,30 +291,36 @@ class Barre(Projet):
                 Rd_W_inst_Q = long / limit_W_inst_Q
                 Rd_W_net_fin = long / limit_W_net_fin
                 Rd_W_fin = min(long / limit_W_fin, limit_U_fin_max)
+                Rd_W2 = long / limit_W2
 
                 taux_W_inst_Q = Ed_W_inst_Q / Rd_W_inst_Q * 100 #%
                 taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin * 100 #%
                 taux_W_fin = Ed_W_fin / Rd_W_fin * 100 #%
-                return taux_W_inst_Q, taux_W_net_fin, taux_W_fin
+                taux_W2 = Ed_W2 / Rd_W2 * 100 #%
+                return taux_W_inst_Q, taux_W_net_fin, taux_W_fin, taux_W2
             
             value = val()
             self.taux_ELS["Winst(Q)"] = value[1][0]
             self.taux_ELS["Wnet,fin"] = value[1][1]
             self.taux_ELS["Wfin"] = value[1][2]
+            self.taux_ELS["W2"] = value[1][3]
 
         else:
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 Rd_W_net_fin = long / limit_W_net_fin
                 Rd_W_fin = min(long / limit_W_fin, limit_U_fin_max)
+                Rd_W2 = long / limit_W2
 
                 taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin * 100 #%
                 taux_W_fin = Ed_W_fin / Rd_W_fin * 100 #%
-                return taux_W_net_fin, taux_W_fin
+                taux_W2 = Ed_W2 / Rd_W2 * 100 #%
+                return taux_W_net_fin, taux_W_fin, taux_W2
             
             value = val()
             self.taux_ELS["Wnet,fin"] = value[1][0]
             self.taux_ELS["Wfin"] = value[1][1]
+            self.taux_ELS["W2"] = value[1][2]
         return value 
 
 

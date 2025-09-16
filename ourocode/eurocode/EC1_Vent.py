@@ -11,6 +11,8 @@ from copy import copy
 import pandas as pd
 import forallpeople as si
 from handcalcs.decorator import handcalc
+from PySide6.QtWidgets import QApplication, QInputDialog
+from PySide6.QtCore import Qt
 
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 # from eurocode.A0_Projet import Batiment
@@ -71,20 +73,87 @@ class Vent(Batiment):
                 alt (int): altitude du batiment étudié en m.
                 cat_terrain (str): Catégorie de terrain du projet.
                 cat_oro (str): Catégorie orographique. Default to "Aucun".
+                    cas 1 : orographie constituée d'obstacles de hauteurs et de formes variées. Ce type d'orographie est le plus
+                        fréquemment rencontré.
+                    cas 2 : Non traité dans ce logiciel ! Orographie constituée d'obstacles bien individualisés. Une falaise ou une colline isolée appartiennent à 
+                        cette catégorie d'orographie, plus rarement rencontrée.
         """
         super().__init__(**kwargs)
         self.terrain = terrain
         self.oro = oro
+        if oro == "Cas 1":
+            self._calc_delta_AC()
+        elif oro == "Cas 2":
+            raise ValueError("Cas 2 non traité dans ce logiciel !")
         self.z = z * si.m
         self.CsCd = CsCd
 
     @property
     def cat_terrain(self):
-        return __class__.CAT_TERRAIN[self.terrain]
+        return self.CAT_TERRAIN[self.terrain]
 
     @property
     def cat_oro(self):
-        return __class__.CAT_ORO[self.oro]
+        return self.CAT_ORO[self.oro]
+
+    def _calc_delta_AC(self):
+        """
+        Calcule le delta AC en fonction des altitudes des obstacles environnants.
+        """
+        if not hasattr(self, "dict_alti_oro"):
+            self.dict_alti_oro = {
+                    "An1": "",
+                    "An2": "",
+                    "Ae1": "",
+                    "Ae2": "",
+                    "As1": "",
+                    "As2": "",
+                    "Ao1": "",
+                    "Ao2": "",
+                }
+            # Demande des altitudes via des boîtes de dialogue QInputDialog (PySide6), autonome si aucune QApplication n'existe
+            app = QApplication.instance()
+            owns_app = False
+            if app is None:
+                app = QApplication(sys.argv)
+                owns_app = True
+            try:
+                for cle, value in self.dict_alti_oro.items():
+                    if cle.endswith("1"):
+                        dist_msg = "à une distance de 500m"
+                    else:
+                        dist_msg = "à une distance de 1000m"
+                    val, ok = QInputDialog.getInt(
+                        None,
+                        "Altitude orographique",
+                        f"Altitude {cle} en m {dist_msg}:",
+                        0,
+                        -300,
+                        3000,
+                        1,
+                        flags=Qt.WindowSystemMenuHint | Qt.WindowTitleHint,
+                    )
+                    if not ok:
+                        raise RuntimeError("Saisie des altitudes annulée par l'utilisateur.")
+                    self.dict_alti_oro[cle] = int(val) * si.m
+            finally:
+                if owns_app:
+                    app.quit()
+
+        Am = (
+            2 * self.alt
+            + self.dict_alti_oro["An1"]
+            + self.dict_alti_oro["An2"]
+            + self.dict_alti_oro["Ae1"]
+            + self.dict_alti_oro["Ae2"]
+            + self.dict_alti_oro["As1"]
+            + self.dict_alti_oro["As2"]
+            + self.dict_alti_oro["Ao1"]
+            + self.dict_alti_oro["Ao2"]
+        ) / 10
+
+        self.delta_AC = self.alt - Am
+        return self.delta_AC
 
     @property
     def zone_vent(self):
@@ -178,45 +247,26 @@ class Vent(Batiment):
 
         match self.cat_oro:
             case "1":
-                dict_alti = {
-                    "An1": "",
-                    "An2": "",
-                    "Ae1": "",
-                    "Ae2": "",
-                    "As1": "",
-                    "As2": "",
-                    "Ao1": "",
-                    "Ao2": "",
-                }
-
-                for cle, value in dict_alti.items():
-                    dict_alti[cle] = int(input("Altitude {0} en m: ".format(cle)))
-
-                Am = (
-                    2 * self.alt
-                    + dict_alti["An1"]
-                    + dict_alti["An2"]
-                    + dict_alti["Ae1"]
-                    + dict_alti["Ae2"]
-                    + dict_alti["As1"]
-                    + dict_alti["As2"]
-                    + dict_alti["Ao1"]
-                    + dict_alti["Ao2"]
-                ) / 10
-
-                delta_AC = self.alt - Am
-
+                Delta_A_C = self.delta_AC.value
                 if self.z.value >= 10:
-                    C0_z = 1 + 0.004 * delta_AC * mt.exp(z - 10)
+                    @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                    def val():
+                        C0_z = 1 + 0.004 * Delta_A_C * mt.exp(z - 10)
+                        return C0_z
                 else:
-                    C0_z = 1 + 0.004 * delta_AC * mt.exp(0)
+                    @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                    def val():
+                        C0_z = 1 + 0.004 * Delta_A_C * mt.exp(0)
+                        return C0_z
 
             case "2":
-                pass
+                raise ValueError("Erreur la catégorie orographique 2 n'est pas encore implémentée")
             case _:
-                C0_z = 1
-        # print("C0_z :", C0_z)
-        return max(C0_z, 1)
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    C0_z = 1
+                    return C0_z
+        return val()
 
     @property
     # @handcalc(override="params", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -228,7 +278,7 @@ class Vent(Batiment):
                 float: vitesse moyenne du vent en m/s
         """
         C_r_z = self._Cr_z
-        C_o_z = self.Co_z
+        C_o_z = self.Co_z[1]
         V_b = self.Vb[1]
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -246,7 +296,7 @@ class Vent(Batiment):
         """
         match self.cat_oro:
             case "1":
-                return self.Co_z * (
+                return self.Co_z[1] * (
                     1 - 2 * 10**-4 * (mt.log10(self.cat_terrain["Z0"]) + 3) ** 6
                 )  # 4.19NA
             case _:
@@ -276,10 +326,7 @@ class Vent(Batiment):
         ):
             return self._sigma_v / self.Vm_z[1]  # 4.7
         else:
-            print(
-                """Erreur la hauteur max du bâtiment ne peut dépasser 200m, 
-					 impossible de calculer l'intensité de turbulence Iv"""
-            )
+            raise ValueError("Erreur la hauteur max du bâtiment ne peut dépasser 200m, impossible de calculer l'intensité de turbulence Iv")
 
     @property
     def Qb(self):

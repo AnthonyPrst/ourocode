@@ -134,21 +134,38 @@ class Sismique(Batiment):
         else:
             return True 
     
-    def add_gravity_load(self,name: str, load: float, surface: si.m**2, etage: str=Batiment.ETAGE, z_i: float=0, action: str=ACTION, categorie_Q: str=Batiment.CAT_TYPE, occupations: str=OCCUPATION, comment: str=""):
-        """Ajoute une charge gravitaire au bâtiment, cela permet de considérer la masse par niveau sur le bâtiment.
-        Attention ne pas oublier les charges G de mur, de menuiserie, d'élément technique et autre.
+    def save_gravity_load_data(self, path: str=None):
+        """Sauvegarde les données des charges gravitaires dans un fichier JSON.
 
         Args:
-            name (str): nom de la charge.
-            load (float): charge gravitaire en kN/m².
-            surface (float): surface d'application de la charge.
-            etage (str): étage auquel est appliquée la charge.
-            z_i (float): est la hauteur de l'étage i en mètres depuis les fondations ou le sommet d'un soubassement rigide.
-            action (str): type d'action de la charge.
-            categorie_Q (str): catégorie d'exploitation (valable uniquement pour les charges d'exploitation Q, mettre "Aucune" pour les autres charges).
-            occupations (str): type d'occupation du bâtiment (valable uniquement pour les charges d'exploitation Q, mettre "Autres" pour les autres charges).
-            comment (str): commentaire sur la charge.
+            path (str, optional): Chemin du fichier à créer, s'il n'est pas fourni, une boite de dialogue s'ouvre 
+                pour choisir le fichier. Defaults to None.
         """
+        super().save_data(self.gravity_loads, type_data="JSON", path=path)
+    
+    def load_gravity_load_data(self, path: str=None):
+        """Charge les données des charges gravitaires depuis un fichier JSON.
+
+        Args:
+            path (str, optional): Chemin du fichier à charger, s'il n'est pas fourni, une boite de dialogue s'ouvre 
+                pour choisir le fichier. Defaults to None.
+        """
+        data = super().load_data(type_data="JSON", path=path)
+        self.gravity_loads = data
+        for etage, loads in data.items():
+            for load_name, load in loads.items():
+                self._set_loads(
+                    load["Charge gravitaire"], 
+                    load["Surface"], 
+                    etage, 
+                    load["Zi"], 
+                    load["Action"], 
+                    load["Catégorie"], 
+                    load["Occupations"]
+                    )
+        return self.gravity_loads
+
+    def _set_loads(self, load: float, surface: float, etage: str, z_i: float, action: str, categorie_Q: str, occupations: str):
         def coef_psy(cat=None):
             """Retourne les caractéristiques psy sous forme de dictionnaire"""
             dict_psy = {"Vent": {}, "Température": {}}
@@ -164,7 +181,8 @@ class Sismique(Batiment):
 
             for psy_i in psy_columns:
                 for key in dict_psy.keys():
-                    dict_psy[key][psy_i] = data_csv_psy.loc[key].loc[psy_i]
+                    if key != "Aucune":
+                        dict_psy[key][psy_i] = data_csv_psy.loc[key].loc[psy_i]
             return dict_psy
 
         def _key_action_psy(action_variable):
@@ -177,17 +195,6 @@ class Sismique(Batiment):
                     index = "Neige <= 1000m"
             return index
             
-        load = abs(load) * si.kN / si.m**2
-        surface = surface * si.m**2
-        value = {
-            "Zi": z_i * si.m,
-            "Charge gravitaire": load,
-            "Surface": surface,
-            "Action": action,
-            "Catégorie": categorie_Q,
-            "Occupations": occupations,
-            "Commentaire": comment
-        }
         coeff_occupation = 1
         psy2 = 1
         if self._loads.get("default"):
@@ -203,7 +210,48 @@ class Sismique(Batiment):
         if self._loads.get(etage):
             self._loads[etage]["load"] = self._loads[etage]["load"] + load_f
         else:
-            self._loads[etage] = {"load": load_f, "Zi": z_i * si.m}
+            self._loads[etage] = {"load": load_f, "Zi": z_i}
+        
+
+    def add_gravity_load(self,name: str, load: si.kN / si.m**2, surface: si.m**2, etage: str=Batiment.ETAGE, z_i: float=0, action: str=ACTION, categorie_Q: str=Batiment.CAT_TYPE, occupations: str=OCCUPATION, comment: str=""):
+        """Ajoute une charge gravitaire au bâtiment, cela permet de considérer la masse par niveau sur le bâtiment.
+        Attention ne pas oublier les charges G de mur, de menuiserie, d'élément technique et autre.
+
+        Args:
+            name (str): nom de la charge.
+            load (float): charge gravitaire en kN/m².
+            surface (float): surface d'application de la charge.
+            etage (str): étage auquel est appliquée la charge.
+            z_i (float): est la hauteur de l'étage i en mètres depuis les fondations ou le sommet d'un soubassement rigide.
+            action (str): type d'action de la charge.
+            categorie_Q (str): catégorie d'exploitation (valable uniquement pour les charges d'exploitation Q, mettre "Aucune" pour les autres charges).
+            occupations (str): type d'occupation du bâtiment (valable uniquement pour les charges d'exploitation Q, mettre "Autres" pour les autres charges).
+            comment (str): commentaire sur la charge.
+        """
+            
+        load = abs(load) * si.kN / si.m**2
+        surface = surface * si.m**2
+        z_i = z_i * si.m
+        value = {
+            "Zi": z_i,
+            "Charge gravitaire": load,
+            "Surface": surface,
+            "Action": action,
+            "Catégorie": categorie_Q,
+            "Occupations": occupations,
+            "Commentaire": comment
+        }
+
+        self._set_loads(
+            load, 
+            surface, 
+            etage, 
+            z_i, 
+            action, 
+            categorie_Q, 
+            occupations
+            )
+
         if self.gravity_loads.get(etage):
             self.gravity_loads[etage][name] = value
         else:

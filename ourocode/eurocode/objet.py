@@ -91,10 +91,28 @@ class Objet(object):
             if '_physical_value' in data:
                 # Reconstruire l'objet Physical
                 value = data['_physical_value']
-                unit = data['_physical_unit'].split()[-1]  # extraire l'unité
-                if "/" in unit:
-                    unit = unit.replace("/", "_")
-                return value * getattr(si, unit)
+                unit_str = str(data['_physical_unit'].split()[-1])
+                # Normaliser quelques notations possibles
+                unit_expr = (
+                    unit_str
+                    .replace('^', '**')
+                    .replace('²', '**2')
+                    .replace('³', '**3')
+                    .replace('⁴', '**4')
+                    .replace('·', '*')
+                )
+                if "/" in unit_expr:
+                    unit_expr = unit_expr.replace("/", "_")
+                # Évaluer l'expression d'unité dans l'espace de noms de forallpeople
+                try:
+                    unit_obj = eval(unit_expr, {"__builtins__": {}}, vars(si))
+                except Exception:
+                    # En dernier recours, tenter un getattr direct si c'est un symbole simple
+                    try:
+                        unit_obj = getattr(si, unit_expr)
+                    except Exception as e:
+                        raise ValueError(f"Unité inconnue ou non prise en charge: {unit_str}") from e
+                return value * unit_obj
             return {k: self._dict_to_physical(v) for k, v in data.items()}
         elif isinstance(data, (list, tuple)):
             return [self._dict_to_physical(x) for x in data]
@@ -142,21 +160,62 @@ class Objet(object):
         """Retourne la valeur absolue.
         """
         return abs(float(value))
+
     
     def max(self, value1: float, value2: float):
         """Retourne la valeur max entre la valeur 1 et valeur 2.
         """
         return max(float(value1), float(value2))
-    
+
     def min(self, value1: float, value2: float):
         """Retourne la valeur min entre la valeur 1 et valeur 2.
         """
         return min(float(value1), float(value2))
+    
+    def _extract_numbers(self, value, absolute: bool=True):
+        """Fonction récursive pour extraire tous les nombres d'une structure de données imbriquée."""
+        numbers = []
+        if isinstance(value, (int, float, Physical)):
+            if isinstance(value, Physical):
+                value = value.split(base_value=True)[0]
+            if absolute:
+                value = abs(value)
+            numbers.append(float(value))
+        elif isinstance(value, (list, tuple)):
+            for item in value:
+                numbers.extend(self._extract_numbers(item, absolute))
+        elif isinstance(value, dict):
+            for item in value.values():
+                numbers.extend(self._extract_numbers(item, absolute))
+        return numbers
+
+    def max_list(self, iterable: dict|list|tuple, absolute: bool=("False", "True")):
+        """Retourne la valeur max d'une liste, ou d'un dictionnaire.
+        
+        Args:
+            iterable (dict|list|tuple): la liste ou le dictionnaire à parcourir.
+            absolute (bool, optional): permet de retourner la valeur absolue. Defaults to False.
+        """
+        result = self.get_value(iterable, get_keys=False)
+        result = self._extract_numbers(result, absolute)  
+        return max(result)
+    
+
+    def min_list(self, iterable: dict|list|tuple|str, absolute: bool=("False", "True")):
+        """Retourne la valeur min d'une liste, ou d'un dictionnaire.
+        
+        Args:
+            iterable (dict|list|tuple|str): la liste ou le dictionnaire à parcourir.
+            absolute (bool, optional): permet de retourner la valeur absolue. Defaults to False.
+        """
+        result = self.get_value(iterable, get_keys=False)
+        result = self._extract_numbers(result, absolute)  
+        return min(result)
 
     def get_trigonometric_value(self, value: float, operator: str=("COS", "SIN", "TAN", "ACOS", "ASIN", "ATAN")):
         """Retourne la valeur trigonométrique donnée en degré."""
         if operator not in ("COS", "SIN", "TAN", "ACOS", "ASIN", "ATAN"):
-            raise ValueError(f"Mauvaise fonction trigonométrique: {operator}")
+            raise ValueError(f"La fonction trigonométrique {operator} n'est pas reconnue.")
         match operator:
             case "COS":
                 result = mt.cos(mt.radians(float(value)))
@@ -181,13 +240,14 @@ class Objet(object):
             path (str, optional): Chemin du fichier à créer, s'il n'est pas fourni, une boite de dialogue s'ouvre pour choisir le fichier. 
             Defaults to None.
         """
+        data = self._physical_to_dict(data)
         if type_data == "JSON":
             save_file_path = path if path else QFileDialog.getSaveFileName(
                 filter="JSON (*.json)",
                 selectedFilter=".json",
             )[0]
-            with open(save_file_path, "w") as f:
-                json.dump(data, f)
+            with open(save_file_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4)
         elif type_data == "CSV":
             save_file_path = path if path else QFileDialog.getSaveFileName(
                 filter="CSV (*.csv)",
@@ -211,16 +271,16 @@ class Objet(object):
                 filter="JSON (*.json)",
                 selectedFilter=".json",
             )[0]
-            with open(file_path, "r") as f:
-                return json.load(f)
+            with open(file_path, "r", encoding="utf-8") as f:
+                return self._dict_to_physical(json.load(f))
         elif type_data == "CSV":
             file_path = path if path else QFileDialog.getOpenFileName(
                 filter="CSV (*.csv)",
                 selectedFilter=".csv",
             )[0]
-            with open(file_path, "r") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
-                return {row['key']: row['value'] for row in reader}
+                return self._dict_to_physical({row['key']: row['value'] for row in reader})
 
     @classmethod
     def _convert_unit_physical(cls, value: int|float, si_unit: si.Physical, unit_to_convert: si.Physical):
@@ -267,6 +327,20 @@ class Objet(object):
                         return value * 10**-1
                     elif unit_to_convert == str(si.N*si.mm):
                         return value * 10**3
+                elif si_unit == str(si.N/si.m):
+                    if unit_to_convert == str(si.kN/si.m):
+                        return value * 10**-3
+                    elif unit_to_convert == str(si.daN/si.m):
+                        return value * 10**-1
+                    elif unit_to_convert == str(si.N/si.mm):
+                        return value * 10**-3
+                elif si_unit == str(si.N/si.m**2):
+                    if unit_to_convert == str(si.kN/si.m**2):
+                        return value * 10**-3
+                    elif unit_to_convert == str(si.daN/si.m**2):
+                        return value * 10**-1
+                    elif unit_to_convert == str(si.N/si.mm**2):
+                        return value * 10**-6
                 elif si_unit == str(si.Pa):
                     if unit_to_convert == str(si.kPa):
                         return value * 10**-3

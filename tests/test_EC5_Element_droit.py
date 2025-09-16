@@ -84,6 +84,8 @@ class Test_Barre(object):
             Ed_WinstQ=5,  # flèche instantanée sous charge variable
             Ed_Wnetfin=10,  # flèche nette finale
             Ed_Wfin=0,  # flèche finale (non utilisée ici)
+            Ed_W2=6,
+            limit_W2=500,
             type_ele="Élément structuraux",
             type_bat="Bâtiments courants",
         )
@@ -91,6 +93,7 @@ class Test_Barre(object):
         assert self.barre.taux_ELS["Winst(Q)"] == 30
         assert self.barre.taux_ELS["Wnet,fin"] == 40
         assert self.barre.taux_ELS["Wfin"] == 0
+        assert self.barre.taux_ELS["W2"] == 60
 
 
 class Test_Flexion(object):
