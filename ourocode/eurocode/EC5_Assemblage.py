@@ -252,14 +252,14 @@ class Assemblage(Projet):
                 beta = f_h2k / f_h1k
                 a = f_h1k * t_1 * diam # N
                 b = f_h2k * t_2 * diam # N
-                c = a/(1 + beta) * (sqrt(beta + 2 * beta**2 * (1 + t_2 / t_1 + (t_2 / t_1)**2) + beta**3 * (t_2 / t_1)**2) - beta * (1 + t_2 / t_1)) # N
-                c = c + min(effet_corde, c*coef_limit_Johansen) # N
-                d = 1.05 * a / (2 + beta) * (sqrt(2 * beta * (1 + beta) + (4 * beta * (2 + beta) * M_y_Rk)/(f_h1k * t_1**2 * diam)) - beta) # N
-                d = d + min(effet_corde, d*coef_limit_Johansen) # N
-                e = 1.05 * (f_h1k * t_2 * diam) / (1 + 2 * beta) * (sqrt(2 * beta**2 * (1 + beta) + (4 * beta * (1 + 2 * beta) * M_y_Rk)/(f_h1k * t_2**2 * diam)) - beta) # N
-                e = e + min(effet_corde, e*coef_limit_Johansen) # N
-                f = 1.15 * sqrt((2 * beta)/(1 + beta)) * sqrt(2 * M_y_Rk * f_h1k * diam) # N
-                f = f + min(effet_corde, f*coef_limit_Johansen) # N
+                c_johansen = a/(1 + beta) * (sqrt(beta + 2 * beta**2 * (1 + t_2 / t_1 + (t_2 / t_1)**2) + beta**3 * (t_2 / t_1)**2) - beta * (1 + t_2 / t_1)) # N
+                c = c_johansen + min(effet_corde, c_johansen*coef_limit_Johansen) # N
+                d_johansen = 1.05 * a / (2 + beta) * (sqrt(2 * beta * (1 + beta) + (4 * beta * (2 + beta) * M_y_Rk)/(f_h1k * t_1**2 * diam)) - beta) # N
+                d = d_johansen + min(effet_corde, d_johansen*coef_limit_Johansen) # N
+                e_johansen = 1.05 * (f_h1k * t_2 * diam) / (1 + 2 * beta) * (sqrt(2 * beta**2 * (1 + beta) + (4 * beta * (1 + 2 * beta) * M_y_Rk)/(f_h1k * t_2**2 * diam)) - beta) # N
+                e = e_johansen + min(effet_corde, e_johansen*coef_limit_Johansen) # N
+                f_johansen = 1.15 * sqrt((2 * beta)/(1 + beta)) * sqrt(2 * M_y_Rk * f_h1k * diam) # N
+                f = f_johansen + min(effet_corde, f_johansen*coef_limit_Johansen) # N
                 return a, b, c, d, e, f
             
             calcul = val()
@@ -287,10 +287,10 @@ class Assemblage(Projet):
                 beta = f_h2k / f_h1k
                 g = f_h1k * t_1 * diam # N
                 h = 0.5 * f_h2k * t_2 * diam # N
-                j = 1.05 * g / (2 + beta) * (sqrt(2 * beta * (1 + beta) + (4 * beta * (2 + beta) * M_y_Rk)/ (f_h1k * t_1**2 * diam)) - beta) # N
-                j = j + min(effet_corde, j*coef_limit_Johansen) # N
-                k = 1.15 * sqrt((2 * beta)/(1 + beta)) * sqrt(2 * M_y_Rk * f_h1k * diam) # N
-                k = k + min(effet_corde, k*coef_limit_Johansen) # N
+                j_johansen = 1.05 * g / (2 + beta) * (sqrt(2 * beta * (1 + beta) + (4 * beta * (2 + beta) * M_y_Rk)/ (f_h1k * t_1**2 * diam)) - beta) # N
+                j = j_johansen + min(effet_corde, j_johansen*coef_limit_Johansen) # N
+                k_johansen = 1.15 * sqrt((2 * beta)/(1 + beta)) * sqrt(2 * M_y_Rk * f_h1k * diam) # N
+                k = k_johansen + min(effet_corde, k_johansen*coef_limit_Johansen) # N
                 return g, h, j, k
             
             calcul = val()
@@ -355,16 +355,16 @@ class Assemblage(Projet):
                 def val():
                     effet_corde = F_ax_Rk/4 # N
                     a = 0.4 * f_h2k * t_2 * diam # N
-                    b = 1.15 * sqrt(2 * M_y_Rk * f_h2k * diam) # N
-                    b = b + min(effet_corde, b*coef_limit_Johansen) # N
+                    b_johansen = 1.15 * sqrt(2 * M_y_Rk * f_h2k * diam) # N
+                    b = b_johansen + min(effet_corde, b_johansen*coef_limit_Johansen) # N
                     return a, b
             else:
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     effet_corde = F_ax_Rk/4 # N
                     a = 0.4 * f_h1k * t_1 * diam # N
-                    b = 1.15 * sqrt(2 * M_y_Rk * f_h1k * diam) # N
-                    b = b + min(effet_corde, b*coef_limit_Johansen) # N
+                    b_johansen = 1.15 * sqrt(2 * M_y_Rk * f_h1k * diam) # N
+                    b = b_johansen + min(effet_corde, b_johansen*coef_limit_Johansen) # N
                     return a, b
             
             calcul = val()
@@ -387,20 +387,20 @@ class Assemblage(Projet):
                 def val():
                     effet_corde = F_ax_Rk/4 # N
                     c = f_h2k * t_2 * diam # N
-                    d = c * (sqrt(2 + (4 * M_y_Rk) / (f_h2k * diam * t_2 ** 2)) - 1) # N
-                    d = d + min(effet_corde, d*coef_limit_Johansen) # N
-                    e = 2.3 * sqrt(M_y_Rk * f_h2k * diam) # N
-                    e = e + min(effet_corde, e*coef_limit_Johansen) # N
+                    d_johansen = c * (sqrt(2 + (4 * M_y_Rk) / (f_h2k * diam * t_2 ** 2)) - 1) # N
+                    d = d_johansen + min(effet_corde, d_johansen*coef_limit_Johansen) # N
+                    e_johansen = 2.3 * sqrt(M_y_Rk * f_h2k * diam) # N
+                    e = e_johansen + min(effet_corde, e_johansen*coef_limit_Johansen) # N
                     return c, d, e
             else:
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     effet_corde = F_ax_Rk/4 # N
                     c = f_h1k * t_1 * diam # N
-                    d = c * (sqrt(2 + (4 * M_y_Rk) / (f_h1k * diam * t_1 ** 2)) - 1) # N
-                    d = d + min(effet_corde, d*coef_limit_Johansen) # N
-                    e = 2.3 * sqrt(M_y_Rk * f_h1k * diam) # N
-                    e = e + min(effet_corde, e*coef_limit_Johansen) # N
+                    d_johansen = c * (sqrt(2 + (4 * M_y_Rk) / (f_h1k * diam * t_1 ** 2)) - 1) # N
+                    d = d_johansen + min(effet_corde, d_johansen*coef_limit_Johansen) # N
+                    e_johansen = 2.3 * sqrt(M_y_Rk * f_h1k * diam) # N
+                    e = e_johansen + min(effet_corde, e_johansen*coef_limit_Johansen) # N
                     return c, d, e
             
             calcul = val()
@@ -423,10 +423,10 @@ class Assemblage(Projet):
             def val():
                 effet_corde = F_ax_Rk/4 # N
                 f = f_h1k * t_1 * diam # N
-                g = f * (sqrt(2 + (4 * M_y_Rk) / (f_h1k * diam * t_1 ** 2)) - 1) # N
-                g = g + min(effet_corde, g*coef_limit_Johansen) # N
-                h = 2.3 * sqrt(M_y_Rk * f_h1k * diam) # N
-                h = h + min(effet_corde, h*coef_limit_Johansen) # N
+                g_johansen = f * (sqrt(2 + (4 * M_y_Rk) / (f_h1k * diam * t_1 ** 2)) - 1) # N
+                g = g_johansen + min(effet_corde, g_johansen*coef_limit_Johansen) # N
+                h_johansen = 2.3 * sqrt(M_y_Rk * f_h1k * diam) # N
+                h = h_johansen + min(effet_corde, h_johansen*coef_limit_Johansen) # N
                 return f, g, h
 
             calcul = val()
@@ -449,8 +449,8 @@ class Assemblage(Projet):
             def val():
                 effet_corde = F_ax_Rk/4 # N
                 j = 0.5 * f_h2k * t_2 * diam # N
-                k = 1.15 * sqrt(2 * M_y_Rk * f_h2k * diam) # N
-                k = k + min(effet_corde, k*coef_limit_Johansen) # N
+                k_johansen = 1.15 * sqrt(2 * M_y_Rk * f_h2k * diam) # N
+                k = k_johansen + min(effet_corde, k_johansen*coef_limit_Johansen) # N
                 return j, k
 
             calcul = val()
@@ -472,8 +472,8 @@ class Assemblage(Projet):
             def val():
                 effet_corde = F_ax_Rk/4 # N
                 l = 0.5 * f_h2k * t_2 * diam # N
-                m = 2.3 * sqrt(M_y_Rk * f_h2k * diam) # N
-                m = m + min(effet_corde, m*coef_limit_Johansen) # N
+                m_johansen = 2.3 * sqrt(M_y_Rk * f_h2k * diam) # N
+                m = m_johansen + min(effet_corde, m_johansen*coef_limit_Johansen) # N
                 return l, m
 
             calcul = val()
@@ -731,6 +731,7 @@ class Pointe(Assemblage):
         self.l = l * si.mm #longueur sous tête
         self.qualite = qualite
         self.n = n
+        self._nef = n
         self.fu = self.__qualite_acier.loc["fub"] *si.MPa
         self.alpha = [alpha1, alpha2]
         self.percage = percage
@@ -851,7 +852,7 @@ class Pointe(Assemblage):
             float: portance locale en MPa
         """
         d = self.d.value * 10**3
-        b_calcul = beam.b_calcul
+        b_calcul = beam.b_calcul.value * 10**3
         rho_k = beam.rho_k
         if self.dh >= 2*self.d or self.type_organe == "Agrafe":
             if beam.type_bois == "CP":
@@ -871,7 +872,7 @@ class Pointe(Assemblage):
                     return fhk * si.MPa
             return val()
         else:
-            raise ValueError(f"La tête de la pointe doit être au moins égale à {2*d} mm")
+            raise ValueError(f"La tête de la pointe doit être au moins égale à {2*d} mm selon l'EN 1995-1-1 §8.3.1.3 (3).")
 
 
     def _fhik(self) -> tuple:
@@ -919,7 +920,7 @@ class Pointe(Assemblage):
         if self.type_organe == "Autres pointes":
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                f_ax_k = 70 * 10**-6 * rho_k_ax**2 * si.MPa
+                f_ax_k = 20 * 10**-6 * rho_k_ax**2 * si.MPa
                 F_ax_a_Rk = f_ax_k * d * t_pen
                 f_head_k = 70 * 10**-6 * rho_k_head**2 * si.MPa
                 F_head_Rk = f_head_k * d_h**2
@@ -928,7 +929,7 @@ class Pointe(Assemblage):
         else:
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                f_ax_k = 70 * 10**-6 * rho_k_ax**2 * si.MPa
+                f_ax_k = 20 * 10**-6 * rho_k_ax**2 * si.MPa
                 F_ax_a_Rk = f_ax_k * d * t_pen
                 f_head_k = 70 * 10**-6 * rho_k_head**2 * si.MPa
                 F_head_Rk = f_ax_k * d * t + f_head_k * d_h**2
@@ -1078,7 +1079,7 @@ class Pointe(Assemblage):
                     a3c = round(10 * self.d, 1)
                     a4c = a2
 
-                elif rho_k > 420 and rho_k <= 500:
+                elif (rho_k > 420 and rho_k <= 500) or self._type_beam[i] in self.TYPE_BOIS_ASSEMBLAGE[1:]:
                     a1 = round((7 + 8 * mt.cos(mt.radians(alpha))) * self.d, 1)
                     a2 = round(7 * self.d, 1)
                     a3t = round((15 + 5 * mt.cos(mt.radians(alpha))) * self.d, 1)

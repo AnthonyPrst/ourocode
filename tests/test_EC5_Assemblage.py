@@ -121,7 +121,7 @@ class Test_Pointe:
         pointe.nef(a1_beam1=150, a1_beam2=150)
         pointe.Fax_Rk()
         Fvrk = pointe.FvRk(effet_corde=True)
-        assert Fvrk[1].value == 4653.815456320474
+        assert Fvrk[1].value == 5537.902373351718
 
 
 class Test_Agrafe:
@@ -190,7 +190,7 @@ class Test_Agrafe:
         agrafe.nef()
         agrafe.Fax_Rk()
         Fvrk = agrafe.FvRk(effet_corde=True)
-        assert Fvrk[1].value == 4862.449519109065
+        assert Fvrk[1].value == 5257.055494983215
 
 
 class Test_Boulon:
