@@ -252,12 +252,14 @@ class Vent(Batiment):
                     @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                     def val():
                         C0_z = 1 + 0.004 * Delta_A_C * mt.exp(z - 10)
-                        return C0_z
+                        res = max(C0_z, 1)
+                        return res
                 else:
                     @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                     def val():
                         C0_z = 1 + 0.004 * Delta_A_C * mt.exp(0)
-                        return C0_z
+                        res = max(C0_z, 1)
+                        return res
 
             case "2":
                 raise ValueError("Erreur la catégorie orographique 2 n'est pas encore implémentée")
