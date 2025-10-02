@@ -311,9 +311,19 @@ class Assemblage(Projet):
             
         return (calcul[0] + calcul2[0], calcul2[1])
 
+    def _type_plaque(self):
+        if self.t <= 0.5 * self.d:
+            self.type_plaque = "mince"
+
+        elif self.d <= self.t:
+            self.type_plaque = "epaisse"
+            
+        else:
+            self.type_plaque = "intermédiaire"
+        return self.type_plaque
 
     # 8.2.3 Assemblage bois métal
-    def _FvRk_BoisMetal(self, effet_corde: bool):
+    def _FvRk_BoisMetal(self, effet_corde: bool, test_type_plaque:bool=True):
         """Calcul la capacité résistante en cisaillement de la tige en N par plan de cisaillement avec
             t1 : valeur minimale entre epaisseur de l'élément bois latéral et la profondeur de pénétration en mm
             t2 : epaisseur de l'élément bois central en mm
@@ -338,16 +348,29 @@ class Assemblage(Projet):
             self.t = self.beam_2.t
             if self.nCis == 2:
                 self.pos_plaq = "centrale"
-            
-        if self.t <= 0.5 * self.d:
-            self.type_plaque = "mince"
 
-        elif self.d <= self.t:
+        # On détecte le type de plaque
+        if test_type_plaque:
+            self._type_plaque()
+
+        # Si la plaque est intermédiaire, alors on fait une interpolation linéaire entre la valeur critique d'une plaque mince et d'une plaque epaisse
+        if self.type_plaque == "intermédiaire":
+            t = self.t
+            t_mince = 0.5 * self.d
+            t_epaisse = self.d
+            self.type_plaque = "mince"
+            FvRk_mince = self._FvRk_BoisMetal(effet_corde,test_type_plaque=False)
+            F_v_Rk_mince = FvRk_mince[1][0]
             self.type_plaque = "epaisse"
-            
-        else:
+            FvRk_epaisse = self._FvRk_BoisMetal(effet_corde,test_type_plaque=False)
+            F_v_Rk_epaisse = FvRk_epaisse[1][0]
             self.type_plaque = "intermédiaire"
-            print("ATTENTION interpolation linéaire à faire ! EC5-8.2.3.1")
+            @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                F_v_Rk_inter = F_v_Rk_mince + (t - t_mince) * ((F_v_Rk_epaisse - F_v_Rk_mince)/(t_epaisse - t_mince))  # interpolation entre plaque mince et épaisse
+                return F_v_Rk_inter
+            FvRk_inter = val()
+            return (FvRk_mince[0] + FvRk_epaisse[0] + FvRk_inter[0], (FvRk_inter[1], (FvRk_mince[1][1], FvRk_epaisse[1][1])))
 
         if self.type_plaque == "mince" and self.nCis == 1:
             if self._type_beam[0] == "Métal":
@@ -618,46 +641,59 @@ class Assemblage(Projet):
         latex = L_net_value[0]
         L_net_v, L_net_t = L_net_value[1]
 
+        if not isinstance(mode_rupture, (list, tuple)):
+            mode_rupture = [mode_rupture]
+
+        def _Anet_v(mode: str):
+            """ détermine la surface Anet_v en fonction du mode de rupture """
+            if mode in ("C", "F", "J", "L", "K", "M"):
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def a_net_v():
+                    A_net_v = L_net_v * (t_1 * K_cr)
+                    return A_net_v
+                a_net_v_result = a_net_v()
+                return a_net_v_result
+            else:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def a_net_v(t_ef):
+                    A_net_v = L_net_v / 2 * (L_net_t + 2 * (t_ef * K_cr))
+                    return A_net_v
+                
+                match mode:
+                    case "A":
+                        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                        def tef():
+                            t_ef = 0.4*t_1 # Épaisseur efficace
+                            return t_ef
+                    case "B":
+                        @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                        def tef():
+                            t_ef = 1.4 * sqrt(M_y_Rk / (f_hk * diam)) # Épaisseur efficace
+                            return t_ef
+                    case "D"|"G":
+                        @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                        def tef():
+                            t_ef = t_1 * (sqrt(2 + (4 * M_y_Rk ) / (f_hk * diam * t_1**2)-1)) # Épaisseur efficace
+                            return t_ef
+                    case "E"|"H":
+                        @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                        def tef():
+                            t_ef = 2 * sqrt(M_y_Rk / (f_hk * diam)) # Épaisseur efficace
+                            return t_ef
+                tef_result = tef()
+                a_net_v_result = a_net_v(tef_result[1])
+                a_net_v_result = (tef_result[0] + a_net_v_result[0], a_net_v_result[1])
+                return a_net_v_result
+
+        list_A_net_v = []
+        for mode in mode_rupture:
+            a_net_v = _Anet_v(mode)
+            list_A_net_v.append(a_net_v)
         
-        if mode_rupture in ("C", "F", "J", "L", "K", "M"):
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def a_net_v():
-                A_net_v = L_net_v * (t_1 * K_cr)
-                return A_net_v
-            a_net_v_result = a_net_v()
-            latex = latex + a_net_v_result[0]
-            A_net_v = a_net_v_result[1]
-        else:
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def a_net_v(t_ef):
-                A_net_v = L_net_v / 2 * (L_net_t + 2 * (t_ef * K_cr))
-                return A_net_v
-            
-            match mode_rupture:
-                case "A":
-                    @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-                    def tef():
-                        t_ef = 0.4*t_1 # Épaisseur efficace
-                        return t_ef
-                case "B":
-                    @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-                    def tef():
-                        t_ef = 1.4 * sqrt(M_y_Rk / (f_hk * diam)) # Épaisseur efficace
-                        return t_ef
-                case "D"|"G":
-                    @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-                    def tef():
-                        t_ef = t_1 * (sqrt(2 + (4 * M_y_Rk ) / (f_hk * diam * t_1**2)-1)) # Épaisseur efficace
-                        return t_ef
-                case "E"|"H":
-                    @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-                    def tef():
-                        t_ef = 2 * sqrt(M_y_Rk / (f_hk * diam)) # Épaisseur efficace
-                        return t_ef
-            tef_result = tef()
-            a_net_v_result = a_net_v(tef_result[1])
-            latex = latex + tef_result[0] + a_net_v_result[0]
-            A_net_v = a_net_v_result[1]
+        a_net_v_result = min(list_A_net_v, key=lambda x: x[1])
+
+        latex = latex + a_net_v_result[0]    
+        A_net_v = a_net_v_result[1]
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def f_bs_Rk():
@@ -669,7 +705,7 @@ class Assemblage(Projet):
         self.F_bs_Rk = result[1]
         return (latex + result[0], self.F_bs_Rk)
     
-    def taux_cisaillement(self, Fv_Ed: si.kN, Fax_Ed: si.kN=0, loadtype=Barre.LOAD_TIME):
+    def taux_cisaillement(self, Fv_Ed: si.kN=0, Fax_Ed: si.kN=0, loadtype=Barre.LOAD_TIME):
         """Détermine le taux de cisaillement ou du chargement combiné de l'assemblage
 
         Args:
@@ -1492,8 +1528,11 @@ class Boulon(Assemblage):
 
         if self._type_beam[0] == "Métal":
             FtRd = Tige(self.d.value*10**3, d_int, self.qualite, True, filetage_EN1090, t=self.beam_1.t.value*10**3, h=self.beam_1.h.value*10**3, classe_acier=self.beam_1.classe_acier, classe_transv=self.beam_1.classe_transv).FtRd
-            d_ext = min(self.beam_1.t*12, 4*self.d)
             fc_90_k = float(self.beam_2.caract_meca.loc["fc90k"]) * si.MPa
+            if self.nCis == 1:
+                d_ext = min(self.beam_1.t*12, 4*self.d, d_ext)
+            else:
+                d_ext = min(self.beam_1.t*12, 4*self.d)
         else:
             FtRd = Tige(self.d.value*10**3, d_int, self.qualite, True, filetage_EN1090, t=0, h=0, classe_acier="S235", classe_transv=3).FtRd
             fc_90_k = float(self.beam_1.caract_meca.loc["fc90k"]) * si.MPa
@@ -1569,7 +1608,7 @@ class Broche(Boulon):
 
 
 class _Tirefond(object):
-    def __init__(self, d:si.mm, d1:si.mm, ds:si.mm, dh:si.mm, l:si.mm, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
+    def __init__(self, d:si.mm, d1:si.mm, ds:si.mm, dh:si.mm, l:si.mm, n: int, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, percage: bool=("False", "True"), **kwargs):
         """Défini un object tirefond
 
         Args:
@@ -1717,7 +1756,7 @@ class _Tirefond(object):
         else:
             @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                F_head_Rk = mt.inf * si.kN #l'élément 1 est métallique donc infini pour ce calcul
+                F_head_Rk = 10**6 * si.kN #l'élément 1 est métallique donc infini pour ce calcul
                 return F_head_Rk
         return val()
     
@@ -1818,7 +1857,7 @@ class Tirefond_inf_7(_Tirefond, Pointe):
 
 
 class Tirefond_sup_6(_Tirefond, Boulon):
-    def __init__(self, d:si.mm, d1:float, ds:float, dh:float, l:si.mm, n, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, **kwargs):
+    def __init__(self, d:si.mm, d1:float, ds:float, dh:float, l:si.mm, n: int, rho_a:float, fhead:float, ftensk:float, MyRk:float=0, alpha1: float=0, alpha2: float=0, **kwargs):
         """
         Crée une classe Tirefond_sup_6 pour les tirefonds avec un diamètre efficace supérieur à 6mm
         Cette classe hérite de la classe Assemblage du module EC5_Assemblage.py.
