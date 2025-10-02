@@ -175,22 +175,27 @@ class Tige(Element):
         return self.taux_bl
     
     
-    def Bp_Rd(self, d_ecrou: int, d_head_bl: int, *args):
+    def Bp_Rd(self, d_ecrou: int, d_head_bl: int):
         """Retourne la résistance au poinçonnement de la plaque en N
 
         Args:
             d_ecrou (int): diamètre extérieur de l'écrou en mm
             d_head_bl (int): diamètre de la tête de boulon en mm
-            tp, i (int, args): épaisseur des plaques dans l'assemblage, sinon récupère le t de la classe Element
 
         Returns:
             float: résistance de calcul en N
         """
         d_ecrou = d_ecrou * si.mm
         d_head_bl = d_head_bl * si.mm
-        dm = (d_ecrou + d_head_bl) / 2
-        tp = min(self.t.value*10**3, *args) * si.mm
-        return (0.6 * pi * dm * tp * self.fu) / __class__.GAMMA_M["gamma_M2"]
+        d_m = (d_ecrou + d_head_bl) / 2
+        t_p = self.t
+        gamma_M2 = self.GAMMA_M["gamma_M2"]
+        f_u = self.fu
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            B_p_Rd = (0.6 * pi * d_m * t_p * f_u) / gamma_M2
+            return B_p_Rd
+        return val()
 
     
     def Fb_Rd(self, e1: float ,e2: float , p1: float, p2: float):
@@ -218,7 +223,7 @@ class Tige(Element):
         d_0 = self.d0
         d = self.d
         t = self.t
-        gamma_M_2 = __class__.GAMMA_M["gamma_M2"]
+        gamma_M_2 = self.GAMMA_M["gamma_M2"]
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
         def val():
@@ -246,7 +251,7 @@ class Tige(Element):
         f_y = self.fy
         f_u = self.fu
         k_ex = 1
-        gamma_M_2 = __class__.GAMMA_M["gamma_M2"]
+        gamma_M_2 = self.GAMMA_M["gamma_M2"]
 
         if effort == "Excentré":
             k_ex = 0.5
@@ -369,7 +374,16 @@ class Soudure(Element):
             N_Ed (float): Effort de traction en kN.
         """
         N_Ed = N_Ed * si.kN
-        return (self.beta_w * self.GAMMA_M["gamma_M2"] * (N_Ed * sqrt(2)) / self.fu) / (self.gorge * self.lef)
+        gamma_M_2 = self.GAMMA_M["gamma_M2"]
+        beta_w = self.beta_w
+        a = self.gorge
+        l_ef = self.lef
+        fu = self.fu
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            cordon_frontal = (beta_w * gamma_M_2 * (N_Ed * sqrt(2)) / fu) / (a * l_ef)
+            return cordon_frontal
+        return val()
 
 
     def cordon_laterale(self, V_Ed: float):
@@ -379,7 +393,16 @@ class Soudure(Element):
             V_Ed (float): Effort de cisaillement du cordon en kN.
         """
         V_Ed = V_Ed * si.kN
-        return (self.beta_w * self.GAMMA_M["gamma_M2"] * (V_Ed * sqrt(3)) / self.fu) / (self.gorge * self.lef)
+        gamma_M_2 = self.GAMMA_M["gamma_M2"]
+        beta_w = self.beta_w
+        a = self.gorge
+        l_ef = self.lef
+        fu = self.fu
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            cordon_laterale = (beta_w * gamma_M_2 * (V_Ed * sqrt(3)) / fu) / (a * l_ef)
+            return cordon_laterale
+        return val()
 
 
     def cordon_oblique(self, alpha_cordon: float, N_Ed: float):
@@ -390,7 +413,16 @@ class Soudure(Element):
         """
         self.alpha_cordon = alpha_cordon
         N_Ed = N_Ed * si.kN
-        return (self.beta_w * self.GAMMA_M["gamma_M2"] * (N_Ed * sqrt(3 - sin(radians(self.alpha_cordon))**2)) / self.fu) / (self.gorge * self.lef)
+        gamma_M_2 = self.GAMMA_M["gamma_M2"]
+        beta_w = self.beta_w
+        a = self.gorge
+        l_ef = self.lef
+        fu = self.fu
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            cordon_oblique = (beta_w * gamma_M_2 * (N_Ed * sqrt(3 - sin(radians(self.alpha_cordon))**2)) / fu) / (a * l_ef)
+            return cordon_oblique
+        return val()
 
 
     def cordon_pieces_obliques(self, N_Ed: float):
@@ -400,10 +432,19 @@ class Soudure(Element):
             N_Ed (float): Effort de traction en kN.
         """
         N_Ed = N_Ed * si.kN
-        if self.alpha < 90:
-            return (self.beta_w * self.GAMMA_M["gamma_M2"] * (N_Ed * sqrt(2 - sin(radians(self.alpha)))) / self.fu) / (self.gorge * self.lef)
-        elif self.alpha > 90:
-            return (self.beta_w * self.GAMMA_M["gamma_M2"] * (N_Ed * sqrt(2 + sin(radians(self.alpha)))) / self.fu) / (self.gorge * self.lef)
+        gamma_M_2 = self.GAMMA_M["gamma_M2"]
+        beta_w = self.beta_w
+        a = self.gorge
+        l_ef = self.lef
+        fu = self.fu
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        def val():
+            if self.alpha < 90:
+                cordon_pieces_obliques = (beta_w * gamma_M_2 * (N_Ed * sqrt(2 - sin(radians(self.alpha)))) / fu) / (a * l_ef)
+            elif self.alpha > 90:
+                cordon_pieces_obliques = (beta_w * gamma_M_2 * (N_Ed * sqrt(2 + sin(radians(self.alpha)))) / fu) / (a * l_ef)
+            return cordon_pieces_obliques
+        return val()
 
 
     def critere_generale(self, FvEd: float, FaxEd: float):
@@ -430,7 +471,7 @@ class Soudure(Element):
     
 
     def soudure_discontinue(self, b: int, b1: int, t1: int, corrosion: bool=("False", "True")):
-        """_summary_
+        """Détermine les dimensions des cordons de soudure discontinue
 
         Args:
             b (int): voir EC3 1-8
@@ -440,7 +481,7 @@ class Soudure(Element):
             corrosion (bool, optional): _description_. Defaults to False.
 
         Returns:
-            _type_: _description_
+            dict: dimensions des cordons de soudure discontinue
         """
         if corrosion:
             print("Il n'est pas possible d'avoir une soudure discontinue en ambiance corrosive")
