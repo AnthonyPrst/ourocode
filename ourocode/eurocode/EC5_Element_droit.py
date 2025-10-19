@@ -852,7 +852,18 @@ class Compression(Barre):
 
 class Compression_perpendiculaire(Barre):
     TYPE_APPUIS = ("Appuis discret", "Appuis continu")
-    def __init__(self, b_appuis:si.mm, l_appuis: si.mm, l1d: si.mm=10000, l1g: si.mm=10000, ad: si.mm=0, ag: si.mm=0, type_appuis_90: str=TYPE_APPUIS, *args, **kwargs):
+    def __init__(
+        self, 
+        b_appuis:si.mm, 
+        l_appuis: si.mm, 
+        l1d: si.mm=10000, 
+        l1g: si.mm=10000, 
+        ad: si.mm=0, 
+        ag: si.mm=0, 
+        type_appuis_90: str=TYPE_APPUIS, 
+        *args, 
+        **kwargs
+        ):
         """Classe intégrant les formules de compression perpendiculaire selon l'EN 1995 §6.1.5.
         Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
 
@@ -875,7 +886,6 @@ class Compression_perpendiculaire(Barre):
         self.ag = ag * si.mm
         self.type_appuis_90 = type_appuis_90
 
-
     @property
     def K_c90(self):
         """ Retourne le facteur Kc,90 qui tient compte de la configuration de chargement, du fendage et de la déformation
@@ -884,66 +894,73 @@ class Compression_perpendiculaire(Barre):
             lO : Longeur de l'appuis en compression en mm
             l1 : Distance la plus petite entre deux appuis en mm (l et l)
             """
-        if self.l1d == 0 and self.l1g > 0:
-            l1 = self.l1g
-            self.ag = self.l1g
-        elif self.l1g == 0 and self.l1d > 0:
-            l1 = self.l1d
-            self.ad = self.l1d
-        else:
-            l1 = min(self.l1d, self.l1g)
 
-        if self.type_appuis_90 == "Appuis discret":
-            if self.type_bois == 'Massif':
-                if self.h_calcul.value * 10**3 <= 300:
-                    if l1 >= 2 * self.h_calcul:
-                        kc_90 = 1.5
+        try:
+            return self._setter_K_c90
+        except AttributeError:
+            if self.l1d == 0 and self.l1g > 0:
+                l1 = self.l1g
+                self.ag = self.l1g
+            elif self.l1g == 0 and self.l1d > 0:
+                l1 = self.l1d
+                self.ad = self.l1d
+            else:
+                l1 = min(self.l1d, self.l1g)
+
+            if self.type_appuis_90 == "Appuis discret":
+                if self.type_bois == 'Massif':
+                    if self.h_calcul.value * 10**3 <= 300:
+                        if l1 >= 2 * self.h_calcul:
+                            kc_90 = 1.5
+                        else:
+                            kc_90 = 1
                     else:
+                        kc_90 = 1.5
+                elif self.type_bois == 'BLC':
+                    if self.h_calcul.value * 10**3 <= 300 and self.l_appuis.value * 10**3 <= 400:
+                        if l1 >= 2 * self.h_calcul:
+                            kc_90 = 1.75
+                        else:
+                            kc_90 = 1
+                    elif self.h_calcul.value * 10**3 <= 300 and self.l_appuis.value * 10**3 > 400:
                         kc_90 = 1
+                    else:
+                        kc_90 = 1.75
                 else:
-                    kc_90 = 1.5
-            elif self.type_bois == 'BLC':
-                if self.h_calcul.value * 10**3 <= 300 and self.l_appuis.value * 10**3 <= 400:
-                    if l1 >= 2 * self.h_calcul:
+                    if self.h_calcul.value * 10**3 > 300:
                         kc_90 = 1.75
                     else:
                         kc_90 = 1
-                elif self.h_calcul.value * 10**3 <= 300 and self.l_appuis.value * 10**3 > 400:
-                    kc_90 = 1
-                else:
-                    kc_90 = 1.75
             else:
-                if self.h_calcul.value * 10**3 > 300:
-                    kc_90 = 1.75
-                else:
-                    kc_90 = 1
-        else:
-            if self.type_bois == 'Massif':
-                if self.h_calcul.value * 10**3 <= 300:
-                    if l1 >= 2 * self.h_calcul:
-                        kc_90 = 1.25
+                if self.type_bois == 'Massif':
+                    if self.h_calcul.value * 10**3 <= 300:
+                        if l1 >= 2 * self.h_calcul:
+                            kc_90 = 1.25
+                        else:
+                            kc_90 = 1
                     else:
-                        kc_90 = 1
-                else:
-                    kc_90 = 1.5
-            elif self.type_bois == 'BLC':
-                if self.h_calcul.value * 10**3 <= 300:
-                    if l1 >= 2 * self.h_calcul:
                         kc_90 = 1.5
+                elif self.type_bois == 'BLC':
+                    if self.h_calcul.value * 10**3 <= 300:
+                        if l1 >= 2 * self.h_calcul:
+                            kc_90 = 1.5
+                        else:
+                            kc_90 = 1
+                    else:
+                        kc_90 = 1.75
+                else:
+                    if self.h_calcul.value * 10**3 > 300:
+                        kc_90 = 1.75
                     else:
                         kc_90 = 1
-                else:
-                    kc_90 = 1.75
-            else:
-                if self.h_calcul.value * 10**3 > 300:
-                    kc_90 = 1.75
-                else:
-                    kc_90 = 1
+            return kc_90
 
-        return kc_90
+    @K_c90.setter
+    def K_c90(self, value):
+        self._setter_K_c90 = value
 
 
-    def f_c_90_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
+    def f_c_90_d(self, loadtype: str=Barre.LOAD_TIME, typecombi: str=Barre.TYPE_ACTION):
         """Retourne la résistance f,c,90,d de l'élément en MPa
 
         Args:
@@ -1006,16 +1023,14 @@ class Compression_perpendiculaire(Barre):
 
 
 
-class Compression_inclinees(Compression, Compression_perpendiculaire):
+class Compression_inclinees(Compression_perpendiculaire):
     def __init__(self, alpha: float=45, **kwargs):
         """Classe qui permet de calculer la compression inclinées par rapport au fil comme décrit à l'EN 1995 §6.2.2.
-        Cette classe est hérité de la classe Compression et Compression_perpendiculaire, les deux provenants du module EC5_Element_droit.py.
+        Cette classe est hérité de la classe Compression_perpendiculaire provenant du module EC5_Element_droit.py.
 
         Args:
             alpha (float, optional): angle d'inclinaison en degrés de la compression. Defaults to 0.
         """
-        # super(Compression, self).__init__(**kwargs)
-        # super(Compression_perpendiculaire, self).__init__(**kwargs)
         super().__init__(**kwargs)
         self.alpha = alpha
     
@@ -1041,7 +1056,7 @@ class Compression_inclinees(Compression, Compression_perpendiculaire):
     def taux_c_alpha_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
         """ Retourne le taux de travail de la compression inclinées par rapport au fil """
         self.taux_c_alpha_rd = {}
-        f_c_0_d = self.f_c_0_d(loadtype, typecombi)[1]
+        f_c_0_d = self._f_type_d("fc0k", loadtype, typecombi)[1]
         f_c_90_d = self.f_c_90_d(loadtype, typecombi)[1]
         alpha = self.alpha
         K_c90 = self.K_c90
