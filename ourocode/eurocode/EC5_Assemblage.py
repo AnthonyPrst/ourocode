@@ -354,7 +354,7 @@ class Assemblage(Projet):
             self._type_plaque()
 
         # Si la plaque est intermédiaire, alors on fait une interpolation linéaire entre la valeur critique d'une plaque mince et d'une plaque epaisse
-        if self.type_plaque == "intermédiaire":
+        if self.type_plaque == "intermédiaire" and self.pos_plaq != "centrale":
             t = self.t
             t_mince = 0.5 * self.d
             t_epaisse = self.d
