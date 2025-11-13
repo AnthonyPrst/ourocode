@@ -104,18 +104,21 @@ class Neige(Batiment):
 				alpha_versant_1 = self.alpha_toit
 				alpha_versant_2 = self.alpha_toit2
 				dict_mu = {"mu2 versant 1": None, "mu2 versant 2": None}
-				for i, alpha in enumerate((alpha_versant_1, alpha_versant_2)):
+				
+				def calculate_mu2(alpha, jupyter_display):
 					if 0 <= alpha <= 30:
-						value = 0.8
+						return 0.8
 					elif 30 < alpha < 60:
-						@handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+						@handcalc(override="short", precision=2, jupyter_display=jupyter_display, left="\\[", right="\\]")
 						def val():
 							mu_2 = 0.8 * (60 - alpha) / 30
 							return mu_2
-						value = val()[1]
+						return val()[1]
 					elif alpha >= 60:
-						value = 0.8
-					
+						return 0
+
+				for i, alpha in enumerate((alpha_versant_1, alpha_versant_2)):
+					value = calculate_mu2(alpha, self.JUPYTER_DISPLAY)
 					if i:
 						dict_mu["mu2 versant 2"] = value
 					else:
