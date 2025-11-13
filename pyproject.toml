@@ -8,7 +8,7 @@ include = ["ourocode*"]
 
 [project]
 name = "ourocode"
-version = "1.7.5"
+version = "1.7.6"
 description = "Ceci est un catalogue de fonction permettant une utilisation rapide pour la réalisation de note de calcul personnalisée."
 readme = "README.md"
 authors = [{name = "Anthony PARISOT", email = "contact@ourea-structure.fr"}]
@@ -20,9 +20,8 @@ dependencies = [
     "PyNiteFEA",
     "pyvista[all,trame]",
     "PySide6",
-    "scipy",
     "pandas",
-    "Pillow"
+    "Pillow",
 ]
 requires-python = ">=3.12"
 classifiers = [
@@ -32,3 +31,13 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/AnthonyPrst/ourocode"
+
+[project.optional-dependencies]
+dev = [
+    "black",
+]
+test = [
+    "pytest",
+    "pytest-cov",
+    "coverage",
+]

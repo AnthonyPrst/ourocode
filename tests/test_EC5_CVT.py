@@ -408,10 +408,11 @@ class TestMOB:
         assert wall_name2 in df_taux_anc.index
 
         expected_columns = [
-            'Étage', 'Longueur mur', 'Ft,Ed', 'Ft,Rd', 'Taux ancrage soulèvement (%)',
+            'Étage', 'Longueur mur', 'Ft,Ed', 'Ft,Rd', 'Taux ancr. soulèvement (%)',
             'Fv,anc,Ed', 'Fv,anc,lb,Rd', 'Nbr ancr,lb', 'entraxe anc,lb',  'Taux ancr. lisse basse (%)',
             'Fv,anc,li,Rd', 'Nbr ancr,li', 'entraxe anc,li', 'Taux ancr. lisse impl. (%)'
         ]
+        print(df_taux_anc.columns)
         assert all(col in df_taux_anc.columns for col in expected_columns)
 
         # Le nombre d'ancrages doit correspondre à floor(longueur / entraxe)
@@ -426,7 +427,7 @@ class TestMOB:
         assert df_taux_anc.loc[wall_name1, 'entraxe anc,li'] == 800 * si.mm
 
         # Les taux doivent être des valeurs positives
-        assert (df_taux_anc['Taux ancrage soulèvement (%)'] >= 0).all()
+        assert (df_taux_anc['Taux ancr. soulèvement (%)'] >= 0).all()
         assert (df_taux_anc['Taux ancr. lisse basse (%)'] >= 0).all()
         assert (df_taux_anc['Taux ancr. lisse impl. (%)'] >= 0).all()
 
