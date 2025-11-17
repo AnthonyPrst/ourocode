@@ -153,17 +153,17 @@ class Barre(Projet):
     @property
     def type_bois(self):
         if self.classe[0:1] == "C" or self.classe[0:1] == "D":
-            type_b = __class__.LIST_TYPE_B[0]
+            type_b = self.LIST_TYPE_B[0]
         elif self.classe[0:2] == "GL":
-            type_b = __class__.LIST_TYPE_B[1]
+            type_b = self.LIST_TYPE_B[1]
         elif self.classe[0:3] == "LVL":
-            type_b = __class__.LIST_TYPE_B[2]
+            type_b = self.LIST_TYPE_B[2]
         elif self.classe[0:5] == "OSB/2":
-            type_b = __class__.LIST_TYPE_B[3]
+            type_b = self.LIST_TYPE_B[3]
         elif self.classe[0:5] == "OSB/3" or self.classe[0:5] == "OSB/4":
-            type_b = __class__.LIST_TYPE_B[4]
+            type_b = self.LIST_TYPE_B[4]
         else:
-            type_b = __class__.LIST_TYPE_B[5]
+            type_b = self.LIST_TYPE_B[5]
         
         return type_b
 
@@ -671,7 +671,7 @@ class Compression(Barre):
         Args:
             lo : Longueur de flambement suivant l'axe de rotation (y ou z) en mm si pas de flambement alors 0
             type_appuis : Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
-                        fonction des du type d'appuis :
+                        fonction des types d'appui :
                                                         Encastré 1 côté : 2
                                                         Rotule - Rotule : 1
                                                         Encastré - Rotule : 0.7
@@ -684,7 +684,7 @@ class Compression(Barre):
         self.lo_y = self.lo_comp['y']
         self.lo_z = self.lo_comp['z']
         self.type_appuis = type_appuis
-        self.coef_lef = __class__.COEF_LF[type_appuis]
+        self.coef_lef = self.COEF_LF[type_appuis]
         self._Anet = self.aire
 
     @property

@@ -121,14 +121,28 @@ class Tige(Element):
     def FvRd(self) -> float:
         """Retourne la résistance en cisaillement de la partie fileté et lisse d'une tige par plan en N
         """
-        quali_1 = [4.6,5.6,8.8]
-        if self.qualite in quali_1:
-            fvrd_filete = 0.6 * self.fub * self.As / self.GAMMA_M["gamma_M2"]
+        k_filetage_EN1090 = self.filetage_EN1090
+        A_s = self.As
+        A_n = self.An
+        f_ub = self.fub
+        gamma_M2 = self.GAMMA_M["gamma_M2"]
+        if self.qualite in [4.6,5.6,8.8]:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def filetage():
+                alpha_v = 0.6;F_v_Rd_filete = alpha_v * k_filetage_EN1090 * f_ub * A_s / gamma_M2
+                return F_v_Rd_filete
         else:
-            fvrd_filete = 0.5 * self.fub * self.As / self.GAMMA_M["gamma_M2"]
-        
-        fvrd_lisse = 0.6 * self.fub * self.An / self.GAMMA_M["gamma_M2"]
-        return {"filetage": fvrd_filete * self.filetage_EN1090, "lisse": fvrd_lisse * self.filetage_EN1090}
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def filetage():
+                alpha_v = 0.5;F_v_Rd_filete = alpha_v * k_filetage_EN1090 * f_ub * A_s / gamma_M2
+                return F_v_Rd_filete
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def lisse():
+            alpha_v = 0.6
+            F_v_Rd_lisse = alpha_v * k_filetage_EN1090 * f_ub * A_n / gamma_M2
+            return F_v_Rd_lisse
+        return {"filetage": filetage(), "lisse": lisse()}
     
     
     @property
@@ -138,10 +152,10 @@ class Tige(Element):
         f_ub = self.fub
         A_s = self.As
         gamma_M2 =  self.GAMMA_M["gamma_M2"]
-        coef_filetage_EN1090 = self.filetage_EN1090
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        k_filetage_EN1090 = self.filetage_EN1090
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            F_t_Rd = 0.9 * f_ub * A_s /  gamma_M2 * coef_filetage_EN1090
+            F_t_Rd = 0.9 * f_ub * A_s /  gamma_M2 * k_filetage_EN1090
             return F_t_Rd
         return val()
 
@@ -158,21 +172,52 @@ class Tige(Element):
             dict: dictionnaire des taux de travail slon tab. 3.4 de l'EN 1993-1-8
         """
         self.FvEd = FvEd * si.kN
+        F_v_Ed = self.FvEd
         self.FtEd = FtEd * si.kN
+        F_t_Ed = self.FtEd
         self.taux_bl = {}
+        F_v_Rd_lisse = self.FvRd["lisse"][1]
+        F_v_Rd_filetage = self.FvRd["filetage"][1]
+        F_t_Rd = self.FtRd[1]
 
-        self.taux_bl["taux_t_d"] = self.FtEd / self.FtRd[1]
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            taux_t_d = F_t_Ed / F_t_Rd
+            taux_v_d_lisse = F_v_Ed / F_v_Rd_lisse
+            return taux_t_d, taux_v_d_lisse
 
-        self.taux_bl["taux_v_d_lisse"] = self.FvEd / self.FvRd["lisse"]
+        value1 = val()
+        self.taux_bl["taux_t_d"] = value1[1][0]
+        self.taux_bl["taux_v_d_lisse"] = value1[1][1]
 
         if self.verif_filetage:
-            self.taux_bl["taux_v_d_filetage"] = self.FvEd / self.FvRd["filetage"]
             if FvEd and FtEd:
-                self.taux_bl["taux_v_t_d"] = self.FvEd / min(self.FvRd["lisse"], self.FvRd["filetage"]) + self.FtEd / (1.4 * self.FtRd[1])
-        else:
-            self.taux_bl["taux_v_t_d"] = self.FvEd / self.FvRd["lisse"] + self.FtEd / (1.4 * self.FtRd[1])
-            
-        return self.taux_bl
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val2():
+                    taux_v_d_filetage = F_v_Ed / F_v_Rd_filetage
+                    taux_v_t_d = F_v_Ed / min(F_v_Rd_lisse, F_v_Rd_filetage) + F_t_Ed / (1.4 * F_t_Rd)
+                    return taux_v_d_filetage, taux_v_t_d
+                value2 = val2()
+                self.taux_bl["taux_v_d_filetage"] = value2[1][0]
+                self.taux_bl["taux_v_t_d"] = value2[1][1]
+            else:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val2():
+                    taux_v_d_filetage = F_v_Ed / F_v_Rd_filetage
+                    return taux_v_d_filetage
+                value2 = val2()
+                self.taux_bl["taux_v_d_filetage"] = value2[1]
+
+        elif not self.verif_filetage and FvEd and FtEd:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val2():
+                taux_v_t_d = F_v_Ed / F_v_Rd_lisse + F_t_Ed / (1.4 * F_t_Rd)
+                return taux_v_t_d
+            value2 = val2()
+            self.taux_bl["taux_v_t_d"] = value2[1]
+
+        latex = value1[0] + value2[0]
+        return (latex, self.taux_bl)
     
     
     def Bp_Rd(self, d_ecrou: int, d_head_bl: int):
@@ -191,7 +236,7 @@ class Tige(Element):
         t_p = self.t
         gamma_M2 = self.GAMMA_M["gamma_M2"]
         f_u = self.fu
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             B_p_Rd = (0.6 * pi * d_m * t_p * f_u) / gamma_M2
             return B_p_Rd
@@ -225,7 +270,7 @@ class Tige(Element):
         t = self.t
         gamma_M_2 = self.GAMMA_M["gamma_M2"]
 
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             alpha_b = min(e_1 / (3 * d_0), (p_1 / (3 * d_0)) - 0.25, f_u_b / f_u, 1)
             k_1 = min(2.8 * e_2 / d_0 - 1.7, 1.4 * p_2 / d_0 - 1.7, 2.5)
@@ -256,7 +301,7 @@ class Tige(Element):
         if effort == "Excentré":
             k_ex = 0.5
 
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             V_eff_nt_Rd = (A_nt * f_u) / gamma_M_2
             V_eff_nv_Rd = 1/sqrt(3) * (A_vt * f_y) / gamma_M_2
@@ -282,16 +327,63 @@ class Tige(Element):
 
         # selon CNC2M §2.1(10)
         if N_Ed.value and V_Ed.value:
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 taux = N_Ed / N_Veff_Rd + V_Ed / V_Veff_Rd
                 return taux
-            return val()
         elif N_Ed.value:
-            taux = N_Ed / N_Veff_Rd
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                taux_N_eff = N_Ed / N_Veff_Rd
+                return taux_N_eff
         else:
-            taux = V_Ed / V_Veff_Rd
-        return taux
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                taux_V_eff = V_Ed / V_Veff_Rd
+                return taux_V_eff
+        return val()
+
+    def axe_articulation(self, FvEd:si.kN=0, jeu:si.mm=0, t_flasque:si.mm=0, t_ame:si.mm=0):
+        """Retourne le taux de travail en double cisaillement et en flexion d'un axe d'articulation selon EN 1993-1-8 §3.13
+
+        Args:
+            FvEd (si.kN): effort de cisaillement sur l'axe en kN.
+            jeu (si.mm): jeu de l'axe en mm.
+            t_flasque (si.mm): épaisseur de la flasque en mm.
+            t_ame (si.mm): épaisseur de l'ame en mm.
+
+        Returns:
+            tuple: (taux_v_d, taux_m_d, taux_m_v_d, taux_f_b_flasque_d, taux_f_b_ame_d)
+        """
+        F_v_Ed = FvEd * si.kN
+        jeu = jeu * si.mm
+        t_flasque = t_flasque * si.mm
+        t_ame = t_ame * si.mm
+        gamma_M0 = self.GAMMA_M["gamma_M0"]
+        gamma_M2 = self.GAMMA_M["gamma_M2"]
+        f_y = self.fy
+        f_y_b = self.fyb
+        f_u_b = self.fub
+        d = self.d
+        if self.verif_filetage:
+            A = self.As
+        else:
+            A = self.An
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            F_v_Rd = 0.6 * A * f_u_b / gamma_M2
+            taux_v_d = F_v_Ed / F_v_Rd
+            M_Ed = F_v_Ed * (t_ame + 4 * jeu + 2 * t_flasque)
+            M_Rd = 1.5 * pi * d**3 * f_y_b / (32 * gamma_M0)
+            taux_m_d = M_Ed / M_Rd
+            taux_m_v_d = (M_Ed / M_Rd)**2 + (F_v_Ed / F_v_Rd)**2
+            F_b_flasque_Rd = 1.5 * t_flasque * d * f_y / gamma_M0
+            taux_f_b_flasque_d = 0.5 * F_v_Ed / F_b_flasque_Rd
+            F_b_ame_Rd = 1.5 * t_ame * d * f_y / gamma_M0
+            taux_f_b_ame_d = F_v_Ed / F_b_ame_Rd
+            return taux_v_d, taux_m_d, taux_m_v_d, taux_f_b_flasque_d, taux_f_b_ame_d
+        return val()
 
 
 
@@ -347,14 +439,11 @@ class Soudure(Element):
                 if self.l > max(30*si.mm, 6*self.gorge):
                     return True
                 else:
-                    print(f"La longueur du cordon de soudure est trop petite, elle doit être supérieur à {min(30*si.mm, 6*self.gorge)}")
-                    return False
+                    raise ValueError(f"La longueur du cordon de soudure est trop petite, elle doit être supérieur à {min(30*si.mm, 6*self.gorge)}")
             else:
-                print(f"La gorge doit être au minimum de {amin} et au maximum de {amax}")
-                return False
+                raise ValueError(f"La gorge doit être au minimum de {amin} et au maximum de {amax}")
         else:
-            print("L'angle entre les deux pièces à souder doit être compris entre 60° et 120°")
-            return False
+            raise ValueError("L'angle entre les deux pièces à souder doit être compris entre 60° et 120°")
         
     
     def beta_Lw1(self, Lj: int) -> float:
@@ -379,7 +468,7 @@ class Soudure(Element):
         a = self.gorge
         l_ef = self.lef
         fu = self.fu
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             cordon_frontal = (beta_w * gamma_M_2 * (N_Ed * sqrt(2)) / fu) / (a * l_ef)
             return cordon_frontal
@@ -398,7 +487,7 @@ class Soudure(Element):
         a = self.gorge
         l_ef = self.lef
         fu = self.fu
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             cordon_laterale = (beta_w * gamma_M_2 * (V_Ed * sqrt(3)) / fu) / (a * l_ef)
             return cordon_laterale
@@ -418,7 +507,7 @@ class Soudure(Element):
         a = self.gorge
         l_ef = self.lef
         fu = self.fu
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             cordon_oblique = (beta_w * gamma_M_2 * (N_Ed * sqrt(3 - sin(radians(self.alpha_cordon))**2)) / fu) / (a * l_ef)
             return cordon_oblique
@@ -437,7 +526,7 @@ class Soudure(Element):
         a = self.gorge
         l_ef = self.lef
         fu = self.fu
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             if self.alpha < 90:
                 cordon_pieces_obliques = (beta_w * gamma_M_2 * (N_Ed * sqrt(2 - sin(radians(self.alpha)))) / fu) / (a * l_ef)

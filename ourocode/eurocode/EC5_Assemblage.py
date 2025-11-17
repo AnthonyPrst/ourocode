@@ -81,7 +81,7 @@ class Assemblage(Projet):
 
     @property
     def rho_mean_ass(self):
-        if self.type_assemblage == __class__.TYPE_ASSEMBLAGE[0]:
+        if self.type_assemblage == self.TYPE_ASSEMBLAGE[0]:
             rho_m1 = int(self.beam_1.caract_meca.loc["rhomean"])
             rho_m2 = int(self.beam_2.caract_meca.loc["rhomean"])
             return mt.sqrt(rho_m1 * rho_m2)

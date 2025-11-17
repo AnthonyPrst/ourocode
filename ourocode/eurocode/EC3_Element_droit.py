@@ -71,7 +71,7 @@ class Element(Projet):
 
 
 class Traction(Element):
-    def __init__(self, A: si.mm*2, Anet: si.mm*2=0, ass_cat_C: bool=("False", "True"), *args, **kwargs):
+    def __init__(self, A: si.mm**2, Anet: si.mm**2=0, ass_cat_C: bool=("False", "True"), *args, **kwargs):
         """Défini une classe traction permettant le calcul d'un élément métallique à l'EN 1993-1-1 §6.2.3.
         Cette classe est hérité de la classe Element du module EC3_Element_droit.py.
 
@@ -81,35 +81,63 @@ class Traction(Element):
             ass_cat_C (bool, optional): Si assemblage de catégorie C alors True sinon False, voir EN 1993-1-8 §3.4.1.(1). Defaults to ("False", "True").
         """
         super().__init__(*args, **kwargs)
-        self.A = A * si.mm*2
-        self.Anet = Anet * si.mm*2
+        self.A = A * si.mm**2
+        self.Anet = Anet * si.mm**2
         self.ass_cat_C = ass_cat_C 
 
     @property
     def _Npl_Rd(self):
         """Calcul la résistance plastique en traction de la section transversale brute en N (équa 6.6)
         """
-        return (self.A * self.fy)/__class__.GAMMA_M["gamma_M0"] #(équa 6.6)
+        A = self.A
+        fy = self.fy
+        gamma_M0 = self.GAMMA_M["gamma_M0"]
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            N_pl_Rd = (A * fy)/gamma_M0 #(équa 6.6)
+            return N_pl_Rd
+        return val()
 
     @property
     def _Nu_Rd(self):
         """Calcul la résistance ultime en traction de la section transversale nette en N (équa 6.7)
         """
-        return 0.9*(self.Anet * self.fu)/__class__.GAMMA_M["gamma_M2"] #(équa 6.7)
+        Anet = self.Anet
+        fu = self.fu
+        gamma_M2 = self.GAMMA_M["gamma_M2"]
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            N_u_Rd = 0.9*(Anet * fu)/gamma_M2 #(équa 6.7)
+            return N_u_Rd
+        return val()
 
     @property
     def _Nnet_Rd(self):
         """Calcul la résistance ultime en traction de la section transversale nette en N
         lorsque l'assemblage est de catégorie C (équa 6.8)
         """
-        return (self.Anet * self.fy)/__class__.GAMMA_M["gamma_M0"] #(équa 6.8)
+        Anet = self.Anet
+        fy = self.fy
+        gamma_M0 = self.GAMMA_M["gamma_M0"]
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            N_net_Rd = (Anet * fy)/gamma_M0 #(équa 6.8)
+            return N_net_Rd
+        return val()
     
     @property
     def Nt_Rd (self):
         if self.ass_cat_C:
             return self._Nnet_Rd
         if self.Anet:
-           return min(self._Npl_Rd, self._Nu_Rd)
+            latex_Npl_Rd, N_pl_Rd = self._Npl_Rd
+            latex_Nu_Rd, N_u_Rd = self._Nu_Rd
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                N_t_Rd = min(N_pl_Rd, N_u_Rd)
+                return N_t_Rd
+            value = val()
+            return (latex_Npl_Rd + latex_Nu_Rd + value[0], value[1])
         else:
             return self._Npl_Rd  
         
@@ -121,15 +149,19 @@ class Compression(Element):
     Args:
         Element (class): hérite des propriétés de la classe Element à l'EC3
     """
-
     FACTEUR_ALPHA = {"a0": 0.13, "a": 0.21, "b": 0.34, "c": 0.49, "d": 0.76}
-    def __init__(self, A: si.mm**2, lo_y: si.mm=0, lo_z: si.mm=0, courbe_flamb: dict="{'y':'c', 'z':'c'}", coeflf: float=1, *args, **kwargs):
+    COEF_LF = {"Encastré 1 côté" : 2,
+                "Rotule - Rotule" : 1,
+                "Encastré - Rotule" : 0.7,
+                "Encastré - Encastré" : 0.5,
+                "Encastré - Rouleau" : 1}
+    def __init__(self, A: si.mm**2, lo_y: si.mm=0, lo_z: si.mm=0, courbe_flamb: dict="{'y':'c', 'z':'c'}", type_appuis: str=COEF_LF, *args, **kwargs):
         """
         Args:
             A (float | int): Aire brute si classe 1,2 ou 3 et Aeff si classe 4 en mm²
             lo (int, optional): Longueur de flambement suivant l'axe de rotation (y ou z) en mm. Defaults to {'y':0, 'z':0}.
             coeflf (float, optional): Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
-                fonction des du type d'appuis :
+                fonction des types d'appui :
                             Encastré 1 côté : 2
                             Rotule - Rotule : 1
                             Encastré - Rotule : 0.7
@@ -140,7 +172,8 @@ class Compression(Element):
         self.A = A * si.mm**2
         self.lo ={'y': lo_y*si.mm, 'z': lo_z*si.mm}
         self.courbe_flamb = courbe_flamb
-        self.coeflf = coeflf
+        self.type_appuis = type_appuis
+        self.coef_lef = self.COEF_LF[type_appuis]
 
 
     
@@ -148,14 +181,21 @@ class Compression(Element):
     def Nc_Rd(self):
         """Calcul la résistance en compression de la section transversale en N (équa 6.10 et 6.11)
         """
-        return (self.A * self.fy)/__class__.GAMMA_M["gamma_M0"]
+        gamma_M0 = self.GAMMA_M["gamma_M0"]
+        A = self.A
+        fy = self.fy
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            N_c_Rd = A * fy/gamma_M0
+            return N_c_Rd
+        return val()
 
     @property
     def lamb(self):
         """ Retourne l'élancement d'un poteau en compression avec risque de flambement suivant son axe de rotation """
         lamb = {'y':0, 'z':0}
-        lamb['y'] = (self.lo['y'].value * 10**3 * self.coeflf) / mt.sqrt(self._inertie[0] / (self.A))
-        lamb['z'] = (self.lo['z'].value * 10**3 * self.coeflf) / mt.sqrt(self._inertie[1] / (self.A))
+        lamb['y'] = (self.lo['y'].value * 10**3 * self.coef_lef) / mt.sqrt(self._inertie[0] / (self.A))
+        lamb['z'] = (self.lo['z'].value * 10**3 * self.coef_lef) / mt.sqrt(self._inertie[1] / (self.A))
         return lamb
 
     @property
@@ -163,7 +203,7 @@ class Compression(Element):
         """ Retourne l'élancement relatif d'un poteau en compression avec risque de flambement suivant son axe de rotation """
         lamb_rel_Axe = {'y':0, 'z':0}
         for cle, value in lamb_rel_Axe.items():
-            lamb_rel_Axe[cle] = (self.lamb[cle] / mt.pi) * mt.sqrt(self.fy / __class__.E)
+            lamb_rel_Axe[cle] = (self.lamb[cle] / mt.pi) * mt.sqrt(self.fy / self.E)
         return lamb_rel_Axe
 
     @property
@@ -172,7 +212,7 @@ class Compression(Element):
         """
         a = {}
         for key, value in self.courbe_flamb.items():
-            a[key] = __class__.FACTEUR_ALPHA[value]
+            a[key] = self.FACTEUR_ALPHA[value]
         return a
 
     @property
@@ -197,10 +237,17 @@ class Compression(Element):
     def Nb_Rd(self):
         """Renvoie la capacité résitante en compression avec flambement en N (fonction de l'axe de flambement)
         """
-        NbRd = {'y':0, 'z':0}
-        for key in NbRd.keys():
-            NbRd[key] = (self._chi[key] * self.A * self.fy)/__class__.GAMMA_M["gamma_M0"]
-        return NbRd
+        gamma_M0 = self.GAMMA_M["gamma_M0"]
+        f_y = self.fy
+        A = self.A
+        chi_y = self._chi['y']
+        chi_z = self._chi['z']
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            N_b_y_Rd = chi_y * A * f_y / gamma_M0
+            N_b_z_Rd = chi_z * A * f_y / gamma_M0
+            return {"y": N_b_y_Rd, "z": N_b_z_Rd}
+        return val()
 
 
 
@@ -270,7 +317,7 @@ class Flexion(Element):
         return val()
             
         
-    def Mc_V_Rd(self, Av: float, V_Ed: float):
+    def Mc_V_Rd(self, Av: si.mm**2, V_Ed: si.kN):
         """Calcul la résistance du moment fléchissant avec prise en compte de l'incidence du cisaillement sur ce dernier EN 1993-1-1 §6.2.8
             (équa 6.29)
 
@@ -283,7 +330,7 @@ class Flexion(Element):
         cis = Cisaillement._from_parent_class(self, Av=Av)
         Vpl_Rd = cis.Vpl_Rd[1]
         Mc_Rd = self.Mc_Rd[1]
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\[", right="\]")
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             if V_Ed/Vpl_Rd > 0.5:
                 rho = ((2*V_Ed) / Vpl_Rd-1)**2
