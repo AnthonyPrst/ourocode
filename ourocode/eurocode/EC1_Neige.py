@@ -399,18 +399,18 @@ class Neige(Batiment):
 			dict_mu["ls"] = 5 * si.m
 		return dict_mu
 	
-	def fs(self, S_n: float, entraxe:float, alpha: float):
+	def fs(self, Sn: si.kN/si.m**2, entraxe:si.m, alpha: float):
 		"""Retourne la charge de neige en kN/m sur un obstacle ou une barre à neige
 
 		Args:
-			S_n (float): la charge de neige en kN/m²
+			Sn (float): la charge de neige en kN/m²
 			entraxe (int): entraxe horizontal entre deux obstacle à la neige en m
 			alpha (float): angle du versant considéré.
 
 		Returns:
 			float: La charge en kN/m
 		"""
-		S_n = S_n *si.kN/si.m**2
+		S_n = Sn * si.kN/si.m**2
 		entraxe = entraxe * si.m
 		@handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
 		def val():

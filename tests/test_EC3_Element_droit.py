@@ -8,14 +8,14 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import forallpeople as si
 si.environment("structural")
-from ourocode.eurocode.EC3_Element_droit import Element, Traction, Compression, Cisaillement, Flexion
+from ourocode.eurocode.EC3_Element_droit import Plat, Traction, Compression, Cisaillement, Flexion
 
-class TestElement:
-    """Tests pour la classe de base Element."""
+class TestPlat:
+    """Tests pour la classe de base Plat."""
     
     def test_initialisation(self):
-        """Test l'initialisation de la classe Element."""
-        element = Element(t=10, h=100, classe_acier="S235", classe_transv=1)
+        """Test l'initialisation de la classe Plat."""
+        element = Plat(t=10, h=100, classe_acier="S235", classe_transv=1)
         assert element.t == 10.0 * si.mm
         assert element.h == 100.0 * si.mm
         assert element.classe_acier == "S235"
@@ -24,12 +24,12 @@ class TestElement:
     def test_fy_fu_values(self):
         """Test les valeurs de fy et fu pour différentes épaisseurs."""
         # Test avec t <= 40mm
-        element1 = Element(t=20, h=100, classe_acier="S235", classe_transv=1)
+        element1 = Plat(t=20, h=100, classe_acier="S235", classe_transv=1)
         assert element1.fy == 235000000.0  # 235 MPa en Pa
         assert element1.fu == 360000000.0  # 360 MPa en Pa
         
         # Test avec 40mm < t <= 80mm
-        element2 = Element(t=50, h=100, classe_acier="S235", classe_transv=1)
+        element2 = Plat(t=50, h=100, classe_acier="S235", classe_transv=1)
         assert element2.fy == 215000000.0  # 215 MPa en Pa
         assert element2.fu == 360000000.0  # 360 MPa en Pa
 
@@ -102,8 +102,9 @@ class TestFlexion:
         # Création d'une instance avec des valeurs de test
         flexion = Flexion(W=20000, t=10, h=100, classe_acier="S235", classe_transv=3)
         # Appel de la méthode à tester
-        result = flexion.Mc_V_Rd(Av=500, V_Ed=100)
-        assert result[1].value == 17838.250908685193
+        result = flexion.Mc_V_Rd(Av=500, V_Ed=40)
+        print(result[0])
+        assert result[1].value == 4548.954955674857
 
 
 if __name__ == "__main__":

@@ -209,12 +209,14 @@ class Assemblage(Projet):
         return w
 
 
-    def F90Rk(self, b:int, h:int, he:int, w: int=1):
-        """Calcul la valeur caractérisque de la capacité au fendage en N avec :
-            b : l'épaisseur de l'élément en mm
-            h : la hauteur de l'élément en mm
-            he : la distance de rive chargée vis à vis du centre de l'organe le plus plus éloigné ou du bord de la plaque
-            w : facteur de modification """
+    def F90Rk(self, b:si.mm, h:si.mm, he:si.mm, w: int=1):
+        """Calcul la valeur caractérisque de la capacité au fendage en N
+
+        Args:
+            b (int) : l'épaisseur de l'élément en mm
+            h (int) : la hauteur de l'élément en mm
+            he (int) : la distance de rive chargée vis à vis du centre de l'organe le plus plus éloigné ou du bord de la plaque
+            w (int) : facteur de modification """
         h_e = he
         @handcalc(override="short", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():

@@ -10,7 +10,7 @@ from handcalcs.decorator import handcalc
 
 from ourocode.eurocode.A0_Projet import Projet
 
-class Element(Projet):
+class Plat(Projet):
 
     GAMMA_M = {"gamma_M0": 1, "gamma_M1": 1, "gamma_M2": 1.25, "gamma_M3": 1.1, "gamma_M3_ser": 1.25,
              "gamma_M4": 1, "gamma_M5": 1, "gamma_M6_ser": 1, "gamma_M7": 1.1}
@@ -18,7 +18,7 @@ class Element(Projet):
     CLASSE_STEEL = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_acier.csv").index)
              
     def __init__(self, t: si.mm=0, h: si.mm=0, classe_acier: str=CLASSE_STEEL, classe_transv: int=("1","2","3","4"), **kwargs):
-        """Configure un objet Element pour vérifier un élément acier suivant l'EN 1993-1-1. 
+        """Configure un objet Plat pour vérifier un plat en acier suivant l'EN 1993-1-1. 
 
         Args:
             t (int, optional): épaisseur de la plaque en mm. Defaults to 0.
@@ -70,10 +70,10 @@ class Element(Projet):
 
 
 
-class Traction(Element):
+class Traction(Plat):
     def __init__(self, A: si.mm**2, Anet: si.mm**2=0, ass_cat_C: bool=("False", "True"), *args, **kwargs):
         """Défini une classe traction permettant le calcul d'un élément métallique à l'EN 1993-1-1 §6.2.3.
-        Cette classe est hérité de la classe Element du module EC3_Element_droit.py.
+        Cette classe est hérité de la classe Plat du module EC3_Element_droit.py.
 
         Args:
             A (float): Aire brute de la section en mm².
@@ -143,12 +143,7 @@ class Traction(Element):
         
 
 
-class Compression(Element):
-    """Classe intégrant les formules de compression et d'instabilité au flambement à l'EC3
-
-    Args:
-        Element (class): hérite des propriétés de la classe Element à l'EC3
-    """
+class Compression(Plat):
     FACTEUR_ALPHA = {"a0": 0.13, "a": 0.21, "b": 0.34, "c": 0.49, "d": 0.76}
     COEF_LF = {"Encastré 1 côté" : 2,
                 "Rotule - Rotule" : 1,
@@ -157,6 +152,9 @@ class Compression(Element):
                 "Encastré - Rouleau" : 1}
     def __init__(self, A: si.mm**2, lo_y: si.mm=0, lo_z: si.mm=0, courbe_flamb: dict="{'y':'c', 'z':'c'}", type_appuis: str=COEF_LF, *args, **kwargs):
         """
+        Classe intégrant les formules de compression et d'instabilité au flambement à l'EC3.
+        Cette classe est hérité de la classe Plat du module EC3_Element_droit.py.
+
         Args:
             A (float | int): Aire brute si classe 1,2 ou 3 et Aeff si classe 4 en mm²
             lo (int, optional): Longueur de flambement suivant l'axe de rotation (y ou z) en mm. Defaults to {'y':0, 'z':0}.
@@ -251,10 +249,10 @@ class Compression(Element):
 
 
 
-class Cisaillement(Element):
+class Cisaillement(Plat):
     def __init__(self, Av: si.mm**2, *args, **kwargs):
         """Defini une classe permettant le calcul d'un élément métalique en cisaillement selon l'EN 1993-1-1 §6.2.6.
-        Cette classe est hérité de la classe Element du module E3_Element_droit.py.
+        Cette classe est hérité de la classe Plat du module E3_Element_droit.py.
 
         Args:
             Av (float): Aire de cisaillemment en mm²
@@ -276,10 +274,10 @@ class Cisaillement(Element):
         return val() 
 
 
-class Flexion(Element):
+class Flexion(Plat):
     def __init__(self, W: si.mm**3, *args, **kwargs):
         """Defini une classe permettant le calcul en flexion d'un élément acier suivant l'EN 1993-1-1 §6.2.5.
-        Cette classe est hérité de la classe Element du module EC3_Element_droit.py.
+        Cette classe est hérité de la classe Plat du module EC3_Element_droit.py.
 
         Args:
             Wpl (float, optional): Module de flexion plastique (pour les sections transversales de classe 1 et 2) de la section en mm3.
@@ -325,7 +323,6 @@ class Flexion(Element):
             Av (float): Aire de cisaillemment en mm².
             V_Ed (float): Effort de cisaillement en kN.
         """
-        A_v = Av * si.mm**2
         V_Ed = V_Ed * si.kN
         cis = Cisaillement._from_parent_class(self, Av=Av)
         Vpl_Rd = cis.Vpl_Rd[1]
@@ -333,8 +330,8 @@ class Flexion(Element):
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             if V_Ed/Vpl_Rd > 0.5:
-                rho = ((2*V_Ed) / Vpl_Rd-1)**2
-                My_V_Rd = rho * Mc_Rd
+                rho = (2*(V_Ed/Vpl_Rd)-1)**2
+                My_V_Rd = (1-rho) * Mc_Rd
             elif V_Ed/Vpl_Rd <= 0.5:
                 My_V_Rd = Mc_Rd
             return My_V_Rd 
