@@ -23,8 +23,7 @@ class Tige(Plat):
         tete_fraisee: bool=("False", "True"),
         prof_tete_fraisee: si.mm=0,
         verif_filetage: bool=("False", "True"), 
-        filetage_EN1090: bool=("True", "False"), 
-        *args, 
+        filetage_EN1090: bool=("True", "False"),
         **kwargs
         ):
         """Configure un objet Tige permettant les vérification suivant l'EN 1993-1-8. Cette classe est hérité de la classe Plat du fichier EC3_Element_droit.py.
@@ -39,7 +38,7 @@ class Tige(Plat):
             verif_filetage (bool): définit si le filetage du boulon doit être vérifier, si c'est le cas alors True. Defaults to False.
             filetage_EN1090 (bool): définit si le filetage est conforme à l'EN 1090, soit matricé. Si filetage usiné alors False. Defaults to True.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self.d = d * si.mm
         self.d0 = d0 * si.mm
         self.trou_oblong = trou_oblong
@@ -47,7 +46,7 @@ class Tige(Plat):
         self.tete_fraisee = tete_fraisee
         self.prof_tete_fraisee = prof_tete_fraisee * si.mm
         self.verif_filetage = verif_filetage
-        self.__verif_trou_surdimensionne()
+        self._verif_trou_surdimensionne()
 
         if filetage_EN1090:
             self.filetage_EN1090 = 1
@@ -82,7 +81,8 @@ class Tige(Plat):
             raise KeyError("Le diamètre ne correspond pas à celui d'un boulon standard, vérifier As = 0, An = aire de d")
         
         
-    def __verif_trou_surdimensionne(self):
+    def _verif_trou_surdimensionne(self):
+        self.percage_surdimensionne = False
         if self.d.value*10**3 in [12, 14]:
             if self.d0.value*10**3 >= self.d.value*10**3+3:
                 self.percage_surdimensionne = True
@@ -100,22 +100,9 @@ class Tige(Plat):
                 self.percage_surdimensionne = True
                 raise ValueError((f"Le percage est surdimensionné, pour revenir à un perçage normal, "
                                f"réduire le diamètre de perçage à {self.d.value*10**3 + 3} mm "
-                               "selon CNC2M §2.1(1) et NF EN 1090-2"))
-        else:
-            self.percage_surdimensionne = False
+                               "selon CNC2M §2.1(1) et NF EN 1090-2"))  
         return self.percage_surdimensionne
-
-    @property
-    def _Kb(self):
-        """Détermine le facteur kb selon CNC2M §2.1 tab2"""
-        kb = 1
-        if self.trou_oblong:
-            kb = 0.6
-        elif self.percage_surdimensionne:
-            kb = 0.8
-        return kb
             
-
 
     def pince_metal_boulon(self, trous_oblongs: bool=("False", "True"), corrosion: bool=("False", "True")):
         """ Retourne les pinces du métal minimum dans un assemblage constitué de tige (EN 1993-1-8 §3.5) avec:
@@ -301,6 +288,14 @@ class Tige(Plat):
             return B_p_Rd
         return val()
 
+    def _Kb(self):
+        """Détermine le facteur kb selon CNC2M §2.1 tab2"""
+        kb = 1
+        if self.trou_oblong:
+            kb = 0.6
+        elif self.percage_surdimensionne:
+            kb = 0.8
+        return kb
     
     def Fb_Rd(self, e1: si.mm ,e2: si.mm , p1: si.mm, p2: si.mm):
         """Retourne la pression diamétrale en N. 
@@ -327,7 +322,7 @@ class Tige(Plat):
         d = self.d
         t = self.t
         gamma_M_2 = self.GAMMA_M["gamma_M2"]
-        k_b = self._Kb
+        k_b = self._Kb()
         if self.tete_fraisee:
             e_tete_fraisee = self.prof_tete_fraisee
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -448,8 +443,8 @@ class Tige(Plat):
         """Retourne le taux de travail en double cisaillement et en flexion d'un axe d'articulation selon EN 1993-1-8 §3.13
 
         Args:
-            FvEd (si.kN): effort de cisaillement sur l'axe en kN.
-            jeu (si.mm): jeu de l'axe en mm.
+            FvEd (si.kN): effort de cisaillement sur l'axe en kN provenant du plat en âme.
+            jeu (si.mm): jeu entre plat en mm.
             t_flasque (si.mm): épaisseur de la flasque en mm.
             t_ame (si.mm): épaisseur de l'ame en mm.
 
@@ -476,14 +471,18 @@ class Tige(Plat):
         def val():
             F_v_Rd = 0.6 * A * f_u_b / gamma_M2
             taux_v_d = F_v_Ed / F_v_Rd
+
             M_Ed = F_v_Ed * (t_ame + 4 * jeu + 2 * t_flasque)
             M_Rd = 1.5 * pi * d**3 * f_y_b / (32 * gamma_M0)
             taux_m_d = M_Ed / M_Rd
             taux_m_v_d = (M_Ed / M_Rd)**2 + (F_v_Ed / F_v_Rd)**2
+
             F_b_flasque_Rd = 1.5 * t_flasque * d * f_y / gamma_M0
             taux_f_b_flasque_d = 0.5 * F_v_Ed / F_b_flasque_Rd
+
             F_b_ame_Rd = 1.5 * t_ame * d * f_y / gamma_M0
             taux_f_b_ame_d = F_v_Ed / F_b_ame_Rd
+
             return taux_v_d, taux_m_d, taux_m_v_d, taux_f_b_flasque_d, taux_f_b_ame_d
         result = val()
         self.taux_axe_articulation["taux_v_d"] = result[1][0]
@@ -494,36 +493,32 @@ class Tige(Plat):
         return result
 
 
-class Prescellement_plaque_ancrage(Tige):
+class _Tige_scellement(Tige):
     GAMMA_C = {"Fondamentale": 1.5, "Accidentelle": 1.2}
     CLASSE_CONCRETE = list(Tige._data_from_csv(Tige, "caracteristique_meca_beton.csv").index)[2:]
-    def __init__(self, tr: si.mm, dr: si.mm, l_ancr: si.mm, d1: si.mm, e_tiges: si.mm, classe_beton: str=CLASSE_CONCRETE, *args, **kwargs):
+    def __init__(self, n:int=2, n_traction:int=2, classe_beton: str=CLASSE_CONCRETE, **kwargs):
         """Initialise une tige de prescellement avec plaque circulaire d'après l'EN1993-1-8 et le guide du CNC2M.
         Cette classe est hérité de la classe Tige du module EC3_Assemblage.py.
 
         Args:
-            tr (si.mm): épaisseur de la plaque d'ancrage en mm.
-            dr (si.mm): diamètre de la plaque d'ancrage en mm.
-            l_ancr (si.mm): longueur de l'ancrage en mm (distance entre le nu béton et la face de la plaque d'ancrage).
-            d1 (si.mm): distance perpendiculaire du bord béton à l'axe de la tige en mm.
-            e_tiges (si.mm): entraxe des tiges d'ancrage en mm.
+            n (int, optional): nombre de tiges d'ancrage. Defaults to 2.
+            n_traction (int, optional): nombre de tiges d'ancrage en traction dans le cas
+             d'une reprise de moment en pieds par exemple sinon égale à n. Defaults to 2.
             classe_beton (str): classe du béton.
         """
         kwargs["filetage_EN1090"] = False
-        super().__init__(*args, **kwargs)
-        self.tr = tr * si.mm
-        self.dr = dr * si.mm
-        self.l_ancr = l_ancr * si.mm
-        self.d1 = d1 * si.mm
-        self.e_tiges = e_tiges * si.mm
+        super().__init__(**kwargs)
+        self._test_qualite_acier()
+        self.n = n
+        self.n_traction = n_traction
         self.classe_beton = classe_beton
-        self.type_ancrage = "Plaque d'ancrage circulaire"
-
         caract_meca = self._data_from_csv("caracteristique_meca_beton.csv").loc[self.classe_beton]
         self.fck = float(caract_meca.loc["fck"]) * si.MPa
 
-        if self.tr.value < 0.3*self.dr.value/2:
-            raise ValueError("L'épaisseur tr doit être supérieur ou égal à {} mm".format(ceil(0.3*self.dr.value*10**3/2)))
+    def _test_qualite_acier(self):
+        acier_valide = ["4.6", "4.8", "5.6", "5.8", "6.8", "8.8", "9.8", "10.9"]
+        if self.qualite not in acier_valide:
+            raise ValueError("Veuillez entrer une qualité d'acier pour l'ancrage valide {}".format(acier_valide))
 
     @property
     def FvRd(self) -> float:
@@ -543,7 +538,85 @@ class Prescellement_plaque_ancrage(Tige):
                 return F_v_Rd_filete
             return val()
         else:
-            raise ValueError("La limite elastique Fyb doit être comprise entre 235 MPa et 640 MPa pour être considéré en cisaillement")
+            raise ValueError("La limite elastique fyb doit être comprise entre 235 MPa et 640 MPa pour être considéré en cisaillement")
+
+    def taux_ancrage(self, FtEd: si.kN=0, FvEd: si.kN=0):
+        """Calcul le taux de travail d'une tige d'ancrage avec plaque circulaire d'après l'EN1993-1-8 et le guide du CNC2M.
+
+        Args:
+            FtEd (float): effort de traction sur la platine de scellement en kN.
+            FvEd (float): effort de cisaillement sur la platine de scellement en kN. 
+                Il est en général déconseillé de faire passer de grand effort de cisaillement par les tiges, privilégier une bèche.
+
+        Returns:
+            tuple: le tuple des taux de travail
+        """
+        F_t_Ed = FtEd * si.kN
+        F_v_Ed = FvEd * si.kN
+        latex_F_tc_Rd, F_tc_Rd = self.FtcRd
+        latex_F_tb_Rd, F_tb_Rd = self.FtRd
+        n = self.n
+        n_traction = self.n_traction
+        if not F_v_Ed or F_v_Ed.value == 0:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                F_t_ancr_Rd = min(F_tc_Rd, F_tb_Rd)
+                taux_ancrage = F_t_Ed / (F_t_ancr_Rd * n_traction) #CNC2M §6(8)
+                return taux_ancrage
+            result = val()
+            return (latex_F_tb_Rd + latex_F_tc_Rd + result[0], result[1])
+        elif not self.percage_surdimensionne:
+            latex_F_v_Rd, F_v_Rd = self.FvRd
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                F_t_ancr_Rd = min(F_tc_Rd, F_tb_Rd)
+                taux_t = F_t_Ed / (F_t_ancr_Rd * n_traction) #CNC2M §6(8)
+                taux_t_v = F_v_Ed / (F_v_Rd * n) + F_t_Ed / (1.4 * F_t_ancr_Rd * n_traction)
+                return taux_t, taux_t_v
+            result = val()
+            return (latex_F_v_Rd + latex_F_tb_Rd + latex_F_tc_Rd + result[0], result[1])
+        else:
+            t_p = self.t
+            d = self.d
+            latex_F_v_Rd, F_v_Rd = self.FvRd
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                e = t_p + d / 2
+                F_t_Ed_eq = F_v_Ed * (e / d) * (5 * pi)/6 #CNC2M §6(9)
+                F_t_ancr_Rd = min(F_tc_Rd, F_tb_Rd)
+                taux_t = (F_t_Ed + F_t_Ed_eq) / (F_t_ancr_Rd * n_traction) #CNC2M §6(9)
+                taux_t_v = F_v_Ed / (F_v_Rd * n) + (F_t_Ed + F_t_Ed_eq) / (1.4 * F_t_ancr_Rd * n_traction)
+                return taux_t, taux_t_v
+            result = val()
+            return (latex_F_v_Rd + latex_F_tb_Rd + latex_F_tc_Rd + result[0], result[1])
+
+
+class Tige_scellement_plaque_ancrage(_Tige_scellement):
+    def __init__(self, tr: si.mm, dr: si.mm, l_ancr: si.mm, d1: si.mm, e_tiges: si.mm, n:int=2, n_traction:int=2, classe_beton: str=_Tige_scellement.CLASSE_CONCRETE, **kwargs):
+        """Initialise une tige de scellement avec plaque circulaire d'après l'EN1993-1-8 et le guide du CNC2M.
+        Cette classe est hérité de la classe Tige du module EC3_Assemblage.py.
+
+        Args:
+            tr (si.mm): épaisseur de la plaque d'ancrage en mm.
+            dr (si.mm): diamètre de la plaque d'ancrage en mm.
+            l_ancr (si.mm): longueur de l'ancrage en mm (distance entre le nu béton et la face de la plaque d'ancrage).
+            d1 (si.mm): distance perpendiculaire du bord béton à l'axe de la tige en mm.
+            e_tiges (si.mm): entraxe entre les tiges d'ancrage en mm.
+            n (int, optional): nombre de tiges d'ancrage. Defaults to 2.
+            n_traction (int, optional): nombre de tiges d'ancrage en traction dans le cas
+                d'une reprise de moment en pieds par exemple sinon égale à n. Defaults to 2.
+            classe_beton (str): classe du béton.
+        """
+        super().__init__(n=n, n_traction=n_traction, classe_beton=classe_beton,**kwargs)
+        self.tr = tr * si.mm
+        self.dr = dr * si.mm
+        self.l_ancr = l_ancr * si.mm
+        self.d1 = d1 * si.mm
+        self.e_tiges = e_tiges * si.mm
+        self.type_ancrage = "Plaque d'ancrage circulaire"
+
+        if self.tr.value < 0.3*self.dr.value/2:
+            raise ValueError("L'épaisseur tr doit être supérieur ou égal à {} mm".format(ceil(0.3*self.dr.value*10**3/2)))
 
     @property
     def FtcRd(self):
@@ -563,58 +636,49 @@ class Prescellement_plaque_ancrage(Tige):
             return F_tc_Rd
         return val()
 
-    def taux_ancrage(self, FtEd: si.kN=0, FvEd: si.kN=0):
-        """Calcul le taux de travail d'une tige d'ancrage avec plaque circulaire d'après l'EN1993-1-8 et le guide du CNC2M.
+class Tige_scellement_crochet(_Tige_scellement):
+    def __init__(self, l1: si.mm, l2: si.mm, rayon_crochet: si.mm, n:int=2, n_traction:int=2, classe_beton: str=_Tige_scellement.CLASSE_CONCRETE, **kwargs):
+        """Initialise une tige de scellement avec crochet d'après l'EN1993-1-8 et le guide du CNC2M.
+        Cette classe est hérité de la classe Tige du module EC3_Assemblage.py.
 
         Args:
-            FtEd (float): effort de traction sur la tige en kN.
-            FvEd (float): effort de cisaillement sur la tige en kN. 
-                Il est en général déconseillé de faire passer de grand effort de cisaillement par les tiges, privilégier une bèche.
-
-        Returns:
-            tuple: le tuple des taux de travail
+            l1 (si.mm): longueur d'ancrage l1 selon tab19 du CNC2M en mm (distance entre le nu béton et le début du cintrage).
+            l2 (si.mm): longueur d'ancrage l2 selon tab19 du CNC2M en mm (petite distance de l'extrémité du crochet à la fin du cintrage).
+            rayon_crochet (si.mm): rayon du crochet en mm.
+            n (int, optional): nombre de tiges d'ancrage. Defaults to 2.
+            n_traction (int, optional): nombre de tiges d'ancrage en traction dans le cas
+                d'une reprise de moment en pieds par exemple sinon égale à n. Defaults to 2.
+            classe_beton (str): classe du béton.
         """
-        F_t_Ed = FtEd * si.kN
-        F_v_Ed = FvEd * si.kN
-        latex_F_tc_Rd, F_tc_Rd = self.FtcRd
-        latex_F_tb_Rd, F_tb_Rd = self.FtRd
-        if not F_v_Ed or F_v_Ed.value == 0:
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                taux_ancrage = F_t_Ed / min(F_tc_Rd, F_tb_Rd)
-                return taux_ancrage
-            result = val()
-            return (latex_F_tb_Rd + latex_F_tc_Rd + result[0], result[1])
-        elif not self.percage_surdimensionne:
-            latex_F_v_Rd, F_v_Rd = self.FvRd
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                F_t_ancr_Rd = min(F_tc_Rd, F_tb_Rd)
-                taux_t = F_t_Ed / F_t_ancr_Rd #CNC2M §6(8)
-                taux_t_v = F_v_Ed / F_v_Rd + F_t_Ed / (1.4 * F_t_ancr_Rd)
-                return taux_t, taux_t_v
-            result = val()
-            return (latex_F_v_Rd + latex_F_tb_Rd + latex_F_tc_Rd + result[0], result[1])
-        else:
-            t_r = self.tr
-            d = self.d
-            latex_F_v_Rd, F_v_Rd = self.FvRd
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                e = t_r + d / 2
-                F_t_Ed_eq = F_v_Ed * (e / d) * (5 * pi)/6 #CNC2M §6(9)
-                F_t_ancr_Rd = min(F_tc_Rd, F_tb_Rd)
-                taux_t = (F_t_Ed + F_t_Ed_eq) / F_t_ancr_Rd #CNC2M §6(9)
-                taux_t_v = F_v_Ed / F_v_Rd + (F_t_Ed + F_t_Ed_eq) / (1.4 * F_t_ancr_Rd)
-                return taux_t, taux_t_v
-            result = val()
-            return (latex_F_v_Rd + latex_F_tb_Rd + latex_F_tc_Rd + result[0], result[1])
+        super().__init__(n=n, n_traction=n_traction, classe_beton=classe_beton,**kwargs)
+        self.l1 = l1 * si.mm
+        self.l2 = l2 * si.mm
+        self.rayon_crochet = rayon_crochet * si.mm
+        self.type_ancrage = "Crochet"
 
-        
+        if self.rayon_crochet.value*10**3 < 3*self.d.value*10**3:
+            raise ValueError("Le rayon du crochet doit être supérieur ou égal à {} mm".format(ceil(3*self.d.value*10**3)))
+        if self.l2.value*10**3 < 1.5*self.d.value*10**3 or self.l2.value*10**3 > 2*self.d.value*10**3:
+            raise ValueError("La longueur l2 doit être comprise entre {} mm <= l2 <= {} mm".format(ceil(1.5*self.d.value*10**3), floor(2*self.d.value*10**3)))
 
+    @property
+    def FtcRd(self):
+        d = self.d
+        l_1 = self.l1
+        l_2 = self.l2
+        rayon = self.rayon_crochet
+        gamma_c = self.GAMMA_C["Fondamentale"]
+        f_c_k = self.fck
+        @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            A_ancr = pi * d * (l_1 + 6.4 * rayon + 3.5 * l_2)
+            f_b_d = 0.36 * sqrt(f_c_k) / gamma_c * si.MPa
+            F_tc_Rd = A_ancr * f_b_d #CNC2M §6(6) tab19
+            return F_tc_Rd
+        return val()
 
 class Soudure(Plat):
-    def __init__(self, t2: si.mm, gorge: si.mm, l: si.mm, retour_soudure: bool=("False", "True"), alpha: float=90, *args, **kwargs):
+    def __init__(self, t2: si.mm, gorge: si.mm, l: si.mm, retour_soudure: bool=("False", "True"), alpha: float=90, **kwargs):
         """Configure un objet soudure permettant les vérification suivant l'EN 1993-1-8. Cette classe est hérité de la classe Plat du fichier EC3_Element_droit.py.  
 
         Args:
@@ -625,7 +689,7 @@ class Soudure(Plat):
             alpha (int | float, optional): angle en degré de la de la pièce 2 sur la pièce 1. Defaults to 90.
         """
      
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self.t2 = t2 * si.mm
         self.gorge = gorge * si.mm
         self.l = l * si.mm
@@ -733,9 +797,10 @@ class Soudure(Plat):
         a = self.gorge
         l_ef = self.lef
         fu = self.fu
+        alpha_cordon = self.alpha_cordon
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            cordon_oblique = (beta_w * gamma_M_2 * (N_Ed * sqrt(3 - sin(radians(self.alpha_cordon))**2)) / fu) / (a * l_ef)
+            cordon_oblique = (beta_w * gamma_M_2 * (N_Ed * sqrt(3 - sin(radians(alpha_cordon))**2)) / fu) / (a * l_ef)
             return cordon_oblique
         return val()
 
@@ -752,13 +817,17 @@ class Soudure(Plat):
         a = self.gorge
         l_ef = self.lef
         fu = self.fu
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-        def val():
-            if self.alpha < 90:
-                cordon_pieces_obliques = (beta_w * gamma_M_2 * (N_Ed * sqrt(2 - sin(radians(self.alpha)))) / fu) / (a * l_ef)
-            elif self.alpha > 90:
-                cordon_pieces_obliques = (beta_w * gamma_M_2 * (N_Ed * sqrt(2 + sin(radians(self.alpha)))) / fu) / (a * l_ef)
-            return cordon_pieces_obliques
+        alpha = self.alpha
+        if alpha < 90:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                cordon_pieces_obliques = (beta_w * gamma_M_2 * (N_Ed * sqrt(2 - sin(radians(alpha)))) / fu) / (a * l_ef)
+                return cordon_pieces_obliques
+        else:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                cordon_pieces_obliques = (beta_w * gamma_M_2 * (N_Ed * sqrt(2 + sin(radians(alpha)))) / fu) / (a * l_ef)
+                return cordon_pieces_obliques
         return val()
 
 
@@ -772,17 +841,25 @@ class Soudure(Plat):
         Returns:
             (float) : Taux de travail de la soudure
         """
-        Fv_Ed = FvEd * si.kN
-        Fax_Ed = FaxEd * si.kN
-        self.tau_para = Fv_Ed / (self.gorge * self.lef)
-        self.sigma_perpend = (Fax_Ed * cos(radians(self.alpha/2)))/ (self.gorge * self.lef)
-        self.tau_perpend = (Fax_Ed * cos(radians(self.alpha/2)))/ (self.gorge * self.lef)
-        self.sigma_e = sqrt(self.sigma_perpend**2 + 3 * (self.tau_perpend**2 + self.tau_para**2))
-
-        self.sigma_Rd = self.fu / (self.beta_w * self.GAMMA_M["gamma_M2"])
-        self.sigma_perpend_Rd = (0.9 * self.fu) / self.GAMMA_M["gamma_M2"]
-        return max(self.sigma_e / self.sigma_Rd, self.sigma_perpend / self.sigma_perpend_Rd)
-    
+        F_v_Ed = FvEd * si.kN
+        F_ax_Ed = FaxEd * si.kN
+        f_u = self.fu
+        gamma_M2 = self.GAMMA_M["gamma_M2"]
+        beta_w = self.beta_w
+        a = self.gorge
+        l_ef = self.lef
+        alpha = self.alpha
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            tau_para = F_v_Ed / (a * l_ef)
+            sigma_perpend = (F_ax_Ed * cos(radians(alpha/2)))/ (a * l_ef)
+            tau_perpend = (F_ax_Ed * cos(radians(alpha/2)))/ (a * l_ef)
+            sigma_e = sqrt(sigma_perpend**2 + 3 * (tau_perpend**2 + tau_para**2))
+            sigma_Rd = f_u / (beta_w * gamma_M2)
+            sigma_perpend_Rd = (0.9 * f_u) / gamma_M2
+            taux_von_mises = max(sigma_e / sigma_Rd, sigma_perpend / sigma_perpend_Rd)
+            return taux_von_mises
+        return val()
     
 
     def soudure_discontinue(self, b: si.mm, b1: si.mm, corrosion: bool=("False", "True")):
@@ -797,8 +874,7 @@ class Soudure(Plat):
             dict: dimensions des cordons de soudure discontinue
         """
         if corrosion:
-            print("Il n'est pas possible d'avoir une soudure discontinue en ambiance corrosive")
-            return False
+            raise ValueError("Il n'est pas possible d'avoir une soudure discontinue en ambiance corrosive")
         b = b * si.mm
         lwe = max(0.75 * b, 0.75 * b1*si.mm)
         l1 = min(16 * self.t, 16 * self.t2, 200)

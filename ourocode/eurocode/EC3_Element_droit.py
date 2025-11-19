@@ -11,7 +11,6 @@ from handcalcs.decorator import handcalc
 from ourocode.eurocode.A0_Projet import Projet
 
 class Plat(Projet):
-
     GAMMA_M = {"gamma_M0": 1, "gamma_M1": 1, "gamma_M2": 1.25, "gamma_M3": 1.1, "gamma_M3_ser": 1.25,
              "gamma_M4": 1, "gamma_M5": 1, "gamma_M6_ser": 1, "gamma_M7": 1.1}
     E = 210000 * si.MPa
@@ -46,7 +45,6 @@ class Plat(Projet):
     def __fy_fu(self):
         """Défini fy (résistance élastique) et fu (résistance plastique) en MPa fonction de la classe d'acier choisi
         """
-        print(self.t)
         if self.t <= 40*si.mm:
             self.fy = self.__classe_acier.loc["t<= 40  fy"] * si.MPa
             self.fu = self.__classe_acier.loc["t<= 40  fu"] * si.MPa

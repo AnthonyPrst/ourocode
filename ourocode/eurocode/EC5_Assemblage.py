@@ -1677,14 +1677,38 @@ class Boulon(Assemblage):
         d_ext = d_ext * si.mm
 
         if self._type_beam[0] == "Métal":
-            FtRd = Tige(self.d.value*10**3, d_int, self.qualite, True, filetage_EN1090, t=self.beam_1.t.value*10**3, h=self.beam_1.h.value*10**3, classe_acier=self.beam_1.classe_acier, classe_transv=self.beam_1.classe_transv).FtRd
+            FtRd = Tige(
+                d=self.d.value*10**3, 
+                d0=d_int, 
+                trou_oblong=False, 
+                qualite=self.qualite, 
+                tete_fraisee=False, 
+                prof_tete_fraisee=0, 
+                verif_filetage=True, 
+                filetage_EN1090=filetage_EN1090, 
+                t=self.beam_1.t.value*10**3, 
+                h=self.beam_1.h.value*10**3, 
+                classe_acier=self.beam_1.classe_acier, 
+                classe_transv=self.beam_1.classe_transv).FtRd
             fc_90_k = float(self.beam_2.caract_meca.loc["fc90k"]) * si.MPa
             if self.nCis == 1:
                 d_ext = min(self.beam_1.t*12, 4*self.d, d_ext)
             else:
                 d_ext = min(self.beam_1.t*12, 4*self.d)
         else:
-            FtRd = Tige(self.d.value*10**3, d_int, self.qualite, True, filetage_EN1090, t=0, h=0, classe_acier="S235", classe_transv=3).FtRd
+            FtRd = Tige(
+                d=self.d.value*10**3, 
+                d0=d_int, 
+                trou_oblong=False, 
+                qualite=self.qualite, 
+                tete_fraisee=False, 
+                prof_tete_fraisee=0, 
+                verif_filetage=True, 
+                filetage_EN1090=filetage_EN1090, 
+                t=0, 
+                h=0, 
+                classe_acier="S235", 
+                classe_transv=3).FtRd
             fc_90_k = float(self.beam_1.caract_meca.loc["fc90k"]) * si.MPa
 
         Ft_Rd = FtRd[1]

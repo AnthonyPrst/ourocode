@@ -37,7 +37,7 @@ def panneau_bois():
 
 @pytest.fixture
 def barre_metal():
-    return EC3_Elem.Element(6, 200, "S275", classe_transv="2")
+    return EC3_Elem.Plat(6, 200, "S275", classe_transv="2")
 
 # Fixture pour un assemblage bois/bois
 @pytest.fixture
