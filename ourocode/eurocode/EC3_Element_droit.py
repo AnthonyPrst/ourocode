@@ -32,6 +32,8 @@ class Plat(Projet):
         self.h = h * si.mm
         self.b = b * si.mm
         self.classe_acier = classe_acier
+        if classe_transv == 4:
+            raise ValueError("La classe transversale 4 n'est pas développée, merci de choisir une classe transversale entre 1 et 3")
         self.classe_transv = classe_transv
         self.__fy_fu()
     
