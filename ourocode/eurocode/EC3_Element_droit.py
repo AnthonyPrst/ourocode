@@ -16,18 +16,21 @@ class Plat(Projet):
     E = 210000 * si.MPa
     CLASSE_STEEL = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_acier.csv").index)
              
-    def __init__(self, t: si.mm=0, h: si.mm=0, classe_acier: str=CLASSE_STEEL, classe_transv: int=("1","2","3","4"), **kwargs):
+    def __init__(self, t: si.mm=0, h: si.mm=0, b: si.mm=0, classe_acier: str=CLASSE_STEEL, classe_transv: int=("1","2","3","4"), **kwargs):
         """Configure un objet Plat pour vérifier un plat en acier suivant l'EN 1993-1-1. 
 
         Args:
-            t (int, optional): épaisseur de la plaque en mm. Defaults to 0.
-            h (int, optional): hauteur de la plaque en mm. Defaults to 0.
+            t (int, optional): épaisseur de la plaque en mm.
+            h (int, optional): hauteur de la plaque en mm.
+            b (int, optional): largeur de la plaque en mm.
+                Attention: c'est cette dimension qui détermine le calcul d'inertie avec l'épaisseur t pour les vérifications.
             classe_acier (str, optional): classe d'acier. Defaults to "S235".
             classe_transv (int, optional): classe transversale de la section en fonction de sa capacité de plastification. Defaults to 1.
         """
         super().__init__(**kwargs)
         self.t = t * si.mm
         self.h = h * si.mm
+        self.b = b * si.mm
         self.classe_acier = classe_acier
         self.classe_transv = classe_transv
         self.__fy_fu()
@@ -58,9 +61,9 @@ class Plat(Projet):
         """ Retourne le moment quadratique d'une section rectangulaire en mm4 avec pour argument :
             b ou d : Largeur ou diamètre de la poutre en mm
             h : Hauteur de la poutre en mm """
-        if self.t and self.h:
-            self.Iy = (self.t * self.h**3)/12
-            self.Iz = (self.h * self.t**3)/12
+        if self.t and self.b:
+            self.Iy = (self.t * self.b**3)/12
+            self.Iz = (self.b * self.t**3)/12
             return [self.Iy, self.Iz]
 
         elif self.Iy and self.Iz:
@@ -75,8 +78,8 @@ class Traction(Plat):
 
         Args:
             A (float): Aire brute de la section en mm².
-            Anet (float, optional): Aire nette au droit droit des trous de fixation selon §6.2.2.2 en mm². Defaults to 0.
-            ass_cat_C (bool, optional): Si assemblage de catégorie C alors True sinon False, voir EN 1993-1-8 §3.4.1.(1). Defaults to ("False", "True").
+            Anet (float, optional): Aire nette au droit droit des trous de fixation selon §6.2.2.2 en mm².
+            ass_cat_C (bool, optional): Si assemblage de catégorie C alors True sinon False, voir EN 1993-1-8 §3.4.1.(1). Defaults to False.
         """
         super().__init__(*args, **kwargs)
         self.A = A * si.mm**2
@@ -148,24 +151,27 @@ class Compression(Plat):
                 "Encastré - Rotule" : 0.7,
                 "Encastré - Encastré" : 0.5,
                 "Encastré - Rouleau" : 1}
-    def __init__(self, A: si.mm**2, lo_y: si.mm=0, lo_z: si.mm=0, courbe_flamb: dict="{'y':'c', 'z':'c'}", type_appuis: str=COEF_LF, *args, **kwargs):
+    def __init__(self, A: si.mm**2, Iy:si.mm**4, Iz:si.mm**4, lo_y: si.mm=0, lo_z: si.mm=0, courbe_flamb: dict="{'y':'c', 'z':'c'}", type_appuis: str=COEF_LF, *args, **kwargs):
         """
         Classe intégrant les formules de compression et d'instabilité au flambement à l'EC3.
         Cette classe est hérité de la classe Plat du module EC3_Element_droit.py.
 
         Args:
-            A (float | int): Aire brute si classe 1,2 ou 3 et Aeff si classe 4 en mm²
-            lo (int, optional): Longueur de flambement suivant l'axe de rotation (y ou z) en mm. Defaults to {'y':0, 'z':0}.
-            coeflf (float, optional): Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
-                fonction des types d'appui :
-                            Encastré 1 côté : 2
-                            Rotule - Rotule : 1
-                            Encastré - Rotule : 0.7
-                            Encastré - Encastré : 0.5
-                            Encastré - Rouleau : 1. Defaults to 1.
+            A (float): Aire brute si classe 1,2 ou 3 et Aeff si classe 4 en mm²
+            Iy (float): Moment quadratique suivant l'axe de rotation y en mm4
+            Iz (float): Moment quadratique suivant l'axe de rotation z en mm4
+            lo (int): Longueur de flambement suivant l'axe de rotation (y ou z) en mm. Defaults to {'y':0, 'z':0}.
+            type_appuis (str): Permet de déterminé la forme du flambement en fonction des types d'appui:
+                Encastré 1 côté : 2
+                Rotule - Rotule : 1
+                Encastré - Rotule : 0.7
+                Encastré - Encastré : 0.5
+                Encastré - Rouleau : 1
         """
         super().__init__(*args, **kwargs)
         self.A = A * si.mm**2
+        self.Iy = Iy * si.mm**4
+        self.Iz = Iz * si.mm**4
         self.lo ={'y': lo_y*si.mm, 'z': lo_z*si.mm}
         self.courbe_flamb = courbe_flamb
         self.type_appuis = type_appuis
@@ -190,8 +196,8 @@ class Compression(Plat):
     def lamb(self):
         """ Retourne l'élancement d'un poteau en compression avec risque de flambement suivant son axe de rotation """
         lamb = {'y':0, 'z':0}
-        lamb['y'] = (self.lo['y'].value * 10**3 * self.coef_lef) / mt.sqrt(self._inertie[0] / (self.A))
-        lamb['z'] = (self.lo['z'].value * 10**3 * self.coef_lef) / mt.sqrt(self._inertie[1] / (self.A))
+        lamb['y'] = (self.lo['y'].value * 10**3 * self.coef_lef) / mt.sqrt(self.Iy / (self.A))
+        lamb['z'] = (self.lo['z'].value * 10**3 * self.coef_lef) / mt.sqrt(self.Iz / (self.A))
         return lamb
 
     @property
@@ -249,7 +255,7 @@ class Compression(Plat):
 
 class Cisaillement(Plat):
     def __init__(self, Av: si.mm**2, *args, **kwargs):
-        """Defini une classe permettant le calcul d'un élément métalique en cisaillement selon l'EN 1993-1-1 §6.2.6.
+        """Defini une classe permettant le calcul d'un élément métallique en cisaillement selon l'EN 1993-1-1 §6.2.6.
         Cette classe est hérité de la classe Plat du module E3_Element_droit.py.
 
         Args:
@@ -260,7 +266,7 @@ class Cisaillement(Plat):
 
     @property
     def Vpl_Rd(self):
-        """Calcul la résistance du cisaillment plastique en N (équa 6.18)
+        """Calcul la résistance du cisaillement plastique en N (équa 6.18)
         """
         A_v = self.Av
         f_y = self.fy

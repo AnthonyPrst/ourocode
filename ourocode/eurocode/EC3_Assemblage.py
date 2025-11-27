@@ -1,12 +1,21 @@
 # coding in UTF-8 
-
+import os
+from PIL import Image
 from math import *
 import pandas as pd
+import numpy as np
 
+# Visualisation
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle, Circle, Polygon, FancyBboxPatch
+from matplotlib.collections import PatchCollection
+
+# Calculs structurels
 import forallpeople as si
 si.environment("structural")
 from handcalcs.decorator import handcalc
 
+# Import local
 from ourocode.eurocode.EC3_Element_droit import Plat
 
 #======================================================= Tige =========================================================
@@ -26,7 +35,8 @@ class Tige(Plat):
         filetage_EN1090: bool=("True", "False"),
         **kwargs
         ):
-        """Configure un objet Tige permettant les vérification suivant l'EN 1993-1-8. Cette classe est hérité de la classe Plat du fichier EC3_Element_droit.py.
+        """Configure un objet Tige permettant les vérification suivant l'EN 1993-1-8. 
+        Cette classe est hérité de la classe Plat du fichier EC3_Element_droit.py.
 
         Args:
             d (int): le diamètre de la tige en mm
@@ -881,47 +891,730 @@ class Soudure(Plat):
         l2 = min(12 * self.t, 12 * self.t2, 0.25 * b, 200)
         return {"Lwe": lwe, "L1": l1, "L2": l2}
 
-    
 class Platine_about(Plat):
-    def __init__(self, r_or_a: int, l: int, attache_T: str=("Soudée", "Profil formé à froid/chaud"), effet_levier: bool=("False", "True"), *args, **kwargs):
-        """Crée une platine flechie
-
+    """
+    Classe pour la visualisation d'un pied de poteau en acier avec profilé H ou I.
+    Permet de représenter graphiquement le profilé et l'emplacement des boulons.
+    """
+    
+    def __init__(self, h: float, b: float, tw: float, tf: float, r: float, 
+                 type_profil: str = "HE", echelle: float = 1.0,
+                 decalage_y: float = 0.0,
+                 **kwargs):
+        """
+        Initialise la visualisation d'un pied de poteau.
+        
         Args:
-            r_or_a (int): rayon du profilé ou gorge de la soudure qui relie le T du tronçon
-            l (int): longueur en mm entre la face du T et l'axe de la tige d'assemblage
-            attache_T (str, optional): attache de la platine. Defaults to "Soudée".
-            effet_levier (bool, optional): défini si un effet levier est appliqué sur la platine. Defaults to "False".
+            h (float): Hauteur totale du profilé en mm
+            b (float): Largeur des ailes en mm
+            tw (float): Épaisseur de l'âme en mm
+            tf (float): Épaisseur des ailes en mm
+            r (float): Rayon de raccordement âme-aile en mm
+            type_profil (str): Type de profilé ('HE', 'IPE', 'INP', etc.)
+            echelle (float): Échelle de visualisation (utile pour les très grands/petits profils)
+            decalage_y (float, optional): Décalage vertical du profilé par rapport au centre de la platine. Par défaut 0.0.
+        """
+        super().__init__(**kwargs)
+        self.h = h
+        self.b = b
+        self.tw = tw
+        self.tf = tf
+        self.r = r
+        self.type_profil = type_profil
+        self.echelle = echelle
+        self.epaisseur_platine = epaisseur_platine
+        
+        # Dimensions de la platine (avec valeurs par défaut si non spécifiées)
+        self.largeur_platine = largeur_platine if largeur_platine is not None else b * 1.8
+        self.hauteur_platine = hauteur_platine if hauteur_platine is not None else h * 0.8
+        
+        # Décalage du profilé par rapport au centre de la platine
+        self.decalage_y = decalage_y
+        
+        self.boulons = []
+        self.fig, self.ax = plt.subplots(figsize=(12, 10))
+        self.ax.set_aspect('equal')
+        self.ax.set_title(f"Platine d'about - Profile {type_profil}")
+        self.ax.set_xlabel('Largeur (mm)')
+        self.ax.set_ylabel('Hauteur (mm)')
+        self.ax.grid(True, linestyle='--', alpha=0.7)
+    
+    def add_tiges(self, positions: list[tuple[float, float]], diametre: float):
+        """
+        Ajoute des tiges à la visualisation.
+        
+        Args:
+            positions (list): Liste de tuples [(x, y)] des positions des tiges (en mm) vis à vis du centre de gravité de la platine
+            diametre (float): Diamètre des boulons en mm
+        """
+        self.boulons.extend([(x, y, diametre) for x, y in positions])
+    
+    def _dessiner_profil(self):
+        """Dessine le profilé du poteau"""
+        # Position du profilé avec décalage
+        x_center = self.decalage_x
+        y_center = self.decalage_y
+        
+        # Dessin du profilé en H
+        if self.type_profil.upper() in ['HE', 'IPE', 'INP']:
+            # Aile supérieure
+            aile_sup = Rectangle((x_center - self.b/2, y_center + (self.h/2 - self.tf)), 
+                                self.b, self.tf, 
+                                linewidth=1, edgecolor='black', facecolor='lightgray')
+            
+            # Aile inférieure
+            aile_inf = Rectangle((x_center - self.b/2, y_center - self.h/2), 
+                               self.b, self.tf, 
+                               linewidth=1, edgecolor='black', facecolor='lightgray')
+            
+            # Âme
+            ame = Rectangle((x_center - self.tw/2, y_center - self.h/2 + self.tf), 
+                           self.tw, self.h - 2*self.tf, 
+                           linewidth=1, edgecolor='black', facecolor='lightgray')
+            
+            # Ajout des éléments au graphique
+            for patch in [aile_sup, aile_inf, ame]:
+                self.ax.add_patch(patch)
+        
+        # Ajout des cotes
+        self._ajouter_cotes()
+    
+    def _dessiner_boulons(self):
+        """Dessine les boulons sur le dessin"""
+        # Ajout des boulons avec le décalage du profilé
+        for x, y, diametre in self.boulons:
+            boulon = Circle((x, y), diametre/2, 
+                           facecolor='yellow', edgecolor='black', linewidth=1, zorder=5)
+            self.ax.add_patch(boulon)
+            # Ajout d'un point au centre pour les petits boulons
+            self.ax.plot(x, y, 'k+', markersize=5, zorder=6)
+    
+    def _ajouter_cotes(self):
+        """Ajoute les cotes principales au dessin"""
+        # Cote hauteur totale
+        self.ax.annotate('', 
+                        xy=(-self.b/2 - 20, -self.h/2), 
+                        xytext=(-self.b/2 - 20, self.h/2),
+                        arrowprops=dict(arrowstyle='<->'))
+        self.ax.text(-self.b/2 - 30, 0, f'{self.h} mm', 
+                    va='center', ha='center', rotation=90)
+        
+        # Cote largeur aile
+        self.ax.annotate('', 
+                        xy=(-self.b/2, self.h/2 + 20), 
+                        xytext=(self.b/2, self.h/2 + 20),
+                        arrowprops=dict(arrowstyle='<->'))
+        self.ax.text(0, self.h/2 + 30, f'{self.b} mm', 
+                    ha='center')
+        
+        # Cote épaisseur aile
+        self.ax.annotate('', 
+                        xy=(self.b/2 + 20, self.h/2), 
+                        xytext=(self.b/2 + 20, self.h/2 - self.tf),
+                        arrowprops=dict(arrowstyle='<->'))
+        self.ax.text(self.b/2 + 30, self.h/2 - self.tf/2, 
+                    f'tf={self.tf} mm', 
+                    va='center')
+        
+        # Cote épaisseur âme
+        self.ax.annotate('', 
+                        xy=(-self.tf/2, 0), 
+                        xytext=(self.tf/2, 0),
+                        arrowprops=dict(arrowstyle='<->'))
+        self.ax.text(-20, 10, 
+                    f'tw={self.tw} mm', 
+                    va='center', rotation=0)
+    
+    def _dessiner_platine(self):
+        """Dessine la platine sous le profilé en vue de face"""
+        # Position verticale de la platine (sous le profilé)
+        y_platine = -self.hauteur_platine/2
+        
+        # Création du rectangle de la platine (vue de face)
+        platine = Rectangle(
+            xy=(-self.largeur_platine/2, y_platine),
+            width=self.largeur_platine,
+            height=self.hauteur_platine,
+            linewidth=1,
+            edgecolor='black',
+            facecolor='#E0E0E0',  # Gris clair
+            zorder=1,  # Pour que la platine soit en arrière-plan
+            alpha=0.7  # Légère transparence pour voir le profilé derrière
+        )
+        self.ax.add_patch(platine)
+        # Ajout d'un point au centre de la platine
+        self.ax.plot(0, 0, 'k+', markersize=6, zorder=6, color='red')
+        
+        # Ajout des cotes de la platine
+        self._ajouter_cotes_platine()
+        
+        return platine
+    
+    def _ajouter_cotes_platine(self):
+        """Ajoute les cotes spécifiques à la platine"""
+        y_platine = -self.hauteur_platine/2
+        
+        # Cote hauteur platine
+        self.ax.annotate(
+            '',
+            xy=(-self.largeur_platine/2 - 20, y_platine),
+            xytext=(-self.largeur_platine/2 - 20, y_platine + self.hauteur_platine),
+            arrowprops=dict(arrowstyle='<->', color='blue')
+        )
+        self.ax.text(
+            -self.largeur_platine/2 - 30, 
+            y_platine + self.hauteur_platine/2, 
+            f'h={self.hauteur_platine} mm',
+            va='center',
+            ha='center',
+            rotation=90,
+            color='blue'
+        )
+        
+        # Cote largeur platine
+        self.ax.annotate(
+            '',
+            xy=(-self.largeur_platine/2, y_platine - 20),
+            xytext=(self.largeur_platine/2, y_platine - 20),
+            arrowprops=dict(arrowstyle='<->', color='blue')
+        )
+        self.ax.text(
+            0, 
+            y_platine - 30, 
+            f'bp={self.largeur_platine} mm',
+            ha='center',
+            color='blue'
+        )
+    
+    def show(self):
+        """Affiche la visualisation finale"""
+        # Ajustement des limites pour inclure tous les éléments
+        margin = max(self.b, self.h) * 0.4
+        self.ax.set_xlim(-self.largeur_platine/2 - margin/2, self.largeur_platine/2 + margin/2)
+        self.ax.set_ylim(-self.hauteur_platine/2 - margin/2, self.hauteur_platine/2 + margin/2)
+        
+        # Dessin des éléments (d'abord la platine, puis le profilé, puis les boulons)
+        self._dessiner_platine()
+        self._dessiner_profil()
+        self._dessiner_boulons()
+        
+        # Ajustement du layout et affichage
+        plt.tight_layout()
+        plt.show()
+    
+    def sauvegarder(self, nom_fichier: str, format_fichier: str = 'png', dpi: int = 300):
+        """
+        Sauvegarde la visualisation dans un fichier.
+        
+        Args:
+            nom_fichier (str): Nom du fichier de sortie (sans extension)
+            format_fichier (str): Format de l'image ('png', 'jpg', 'pdf', 'svg', etc.)
+            dpi (int): Résolution en points par pouce
+        """
+        # S'assurer que la figure est à jour
+        self.show()
+        
+        # Construction du nom de fichier complet
+        nom_complet = f"{nom_fichier}.{format_fichier}"
+        
+        # Sauvegarde
+        self.fig.savefig(nom_complet, dpi=dpi, bbox_inches='tight')
+        print(f"Visualisation sauvegardée sous : {nom_complet}")
+
+
+class Platine_about_compression(Tige):
+    def __init__(self, gorge: si.mm, effet_levier: bool=("False", "True"), *args, **kwargs):
+        """Crée une platine d'about fléchie en traction selon le §6.2.6.5 de l'EN1993-1-8 et du CNC2M §4.3.3
+        Attention cette classe ne parmet de calculer que les platines avec 2 boulons par rangée de tronçon en T équvalent et non 4 comme décrit dans l'annexe A.
+
+        Pour utiliser cette classe on doit d'abord ajouter les rangées isolées de chaque tronçon équivalent avec les fonctions: 
+            - ajouter_rangee_simple_unique
+            - ajouter_rangee_interieure
+            - ajouter_rangee_exterieure_non_raidie
+            - ajouter_rangee_centrale_non_raidie.
+
+        Ensuite on ajoute les groupes de rangées pour la vérification des modes de rupture globale avec les fonctions:
+            - ajouter_groupe_rangees_interieures_centrales
+            - ajouter_groupe_rangees_centrales
+            - ajouter_groupe_rangees_interieures
+
+        Puis on vérifie les taux de travail avec les fonctions:
+            - taux_traction
+            - taux_compression
+            - taux_flexion            
+        Args:
+            gorge (int): gorge de la soudure qui relie le T du tronçon
+            effet_levier (bool, optional): définit si un effet levier est appliqué sur la platine. 
+                Il est louable de considéré qu'une platine reposant sur un support bois n'a pas d'effet levier, 
+                en effet la raideur en compression perpendiculaire du bois est faible. Defaults to "False".
         """
         super().__init__(*args, **kwargs)
-        self.attache_T = attache_T
-        self.r_or_a = r_or_a
-        self.l = l
+        self.gorge = gorge * si.mm
         self.effet_levier = effet_levier
+        self._bolts_rows = []
         
-    @property
-    def _m(self):
-        if self.attache_T == "Soudée":
-            m = self.l - 0.8 * self.r_or_a * sqrt(2)
-        else:
-            m = self.l - 0.8 * self.r_or_a
+    
+class Platine_about_traction(Tige):
+    def __init__(self, gorge: si.mm, effet_levier: bool=("False", "True"), *args, **kwargs):
+        """Crée une platine d'about fléchie en traction selon le §6.2.6.5 de l'EN1993-1-8 et du CNC2M §4.3.3
+        Attention cette classe ne parmet de calculer que les platines avec 2 boulons par rangée de tronçon en T équvalent et non 4 comme décrit dans l'annexe A.
+
+        Pour utiliser cette classe on doit d'abord ajouter les rangées isolées de chaque tronçon équivalent avec les fonctions: 
+            - ajouter_rangee_simple_unique
+            - ajouter_rangee_interieure
+            - ajouter_rangee_exterieure_non_raidie
+            - ajouter_rangee_centrale_non_raidie.
+
+        Ensuite on ajoute les groupes de rangées pour la vérification des modes de rupture globale avec les fonctions:
+            - ajouter_groupe_rangees_interieures_centrales
+            - ajouter_groupe_rangees_centrales
+            - ajouter_groupe_rangees_interieures
+
+        Puis on vérifie les taux de travail avec les fonctions:
+            - taux_traction
+            - taux_compression
+            - taux_flexion            
+        Args:
+            gorge (int): gorge de la soudure qui relie le T du tronçon
+            effet_levier (bool, optional): définit si un effet levier est appliqué sur la platine. 
+                Il est louable de considéré qu'une platine reposant sur un support bois n'a pas d'effet levier, 
+                en effet la raideur en compression perpendiculaire du bois est faible. Defaults to "False".
+        """
+        super().__init__(*args, **kwargs)
+        self.gorge = gorge * si.mm
+        self.effet_levier = effet_levier
+        self._bolts_rows = []
+        
+    def _m(self, l:si.mm):
+        """Dimension m selon la figure 6.2 de l'EN1993-1-8 §6.2.4.1.
+        Args:
+            l (int): longueur en mm entre la face du T/raidisseur et l'axe de la tige d'assemblage
+
+        Returns:
+            int: dimension m en mm
+        """
+        m = l - 0.8 * self.gorge * sqrt(2)
         return m
 
 
-    @property
-    def l_eff(self):
-        """Longueur effective de la platine pour une platine d'about"""
-        dict_l_eff = {
-            "Rangée de boulons prise séparément": {"Mécanismes circulaires": {}, "Mécanismes non circulaires": {}},
-            "Rangée de boulons prise ensemble": {"Mécanismes circulaires": {}, "Mécanismes non circulaires": {}}
-            }
+    def show_l_eff(self):
+        """Affiche le schéma des rangées issue du CNC2M §4.3.3 (4) tab15 et 16 pour définir les longeurs efficaces"""
+        file1 = os.path.join(
+            self.PATH_CATALOG, "data", "screenshot", "CNC2M_4.3.3_tab15.png"
+        )
+        file2 = os.path.join(
+            self.PATH_CATALOG, "data", "screenshot", "CNC2M_4.3.3_tab16.png"
+        )
+        image1 = Image.open(file1)
+        image2 = Image.open(file2)
+        image1.show()
+        image2.show()
+
+    def show_fig6_11(self):
+        """Affiche la figure 6.11 de l'EN1993-1-8 pour définir le facteur alpha"""
+        file = os.path.join(
+            self.PATH_CATALOG, "data", "screenshot", "EN1993-1-8_fig6_11.png"
+        )
+        image = Image.open(file)
+        image.show()
+
+    def ajouter_rangee_simple_unique(self, ml:si.mm, e:si.mm, bp:si.mm):
+        """Ajoute une rangée isolée simple, unique (pas plus de rangée) et non raidie sur la platine 
+        pour le calcul du l,eff des modes circulaires et non circulaires en traction.
+        Schéma 1 dans le tableau 15 du CNC2M (voir la fonction show_l_eff).
+
+        Args:
+            ml (si.mm): distance en mm entre la face du T/raidisseur et l'axe de la tige d'assemblage
+            e (si.mm): distance de bord en mm
+            bp (si.mm): longueur de la platine en mm
+        """
+        name = "Tronçon " + str(len(self._bolts_rows)+1)
+        ml = ml * si.mm 
+        m = self._m(ml)
+        e = e * si.mm
+        bp = bp * si.mm
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_cp():
+            l_eff_cp = 2 * pi * m
+            return l_eff_cp
+        l_eff_cp = leff_cp()
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_nc():
+            l_eff_nc = min(4*m + 1.25*e, bp)
+            return l_eff_nc
+        l_eff_nc = leff_nc()
+        
+        row = {"Nom": name, "type": "Simple non raidie", "m": m, "e_min": e, "l_eff_cp": l_eff_cp, "l_eff_nc": l_eff_nc}
+        self._bolts_rows.append(row)
+        return row
+
+    def ajouter_rangee_interieure(self, ml:si.mm, m2l:si.mm, e:si.mm, alpha: float):
+        """Ajoute une rangée isolée intérieur sur la platine 
+        pour le calcul du l,eff des modes circulaires et non circulaires en traction.
+        Schéma 2 dans le tableau 15 du CNC2M (voir la fonction show_l_eff).
+
+        Args:
+            ml (si.mm): distance en mm entre la face de l'ame et l'axe de la tige d'assemblage
+            m2l (si.mm): distance en mm entre la face de la semelle et l'axe de la tige d'assemblage
+            e (si.mm): distance de bord en mm
+            alpha (float): facteur définit dans la figure 6.11 de l'EN1993-1-8. 
+                Pour déterminer alpha on peut récupérer les lambda 1 et 2 en exécutant cette fonction avec un lambda aléatoire, puis
+                en observant le resultat de sortie pour ensuite redéfinir alpha (voir la fonction show_fig6_11)
+        """
+        name = "Tronçon " + str(len(self._bolts_rows)+1)
+        ml = ml * si.mm 
+        m = self._m(ml)
+        m2l = ml * si.mm
+        m2 = self._m(m2l)
+        e = e * si.mm
+        lamb1 = m / (m + e)
+        lamb2 = m2 / (m + e)
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_cp():
+            l_eff_cp = 2 * pi * m
+            return l_eff_cp
+        l_eff_cp = leff_cp()
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_nc():
+            l_eff_nc = min(4*m + 1.25*e, alpha*m)
+            return l_eff_nc
+        l_eff_nc = leff_nc()
+
+        row = {"Nom": name, "type": "Interieur", "m": m, "e_min": e, "lamb1": lamb1, "lamb2": lamb2, "l_eff_cp": l_eff_cp, "l_eff_nc": l_eff_nc}
+        self._bolts_rows.append(row)
+        return row
+    
+    def ajouter_rangee_exterieure_non_raidie(self, w: si.mm, mxl:si.mm, e:si.mm, ex:si.mm, bp:si.mm):
+        """Ajoute une rangée isolée intérieur sur la platine 
+        pour le calcul du l,eff des modes circulaires et non circulaires en traction.
+        Schéma 3 dans le tableau 15 du CNC2M (voir la fonction show_l_eff).
+
+        Args:
+            w (si.mm): distance d'entraxe des tiges en mm
+            mxl (si.mm): distance en mm entre la face de la semelle et l'axe de la tige d'assemblage
+            e (si.mm): distance de bord parallèle à la semelle en mm
+            ex (si.mm): distance de bord peprpendiculaire à la semelle en mm
+            bp (si.mm): longueur de la platine en mm
+        """
+        name = "Tronçon " + str(len(self._bolts_rows)+1)
+        mxl = mxl * si.mm 
+        mx = self._m(mxl)
+        e = e * si.mm
+        ex = ex * si.mm
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_cp():
+            l_eff_cp = min(2 * pi * mx, pi * mx + w, pi * mx + 2*e)
+            return l_eff_cp
+        l_eff_cp = leff_cp()
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_nc():
+            l_eff_nc = min(4*mx + 1.25*e, 2*mx + 0.625*ex + w/2, 2*mx + 0.625*ex + e, bp/2)
+            return l_eff_nc
+        l_eff_nc = leff_nc()
+
+        row = {"Nom": name, "type": "Extérieur non raidie", "m": mx, "e_min": min(e, ex), "l_eff_cp": l_eff_cp, "l_eff_nc": l_eff_nc}
+        self._bolts_rows.append(row)
+        return row
+
+    def ajouter_rangee_centrale_non_raidie(self, ml:si.mm, e:si.mm):
+        """Ajoute une rangée isolée intérieur sur la platine 
+        pour le calcul du l,eff des modes circulaires et non circulaires en traction.
+        Schéma 4 dans le tableau 15 du CNC2M (voir la fonction show_l_eff).
+
+        Args:
+            ml (si.mm): distance en mm entre la face de l'ame et l'axe de la tige d'assemblage
+            e (si.mm): distance de bord en mm
+        """
+        name = "Tronçon " + str(len(self._bolts_rows)+1)
+        ml = ml * si.mm 
+        m = self._m(ml)
+        e = e * si.mm2
+        p = p * si.mm
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_cp():
+            l_eff_cp = 2 * pi * m
+            return l_eff_cp
+        l_eff_cp = leff_cp()
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_nc():
+            l_eff_nc = 4*m + 1.25*e
+            return l_eff_nc
+        l_eff_nc = leff_nc()
+        
+        row = {"Nom": name, "type": "Centrale non raidie", "m": m, "e_min": min(e, ex), "l_eff_cp": l_eff_cp, "l_eff_nc": l_eff_nc}
+        self._bolts_rows.append(row)
+        return row
+
+    def ajouter_rangee_exterieure_raidie(self, mxl:si.mm, ex:si.mm, m2xl:si.mm, e2x:si.mm, alpha1: float, alpha2: float):
+        """Ajoute une rangée isolée intérieur sur la platine 
+        pour le calcul du l,eff des modes circulaires et non circulaires en traction.
+        Schéma 5 dans le tableau 15 du CNC2M (voir la fonction show_l_eff).
+
+        Args:
+            mxl (si.mm): distance en mm entre la face de la semelle et l'axe de la tige d'assemblage
+            ex (si.mm): distance de bord peprpendiculaire à la semelle en mm
+            m2xl (si.mm): distance en mm entre la face du raidisseur et l'axe de la tige d'assemblage
+            e2x (si.mm): distance de bord peprpendiculaire au raidisseur en mm
+            alpha1 (float): facteur définit dans la figure 6.11 de l'EN1993-1-8. 
+                Pour déterminer alpha on peut récupérer les lambda11 et lambda21 en exécutant cette fonction avec un lambda aléatoire, puis
+                en observant le resultat de sortie pour ensuite redéfinir alpha (voir la fonction show_fig6_11)
+            alpha2 (float): facteur définit dans la figure 6.11 de l'EN1993-1-8. 
+                Pour déterminer alpha on peut récupérer les lambda12 et lambda22 en exécutant cette fonction avec un lambda aléatoire, puis
+                en observant le resultat de sortie pour ensuite redéfinir alpha (voir la fonction show_fig6_11)
+        """
+        name = "Tronçon " + str(len(self._bolts_rows)+1)
+        mxl = mxl * si.mm 
+        mx = self._m(mxl)
+        m2xl = m2xl * si.mm
+        m2x = self._m(m2xl)
+        ex = ex * si.mm
+        e2x = e2x * si.mm
+
+        lamb11 = mx / (mx + ex)
+        lamb21 = m2x / (mx + ex)
+        lamb12 = m2x / (m2x + e2x)
+        lamb22 = mx / (m2x + e2x)
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_cp():
+            l_eff_cp1 = min(2 * pi * mx, pi * mx + 2*e2x)
+            l_eff_cp2 = min(2 * pi * m2x, pi * m2x + 2*ex)
+            l_eff_cp = min(l_eff_cp1, l_eff_cp2)
+            return l_eff_cp
+        l_eff_cp = leff_cp()
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_nc():
+            l_eff_nc1 = min(alpha1 * mx, alpha1 * mx - 2*mx - 0.625*ex + e2x)
+            l_eff_nc2 = min(alpha2 * m2x, alpha2 * m2x - 2*mx - 0.625*e2x + ex)
+            l_eff_nc = min(l_eff_nc1, l_eff_nc2)
+            return l_eff_nc
+        l_eff_nc = leff_nc()
+        
+        row = {"Nom": name, "type": "Extérieur raidie", "m": min(mx,m2x), "e_min": min(ex, e2x), "lamb11": lamb11, "lamb21": lamb21, "lamb12": lamb12, "lamb22": lamb22, "l_eff_cp": l_eff_cp, "l_eff_nc": l_eff_nc}
+        self._bolts_rows.append(row)
+        return row
+
+    ########### MODE DE RUPTURE GLOBALE ###################
+
+    def ajouter_groupe_rangees_interieures_centrales(self, ml:si.mm, e:si.mm, m2l:si.mm, sum_p:si.mm, alpha: float):
+        """Ajoute une rangée isolée intérieur sur la platine 
+            pour le calcul du l,eff des modes circulaires et non circulaires en traction.
+            Schéma 4 dans le tableau 15 du CNC2M (voir la fonction show_l_eff).
+
+            Args:
+                ml (si.mm): distance en mm entre la face de l'ame et l'axe de la tige d'assemblage
+                e (si.mm): distance de bord perpendiculaire à l'ame en mm
+                m2l (si.mm): distance en mm entre la face de la semelle et l'axe de la tige d'assemblage
+                sum_p (si.mm): somme des entraxes p entres les tiges d'assemblages intérieur/central
+                alpha (float): facteur définit dans la figure 6.11 de l'EN1993-1-8. 
+                    Pour déterminer alpha on peut récupérer les lambda 1 et 2 en exécutant cette fonction avec un lambda aléatoire, puis
+                    en observant le resultat de sortie pour ensuite redéfinir alpha (voir la fonction show_fig6_11)
+        """
+        name = "Tronçon groupé " + str(len(self._bolts_rows)+1)
+        ml = ml * si.mm 
+        m = self._m(ml)
+        e = e * si.mm2
+        m2l = m2l * si.mm
+        m2 = self._m(m2l)
+        sum_p = sum_p * si.mm
+
+        lamb1 = m / (m + e)
+        lamb2 = m2 / (m + e)
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_cp():
+            l_eff_cp = 2*(pi * m + sum_p)
+            return l_eff_cp
+        l_eff_cp = leff_cp()
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_nc():
+            l_eff_nc = min(alpha*m + sum_p, 4*m + 1.25*e + sum_p)
+            return l_eff_nc
+        l_eff_nc = leff_nc()
+        
+        row = {"Nom": name, "type": "Intérieure et centrale(s) en groupe", "m": m, "e_min": e, "lamb1": lamb1, "lamb2": lamb2, "l_eff_cp": l_eff_cp, "l_eff_nc": l_eff_nc}
+        self._bolts_groups_row.append(row)
+        return row
+
+    def ajouter_groupe_rangees_centrales(self, ml:si.mm, e:si.mm, sum_p:si.mm):
+        """Ajoute une rangée isolée intérieur sur la platine 
+            pour le calcul du l,eff des modes circulaires et non circulaires en traction.
+            Schéma 4 dans le tableau 15 du CNC2M (voir la fonction show_l_eff).
+
+            Args:
+                ml (si.mm): distance en mm entre la face de l'ame et l'axe de la tige d'assemblage
+                e (si.mm): distance de bord perpendiculaire à l'ame en mm
+                sum_p (si.mm): somme des entraxes p entres les tiges d'assemblages intérieur/central
+        """
+        name = "Tronçon groupé " + str(len(self._bolts_rows)+1)
+        ml = ml * si.mm 
+        m = self._m(ml)
+        e = e * si.mm2
+        sum_p = sum_p * si.mm
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_cp():
+            l_eff_cp = 2*(pi * m + sum_p)
+            return l_eff_cp
+        l_eff_cp = leff_cp()
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_nc():
+            l_eff_nc = 4*m + 1.25*e + sum_p
+            return l_eff_nc
+        l_eff_nc = leff_nc()
+        
+        row = {"Nom": name, "type": "Centrales en groupe", "m": m, "e_min": e, "l_eff_cp": l_eff_cp, "l_eff_nc": l_eff_nc}
+        self._bolts_groups_row.append(row)
+        return row
+
+    def ajouter_groupe_rangees_interieures(self, ml:si.mm, e:si.mm, m21l:si.mm, m22l:si.mm, sum_p:si.mm, alpha1: float, alpha2: float):
+        """Ajoute une rangée isolée intérieur sur la platine 
+            pour le calcul du l,eff des modes circulaires et non circulaires en traction.
+            Schéma 4 dans le tableau 15 du CNC2M (voir la fonction show_l_eff).
+
+            Args:
+                ml (si.mm): distance en mm entre la face de l'ame et l'axe de la tige d'assemblage
+                e (si.mm): distance de bord perpendiculaire à l'ame en mm
+                m21l (si.mm): distance en mm entre la face de la semelle haute et l'axe de la tige d'assemblage
+                m22l (si.mm): distance en mm entre la face de la semelle basse et l'axe de la tige d'assemblage
+                sum_p (si.mm): somme des entraxes p entres les tiges d'assemblages intérieur/central
+                alpha1 (float): facteur définit dans la figure 6.11 de l'EN1993-1-8. 
+                    Pour déterminer alpha on peut récupérer les lambda11 et lambda21 en exécutant cette fonction avec un lambda aléatoire, puis
+                    en observant le resultat de sortie pour ensuite redéfinir alpha (voir la fonction show_fig6_11)
+                alpha2 (float): facteur définit dans la figure 6.11 de l'EN1993-1-8. 
+                    Pour déterminer alpha on peut récupérer les lambda12 et lambda22 en exécutant cette fonction avec un lambda aléatoire, puis
+                    en observant le resultat de sortie pour ensuite redéfinir alpha (voir la fonction show_fig6_11)
+        """
+        name = "Tronçon groupé " + str(len(self._bolts_rows)+1)
+        ml = ml * si.mm 
+        m = self._m(ml)
+        e = e * si.mm2
+        m21l = m21l * si.mm
+        m21 = self._m(m21l)
+        m22l = m22l * si.mm
+        m22 = self._m(m22l)
+        sum_p = sum_p * si.mm
+
+        lamb11 = m / (m + e)
+        lamb21 = m21 / (m + e)
+        lamb12 = m / (m + e)
+        lamb22 = m22 / (m22 + e)
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_cp():
+            l_eff_cp = 2*(pi * m + sum_p)
+            return l_eff_cp
+        l_eff_cp = leff_cp()
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def leff_nc():
+            l_eff_nc = (alpha1 + alpha2)*m -4*m + 1.25*e + sum_p
+            return l_eff_nc
+        l_eff_nc = leff_nc()
+        
+        row = {"Nom": name, "type": "Intérieures en groupe", "m": m, "e_min": e, "lamb11": lamb11, "lamb21": lamb21, "lamb12": lamb12, "lamb22": lamb22, "l_eff_cp": l_eff_cp, "l_eff_nc": l_eff_nc}
+        self._bolts_groups_row.append(row)
+        return row
+
+    def taux_traction(self, N_T_Ed:si.kN):
+        N_T_Ed = N_T_Ed * si.kN
+        F_T_Rd_isole = 0 * si.kN
+        F_T_Rd_groupe = 0 * si.kN
+        n_bl = 2
+        t_f = self.t
+        f_y = self.fy
+        gamma_M0 = self.GAMMA_M["gamma_M0"]
+        latex_FtRd, F_t_Rd = self.FtRd
+        for row in self._bolts_rows:
+            name = row["Nom"]
+            m = row["m"]
+            e_min = row["e_min"]
+            l_eff_cp = row["l_eff_cp"][1]
+            l_eff_nc = row["l_eff_nc"][1]
+
+            if self.effet_levier:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    name
+                    effet_levier = True
+                    l_eff_1 = min(l_eff_cp, l_eff_nc)
+                    M_pl1_Rd = (l_eff_1 * t_f**2 * f_y) / (4 * gamma_M0)
+                    F_T1_Rd = (4 * M_pl1_Rd) / m
+                    
+                    l_eff_2 = l_eff_nc
+                    n = min(e_min, 1.25*si.m)
+                    M_pl2_Rd = (l_eff_2 * t_f**2 * f_y) / (4 * gamma_M0)
+                    F_T2_Rd = (2 * M_pl2_Rd + n * n_bl * F_t_Rd) / (m + n)
+
+                    F_T3_Rd = n_bl * F_t_Rd # n,bl est le nombre de boulon dans la rangée en traction
+
+                    F_T_Rd = min(F_T1_Rd, F_T2_Rd, F_T3_Rd)
+                    return F_T_Rd
+            else:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    name
+                    effet_levier = False
+                    l_eff_1 = min(l_eff_cp, l_eff_nc)
+                    M_pl1_Rd = (l_eff_1 * t_f**2 * f_y) / (4 * gamma_M0)
+                    F_T12_Rd = (2 * M_pl1_Rd) / m
+
+                    F_T3_Rd = n_bl * F_t_Rd # n,bl est le nombre de boulon dans la rangée en traction
+
+                    F_T_Rd = min(F_T12_Rd, F_T3_Rd)
+                    return F_T_Rd
+            row["F,T,Rd"] = val()
+            if "groupé" in name:
+                if F_T_Rd_groupe == 0*si.kN:
+                    F_T_Rd_groupe = row["F,T,Rd"][1]
+                else:
+                    F_T_Rd_groupe = min(F_T_Rd_groupe, row["F,T,Rd"][1])
+            else:
+                F_T_Rd_isole = F_T_Rd_isole + row["F,T,Rd"][1]
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def taux():
+            F_T_Rd = min(F_T_Rd_isole, F_T_Rd_groupe)
+            taux_traction = N_T_Ed / F_T_Rd
+            return taux_traction
+        latex = "".join((row["F,T,Rd"][0] for row in self._bolts_rows))
+        taux = taux()
+        return (latex + taux[0], taux[1])
 
 
 if __name__ == "__main__":
-    ele = Plat(classe_acier="S235", t=6, h=200, classe_transv=1)
-    soudure = Soudure._from_parent_class(ele, t2=6, gorge=4, l=140, retour_soudure=True, alpha=90)
-    bl = Tige._from_parent_class(ele, d=12,d0=14,qualite="A2-50",verif_filetage=True, filetage_EN1090=True)
-    print(soudure.critere_generale(0, 100135))
-    N_rd = bl.Veff_Rd(300, 300, "Centré")
-    V_Rd = bl.Veff_Rd(300, 300, "Centré")
-    taux = bl.taux_Veff_d(12, N_rd[1], 25, V_Rd[1])
-    print(taux)
+    # Création d'un pied de poteau HE200B
+    pied_poteau = VisualisationPiedPoteau(
+        h=200,     # hauteur du profilé en mm
+        b=200,     # largeur des ailes en mm
+        tw=9,      # épaisseur de l'âme en mm
+        tf=15,     # épaisseur des ailes en mm
+        r=18,      # rayon de raccordement âme-aile en mm
+        type_profil="HE"
+    )
+
+    # Ajout de boulons M20
+    positions_boulons = [
+        (-80, 50),   # boulon en haut à gauche
+        (80, 50),    # boulon en haut à droite
+        (-80, -50),  # boulon en bas à gauche
+        (80, -50)    # boulon en bas à droite
+    ]
+    pied_poteau.ajouter_boulons(positions_boulons, 20)
+
+    # Affichage
+    pied_poteau.afficher()
+
+    # Sauvegarde
+    pied_poteau.sauvegarder("pied_poteau_he200b", "png", 300)

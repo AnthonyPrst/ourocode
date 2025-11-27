@@ -27,7 +27,7 @@ class Assemblage(Projet):
     TYPE_BOIS_ASSEMBLAGE = ("Bois","PP/OSB", "CP", "Panneau dur")
     TYPE_ASSEMBLAGE = ("Bois/Bois", "Bois/Métal")
 
-    def __init__(self,beam_1:object, beam_2:object, nfile: int=1, nCis: int=("1","2"), **kwargs):
+    def __init__(self, beam_1:object, beam_2:object, nfile: int=1, nCis: int=("1","2"), **kwargs):
         """Créer un objet Assemblage qui permet de calculer un assemblage bois/bois ou bois/métal à l'EN 1995.
         Cette classe est hérité de la classe Projet du module A0_Project.py
 
