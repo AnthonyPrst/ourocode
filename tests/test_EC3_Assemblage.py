@@ -181,7 +181,7 @@ class Test_Soudure:
 
     def test_cordon_frontal_lateral(self, soudure):
         cf = soudure.cordon_frontal(N_Ed=100)
-        cl = soudure.cordon_laterale(V_Ed=50)
+        cl = soudure.cordon_lateral(V_Ed=50)
         assert cf[1] > 0
         assert cl[1] > 0
 

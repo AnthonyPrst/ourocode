@@ -706,12 +706,59 @@ class Assemblage(Projet):
         result = f_bs_Rk()
         self.F_bs_Rk = result[1]
         return (latex + result[0], self.F_bs_Rk)
-    
-    def taux_cisaillement(self, Fv_Ed: si.kN=0, Fax_Ed: si.kN=0, loadtype=Barre.LOAD_TIME):
-        """Détermine le taux de cisaillement ou du chargement combiné de l'assemblage
+
+    def taux_F_bs_Ed(self, Fv_Ed: si.kN=0, FbsRk_1: si.kN=0, FbsRk_2: si.kN=0, loadtype=Barre.LOAD_TIME):
+        """Détermine le taux de la rupture de bloc de l'assemblage
 
         Args:
-            Fv_Ed (float): effort de cisaillement à reprendre en kN
+            Fv_Ed (si.kN, optional): effort de cisaillement total sur l'assemblage en kN. Defaults to 0.
+            FbsRk_1 (si.kN, optional): Résistance caractéristique en cisaillement de bloc de l'élément 1 en kN. Defaults to 0.
+            FbsRk_2 (si.kN, optional): Résistance caractéristique en cisaillement de bloc de l'élément 2 en kN. Defaults to 0.
+            loadtype (str, optional): type de durée de chargement.
+        """
+        Fv_Ed = abs(Fv_Ed) * si.kN
+        Fbs_Rd_1 = self.F_Rd(abs(FbsRk_1), loadtype)[1]
+        Fbs_Rd_2 = self.F_Rd(abs(FbsRk_2), loadtype)[1]
+        alpha_1 = self.alpha_1
+        alpha_2 = self.alpha_2
+        n_cis = self.nCis
+        if not Fbs_Rd_1.value or not Fbs_Rd_2.value:
+            raise ValueError("Aucune des résistances caractéristiques en cisaillement de bloc n'est fournie.")
+        else:
+            if Fbs_Rd_1.value and Fbs_Rd_2.value:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    taux_rupture_bloc_1 = ((Fv_Ed / n_cis) * cos(radians(alpha_1))) / Fbs_Rd_1
+                    taux_rupture_bloc_2 = Fv_Ed * cos(radians(alpha_2)) / Fbs_Rd_2
+                    return taux_rupture_bloc_1, taux_rupture_bloc_2
+                result = val()
+                max_taux = max(result[1][0], result[1][1])
+            elif Fbs_Rd_1.value:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    taux_rupture_bloc_1 = ((Fv_Ed / n_cis) * cos(radians(alpha_1))) / Fbs_Rd_1
+                    return taux_rupture_bloc_1
+                result = val()
+                max_taux = result[1]
+            else:
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    taux_rupture_bloc_2 = Fv_Ed * cos(radians(alpha_2)) / Fbs_Rd_2
+                    return taux_rupture_bloc_2
+                result = val()
+                max_taux = result[1]
+            synthese = [
+                [f"Rupture de bloc de l'assemblage {self.type_assemblage} avec {self.type_organe}", max_taux, None],
+            ]
+            self._add_synthese_taux_travail(synthese)
+            return result
+
+    
+    def taux_F_v_Ed(self, Fv_Ed: si.kN=0, Fax_Ed: si.kN=0, loadtype=Barre.LOAD_TIME):
+        """Détermine le taux de cisaillement et éventuellement de la traction combinée de l'assemblage
+
+        Args:
+            Fv_Ed (float): effort de cisaillement total sur l'assemblage en kN
             Fax_Ed (float, optional): effort axialement à reprendre en kN. Defaults to 0.
             loadtype (str, optional): type de durée de chargement.
         """
@@ -739,7 +786,12 @@ class Assemblage(Projet):
             def val():
                 taux_cisaillement = Fv_Ed / Fv_Rd_ass
                 return taux_cisaillement
-        return val()
+        result = val()
+        synthese = [
+            [f"Cisaillement assemblage {self.type_assemblage} avec {self.type_organe}", result[1], None],
+        ]
+        self._add_synthese_taux_travail(synthese)
+        return result
     
 
 class Embrevement(Assemblage):
@@ -886,6 +938,12 @@ class Embrevement(Assemblage):
         about =self._compression_about(N_c1_d, loadtype, typecombi)
         transversale = self._compression_transversale(N_c1_d, loadtype, typecombi)
         talon = self._cisaillement_talon(N_c1_d, loadtype, typecombi)
+        synthese = [
+            [f"Embrèvement avec compression d'about de la pièce 1", about[1], None],
+            [f"Embrèvement avec compression transversale de la pièce 2", transversale[1], None],
+            [f"Embrèvement avec cisaillement du talon de la pièce 2", talon[1], None],
+        ]
+        self._add_synthese_taux_travail(synthese)
         return (about[0] + transversale[0] + talon[0], self.dict_taux_embrevement)
 
 
@@ -1738,7 +1796,8 @@ class Broche(Boulon):
             d (int): diamètre efficace de la broche ( entre 6 et 30 mm) en mm
             qualite (str): qualite de la broche
             n (int): nombre de broche dans une file
-            alpha (float): angle entre l'effort de l'organe et le fil du bois en °
+            alpha1 (float, optional): angle entre l'effort de l'organe et le fil du bois en ° pour la barre 1. Defaults to 0.
+            alpha2 (float, optional): angle entre l'effort de l'organe et le fil du bois en ° pour la barre 2. Defaults to 0.
             t1 (int, optional): longueur de contacte avec la tige  pour la pièce 1 en mm. 
                 ATTENTION : Cet argument n'est pas obligatoire par défaut, il est calculer par le type de tige utilisée.
                 Il n'est nécessaire de le remplir que si vous avez un t1 spécifique, par exemple avec une chapelle réduisant ainsi la portance local à une longueur inférieur à celle de l'épaisseur de la pièce 1.
