@@ -162,7 +162,7 @@ def test_fs():
         code_INSEE=1001,
         alt=100,
     )
-    out = n.fs(S_n=1.0, entraxe=1.5, alpha=30)
+    out = n.fs(Sn=1.0, entraxe=1.5, alpha=30)
     # F_s = S_n * entraxe * sin(alpha)
     expected = 1.0 * si.kN/si.m**2 * 1.5 * si.m * math.sin(math.radians(30))
     assert pytest.approx(out[1].value, rel=1e-6) == expected.value

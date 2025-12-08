@@ -153,17 +153,17 @@ class Barre(Projet):
     @property
     def type_bois(self):
         if self.classe[0:1] == "C" or self.classe[0:1] == "D":
-            type_b = __class__.LIST_TYPE_B[0]
+            type_b = self.LIST_TYPE_B[0]
         elif self.classe[0:2] == "GL":
-            type_b = __class__.LIST_TYPE_B[1]
+            type_b = self.LIST_TYPE_B[1]
         elif self.classe[0:3] == "LVL":
-            type_b = __class__.LIST_TYPE_B[2]
+            type_b = self.LIST_TYPE_B[2]
         elif self.classe[0:5] == "OSB/2":
-            type_b = __class__.LIST_TYPE_B[3]
+            type_b = self.LIST_TYPE_B[3]
         elif self.classe[0:5] == "OSB/3" or self.classe[0:5] == "OSB/4":
-            type_b = __class__.LIST_TYPE_B[4]
+            type_b = self.LIST_TYPE_B[4]
         else:
-            type_b = __class__.LIST_TYPE_B[5]
+            type_b = self.LIST_TYPE_B[5]
         
         return type_b
 
@@ -247,7 +247,7 @@ class Barre(Projet):
     
 
     def fleche(self, long:si.mm, Ed_WinstQ:si.mm=0, Ed_Wnetfin:si.mm=0, Ed_Wfin:si.mm=0, Ed_W2:si.mm=0, limit_W2:int=500, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
-        """Retourne le taux de travail de la flèche en % avec pour argument:
+        """Retourne le taux de travail de la flèche avec pour argument:
 
         Args:
             long (int): La longueur entre appuis à vérifier en mm
@@ -293,10 +293,10 @@ class Barre(Projet):
                 Rd_W_fin = min(long / limit_W_fin, limit_U_fin_max)
                 Rd_W2 = long / limit_W2
 
-                taux_W_inst_Q = Ed_W_inst_Q / Rd_W_inst_Q * 100 #%
-                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin * 100 #%
-                taux_W_fin = Ed_W_fin / Rd_W_fin * 100 #%
-                taux_W2 = Ed_W2 / Rd_W2 * 100 #%
+                taux_W_inst_Q = Ed_W_inst_Q / Rd_W_inst_Q
+                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin
+                taux_W_fin = Ed_W_fin / Rd_W_fin
+                taux_W2 = Ed_W2 / Rd_W2
                 return taux_W_inst_Q, taux_W_net_fin, taux_W_fin, taux_W2
             
             value = val()
@@ -304,6 +304,13 @@ class Barre(Projet):
             self.taux_ELS["Wnet,fin"] = value[1][1]
             self.taux_ELS["Wfin"] = value[1][2]
             self.taux_ELS["W2"] = value[1][3]
+            synthese = [
+                ["Flèche W,inst(Q)", self.taux_ELS["Winst(Q)"], None],
+                ["Flèche W,net,fin", self.taux_ELS["Wnet,fin"], None],
+                ["Flèche W,fin", self.taux_ELS["Wfin"], None],
+                ["Flèche W2", self.taux_ELS["W2"], None],
+            ]
+            self._add_synthese_taux_travail(synthese)
 
         else:
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -312,15 +319,21 @@ class Barre(Projet):
                 Rd_W_fin = min(long / limit_W_fin, limit_U_fin_max)
                 Rd_W2 = long / limit_W2
 
-                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin * 100 #%
-                taux_W_fin = Ed_W_fin / Rd_W_fin * 100 #%
-                taux_W2 = Ed_W2 / Rd_W2 * 100 #%
+                taux_W_net_fin = Ed_W_net_fin / Rd_W_net_fin
+                taux_W_fin = Ed_W_fin / Rd_W_fin
+                taux_W2 = Ed_W2 / Rd_W2
                 return taux_W_net_fin, taux_W_fin, taux_W2
             
             value = val()
             self.taux_ELS["Wnet,fin"] = value[1][0]
             self.taux_ELS["Wfin"] = value[1][1]
             self.taux_ELS["W2"] = value[1][2]
+            synthese = [
+                ["Flèche W,net,fin", self.taux_ELS["Wnet,fin"], None],
+                ["Flèche W,fin", self.taux_ELS["Wfin"], None],
+                ["Flèche W2", self.taux_ELS["W2"], None],
+            ]
+            self._add_synthese_taux_travail(synthese)
         return value 
 
 
@@ -577,6 +590,11 @@ class Flexion(Barre):
             self.taux_m_rd['equ6.11'] = traction_val[1][0]
             self.taux_m_rd['equ6.12'] = traction_val[1][1]
 
+        max_taux = max([v for v in self.taux_m_rd.values()])
+        synthese = [
+            ["Flexion bois", max_taux, None],
+        ]
+        self._add_synthese_taux_travail(synthese)
         return (latex, self.taux_m_rd)
 
 
@@ -653,6 +671,10 @@ class Traction(Barre):
         value = val()
 
         self.taux_t_0_rd['equ6.1'] = value[1]
+        synthese = [
+            ["Traction bois", self.taux_t_0_rd['equ6.1'], None],
+        ]
+        self._add_synthese_taux_travail(synthese)
         return value
 
 
@@ -671,7 +693,7 @@ class Compression(Barre):
         Args:
             lo : Longueur de flambement suivant l'axe de rotation (y ou z) en mm si pas de flambement alors 0
             type_appuis : Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
-                        fonction des du type d'appuis :
+                        fonction des types d'appui :
                                                         Encastré 1 côté : 2
                                                         Rotule - Rotule : 1
                                                         Encastré - Rotule : 0.7
@@ -684,7 +706,7 @@ class Compression(Barre):
         self.lo_y = self.lo_comp['y']
         self.lo_z = self.lo_comp['z']
         self.type_appuis = type_appuis
-        self.coef_lef = __class__.COEF_LF[type_appuis]
+        self.coef_lef = self.COEF_LF[type_appuis]
         self._Anet = self.aire
 
     @property
@@ -844,6 +866,11 @@ class Compression(Barre):
             self.taux_c_0_rd['equ6.24'] = value[1][2]
 
         self.taux_c_0_rd['equ6.2'] = value[1][0]
+        max_taux = max([v for v in self.taux_c_0_rd.values()])
+        synthese = [
+            ["Compression bois", max_taux, None],
+        ]
+        self._add_synthese_taux_travail(synthese)
         return value
 
     
@@ -1013,6 +1040,10 @@ class Compression_perpendiculaire(Barre):
         
         value = val()
         self.taux_c_90_rd['equ6.3'] = value[1]
+        synthese = [
+            ["Compression perpendiculaire bois", self.taux_c_90_rd['equ6.3'], None],
+        ]
+        self._add_synthese_taux_travail(synthese)
         return value
     
     
@@ -1054,7 +1085,12 @@ class Compression_inclinees(Compression_perpendiculaire):
     
 
     def taux_c_alpha_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
-        """ Retourne le taux de travail de la compression inclinées par rapport au fil """
+        """ Retourne le taux de travail de la compression inclinées par rapport au fil
+
+        Args:
+            loadtype (str): chargement de plus courte durée sur l'élément.
+            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+        """
         self.taux_c_alpha_rd = {}
         f_c_0_d = self._f_type_d("fc0k", loadtype, typecombi)[1]
         f_c_90_d = self.f_c_90_d(loadtype, typecombi)[1]
@@ -1068,7 +1104,11 @@ class Compression_inclinees(Compression_perpendiculaire):
             return taux_6_16
          
         value = val()
-        self.taux_c_alpha_rd['equ6.16'] = value[1] 
+        self.taux_c_alpha_rd['equ6.16'] = value[1]
+        synthese = [
+            ["Compression inclinée bois", self.taux_c_alpha_rd['equ6.16'], None],
+        ]
+        self._add_synthese_taux_travail(synthese)
         return value
     
 
@@ -1196,6 +1236,10 @@ class Cisaillement(Barre):
         value = val()
         self.taux_tau_rd['equ6.13'] = value[1][0]
         self.taux_tau_rd['equ6.60'] = value[1][1]
+        synthese = [
+            ["Cisaillement bois", max(value[1][0], value[1][1]), None],
+        ]
+        self._add_synthese_taux_travail(synthese)
         return value
     
     
