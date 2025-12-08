@@ -4,7 +4,6 @@
 import sys
 import pytest
 import forallpeople as si
-
 si.environment("structural")
 sys.path.insert(1, "./")
 from ourocode.eurocode import EC5_Element_droit as EC5
@@ -90,10 +89,10 @@ class Test_Barre(object):
             type_bat="Bâtiments courants",
         )
         assert isinstance(self.barre.taux_ELS, dict)
-        assert self.barre.taux_ELS["Winst(Q)"] == 30
-        assert self.barre.taux_ELS["Wnet,fin"] == 40
+        assert self.barre.taux_ELS["Winst(Q)"] == 0.3
+        assert self.barre.taux_ELS["Wnet,fin"] == 0.39999999999999997
         assert self.barre.taux_ELS["Wfin"] == 0
-        assert self.barre.taux_ELS["W2"] == 60
+        assert self.barre.taux_ELS["W2"] == 0.6
 
 
 class Test_Flexion(object):

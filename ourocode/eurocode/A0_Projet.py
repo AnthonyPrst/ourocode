@@ -996,6 +996,7 @@ class Wood_beam_model(Model_generator):
             - distance entre appuis identique
             - pas de porte à faux
         On peut gérer l'inclinaison et le dévers de la barre. Ce qui permet avec une inclinaison de 90° de calculer un poteau vertical pour exemple.
+        Cette classe est hérité de la classe projet du module A0_Projet.py
 
         Une fois le modèle généré, il faut:
             1) Créer les charges sur les barres avec les méthodes "create_dist_load" et "create_point_load"

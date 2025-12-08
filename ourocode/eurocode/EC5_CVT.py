@@ -24,8 +24,6 @@ class MOB(Batiment):
         """Classe permettant de définir des systemes de mur à ossature bois (MOB) d'un projet selon l'EN 1995-1-1 §9.2.4 méthode A.
         Cette classe est hérité de la classe Batiment, provenant du module A0_Projet.py.
 
-
-
         Un système de mur à ossature bois est composé de plusieurs murs servant aux contreventements, 
         ces murs sont intérompus par les portes et fenêtres. Ces murs sont eux même composés de plusieurs panneaux.
 
@@ -780,6 +778,9 @@ class MOB(Batiment):
                 issue de la classe Barre ou dérivé de cet objet provenant du module EC5_Element_droit.py
             lisse_basse (Barre): lisse basse issue de la classe Barre ou dérivé de cet objet provenant du module EC5_Element_droit.py
             lisse_impl (Barre): lisse d'implantation issue de la classe Barre ou dérivé de cet objet provenant du module EC5_Element_droit.py
+            Ft_Rk_wood (float): Capacité résistante caractéristique de traction de l'équerre dans le montant en kN
+                (attention à prendre le nef en compte).
+            Ft_Rd_concrete (float): Capacité résistante de calcul en traction de l'équerre dans le béton en kN
             Fv_Rk_anc_lb (float): Capacité résistante caractéristique de cisaillement de l'ancrage unitaire de la lisse basse en kN
                 (attention à prendre le nef en compte).
             e_anc_lb (float): Entraxe de couturage de l'ancrage unitaire de la lisse basse en mm.
@@ -799,7 +800,6 @@ class MOB(Batiment):
         for wall_name, wall in self.data_walls_loads.iterrows():
             if etage and wall['Étage'] != etage:
                 continue
-
             Ft_Ed = abs(wall['Ft,Ed,i ELU (soulèvement)'])
             Fv_Ed = abs(wall['Fv,Ed,i ELU'])
             K_mod_montant = montant._get_k_mod("Instantanee")
