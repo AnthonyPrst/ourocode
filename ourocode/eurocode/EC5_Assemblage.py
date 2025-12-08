@@ -719,10 +719,10 @@ class Assemblage(Projet):
         Fv_Ed = abs(Fv_Ed) * si.kN
         Fbs_Rd_1 = self.F_Rd(abs(FbsRk_1), loadtype)[1]
         Fbs_Rd_2 = self.F_Rd(abs(FbsRk_2), loadtype)[1]
-        alpha_1 = self.alpha_1
-        alpha_2 = self.alpha_2
+        alpha_1 = self.alpha[0]
+        alpha_2 = self.alpha[1]
         n_cis = self.nCis
-        if not Fbs_Rd_1.value or not Fbs_Rd_2.value:
+        if not Fbs_Rd_1.value and not Fbs_Rd_2.value:
             raise ValueError("Aucune des résistances caractéristiques en cisaillement de bloc n'est fournie.")
         else:
             if Fbs_Rd_1.value and Fbs_Rd_2.value:

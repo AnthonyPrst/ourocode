@@ -310,8 +310,8 @@ class Objet(object):
             return df
         # On suppose que les 2 dernières colonnes sont les taux (situation normale / incendie)
         col_normale, col_incendie = df.columns[-2], df.columns[-1]
-        max_normale = pd.to_numeric(df[col_normale], errors="coerce").max(skipna=skipna)
-        max_incendie = pd.to_numeric(df[col_incendie], errors="coerce").max(skipna=skipna)
+        max_normale = pd.to_numeric(df[col_normale], errors="coerce").max(skipna=True)
+        max_incendie = pd.to_numeric(df[col_incendie], errors="coerce").max(skipna=True)
         ligne_max = {
             df.columns[0]: "Max",
             col_normale: max_normale,
