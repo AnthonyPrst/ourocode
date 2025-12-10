@@ -1340,6 +1340,7 @@ class Platine_assise_compression_beton(Tige):
 
     def __init__(self, gorge: si.mm, classe_beton: str=CLASSE_CONCRETE, *args, **kwargs):
         """Crée une platine d'assise comprimé avec support béton selon le §6.2.5 de l'EN1993-1-8.
+        Cette classe est hérité de la classe Tige du module EC3_Assemblage.py
         Cette classe ne prend pas en compte pour le moment les dimensions connues de la fondation ce qui place l'utilisateur du côté de la sécurité.
 
         Attention:
@@ -1417,6 +1418,7 @@ class Platine_assise_compression_bois(Tige):
 
     def __init__(self, wood_beam: object, gorge: si.mm, alpha_wood: float=0, *args, **kwargs):
         """Crée une platine d'assise comprimé avec support bois selon le §6.2.5 de l'EN1993-1-8.
+        Cette classe est hérité de la classe Tige du module EC3_Assemblage.py
         Pour ce placer en sécurité cette fonction considère un Kc90 = 1 pour le bois.
 
         On détermine tout d'abord la la dimension effective additionnelle (fonction "c") depuis la face d'une semelle ou d'une ame métallique en mm 
@@ -1487,6 +1489,7 @@ class Platine_assise_compression_bois(Tige):
 class Platine_assise_traction(Tige):
     def __init__(self, gorge: si.mm, effet_levier: bool=("False", "True"), *args, **kwargs):
         """Crée une platine d'about fléchie en traction selon le §6.2.6.5 de l'EN1993-1-8 et du CNC2M §4.3.3
+        Cette classe est hérité de la classe Tige du module EC3_Assemblage.py
         Attention cette classe ne permet le calcul que des platines avec 2 boulons par rangée de tronçon en T équvalent et non 4 comme décrit dans l'annexe A.
 
         Pour utiliser cette classe on doit d'abord ajouter les rangées isolées de chaque tronçon équivalent avec les fonctions: 
