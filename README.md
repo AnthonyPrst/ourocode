@@ -30,7 +30,7 @@ Elle permet de construire un **catalogue de fonctions réutilisables** pour gén
 ---
 
 ## 📦 Installation
-
+- Attention le programme ne supporte pas les versions supérieures à Python 3.12, les bibliothèques tierces n'étant pas disponible pour ces versions.
 ```bash
 pip install ourocode
 ```
@@ -53,16 +53,18 @@ pip install git+https://github.com/AnthonyPrst/ourocode.git
 
 ---
 
-## 🛠 Exemple d'utilisation
+## 🛠 Exemple d'utilisation dans jupyter
 
 ```python
+from IPython.display import display, Latex
 from ourocode.eurocode.EC5_Element_droit import Barre, Flexion
 
 panne = Barre(b=100, h=200, section="Rectangulaire", classe="C24", cs=2, Hi=12, Hf=12)
-panne_flexion = Flexion(lo=5000, coeflef=0.9, pos="Charge sur fibre comprimée")
+panne_flexion = Flexion._from_parent_class(panne, lo_rel_y=5000, lo_rel_z=5000, coeflef=0.9, pos="Charge sur fibre comprimée")
 latex_fmd, fmd = panne_flexion.f_m_d("Moyen terme", "Fondamentales")
-latex_sigmamd, sigmamd = panne_flexion.sigma_m_d(20, axe="y")
+latex_sigmamd, sigmamd = panne_flexion.sigma_m_d(20, 0)
 latex_taux, taux = panne_flexion.taux_m_d()
+display(Latex(latex_taux))
 ```
 
 ## ✅ Tests & couverture
