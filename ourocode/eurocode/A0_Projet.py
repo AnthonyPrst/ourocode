@@ -1599,8 +1599,9 @@ class Model_result(Projet):
         self,
         combination: str,
         annotation_size: int = 70,
-        deformed_shape: bool = ("False", "True"),
-        deformed_scale: int = 20,
+        show_loads: bool = ("True", "False"),
+        diagrams: str = ("Aucun", "Fx", "Fy", "Fz", "My", "Mz", "Tx", "Flèche"),
+        scale: int = 1000,
         screenshot: bool = ("False", "True"),
         filepath: str=None,
     ):
@@ -1609,8 +1610,9 @@ class Model_result(Projet):
         Args:
             combination (str): Nom de la combinaison à afficher.
             annotation_size (int, optional): Tailles des annotations. Defaults to 70.
-            deformed_shape (bool, optional): Définit si l'on doit afficher les déformations globales. Defaults to True.
-            deformed_scale (int, optional): Définit l'effet d'échelle des déformations. Defaults to 20.
+            show_loads (bool, optional): Détermine si les charges doivent être afficher. Defaults to True.
+            diagrams (bool, optional): détermine quel type de diagramme afficher. Defaults to True.
+            scale (int, optional): Définit l'effet d'échelle sur les diagrammes. Defaults to 20.
             screenshot (bool, optional): Définit si l'on souhaite enregistrer un screenshot du graph, si oui alors True. Defaults to False
             filepath (str, optional): Si le screenshot est souhaité, on peut rentrer un chemin de sauvegarde automatique, ce qui permettra je générer dynamiquement un rapport.
                                       Sinon le logiciel vous demande à chaque fois le chemin de sauvegarde.
@@ -1618,8 +1620,14 @@ class Model_result(Projet):
         renderer = Renderer(self._model_generator._model)
         renderer.combo_name = combination
         renderer.annotation_size = annotation_size
-        renderer.deformed_shape = deformed_shape
-        renderer.deformed_scale = deformed_scale
+        renderer.render_loads = show_loads
+        if diagrams == "Flèche":
+            renderer.deformed_shape = True
+            renderer.deformed_scale = scale
+        elif diagrams != "Aucun":
+            renderer.member_diagrams = diagrams
+            renderer.diagram_scale = scale
+            
         if screenshot:
             if not filepath:
                 interaction = True
