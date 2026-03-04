@@ -222,7 +222,9 @@ class Assemblage(Projet):
         def val():
             F_90_Rk = 14 * b * w * sqrt(h_e / (1 - (h_e / h))) # N
             return F_90_Rk * si.N
-        return val()
+        value = val()
+        self.F90_Rk = value[1]
+        return value
 
     # 8.2 Capacité résistante latérale pour les organes métaliques de type tige
     # 8.2.2 Assemblage bois/bois bois/panneau
@@ -342,14 +344,15 @@ class Assemblage(Projet):
             f_h2k = self.fh2k[1].value * 10**-6
             t_2 = self.t2.value * 10**3
             self.t = self.beam_1.t
-            if self.nCis == 2:
-                self.pos_plaq = "externe"
+            self.pos_plaq = "externe"
         else:
             f_h1k = self.fh1k[1].value * 10**-6
             t_1 = self.t1.value * 10**3
             self.t = self.beam_2.t
             if self.nCis == 2:
                 self.pos_plaq = "centrale"
+            else:
+                self.pos_plaq = "externe"
 
         # On détecte le type de plaque
         if test_type_plaque:
@@ -789,6 +792,26 @@ class Assemblage(Projet):
         result = val()
         synthese = [
             [f"Cisaillement assemblage {self.type_assemblage} avec {self.type_organe}", result[1], None],
+        ]
+        self._add_synthese_taux_travail(synthese)
+        return result
+
+    def taux_F_90_Ed(self, Fv_Ed: si.kN=0, loadtype=Barre.LOAD_TIME):
+        """Détermine le taux de rupture par fendage de l'assemblage
+
+        Args:
+            Fv_Ed (float): effort de cisaillement en kN.
+            loadtype (str, optional): type de durée de chargement.
+        """
+        F_90_Rd = self.F_Rd(self.F90_Rk.value*10**-3, loadtype)[1]
+        Fv_Ed = abs(Fv_Ed) * si.kN
+        @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            taux_cisaillement = Fv_Ed / F_90_Rd
+            return taux_cisaillement
+        result = val()
+        synthese = [
+            [f"Fendage de la pièce bois", result[1], None],
         ]
         self._add_synthese_taux_travail(synthese)
         return result
