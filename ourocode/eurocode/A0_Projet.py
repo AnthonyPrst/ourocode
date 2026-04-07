@@ -141,7 +141,7 @@ class Model_generator(Projet):
             "sections": {},
             "materials": {},
             "members": {},
-            "supports": {},
+            "supports": {"classic": {}, "spring": {}},
             "loads": {},
         }
         self._model = None
@@ -692,8 +692,8 @@ class Model_generator(Projet):
             RZ (bool, optional): Blocage en translation de l'axe X global, si oui alors True.
             l_appuis (int, optional): longueur d'appuis sur la poutre en mm. Defaults to 0.
         """
-        support_id = "S" + str(len(self._data["supports"]) + 1)
-        self._data["supports"][support_id] = {
+        support_id = "S" + str(len(self._data["supports"]["classic"]) + 1)
+        self._data["supports"]["classic"][support_id] = {
             "Noeud": node_id,
             "DX": DX,
             "DY": DY,
@@ -703,46 +703,82 @@ class Model_generator(Projet):
             "RZ": RZ,
             "Longueur d'appui": l_appuis,
         }
-        return self._data["supports"][support_id]
+        return self._data["supports"]["classic"][support_id]
 
-    def create_supports_by_list(self, list_supports: list):
-        """Ajoute les charges d'une liste pré-définit dans la liste de chargement
+    def add_support_spring(self,
+        node_id: str,
+        dof: str = ("DX", "DY", "DZ", "RX", "RY", "RZ"),
+        stiffness: si.kN/si.m = 0,
+        limit_direction: str = ("Aucune limitation", "Tension uniquement", "Compression uniquement")
+    ):
+        """Ajoute un appuis avec une raideur spécifique dans une direction donnée
 
         Args:
-            list_supports (list): liste de charge.
+            node_id (str): Numéro du noeud sur lequel positionner l'appuis.
+            stiffness (si.kN): Raideur dans la direction donné en kN/m pour DX, DY, DZ et en N/radians pour RX, RY, RZ
+            dof (str, optional): Degrée de liberté ou appliquer la raideur. Defaults to "DX".
+            limit_direction (str, optional): Limitation du sens d'action de la raideur. Defaults to "Aucune limitation".
+        """
+        support_id = "SSpring" + str(len(self._data["supports"]["spring"]) + 1)
+        self._data["supports"]["spring"][support_id] = {
+            "Noeud": node_id,
+            "Dof": dof,
+            "Raideur": stiffness * si.kN/si.m,
+            "Limite de direction": limit_direction,
+        }
+        return self._data["supports"]["spring"][support_id]
+
+    def create_supports_by_list(self, list_supports: list):
+        """Ajoute les support d'une liste pré-définit.
+
+        Args:
+            list_supports (list): liste de support.
         """
         for support in list_supports:
             self.add_support(*support)
 
     def del_support(self, support_id: str):
-        """Supprime un appui de l'attribut list_supports par son index
+        """Supprime un appui par son id
 
         Args:
             support_id (int): id de l'appuis à supprimer.
         """
-        return f"L'appui à été supprimé: {self._data["supports"].pop(support_id)}"
+        return f"L'appui à été supprimé: {self._data["supports"]["classic"].pop(support_id)}"
 
-    def _add_support_to_model(self, support_id: str):
+    def _add_support_to_model(self, support_id: str, support_type: str):
         """Ajoute un appui au model MEF
 
         Args:
             support_id (str): id de l'appui à ajouter
+            support_type (str): type de support classic or spring
         """
-        support = self._data["supports"][support_id]
-        self._model.def_support(
-            support["Noeud"],
-            support["DX"],
-            support["DY"],
-            support["DZ"],
-            support["RX"],
-            support["RY"],
-            support["RZ"],
-        )
+        support = self._data["supports"][support_type].get(support_id, None)
+        if support is None:
+            raise ValueError(f"Appui {support_id} non trouvé. Le support n'a pas été ajouter au modèle.")
+        if support_type == "classic":
+            self._model.def_support(
+                support["Noeud"],
+                support["DX"],
+                support["DY"],
+                support["DZ"],
+                support["RX"],
+                support["RY"],
+                support["RZ"],
+            )
+        else:
+            limit_val = {"Aucune limitation": None, "Tension uniquement": "+", "Compression uniquement": "-"} 
+            self._model.def_support_spring(
+                support["Noeud"],
+                support["Dof"],
+                support["Raideur"].value * 10**3,
+                limit_val[support["Limite de direction"]],
+            )
         return support_id
 
     def _add_supports_to_model(self):
-        for support_id in self._data["supports"].keys():
-            self._add_support_to_model(support_id)
+        for support_type, supports in self._data["supports"].items():
+            for support_id, support in supports.items():
+                self._add_support_to_model(support_id, support_type)
         return "Appuis ajoutés"
 
     def get_all_supports(self) -> dict:
@@ -1035,7 +1071,10 @@ class Wood_beam_model(Model_generator):
         d_appuis = longueur / (nbr_appuis - 1)
         for i in range(nbr_appuis):
             node = self.add_node(int(float(i * d_appuis * mt.cos(mt.radians(inclinaison)))), int(float(i * d_appuis * mt.sin(mt.radians(inclinaison)))), 0)
-            self.add_support(node, DX=True, DY=True, DZ=True, RX=True, RY=False, RZ=False, l_appuis=l_appuis)
+            if not i:
+                self.add_support(node, DX=True, DY=True, DZ=True, RX=True, RY=False, RZ=False, l_appuis=l_appuis)
+            else:
+                self.add_support(node, DX=False, DY=True, DZ=True, RX=True, RY=False, RZ=False, l_appuis=l_appuis)
 
         for i in range(nbr_appuis-1):
             self.add_member(f"N{i+1}", f"N{i+2}", material, section, poids_propre, rotation=devers, tension_only=False, compression_only=False)
@@ -1313,13 +1352,15 @@ class Model_result(Projet):
                     "Mz", n_points=n_points, combo_name=combination
                 )
 
-    def get_min_max_internal_force(self, member_id: str, combination: str) -> np.array:
+    def get_min_max_internal_force(self, member_id: str, combination: str|list) -> dict:
         """Retourne le maximum et minimum des efforts internes d'une membrure donnée.
 
         Args:
             member_id (str): Le nom de la membrure à analyser. On peut rentrer plusieurs membrures en créant une liste de membrures,
-                            ex: ["M1", "M2", "M3"] dans le cas par exemple d'une barre continue.
-            combination (str): Le nom de la combinaison à récupérer
+                ex: ["M1", "M2", "M3"] dans le cas par exemple d'une barre continue.
+            combination (str): Le nom de la combinaison à récupérer. On peut également rentrer un ou des tags de combinaisons,
+                ex: ["ELU_STR", "ELU_ACC"] dans ce cas le résultat récupéré est 
+                le maximum/minimum de toute les combinaisons inclus dans ces tags.
         """
         dict_internal_forces = {}
         for type in ("Nx", "Vy", "Vz", "Mx", "My", "Mz"):
@@ -1330,75 +1371,98 @@ class Model_result(Projet):
                 member_id = [member_id]
             max_value = 0
             min_value = 0
+            combi_max = None
+            combi_min = None
             for member in member_id:
                 if member not in self._model_generator._model.members:
                     raise ValueError(f"La membrure {member} n'est pas dans le model MEF")
                 
                 if type == "Nx":
                     max = self._model_generator._model.members[member].max_axial(
-                        combo_name=combination
+                        combo_tags=combination
                     )
                     min = self._model_generator._model.members[member].min_axial(
-                        combo_name=combination
+                        combo_tags=combination
                     )
                 elif type == "Vy":
                     max = self._model_generator._model.members[member].max_shear(
-                        "Fy", combo_name=combination
+                        "Fy", combo_tags=combination
                     )
                     min = self._model_generator._model.members[member].min_shear(
-                        "Fy", combo_name=combination
+                        "Fy", combo_tags=combination
                     )
                 elif type == "Vz":
                     max = self._model_generator._model.members[member].max_shear(
-                        "Fz", combo_name=combination
+                        "Fz", combo_tags=combination
                     )
                     min = self._model_generator._model.members[member].min_shear(
-                        "Fz", combo_name=combination
+                        "Fz", combo_tags=combination
                     )
                 elif type == "Mx":
                     max = self._model_generator._model.members[member].max_torque(
-                        combo_name=combination
+                        combo_tags=combination
                     )
                     min = self._model_generator._model.members[member].min_torque(
-                        combo_name=combination
+                        combo_tags=combination
                     )
                 elif type == "My":
                     max = self._model_generator._model.members[member].max_moment(
-                        "My", combo_name=combination
+                        "My", combo_tags=combination
                     )
                     min = self._model_generator._model.members[member].min_moment(
-                        "My", combo_name=combination
+                        "My", combo_tags=combination
                     )
                 elif type == "Mz":
                     max = self._model_generator._model.members[member].max_moment(
-                        "Mz", combo_name=combination
+                        "Mz", combo_tags=combination
                     )
                     min = self._model_generator._model.members[member].min_moment(
-                        "Mz", combo_name=combination
+                        "Mz", combo_tags=combination
                     )
-                if max > max_value:
-                    max_value = max
-                if min < min_value:
-                    min_value = min
+                if isinstance(max, tuple):
+                    if max[0] > max_value:
+                        max_value = max[0]
+                        combi_max = max[1]
+                    if min[0] < min_value:
+                        min_value = min[0]
+                        combi_min = min[1]
+                else:
+                    if max > max_value:
+                        max_value = max
+                        combi_max = combination
+                    if min < min_value:
+                        min_value = min
+                        combi_min = combination
             
             if "M" in type:
                 si_unit = si.N * si.mm
             else:
                 si_unit = si.N
-            dict_internal_forces[type] = {"Min": min_value * si_unit, "Max": max_value * si_unit}
+            dict_internal_forces[type] = {"Min": (min_value * si_unit, combi_min), "Max": (max_value * si_unit, combi_max)}
         return dict_internal_forces
     
-    def get_absolute_internal_force(self, member_id: str, combination: str, type: str = ("Nx", "Vy", "Vz", "Mx", "My", "Mz")):
+    def get_absolute_internal_force(self, member_id: str, combination: str|list, type: str = ("Nx", "Vy", "Vz", "Mx", "My", "Mz"), get_combo_name: bool = ("False", "True")):
         """Retourne la valeur de d'effort absolue pour le type d'effort donné.
 
         Args:
             member_id (str): Le nom de la membrure à analyser. On peut rentrer plusieurs membrures en créant une liste de membrures,
                             ex: ["M1", "M2", "M3"] dans le cas par exemple d'une barre continue.
-            combination (str): Le nom de la combinaison à récupérer
+            combination (str): Le nom de la combinaison à récupérer. On peut également rentrer un ou des tags de combinaisons,
+                ex: ["ELU_STR", "ELU_ACC"] dans ce cas le résultat récupéré est 
+                le maximum/minimum de toute les combinaisons inclus dans ces tags.
             type (str): Le type d'effort interne à retourner. Defaults to ("Nx", "Vy", "Vz", "Mx", "My", "Mz").
+            get_combo_name (bool): Si True, retourne également le nom de la combinaison associée à la valeur. Defaults to False.
+
         """
         ei = self.get_min_max_internal_force(member_id, combination)
-        return max(abs(ei[type]["Min"]), ei[type]["Max"])
+        max = "Max"
+        if abs(ei[type]["Min"][0]) > ei[type]["Max"][0]:
+            max = "Min"
+        if get_combo_name:
+            return {"Effort": abs(ei[type][max][0]), "Combinaison": ei[type][max][1]}
+        else:
+            return abs(ei[type][max][0])
+    
 
     def show_internal_force_of_member(
         self,
@@ -1414,7 +1478,7 @@ class Model_result(Projet):
         Args:
             member_id (str): Le nom de la membrure à analyser. On peut rentrer plusieurs membrures en créant une liste de membrures,
                             ex: ["M1", "M2", "M3"] dans le cas par exemple d'une barre continue.
-            combination (str): Le nom de la combinaison à récupérer
+            combination (str): Le nom de la combinaison à récupérer. 
             type (str): Le type d'effort interne à retourner. Defaults to ("Nx", "Vy", "Vz", "Mx", "My", "Mz").
             n_points (int, optional): le nombre de valeur à retrouner le long de la membrure. Defaults to 20.
             screenshot (bool, optional): Définit si l'on souhaite enregistrer un screenshot du graph, si oui alors True. Defaults to False
@@ -1489,13 +1553,15 @@ class Model_result(Projet):
             direction, n_points=n_points, combo_name=combination
         )
 
-    def get_min_max_deflection(self, member_id: str, combination: str) -> np.array:
+    def get_min_max_deflection(self, member_id: str, combination: str|list) -> np.array:
         """Retourne le maximum et minimum des efforts internes d'une membrure donnée.
 
         Args:
             member_id (str): Le nom de la membrure à analyser. On peut rentrer plusieurs membrures en créant une liste de membrures,
                             ex: ["M1", "M2", "M3"] dans le cas par exemple d'une barre continue.
-            combination (str): Le nom de la combinaison à récupérer
+            combination (str): Le nom de la combinaison à récupérer. On peut également rentrer un ou des tags de combinaisons,
+                ex: ["ELS_C", "ELS_QP" "W_inst_Q", "W_net_fin"] dans ce cas le résultat récupéré est 
+                le maximum/minimum de toute les combinaisons inclus dans ces tags.
         """
         dict_deflection = {}
         for type in ("dx", "dy", "dz"):
@@ -1506,34 +1572,56 @@ class Model_result(Projet):
                 member_id = [member_id]
             max_value = 0
             min_value = 0
+            combi_max = None
+            combi_min = None
             for member in member_id:
                 if member not in self._model_generator._model.members:
                     raise ValueError(f"La membrure {member} n'est pas dans le model MEF")
                 max = self._model_generator._model.members[member].max_deflection(
-                    type, combo_name=combination
+                    type, combo_tags=combination
                 )
 
                 min = self._model_generator._model.members[member].min_deflection(
-                    type, combo_name=combination
+                    type, combo_tags=combination
                 )
-                if max > max_value:
-                    max_value = max
-                if min < min_value:
-                    min_value = min
-            dict_deflection[type] = {"Min": min_value * si.mm, "Max": max_value * si.mm}
+                if isinstance(max, tuple):
+                    if max[0] > max_value:
+                        max_value = max[0]
+                        combi_max = max[1]
+                    if min[0] < min_value:
+                        min_value = min[0]
+                        combi_min = min[1]
+                else:
+                    if max > max_value:
+                        max_value = max
+                        combi_max = combination
+                    if min < min_value:
+                        min_value = min
+                        combi_min = combination
+
+            dict_deflection[type] = {"Min": (min_value * si.mm, combi_min), "Max": (max_value * si.mm, combi_max)}
         return dict_deflection
     
-    def get_absolute_max_deflection(self, member_id: str, combination: str, direction: str = ("dx", "dy", "dz")):
+    def get_absolute_max_deflection(self, member_id: str, combination: str|list, direction: str = ("dx", "dy", "dz"), get_combo_name: bool=("False", "True")):
         """Retourne la valeur de déplacement absolue pour la direction de la flèche donnée.
 
         Args:
             member_id (str): Le nom de la membrure à analyser. On peut rentrer plusieurs membrures en créant une liste de membrures,
                             ex: ["M1", "M2", "M3"] dans le cas par exemple d'une barre continue.
-            combination (str): Le nom de la combinaison à récupérer
+            combination (str): Le nom de la combinaison à récupérer. On peut également rentrer un ou des tags de combinaisons,
+                ex: ["ELS_QP" "W_inst_Q", "W_net_fin"] dans ce cas le résultat récupéré est 
+                le maximum/minimum de toute les combinaisons inclus dans ces tags.
             direction (str): La direction locale à retourner. Defaults to ("dx", "dy", "dz").
+            get_combo_name (bool): Si True, retourne également le nom de la combinaison associée à la valeur. Defaults to False.
         """
         deflection = self.get_min_max_deflection(member_id, combination)
-        return max(abs(deflection[direction]["Min"]), deflection[direction]["Max"])
+        max = "Max"
+        if abs(deflection[direction]["Min"][0]) > deflection[direction]["Max"][0]:
+            max = "Min"
+        if get_combo_name:
+            return {"Flèche": abs(deflection[direction][max][0]), "Combinaison": deflection[direction][max][1]}
+        else:
+            return abs(deflection[direction][max][0])
         
 
     def show_deflection_of_member(
@@ -1642,7 +1730,7 @@ class Model_result(Projet):
                 )
             else:
                 interaction = False
-            renderer.screenshot(filepath, interact=interaction)
+            renderer.screenshot(filepath, interact=interaction, reset_camera=True)
             return filepath
         else:
             renderer.render_model()
