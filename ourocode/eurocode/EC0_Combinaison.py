@@ -10,6 +10,22 @@ from ourocode.eurocode.A0_Projet import Projet, Model_generator
 
 
 class Combinaison(Projet):
+    """Générateur de combinaisons d'actions selon l'EC0 (Eurocode 0).
+
+    Cette classe génère automatiquement toutes les combinaisons d'actions
+    nécessaires selon l'Annexe Nationale française de l'EC0, à partir des
+    chargements définis dans un modèle MEF.
+
+    Elle supporte :
+    - Les combinaisons ELU STR (EQU, STR, GEO) selon l'EC0 §6.4.3.2
+    - Les combinaisons ELU accidentelles selon l'EC0 §6.4.3.3
+    - Les combinaisons ELS caractéristiques selon l'EC0 §6.5.3
+    - Les combinaisons ELS quasi-permanentes selon l'EC0 §6.5.3
+
+    Pour les structures bois, elle peut également calculer les psi_2 pour
+    le fluage et les flèches finales.
+    """
+
     COEF_G = (1, 1.35)  # Ginf, Gsup
     COEF_Q = 1.5  # Qsup
     ANALYZE_TYPE = ("Général", "Linéaire", "Second ordre")
@@ -26,22 +42,42 @@ class Combinaison(Projet):
         type_psy_2: str = ["Court terme", "Moyen terme", "Long terme"],
         **kwargs,
     ):
-        """Créer une classe Combinaison qui génère les combinaisons d'action suivant les actions données.
-        Cette classe est hérité de la classe Projet du module A0_Projet.py.
-        Elle nécessite toutefois la création d'un modèle de calcul avant d'être instanciée.
-        Le modèle de calcul est créé par la classe Model_generator dans le module A0_Projet.py.
+        """Initialise le générateur de combinaisons d'actions.
+
+        Un modèle MEF doit être créé préalablement avec Model_generator et
+        transmis via l'argument model_generator. Ce modèle doit contenir
+        au moins une charge pour générer des combinaisons.
 
         Args:
-                model_generator (Model_generator): le modèle de calcul à utiliser pour la génération des combinaisons d'action.
-                ELU_STR (bool): combiner les charges à l'ELU structure, si vrai -> True, sinon False.
-                ELU_STR_ACC (bool): combiner les charges à l'ELU accidentel, si vrai -> True, sinon False.
-                ELS_C (bool): combiner les charges à l'ELS carctéristique, si vrai -> True, sinon False.
-                ELS_QP (bool): combiner les charges à l'ELS quasi permananent, si vrai -> True, sinon False.
-                cat (str): catégorie d'exploitation de la zone considéré. Defaults to "Aucune".
-                kdef (float): Coefficient permettant de prendre en compte le fluage du bois en fonction de sa classe de service.
-                        Si le matériaux est autre que du bois laisser vide.
-                type_psy_2: détermine le type de psy 2 à récupérer notamment pour le calcul de la flèche dans le bois.
-                        Court terme = 0, Moyen terme = calcul du psy en fonction de l'action donnant le psy le plus élevé, Long terme = 1.
+            model_generator (Model_generator): Modèle de calcul MEF contenant
+                les nœuds, barres, matériaux, sections et chargements.
+            ELU_STR (bool, optional): Générer les combinaisons ELU structure
+                selon l'EC0 §6.4.3.2 (1.35G + 1.5Q, etc.). Defaults to True.
+            ELU_STR_ACC (bool, optional): Générer les combinaisons ELU
+                accidentelles selon l'EC0 §6.4.3.3 (Gk + Ad + psi_1 Qk).
+                Defaults to False.
+            ELS_C (bool, optional): Générer les combinaisons ELS caractéristiques
+                selon l'EC0 §6.5.3 (Gk + Qk + psi_0 Qi). Defaults to False.
+            ELS_QP (bool, optional): Générer les combinaisons ELS quasi-permanentes
+                selon l'EC0 §6.5.3 (Gk + psi_2 Qi). Defaults to False.
+            cat (str, optional): Catégorie d'exploitation selon l'EC1-1-1
+                pour la détermination des coefficients psi.
+                Ex: "Cat A : habitation", "Cat B : bureaux".
+                Defaults to "Aucune".
+            kdef (float, optional): Coefficient de déformation différée pour
+                le calcul des flèches finales en bois (EC5). Laisser None
+                pour les matériaux autres que le bois.
+            type_psy_2 (str, optional): Méthode de calcul du psi_2 effectif
+                pour les flèches en bois.
+                - "Court terme": psi_2 = 0 (pas de fluage)
+                - "Moyen terme": psi_2 calculé selon l'action dominante
+                - "Long terme": psi_2 = 1 (fluage complet)
+            **kwargs: Arguments transmis à la classe parent Projet.
+
+        Note:
+            La génération des combinaisons est effectuée automatiquement
+            lors de l'instanciation. Le modèle MEF est résolu pour chaque
+            combinaison.
         """
         super().__init__(**kwargs)
         self._combo_tags = []

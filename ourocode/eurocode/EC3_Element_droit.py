@@ -28,13 +28,20 @@ class Plat(Projet):
             classe_transv (int, optional): classe transversale de la section en fonction de sa capacité de plastification. Defaults to 1.
         """
         super().__init__(**kwargs)
+        if classe_acier not in self.CLASSE_STEEL:
+            raise ValueError(
+                f"Classe d'acier '{classe_acier}' invalide. Valeurs acceptées : {self.CLASSE_STEEL}"
+            )
+        if int(classe_transv) not in (1, 2, 3):
+            raise ValueError(
+                f"Classe transversale '{classe_transv}' invalide. Valeurs acceptées : 1, 2, 3 "
+                "(la classe 4 n'est pas développée)"
+            )
         self.t = t * si.mm
         self.h = h * si.mm
         self.b = b * si.mm
         self.classe_acier = classe_acier
-        if classe_transv == 4:
-            raise ValueError("La classe transversale 4 n'est pas développée, merci de choisir une classe transversale entre 1 et 3")
-        self.classe_transv = classe_transv
+        self.classe_transv = int(classe_transv)
         self.__fy_fu()
     
 

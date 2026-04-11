@@ -3,6 +3,7 @@
 
 ############# Le but de ce fichier est de regrouper toute les fonctions d'assemblage par organe métalique dans l'EN-1995 #############
 from copy import deepcopy
+import warnings
 import math as mt
 from math import sin, cos, radians, sqrt, pi
 
@@ -111,7 +112,7 @@ class Assemblage(Projet):
             n_file = deepcopy(self.nfile)
             self.nfile = self.n
             self.n = n_file
-            print("Le sens de traitement de l'assemblage a été changé car le nef mini ce trouve sur la pièce 2 et non sur la pièce 1.\nAttention aux efforts de calcul à prendre en compte.")
+            warnings.warn("Le sens de traitement de l'assemblage a été changé car le nef mini ce trouve sur la pièce 2 et non sur la pièce 1.\nAttention aux efforts de calcul à prendre en compte.")
             return list_nef[1]
         
         
@@ -1540,7 +1541,6 @@ class Boulon(Assemblage):
                             else:
                                 b_beam_2 = self.beam_2.b_calcul
                             l_pointe = self.d_vis
-                            print(self.l , self.beam_1.b_calcul , b_beam_2 , l_pointe)
                             self.t1 = min(self.beam_1.b_calcul, self.l - self.beam_1.b_calcul - b_beam_2 - l_pointe)
                             continue
                         self.t1 = self.beam_1.b_calcul
@@ -1916,7 +1916,7 @@ class _Tirefond(object):
             a1CG = 10 * self.d_vis
             a2CG = 4 * self.d_vis
         else:
-            print("L'épaisseur de bois n'est pas suffisante, il faut un bois de {0} mm minimum !".format(
+            warnings.warn("L'épaisseur de bois n'est pas suffisante, il faut un bois de {0} mm minimum !".format(
                 12*self.d_vis))
         return {"a1": a1, "a2": a2, "a1CG": a1CG, "a2CG": a2CG}
 
@@ -1962,7 +1962,7 @@ class _Tirefond(object):
             return val()
 
         else:
-            print(
+            warnings.warn(
                 "le diamètre ne répond pas aux spécifications demandées en 8.7.2(4) de l'EN 1995 partie assemblage")
 
 
