@@ -1,7 +1,6 @@
 #! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
 import os
-from PySide6.QtWidgets import QFileDialog
 import matplotlib.pyplot as plt
 from math import sqrt
 import numpy as np
@@ -415,6 +414,7 @@ class Sismique(Batiment):
         plt.grid()
         if screenshot:
             if not filepath:
+                from PySide6.QtWidgets import QFileDialog
                 filepath = QFileDialog.getSaveFileName(
                     filter="PNG (*.png)",
                     selectedFilter=".png",

@@ -1,10 +1,9 @@
 
 # 📐 Ourocode - Bibliothèque Python pour le calcul de structure selon les Eurocodes
 
-[![License: Apache License 2.0](https://img.shields.io/badge/License-A-blue.svg)](LICENSE)
-<!-- [![PyPI](https://img.shields.io/pypi/v/eurocode-calc.svg)](https://pypi.org/project/ourocode/) -->
-[![Tests](https://img.shields.io/github/v/release/AnthonyPrst/ourocode)](https://github.com/AnthonyPrst/ourocode/pyptoject.toml)
-[![Coverage](https://img.shields.io/codecov/c/github/ton-org/eurocode)](https://codecov.io/gh/ton-org/ourocode)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![CI](https://github.com/AnthonyPrst/ourocode/actions/workflows/ci.yml/badge.svg)](https://github.com/AnthonyPrst/ourocode/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/AnthonyPrst/ourocode)](https://github.com/AnthonyPrst/ourocode/releases)
 
 ---
 
@@ -38,6 +37,13 @@ pip install ourocode
 > Installez directement depuis le dépôt :
 ```bash
 pip install git+https://github.com/AnthonyPrst/ourocode.git
+```
+
+> Avec les dépendances optionnelles (GUI PySide6 et/ou MEF Pynite) :
+```bash
+pip install "ourocode[full]"    # GUI + MEF
+pip install "ourocode[gui]"     # PySide6 uniquement
+pip install "ourocode[mef]"     # PyNiteFEA + pyvista uniquement
 ```
 
 ---

@@ -7,9 +7,6 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, Circle
-from PySide6.QtWidgets import QApplication, QInputDialog
-from PySide6.QtCore import Qt
-
 # Calculs structurels
 import forallpeople as si
 si.environment("structural")
