@@ -2,6 +2,7 @@
 # Encoding in UTF-8 by Anthony PARISOT
 import sys
 import os
+import warnings
 import math as mt
 from math import sqrt, pi
 import pandas as pd
@@ -471,7 +472,7 @@ class Feu(Barre):
                 else:
                     kh[cle] = 1
             else:
-                print("LVL non pris en compte dans cette fonction")
+                warnings.warn("LVL non pris en compte dans cette fonction")
                 kh[cle] = 1
         return kh
 

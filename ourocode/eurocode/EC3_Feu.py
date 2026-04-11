@@ -2,7 +2,6 @@
 # Encoding in UTF-8 by Anthony PARISOT
 import math as mt
 import pandas as pd
-from PySide6.QtWidgets import QFileDialog
 from matplotlib import pyplot as plt
 
 import forallpeople as si
@@ -381,6 +380,7 @@ class Feu_acier(Plat):
         plt.tight_layout()
         if screenshot:
             if not filepath:
+                from PySide6.QtWidgets import QFileDialog
                 filepath = QFileDialog.getSaveFileName(
                     filter="PNG (*.png)",
                     selectedFilter=".png",
@@ -411,6 +411,7 @@ class Feu_acier(Plat):
         plt.tight_layout()
         if screenshot:
             if not filepath:
+                from PySide6.QtWidgets import QFileDialog
                 filepath = QFileDialog.getSaveFileName(
                     filter="PNG (*.png)",
                     selectedFilter=".png",

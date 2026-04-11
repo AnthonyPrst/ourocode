@@ -1,6 +1,7 @@
 #! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
 from copy import deepcopy
+import warnings
 import matplotlib.pyplot as plt
 
 import math as mt
@@ -17,6 +18,16 @@ from ourocode.eurocode.A0_Projet import Projet
 # ================================ GLOBAL ==================================
 
 class Barre(Projet):
+    """Classe définissant les caractéristiques d'un élément droit en bois.
+
+    Cette classe décrit la géométrie, la classe de résistance et les conditions
+    d'exploitation d'une barre (poutre, colonne, liteau) selon l'EN 1995.
+
+    Elle calcule automatiquement les dimensions de section en fonction de
+    l'humidité de pose (retrait/gonflement) et donne accès aux caractéristiques
+    mécaniques normatives du matériau.
+    """
+
     LIST_SECTION = ["Rectangulaire","Circulaire"]
     LIST_TYPE_B = ["Massif", "BLC", "LVL", "OSB 2", "OSB 3/4", "CP"]
     CLASSE_WOOD = list(Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").index)[2:]
@@ -31,37 +42,75 @@ class Barre(Projet):
     B90 = 0.25
 
     def __init__(self, b:si.mm, h:si.mm, section: str=LIST_SECTION, Hi: int=12, Hf: int=12, classe: str=CLASSE, cs: int=CS, effet_systeme: bool=("False", "True"), **kwargs):
-        """Classe qui définit les caractéristiques d'un élément droit. 
-        Cette classe est hérité de la classe Projet du module A0_Projet.py.
+        """Initialise un élément droit en bois avec ses caractéristiques.
 
         Args:
-            b (int): largeur de pose de la pièce en mm
-            h (int): hauteur de pose de la pièce en mm
-            section (str, optional): Type de section. Defaults to "Rectangulaire".
-            Hi (int, optional): Humidité initiale de pose en %. Defaults to 12.
-            Hf (int, optional): Humidité finale de pose en %. Defaults to 12.
-            classe (str, optional): Classe mécanique du bois. Defaults to 'C24'.
-            cs (int, optional): Classe de service de l'élément. Defaults to 1.
-            effet_systeme: Détermine si l'effet système s'applique.
+            b (si.mm): Largeur de pose de la pièce en millimètres (dimension brute).
+            h (si.mm): Hauteur de pose de la pièce en millimètres (dimension brute).
+            section (str, optional): Type de section transversale.
+                "Rectangulaire" ou "Circulaire". Defaults to "Rectangulaire".
+            Hi (int, optional): Humidité initiale de pose en %.
+                Humidité au moment de la fabrication/pose. Defaults to 12.
+            Hf (int, optional): Humidité finale d'équilibre en % selon l'AN (Hf = 12).
+                Humidité en service. Defaults to 12.
+            classe (str, optional): Classe de résistance du bois selon l'EC5.
+                Ex: "C24", "GL28h", "LVL". Defaults to "C24".
+            cs (int, optional): Classe de service selon l'EC5 §2.3.1.3.
+                1 = intérieur chauffé, 2 = couvert non chauffé, 3 = extérieur.
+                Defaults to 1.
+            effet_systeme (bool, optional): Active l'effet de système (k_sys = 1.1)
+                pour les éléments permettant une redistribution des charges
+                (solives avec répartition continue). Defaults to False.
+            **kwargs: Arguments supplémentaires transmis à Projet.
+
+        Note:
+            Les dimensions de calcul (b_calcul, h_calcul) sont automatiquement
+            ajustées pour tenir compte du retrait si Hi > Hf (AN B90 = 0.25%).
+
+        Raises:
+            ValueError: Si la section, la classe ou la classe de service est invalide.
         """
         super().__init__(**kwargs)
+        if section not in self.LIST_SECTION:
+            raise ValueError(
+                f"Section '{section}' invalide. Valeurs acceptées : {self.LIST_SECTION}"
+            )
+        if classe not in self.CLASSE:
+            raise ValueError(
+                f"Classe '{classe}' invalide. Valeurs acceptées : {self.CLASSE}"
+            )
+        if int(cs) not in (1, 2, 3):
+            raise ValueError(
+                f"Classe de service '{cs}' invalide. Valeurs acceptées : 1, 2, 3"
+            )
         self.b = b * si.mm
         self.h = h * si.mm
         self.section = section
         self.Hi = Hi
         self.Hf = Hf
         self.classe = classe
-        self.cs = cs
+        self.cs = int(cs)
         self.effet_systeme = effet_systeme
         self._sectionCalcul()
 
 
     def _sectionCalcul(self):
-        """ Retourne la section de calcul en fonction de l'humidité de pose et celle d'utilisation avec pour argument:
-                Hi : Humidité de pose en %
-                Hf : Humidité finale en % selon AN Hf = 12%
-                B90 : Coefficient de correction de section selon AN B90 = 0.25 %
-                cote : Largeur ou hauteur de la section initiale en mm """
+        """Calcule les dimensions de section de calcul avec correction humidité.
+
+        Ajuste les dimensions brutes (b, h) en fonction de la variation
+        d'humidité entre la pose et l'équilibre en service selon la formule
+        de l'Annexe Nationale française (coefficient B90 = 0.25 %).
+
+        Formule : dimension_calcul = dimension_pose × (1 - B90/100 × (Hi - Hf))
+
+        Cette correction est appliquée pour le calcul des aires et inerties,
+        mais les résistances caractéristiques sont basées sur les dimensions
+        de pose selon les règles de l'EC5.
+
+        Attributs modifiés:
+            b_calcul (si.mm): Largeur corrigée pour le calcul des inerties.
+            h_calcul (si.mm): Hauteur corrigée pour le calcul des inerties.
+        """
         self.b_calcul = self.b * (1 - self.B90 / 100 * (self.Hi - self.Hf))
         self.h_calcul = self.h * (1 - self.B90 / 100 * (self.Hi - self.Hf))
 
@@ -176,16 +225,30 @@ class Barre(Projet):
         return latex
     
     
-    def _f_type_d(self,typeCarac=CARACTERISTIQUE[0:6], loadtype=LOAD_TIME, typecombi=TYPE_ACTION):
-        """Méthode donnant la résistance de calcul de l'élément fonction de la vérification
+    def _f_type_d(self, typeCarac=CARACTERISTIQUE[0:6], loadtype=LOAD_TIME, typecombi=TYPE_ACTION):
+        """Calcule la résistance de calcul f_d selon l'EC5 §2.4.1.
+
+        Applique la formule : f_d = k_mod × k_sys × f_k / gamma_M
+        où k_mod dépend de la classe de service et de la durée de chargement,
+        et k_sys est le coefficient d'effet de système (1.1 si activé, 1.0 sinon).
 
         Args:
-            typeCarac (str, optional): Type de résistance caractéristique (flexion = "fm0k", compression = "fc0k" etc.). Defaults to "fm0k".
-            loadtype (str, optional): Durée de chargement (Permanente, Court terme etc.). Defaults to "Permanente".
-            typecombi (str, optional): Type de combinaison étudiée ("Fondamentales" ou " Accidentelles"). Defaults to "Fondamentales".
+            typeCarac (str, optional): Type de résistance caractéristique.
+                Valeurs possibles : "fm0k" (flexion), "fc0k" (compression),
+                "ft0k" (traction), "fvk" (cisaillement), etc.
+                Defaults to "fm0k".
+            loadtype (str, optional): Durée de chargement selon l'EC5 Tableau 3.1.
+                Valeurs : "Permanente", "Long terme", "Moyen terme", "Court terme",
+                "Instantanée".
+            typecombi (str, optional): Type de combinaison.
+                "Fondamentales" ou "Accidentelles". Defaults to "Fondamentales".
 
         Returns:
-            float: Résistance de calcul en N/mm2 du type de vérification étudié.
+            tuple: (latex_string, valeur) où valeur est la résistance de calcul
+                f_d en N/mm² (MPa) prête à être comparée aux contraintes.
+
+        Note:
+            Cette méthode utilise @handcalc pour générer la justification LaTeX.
         """
         gamma_M = self._get_gamma_M(typecombi)
         K_mod = self._get_k_mod(loadtype)
@@ -209,7 +272,25 @@ class Barre(Projet):
     
 
     def _K_h(self):
-        """ Retourne le coef. Kh qui peut augmenter la resistance caractéristique fm,k et ft,k """
+        """Calcule le coefficient de taille K_h selon l'EC5 §3.2 et §3.3.
+
+        Ce coefficient majore la résistance caractéristique à la flexion et
+        à la traction pour les petites sections, selon le type de bois :
+
+        - Bois massif : K_h = min((150/h)^0.2, 1.3) où h < 150 mm
+        - BLC : K_h = min((600/h)^0.1, 1.1) où h < 600 mm
+        - LVL : K_h = 1.0 (non applicable)
+
+        Le coefficient s'applique séparément aux deux dimensions (hauteur
+        et largeur) pour les sections rectangulaires.
+
+        Returns:
+            dict: Dictionnaire {'y': K_h_y, 'z': K_h_z} avec les coefficients
+                pour chaque direction de flexion.
+
+        Note:
+            Ce coefficient ne s'applique qu'à fm,k et ft,k selon l'EC5.
+        """
         kh = {}
         dim = {'y': self.h_calcul.value *10**3, 'z': self.b_calcul.value *10**3}
 
@@ -225,13 +306,31 @@ class Barre(Projet):
                 else :
                     kh[cle] = 1
             else:
-                print("LVL non pris en compte dans cette fonction")
+                warnings.warn("LVL non pris en compte dans cette fonction")
                 kh[cle] = 1
         return kh       
     
     
     def Emean_fin(self, psy_2: float):
-        """Renvoie le E,mean,fin en fonction du Kdef et du psy2"""
+        """Calcule le module de Young final E_mean,fin selon l'EC5 §2.3.2.2.
+
+        Le module final tient compte du fluage par la formule :
+        E_mean,fin = E_0,mean / (1 + psi_2 × k_def)
+
+        où psi_2 est le coefficient de combinaison quasi-permanente et
+        k_def dépend de la classe de service et du type de bois.
+
+        Args:
+            psy_2 (float): Coefficient psi_2 de la combinaison quasi-permanente.
+                0 pour le court terme, 1 pour le long terme, ou valeur calculée.
+
+        Returns:
+            tuple: (latex_string, valeur) où valeur est E_mean,fin en MPa.
+
+        Note:
+            Ce module final est utilisé pour les calculs de flèche en ELS
+            selon l'EC5 §2.2.3 et §7.2.
+        """
         self.psy_2 = psy_2
         E0_mean = int(self.caract_meca.loc["E0mean"]) * si.MPa
         K_def = self.K_def
@@ -247,20 +346,33 @@ class Barre(Projet):
     
 
     def fleche(self, long:si.mm, Ed_WinstQ:si.mm=0, Ed_Wnetfin:si.mm=0, Ed_Wfin:si.mm=0, Ed_W2:si.mm=0, limit_W2:int=500, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
-        """Retourne le taux de travail de la flèche avec pour argument:
+        """Vérifie les taux de travail des flèches selon l'EC5 §7.2.
+
+        Compare les flèches calculées aux limites normatives pour différents
+        critères ELS. Génère automatiquement un tableau de synthèse avec
+        _add_synthese_taux_travail.
 
         Args:
-            long (int): La longueur entre appuis à vérifier en mm
-            Ed_WinstQ (float, optional): La flèche instanténée sous charge variable Q en mm. Defaults to 0.
-            Ed_Wnetfin (float, optional): La flèche net finale en mm. Defaults to 0.
-            Ed_Wfin (float, optional): La flèche finale en mm. Defaults to 0.
-            Ed_W2 (float, optional): La flèche w2 en mm qui est la flèche fragile tenant compte du phasage de pose des éléments fragiles. Defaults to 0.
-            limit_W2 (int, optional): La limite de flèche w2 des éléments fragiles. Defaults to 500.
-            type_ele (_type_, optional): Le type d'élément à vérifier. Defaults to TYPE_ELE.
-            type_bat (_type_, optional): Le type de bâtiment sur lequel on vérifie notre élémennt. Defaults to TYPE_BAT.
+            long (si.mm): Portée entre appuis à vérifier en millimètres.
+            Ed_WinstQ (si.mm, optional): Flèche instantanée sous charge variable Q seule.
+                Defaults to 0.
+            Ed_Wnetfin (si.mm, optional): Flèche nette finale (sous combinaison quasi-permanente).
+                Defaults to 0.
+            Ed_Wfin (si.mm, optional): Flèche finale totale (y compris fluage).
+                Defaults to 0.
+            Ed_W2 (si.mm, optional): Flèche w2 tenant compte du phasage de pose
+                pour éléments fragiles (cloisons, platrerie). Defaults to 0.
+            limit_W2 (int, optional): Limite de flèche w2 pour éléments fragiles.
+                Valeur courante : 500 (L/500). Defaults to 500.
+            type_ele (str, optional): Type d'élément selon limite_fleche.csv.
+            type_bat (str, optional): Type de bâtiment.
 
         Returns:
-            dict: Retourne le dictionnaire des taux de travails.
+            tuple: (latex_string, valeurs) où valeurs contient les taux de travail.
+
+        Note:
+            Les limites de flèche sont définies dans le fichier limite_fleche.csv
+            selon les recommandations de l'Annexe Nationale française.
         """
         data_csv_fleche = self._data_from_csv("limite_fleche.csv")
         self.data_fleche= data_csv_fleche.loc[type_ele]
@@ -340,6 +452,16 @@ class Barre(Projet):
 # ================================ FLEXION ==================================
 
 class Flexion(Barre):
+    """Classe de vérification à la flexion selon l'EN 1995-1-1 §6.1.6, §6.2.3, §6.2.4 et §6.3.3.
+
+    Cette classe effectue les vérifications de résistance à la flexion et
+    de stabilité au déversement (flambement latéral) pour des poutres en bois.
+
+    Elle hérite de la classe Barre pour récupérer les caractéristiques
+    géométriques et mécaniques, et utilise le pattern _from_parent_class
+    pour l'enchaînement des vérifications.
+    """
+
     COEF_LEF = {"Appuis simple" : [1, 0.9, 0.8], 
                 "Porte à faux": [0.5, 0.8]}
     LOAD_POS = (
@@ -355,19 +477,31 @@ class Flexion(Barre):
         coeflef_z: float=0.9, 
         pos: str=LOAD_POS, 
         *args, **kwargs):
-        """Classe permettant le calcul de la flexion d'une poutre bois selon l'EN 1995 §6.1.6, §6.2.3, §6.2.4 et §6.3.3.
-        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
+        """Initialise une vérification en flexion avec paramètres de déversement.
 
         Args:
-            lo_rel_y/z (int): longueur de déversemment autour de l'axe défini en mm
-            coeflef_y/z (float): appuis simple :
-                                            Moment constant : 1
-                                            Charge répartie constante : 0.9
-                                            Charge concentrée au milieu de la portée : 0.8
-                                porte à faux :
-                                            Charge répartie constante : 0.5
-                                            Charge concentrée agissant à l'extrémité libre : 0.8.
-            pos (str): positionnement de la charge sur la hauteur de poutre
+            lo_rel_y (si.mm): Longueur de déversement effective autour de l'axe Y
+                (entre appuis latéraux), en millimètres.
+            lo_rel_z (si.mm): Longueur de déversement effective autour de l'axe Z,
+                en millimètres.
+            coeflef_y (float, optional): Coefficient de longueur efficace selon l'EC5.
+                - Appuis simple : 1.0 (moment constant), 0.9 (charge répartie),
+                  0.8 (charge concentrée centrale)
+                - Porte-à-faux : 0.5 (charge répartie), 0.8 (charge concentrée bout)
+                Defaults to 0.9.
+            coeflef_z (float, optional): Idem pour l'axe Z. Defaults to 0.9.
+            pos (str, optional): Position de la charge verticale sur la hauteur.
+                "Charge sur fibre comprimée": charge au-dessus de l'axe neutre
+                    (aggrave le déversement, +2h sur l_ef)
+                "Charge sur fibre neutre": charge au centre de gravité
+                "Charge sur fibre tendue": charge en dessous de l'axe neutre
+                    (favorise la stabilité, -0.5h sur l_ef)
+            *args: Arguments transmis à la classe parent Barre.
+            **kwargs: Arguments nommés transmis à Barre (b, h, classe, etc.).
+
+        Note:
+            La longueur efficace de déversement l_ef est calculée par :
+            l_ef = lo_rel × coeflef (+ correction selon pos)
         """
         super().__init__(*args, **kwargs)
         self.lo_rel_y = lo_rel_y* si.mm
@@ -385,7 +519,17 @@ class Flexion(Barre):
 
     @property
     def K_m(self):
-        """ Retourne le coef. Km qui reduit les contrainte d'une poutre scié en flexion """
+        """Coefficient de distribution des contraintes K_m selon l'EC5 §6.1.6.
+
+        Ce coefficient réduit la contrainte de flexion calculée pour les
+        sections rectangulaires en bois massif, BLC ou LVL afin de tenir
+        compte de la redistribution plastique des contraintes.
+
+        Returns:
+            float: Valeur de K_m.
+                - 0.7 pour les sections rectangulaires en bois massif, BLC, LVL
+                - 1.0 pour les sections circulaires ou les panneaux dérivés
+        """
         if self.type_bois == "Massif" or self.type_bois == "BLC" or self.type_bois == "LVL":
             if self.section == "Rectangulaire":
                 km = 0.7
@@ -397,7 +541,17 @@ class Flexion(Barre):
 
     @property
     def sigma_m_crit(self):
-        """ Retourne sigma m,crit pour la prise en compte du déversement d'une poutre """
+        """Contrainte critique de déversement sigma_m,crit selon l'EC5 §6.3.3.
+
+        Calculée par la formule de l'EC5 : sigma_m,crit = (0.78 × b² × E_0,05) / (h × l_ef)
+
+        Cette contrainte caractérise la stabilité latérale de la poutre.
+        Elle est corrigée en fonction de la position de la charge (pos).
+
+        Returns:
+            tuple: (latex_string, valeurs) où valeurs est un dict {'y': ..., 'z': ...}
+                avec les contraintes critiques pour chaque direction.
+        """
         self.l_ef_y = self.lo_rel_y * self.coeflef['y']
         self.l_ef_z = self.lo_rel_z * self.coeflef['z']
         if self.pos == "Charge sur fibre comprimée":
@@ -423,7 +577,20 @@ class Flexion(Barre):
 
     @property
     def lamb_rel_m(self):
-        """ Retourne l'élancement relatif de la section avec pour argument """
+        """Élancement relatif en flexion lambda_rel,m selon l'EC5 §6.3.3.
+
+        Rapport entre la résistance caractéristique et la contrainte critique :
+        lambda_rel,m = sqrt(f_m,k / sigma_m,crit)
+
+        Cet élancement caractérise le risque de déversement :
+        - lambda_rel,m <= 0.75 : pas de risque de déversement (K_crit = 1)
+        - 0.75 < lambda_rel,m <= 1.4 : zone de transition
+        - lambda_rel,m > 1.4 : risque élevé de déversement
+
+        Returns:
+            tuple: (latex_string, valeurs) où valeurs est un dict {'y': ..., 'z': ...}
+                avec les élancements relatifs pour chaque direction.
+        """
         f_m0k = float(self.caract_meca.loc['fm0k']) *si.MPa
         sigma_m_crit_y = self.sigma_m_crit[1]['y']
         sigma_m_crit_z = self.sigma_m_crit[1]['z']
@@ -437,7 +604,22 @@ class Flexion(Barre):
 
     @property
     def K_crit(self):
-        """ Retourne K,crit le coef. de minoration de la résistance en flexion au déversement"""
+        """Coefficient de déversement K_crit selon l'EC5 §6.3.3.
+
+        Ce coefficient minore la résistance à la flexion pour tenir compte
+du risque de déversement latéral. Il dépend de l'élancement relatif :
+
+        - lambda_rel,m <= 0.75 : K_crit = 1 (pas de déversement)
+        - 0.75 < lambda_rel,m <= 1.4 : K_crit = 1.56 - 0.75 × lambda_rel,m
+        - lambda_rel,m > 1.4 : K_crit = 1 / lambda_rel,m²
+
+        Returns:
+            tuple: (latex_string, valeurs) où valeurs est un dict {'y': ..., 'z': ...}
+                avec les coefficients de déversement pour chaque direction.
+
+        Note:
+            La vérification finale utilise : sigma_m,d <= K_crit × f_m,d
+        """
         lamb_rel_m_y = self.lamb_rel_m[1]['y']
         lamb_rel_m_z = self.lamb_rel_m[1]['z']
         result = [None, {"y": None, "z": None}]
@@ -472,21 +654,42 @@ class Flexion(Barre):
         return result
     
     def f_m_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
-        """Retourne la résistance f,m,d de l'élément en MPa
+        """Calcule la résistance de calcul en flexion f_m,d selon l'EC5 §6.1.6.
+
+        La résistance est déterminée à partir de la résistance caractéristique fm,0,k
+        et des coefficients de modification (kmod, γM).
 
         Args:
-            loadtype (str): chargement de plus courte durée sur l'élément.
-            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+            loadtype (str): Classe de durée de chargement (permanent, long terme, etc.).
+                Voir Barre.LOAD_TIME pour les valeurs possibles.
+            typecombi (str): Type de combinaison d'actions.
+                "fondamentale" ou "accidentelle". Defaults to "fondamentale".
 
         Returns:
-            float: f,m,d en MPa
+            float: Résistance de calcul fm,d en MPa avec unité (si.MPa).
         """
         return self._f_type_d("fm0k", loadtype, typecombi)
     
     
     def sigma_m_d(self, My: si.kN*si.m, Mz: si.kN*si.m):
-        """ Retourne la contrainte sigma,m,d suivant sont axes de flexion avec :
-            My/z : Moment autour de l'axe y et/ou z dans la barre en kN.m
+        """Calcule les contraintes de flexion sigma_m,d selon l'EC5 §6.1.6.
+
+        Détermine les contraintes normales dues aux moments fléchissants My et Mz
+        en utilisant la formule de Navier : σ = M·y/I
+
+        Args:
+            My (si.kN*m): Moment fléchissant autour de l'axe y (moment vertical)
+                en kN·m. Mettre 0 si pas de flexion selon cet axe.
+            Mz (si.kN*m): Moment fléchissant autour de l'axe z (moment horizontal)
+                en kN·m. Mettre 0 si pas de flexion selon cet axe.
+
+        Returns:
+            tuple: (latex_string, valeurs) où valeurs est un dictionnaire :
+                {"y": sigma_my_d, "z": sigma_mz_d} en MPa avec unités.
+
+        Note:
+            Les valeurs sont stockées dans l'attribut sigma_m_rd.
+            Pour une section rectangulaire : sigma = M·h/(2·I) = 6·M/(b·h²)
         """
         self.Md = {'y': My * si.kN*si.m, 'z': Mz * si.kN*si.m}
         self.sigma_m_rd = {'y': 0 * si.MPa, 'z': 0 * si.MPa}
@@ -511,16 +714,34 @@ class Flexion(Barre):
     
 
     def taux_m_d(self, compression: object=None, traction: object=None):
-        """Retourne les différents taux de travaux en flexion.
-        Si l'élement est une poutre (donc avec un travail principalement en flexion) et de la compression (EN 1995-1-1 §6.3.3) ou de la traction (EN 1995-1-1 §6.2.3) combinée, 
-        il est possible d'ajouter l'objet Compression et Traction et de vérifier ces combinaisons.
+        """Calcule les taux de travail en flexion selon l'EC5 §6.1.6, §6.2.3 et §6.3.3.
+
+        Vérifie les critères de résistance en flexion pure, flexion déviée,
+        flexo-compression et flexo-traction selon les équations :
+        - 6.11 et 6.12 : Flexion déviée avec K_m (facteur de distribution)
+        - 6.33 : Flexion avec déversement (K_crit)
+        - 6.17-6.20 : Combinaisons flexion + traction/compression
+        - 6.35 : Flexo-compression avec risque de déversement
 
         Args:
-            compression (object, optional): L'objet Compression avec ces taux de travaux préalablement calculés. Defaults to None.
-            traction (object, optional): L'objet Traction avec ces taux de travaux préalablement calculés. Defaults to None.
+            compression (Compression, optional): Objet Compression déjà calculé
+                pour les combinaisons flexo-compression. Defaults to None.
+            traction (Traction, optional): Objet Traction déjà calculé
+                pour les combinaisons flexo-traction. Defaults to None.
 
         Returns:
-            list: retourne la liste des taux de travaux en %"""
+            tuple: (latex_string, taux_dict) où taux_dict contient :
+                - "equ6.11", "equ6.12" : Flexion déviée
+                - "equ6.33y", "equ6.33z" : Flexion avec déversement
+                - "equ6.17", "equ6.18" : Flexion + traction (si traction fournie)
+                - "equ6.19", "equ6.20" : Flexion + compression (si compression fournie)
+                - "equ6.23-6.35" : Combinaisons avancées (si compression fournie)
+                Valeurs en pourcentage (0.85 = 85%).
+
+        Note:
+            Cette méthode met à jour automatiquement la synthèse des taux
+            de travail via _add_synthese_taux_travail.
+        """
         self.taux_m_rd = {}
 
         sigma_my_d = self.sigma_m_rd['y']
@@ -597,14 +818,26 @@ class Flexion(Barre):
         self._add_synthese_taux_travail(synthese)
         return (latex, self.taux_m_rd)
 
-
-
-# ================================ Traction ==================================
-
 class Traction(Barre):
+    """Classe de vérification des éléments bois en traction axiale selon l'EC5 §6.1.2.
+
+    Effectue les calculs de résistance et de contrainte en traction axiale selon
+    l'Eurocode 5 - Partie 1-1. Hérite de Barre pour les caractéristiques
+    géométriques et mécaniques.
+
+    La vérification principale est le taux de travail en traction (équation 6.1):
+    σ_t,0,d / (f_t,0,d · k_h) ≤ 1
+    """
+
     def __init__(self, *args, **kwargs):
-        """Classe permettant le calcul de la Traction d'un élément bois selon l'EN 1995.
-        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
+        """Initialise un objet de vérification en traction axiale.
+
+        Hérite de toutes les caractéristiques de Barre (section, classe de bois,
+        etc.). Aucun paramètre supplémentaire requis à l'initialisation.
+
+        Args:
+            *args: Arguments positionnels transmis à Barre.
+            **kwargs: Arguments nommés transmis à Barre (b, h, classe, etc.).
         """
         super().__init__(*args, **kwargs)
 
@@ -613,27 +846,46 @@ class Traction(Barre):
     def K_h(self):
         """ Retourne le coef. Kh qui peut augmenter la resistance caractéristique fm,k et ft,k """
         return self._K_h()
-    
-    
+
+
     def f_t_0_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
-        """Retourne la résistance f,t,0,d de l'élément en MPa
+        """Calcule la résistance de calcul en traction axiale f_t,0,d selon l'EC5 §6.1.2.
+
+        Détermine la résistance à partir de la résistance caractéristique ft,0,k
+        et des coefficients de modification (kmod, γM).
 
         Args:
-            loadtype (str): chargement de plus courte durée sur l'élément.
-            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+            loadtype (str): Classe de durée de chargement.
+                Voir Barre.LOAD_TIME pour les valeurs possibles.
+            typecombi (str): Type de combinaison d'actions.
+                "fondamentale" ou "accidentelle". Defaults to "fondamentale".
 
         Returns:
-            float: f,t,0,d en MPa
+            float: Résistance de calcul ft,0,d en MPa avec unité (si.MPa).
         """
         return super()._f_type_d("ft0k", loadtype, typecombi)
-    
-    
+
+
     def sigma_t_0_d(self, Ft0d: si.kN, Anet: si.mm**2=None):
-        """Retourne la contrainte de traxion axial en MPa avec:
+        """Calcule la contrainte de traction axiale sigma_t,0,d selon l'EC5 §6.1.2.
+
+        Détermine la contrainte normale due à l'effort de traction axial.
+        Prend en compte une section nette réduite (perçages, entailles) si spécifiée.
 
         Args:
-            Ft0d (float): la charge en kN de compression 
-            Anet (float|optional): si il y a une réduction de la section en traction alors renseigner l'aire nette de traction en mm2
+            Ft0d (si.kN): Effort de traction axial en kN.
+            Anet (si.mm**2, optional): Aire nette de la section en mm² si réduction
+                (perçages, entailles). Doit être ≤ aire brute. Defaults to None.
+
+        Returns:
+            tuple: (latex_string, valeur) où valeur est sigma_t,0,d en MPa avec unité.
+
+        Raises:
+            ValueError: Si Anet > aire brute de la section.
+
+        Note:
+            La valeur est stockée dans l'attribut sigma_t_0_rd.
+            Pour les assemblages boulonnés, utiliser Anet pour tenir compte des trous.
         """
         self.Ft_0_d = Ft0d * si.kN
         Ft_0_d = self.Ft_0_d
@@ -652,10 +904,20 @@ class Traction(Barre):
 
 
     def taux_t_0_d(self):
-        """Retourne le taux de travail en traction axial.
+        """Calcule le taux de travail en traction axiale selon l'EC5 §6.1.2 (Eq. 6.1).
+
+        Vérifie le critère : σ_t,0,d / (k_h · f_t,0,d) ≤ 1
+
+        Le coefficient k_h (effet de hauteur) est pris comme le minimum des
+        valeurs selon y et z pour être conservateur.
 
         Returns:
-            float: taux de travail en %
+            tuple: (latex_string, valeur) où valeur est le taux en pourcentage
+                (0.75 = 75%). Stocké dans taux_t_0_rd['equ6.1'].
+
+        Note:
+            Cette méthode met à jour automatiquement la synthèse des taux
+            de travail via _add_synthese_taux_travail.
         """
         self.taux_t_0_rd = {}
         K_h_y = self.K_h['y']
@@ -679,28 +941,53 @@ class Traction(Barre):
 
 
 # ================================ Compression ==================================
- 
+
 class Compression(Barre):
+    """Classe de vérification des éléments bois en compression axiale selon l'EC5 §6.2 et §6.3.2.
+
+    Effectue les calculs de résistance, élancement et flambement selon
+    l'Eurocode 5 - Partie 1-1. Hérite de Barre pour les caractéristiques
+    géométriques et mécaniques.
+
+    Vérifie :
+    - La résistance en compression axiale (§6.2.2, Eq. 6.2)
+    - Le flambement avec coefficient kc (§6.3.2, Eq. 6.23-6.24)
+    - Les combinaisons flexo-compression (si objet Flexion fourni)
+    """
+
     COEF_LF = {"Encastré 1 côté" : 2,
                 "Rotule - Rotule" : 1,
                 "Encastré - Rotule" : 0.7,
                 "Encastré - Encastré" : 0.5,
                 "Encastré - Rouleau" : 1}
-    def __init__(self, lo_y: si.mm, lo_z: si.mm, type_appuis: str=COEF_LF, *args, **kwargs):
-        """ Classe permettant le calcul de la Compression d'un élément bois selon l'EN 1995.
-        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
-        
-        Args:
-            lo : Longueur de flambement suivant l'axe de rotation (y ou z) en mm si pas de flambement alors 0
-            type_appuis : Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
-                        fonction des types d'appui :
-                                                        Encastré 1 côté : 2
-                                                        Rotule - Rotule : 1
-                                                        Encastré - Rotule : 0.7
-                                                        Encastré - Encastré : 0.5
-                                                        Encastré - Rouleau : 1
-        """
 
+    def __init__(self, lo_y: si.mm, lo_z: si.mm, type_appuis: str=COEF_LF, *args, **kwargs):
+        """Initialise un objet de vérification en compression axiale.
+
+        Définit les longueurs de flambement et le coefficient de longueur efficace
+        selon les conditions d'appui pour le calcul du flambement.
+
+        Args:
+            lo_y (si.mm): Longueur de flambement suivant l'axe y en mm.
+                Mettre 0 si pas de risque de flambement selon cet axe.
+            lo_z (si.mm): Longueur de flambement suivant l'axe z en mm.
+                Mettre 0 si pas de risque de flambement selon cet axe.
+            type_appuis (str): Type de conditions d'appui pour le coefficient β.
+                Détermine la longueur efficace lf = β · lo.
+                Valeurs possibles (voir COEF_LF):
+                - "Encastré 1 côté" : β = 2.0 (console)
+                - "Rotule - Rotule" : β = 1.0 (articulé-articulé)
+                - "Encastré - Rotule" : β = 0.7
+                - "Encastré - Encastré" : β = 0.5
+                - "Encastré - Rouleau" : β = 1.0 (encastré-glissière)
+                Defaults to "Rotule - Rotule".
+            *args: Arguments positionnels transmis à Barre.
+            **kwargs: Arguments nommés transmis à Barre (b, h, classe, etc.).
+
+        Note:
+            La longueur efficace de flambement lf est calculée par :
+            lf = lo × coef_lef
+        """
         super().__init__(*args, **kwargs)
         self.lo_comp = {"y":lo_y * si.mm, "z":lo_z * si.mm}
         self.lo_y = self.lo_comp['y']
@@ -784,24 +1071,45 @@ class Compression(Barre):
 
 
     def f_c_0_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
-        """Retourne la résistance f,c,0,d de l'élément en MPa
+        """Calcule la résistance de calcul en compression axiale f_c,0,d selon l'EC5 §6.2.2.
+
+        Détermine la résistance à partir de la résistance caractéristique fc,0,k
+        et des coefficients de modification (kmod, γM).
 
         Args:
-            loadtype (str): chargement de plus courte durée sur l'élément.
-            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+            loadtype (str): Classe de durée de chargement.
+                Voir Barre.LOAD_TIME pour les valeurs possibles.
+            typecombi (str): Type de combinaison d'actions.
+                "fondamentale" ou "accidentelle". Defaults to "fondamentale".
 
         Returns:
-            float: f,c,0,d en MPa
+            float: Résistance de calcul fc,0,d en MPa avec unité (si.MPa).
+
+        Note:
+            Cette valeur est réduite par le coefficient kc en cas de flambement.
         """
         return super()._f_type_d("fc0k", loadtype, typecombi)
     
     
     def sigma_c_0_d(self, Fc0d: si.kN, Anet: si.mm**2=None):
-        """Retourne la contrainte de compression axial en MPa avec:
+        """Calcule la contrainte de compression axiale sigma_c,0,d selon l'EC5 §6.2.2.
+
+        Détermine la contrainte normale due à l'effort de compression axial.
+        Prend en compte une section nette réduite si spécifiée.
 
         Args:
-            Fc0d (float): la charge en kN de compression 
-            Anet (float|optional): si il y a une réduction de la section en compression alors renseigner l'aire nette de compression en mm2
+            Fc0d (si.kN): Effort de compression axial en kN.
+            Anet (si.mm**2, optional): Aire nette de la section en mm² si réduction
+                (entailles, perçages). Doit être ≤ aire brute. Defaults to None.
+
+        Returns:
+            tuple: (latex_string, valeur) où valeur est sigma_c,0,d en MPa avec unité.
+
+        Raises:
+            ValueError: Si Anet > aire brute de la section.
+
+        Note:
+            La valeur est stockée dans l'attribut sigma_c_0_rd.
         """
         self.Fc_0_d = Fc0d * si.kN
         Fc_0_d = self.Fc_0_d
@@ -819,15 +1127,27 @@ class Compression(Barre):
     
     
     def taux_c_0_d(self, flexion: object=None):
-        """Retourne les taux de travaux de la compression axial.
-        Si l'élement est un poteau (donc avec un travail principalement en compression) et de la flexion combinée (EN 1995-1-1 §6.3.2), 
-        il est possible d'ajouter l'objet flexion et de vérifier cette combinaison.
+        """Calcule les taux de travail en compression axiale selon l'EC5 §6.2.2 et §6.3.2.
+
+        Vérifie les critères de résistance :
+        - Equ. 6.2 : Compression simple (sigma_c,0,d / f_c,0,d)
+        - Equ. 6.23-6.24 : Flambement (sigma_c,0,d / (kc · f_c,0,d))
+        - Equ. 6.19-6.20 : Flexo-compression (si objet Flexion fourni)
 
         Args:
-            flexion (object, optional): L'objet Flexion avec ces taux de travaux préalablement calculés. Default to None.
+            flexion (Flexion, optional): Objet Flexion déjà calculé
+                pour les combinaisons flexo-compression. Defaults to None.
 
         Returns:
-            list: retourne la liste des taux de travaux en %
+            tuple: (latex_string, taux_dict) où taux_dict contient :
+                - "equ6.2" : Compression simple sans flambement
+                - "equ6.23", "equ6.24" : Compression avec flambement selon y et z
+                - "equ6.19", "equ6.20" : Flexo-compression (si flexion fournie)
+                Valeurs en pourcentage (0.85 = 85%).
+
+        Note:
+            Cette méthode met à jour automatiquement la synthèse des taux
+            de travail via _add_synthese_taux_travail.
         """
         self.taux_c_0_rd = {}
         sigma_c_0_d = self.sigma_c_0_rd
@@ -873,11 +1193,17 @@ class Compression(Barre):
         self._add_synthese_taux_travail(synthese)
         return value
 
-    
-
-    # ================================ COMPRESSION PERPENDICULAIRE ==================================
-
 class Compression_perpendiculaire(Barre):
+    """Classe de vérification des éléments bois en compression perpendiculaire selon l'EC5 §6.1.5.
+
+    Effectue les calculs de résistance et de contrainte en compression perpendiculaire
+    au fil du bois (appuis de poutres, abouts de pieux, etc.) selon l'Eurocode 5.
+    Hérite de Barre pour les caractéristiques géométriques et mécaniques.
+
+    La vérification utilise l'équation 6.3 avec le coefficient K_c,90 :
+    σ_c,90,d / (K_c,90 · f_c,90,d) ≤ 1
+    """
+
     TYPE_APPUIS = ("Appuis discret", "Appuis continu")
     def __init__(
         self, 
@@ -891,19 +1217,23 @@ class Compression_perpendiculaire(Barre):
         *args, 
         **kwargs
         ):
-        """Classe intégrant les formules de compression perpendiculaire selon l'EN 1995 §6.1.5.
-        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
+        """Initialise un objet de vérification en compression perpendiculaire.
 
         Args:
-            b_appuis(int): largeur d'appuis en mm.
-            l_appuis(int): longeur de l'appuis en mm.
-            l1d(int) : Distance entre les charges en mm (l et l) (si pas de l1d ne rien mettre).
-            l1g(int) : Distance entre les charges en mm (l et l) (si pas de l1g ne rien mettre).
-            ad(int) : Distance depuis le bord jusqu'à l'appuis à droite (l) en mm (si pas de ad et au bord ne rien mettre).
-            ag(int) : Distance depuis le bord jusqu'à l'appuis à gauche (l) en mm (si pas de ad et au bord ne rien mettre).
-            type_appuis_90(str) : Type d'appuis (Appui continu, Appui discret)
-        """
+            b_appuis (si.mm): Largeur d'appuis en mm.
+            l_appuis (si.mm): Longueur de l'appuis en mm.
+            l1d (si.mm, optional): Distance entre les charges en mm (l et l) (si pas de l1d ne rien mettre). Defaults to 10000.
+            l1g (si.mm, optional): Distance entre les charges en mm (l et l) (si pas de l1g ne rien mettre). Defaults to 10000.
+            ad (si.mm, optional): Distance depuis le bord jusqu'à l'appuis à droite (l) en mm (si pas de ad et au bord ne rien mettre). Defaults to 0.
+            ag (si.mm, optional): Distance depuis le bord jusqu'à l'appuis à gauche (l) en mm (si pas de ad et au bord ne rien mettre). Defaults to 0.
+            type_appuis_90 (str, optional): Type d'appuis (Appui continu, Appui discret). Defaults to TYPE_APPUIS.
+            *args: Arguments transmis à Barre (classe, etc.).
+            **kwargs: Arguments transmis à Barre (b, h, etc.).
 
+        Note:
+            La longueur efficace de compression perpendiculaire l_ef est calculée
+            en fonction de la configuration des appuis et des distances entre charges.
+        """
         super().__init__(*args, **kwargs)
         self.b_appuis = b_appuis * si.mm
         self.l_appuis = l_appuis * si.mm
@@ -915,13 +1245,12 @@ class Compression_perpendiculaire(Barre):
 
     @property
     def K_c90(self):
-        """ Retourne le facteur Kc,90 qui tient compte de la configuration de chargement, du fendage et de la déformation
+        """Retourne le facteur K_c,90 qui tient compte de la configuration de chargement, du fendage et de la déformation
             en compression avec pour argument :
             h : Hauteur de l'élement subissant la compression en mm
             lO : Longeur de l'appuis en compression en mm
             l1 : Distance la plus petite entre deux appuis en mm (l et l)
-            """
-
+        """
         try:
             return self._setter_K_c90
         except AttributeError:
@@ -988,22 +1317,38 @@ class Compression_perpendiculaire(Barre):
 
 
     def f_c_90_d(self, loadtype: str=Barre.LOAD_TIME, typecombi: str=Barre.TYPE_ACTION):
-        """Retourne la résistance f,c,90,d de l'élément en MPa
+        """Calcule la résistance de calcul en compression perpendiculaire f_c,90,d selon l'EC5 §6.1.5.
+
+        Détermine la résistance à partir de la résistance caractéristique fc,90,k
+        et des coefficients de modification (kmod, γM).
 
         Args:
-            loadtype (str): chargement de plus courte durée sur l'élément.
-            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+            loadtype (str): Classe de durée de chargement.
+                Voir Barre.LOAD_TIME pour les valeurs possibles.
+            typecombi (str): Type de combinaison d'actions.
+                "fondamentale" ou "accidentelle". Defaults to "fondamentale".
 
         Returns:
-            float: f,c,90,d en MPa
+            float: Résistance de calcul fc,90,d en MPa avec unité (si.MPa).
         """
         return super()._f_type_d("fc90k", loadtype, typecombi)
     
     
     def sigma_c_90_d(self, Fc90d: si.kN):
-        """ Retourne la contrainte normal de compression à 90 degrés en MPa avec pour argument:
+        """Calcule la contrainte de compression perpendiculaire sigma_c,90,d selon l'EC5 §6.1.5.
 
-            Fc90d : Charge en compression perpendiculaire en kN
+        Détermine la contrainte en tenant compte de l'aire effective d'appui,
+        qui inclut une diffusion des efforts sur 30 mm ou jusqu'aux bords/entraxe.
+
+        Args:
+            Fc90d (si.kN): Effort de compression perpendiculaire en kN.
+
+        Returns:
+            tuple: (latex_string, valeur) où valeur est sigma_c,90,d en MPa avec unité.
+
+        Note:
+            L'aire effective a_ef = (l_appuis + min(30mm, distance_bord, l_appuis, 0.5×entraxe)) × b_appuis
+            La valeur est stockée dans l'attribut sigma_c_90_rd.
         """
         
         self.Fc90d = Fc90d * si.kN
@@ -1027,7 +1372,23 @@ class Compression_perpendiculaire(Barre):
 
 
     def taux_c_90_d(self):
-        """ Retourne le taux de travail de la compression perpendiculaire """
+        """Calcule le taux de travail en compression perpendiculaire selon l'EC5 §6.1.5 (Eq. 6.3).
+
+        Vérifie le critère : σ_c,90,d / (K_c,90 · f_c,90,d) ≤ 1
+
+        Le coefficient K_c,90 (déterminé par la propriété K_c90) tient compte :
+        - De la configuration des appuis (discrets ou continus)
+        - Du type de bois (massif, BLC, etc.)
+        - De la hauteur de l'élément et des distances entre appuis
+
+        Returns:
+            tuple: (latex_string, valeur) où valeur est le taux en pourcentage
+                (0.75 = 75%). Stocké dans taux_c_90_rd['equ6.3'].
+
+        Note:
+            Cette méthode met à jour automatiquement la synthèse des taux
+            de travail via _add_synthese_taux_travail.
+        """
         self.taux_c_90_rd = {}
         sigma_c_90_d = self.sigma_c_90_rd
         K_c90 = self.K_c90
@@ -1055,19 +1416,44 @@ class Compression_perpendiculaire(Barre):
 
 
 class Compression_inclinees(Compression_perpendiculaire):
+    """Classe de vérification des éléments bois en compression inclinée selon l'EC5 §6.2.2.
+
+    Effectue les calculs de résistance et de contrainte en compression inclinée
+    par rapport au fil du bois selon l'Eurocode 5 - Partie 1-1, article 6.2.2.
+    Hérite de Compression_perpendiculaire pour la gestion des appuis et des coefficients.
+
+    La vérification utilise l'équation 6.16 avec la formule de Hankinson :
+    σ_c,α,d ≤ f_c,0,d / [(f_c,0,d/(K_c,90·f_c,90,d))·sin²(α) + cos²(α)]
+    """
+
     def __init__(self, alpha: float=45, **kwargs):
-        """Classe qui permet de calculer la compression inclinées par rapport au fil comme décrit à l'EN 1995 §6.2.2.
-        Cette classe est hérité de la classe Compression_perpendiculaire provenant du module EC5_Element_droit.py.
+        """Initialise un objet de vérification en compression inclinée.
 
         Args:
-            alpha (float, optional): angle d'inclinaison en degrés de la compression. Defaults to 0.
+            alpha (float, optional): Angle d'inclinaison de la compression par rapport
+                au fil du bois en degrés. 0° = compression axiale, 90° = compression
+                perpendiculaire. Defaults to 45°.
+            **kwargs: Arguments transmis à Compression_perpendiculaire
+                (b_appuis, l_appuis, etc.).
         """
         super().__init__(**kwargs)
         self.alpha = alpha
     
     def sigma_c_alpha_d(self, Fcad: si.kN):
-        """ Retourne la contrainte de compression inclinée en MPa avec:
-            Fcad : la charge en kN de compression inclinée """
+        """Calcule la contrainte de compression inclinée sigma_c,alpha,d.
+
+        Détermine la contrainte normale due à l'effort de compression inclinée,
+        en utilisant l'aire brute d'appui (sans diffusion).
+
+        Args:
+            Fcad (si.kN): Effort de compression inclinée en kN.
+
+        Returns:
+            tuple: (latex_string, valeur) où valeur est sigma_c,alpha,d en MPa avec unité.
+
+        Note:
+            La valeur est stockée dans l'attribut sigma_c_alpha_rd.
+        """
         b_appuis = self.b_appuis
         l_appuis = self.l_appuis
         self.Fc_alpha_d = Fcad * si.kN
@@ -1085,11 +1471,24 @@ class Compression_inclinees(Compression_perpendiculaire):
     
 
     def taux_c_alpha_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
-        """ Retourne le taux de travail de la compression inclinées par rapport au fil
+        """Calcule le taux de travail en compression inclinée selon l'EC5 §6.2.2 (Eq. 6.16).
+
+        Vérifie le critère de Hankinson : σ_c,α,d ≤ f_c,α,d
+        où f_c,α,d = f_c,0,d / [(f_c,0,d/(K_c,90·f_c,90,d))·sin²(α) + cos²(α)]
 
         Args:
-            loadtype (str): chargement de plus courte durée sur l'élément.
-            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+            loadtype (str): Classe de durée de chargement.
+                Voir Barre.LOAD_TIME pour les valeurs possibles.
+            typecombi (str): Type de combinaison d'actions.
+                "fondamentale" ou "accidentelle". Defaults to "fondamentale".
+
+        Returns:
+            tuple: (latex_string, valeur) où valeur est le taux en pourcentage
+                (0.75 = 75%). Stocké dans taux_c_alpha_rd['equ6.16'].
+
+        Note:
+            Cette méthode met à jour automatiquement la synthèse des taux
+            de travail via _add_synthese_taux_travail.
         """
         self.taux_c_alpha_rd = {}
         f_c_0_d = self._f_type_d("fc0k", loadtype, typecombi)[1]
@@ -1116,10 +1515,26 @@ class Compression_inclinees(Compression_perpendiculaire):
 # ================================ CISAILLEMENT ==================================
 
 class Cisaillement(Barre):
+    """Classe de vérification des éléments bois au cisaillement selon l'EC5 §6.1.7 et §6.5.
+
+    Effectue les calculs de contrainte et taux de travail au cisaillement
+    longitudinal pour des poutres en bois selon l'Eurocode 5.
+    Hérite de Barre pour les caractéristiques géométriques et mécaniques.
+
+    Vérifie :
+    - La résistance au cisaillement (§6.1.7, Eq. 6.13)
+    - Le cisaillement avec entaille (§6.5, Eq. 6.60) avec facteur K_v
+    """
+
     DICT_KN = {"Massif": 5,"BLC": 6.5, "LVL": 4.5}
     def __init__(self, **kwargs):
-        """Classe qui permet de calculer le cisaillement d'une poutre comme décrit à l'EN 1995 §6.1.7 et §6.5.
-        Cette classe est hérité de la classe Barre, provenant du module EC5_Element_droit.py.
+        """Initialise un objet de vérification au cisaillement.
+
+        Hérite de toutes les caractéristiques de Barre. Initialise K_v à 1
+        (pas d'entaille) et h_ef à la hauteur totale.
+
+        Args:
+            **kwargs: Arguments transmis à Barre (classe, etc.).
         """
         super().__init__(**kwargs)
         self.K_v = 1
@@ -1127,16 +1542,21 @@ class Cisaillement(Barre):
 
     @property
     def K_cr(self):
-        """ Retourne le facteur de réduction de largeur Kcr avec pour argument:
-            cs: Classe de service de la poutre
-                                            CS 1 : 1
-                                            CS 2 : 2
-                                            CS 3 : 3
-            h : Hauteur en mm
-            type_bois : Type de bois
-                                Massif : 0
-                                BLC : 1
-                                Autre : 2 """
+        """Facteur de réduction de largeur K_cr selon l'EC5 §6.1.7.
+
+        Tient compte des fissures de séchage dans le bois massif et BLC.
+        Réduction de 33% (K_cr = 0.67) pour les sections fragilisées.
+
+        Returns:
+            float: Valeur de K_cr.
+                - 1.0 : Pas de réduction (bois sans fissuration significative)
+                - 0.67 : Réduction pour bois massif h > 150mm (CS1/CS2) ou BLC (CS2/CS3)
+
+        Note:
+            CS1/CS2 : K_cr = 0.67 si h > 150mm et bois massif
+            CS2 : K_cr = 0.67 pour BLC
+            CS3 : K_cr = 0.67 pour tout bois
+        """
         if self.cs == 1:
             if self.h_calcul.value * 10**3 > 150 and self.type_bois == "Massif":
                 return 0.67
@@ -1154,23 +1574,34 @@ class Cisaillement(Barre):
 
 
     def Kv(self, hef:si.mm, x:si.mm, i_lo:si.mm, ent=("Dessous", "Dessus")):
-        """Retourne le facteur d'entaille Kv pour une entaille au niveau d'un appuis
+        """Calcule le facteur de réduction d'entaille K_v selon l'EC5 §6.5.
+
+        Ce coefficient réduit la résistance au cisaillement en présence d'une
+        entaille au niveau d'un appui (entaille en dessous ou au dessus de la poutre).
+
+        Formule EC5 : K_v = min(1, [K_n(1 + 1.1·i^1.5/√h)] / [√h·(√(α(1-α)) + 0.8·x/h·√(1/α - α²))])
+        où α = h_ef/h et i = i_lo/h_ef
 
         Args:
-            hef (int): Hauteur efficace de la poutre (hauteur - hauteur de l'entaille) en mm
-            x (int):Distance entre le centre de réaction à l'appuis et le coin de l'entaille en mm
-            i_lo (float): longueur horizontal de l'entaille en mm
-            ent (tuple, optional): Entaille sur le dessus ou dessous de la poutre.
+            hef (si.mm): Hauteur efficace de la poutre (hauteur - profondeur entaille) en mm.
+            x (si.mm): Distance entre le centre de réaction à l'appui et le coin de l'entaille en mm.
+            i_lo (si.mm): Longueur horizontale de l'entaille en mm.
+            ent (str, optional): Position de l'entaille : "Dessous" ou "Dessus".
+                Defaults to "Dessous".
 
         Returns:
-            float: facteur Kv
+            tuple: (latex_string, valeur) où valeur est le facteur K_v (≤ 1).
+                Si ent="Dessus", retourne K_v = 1 (pas de réduction).
+
+        Note:
+            La valeur est stockée dans l'attribut K_v.
+            K_n dépend du type de bois (voir DICT_KN).
         """
         K_n = self.DICT_KN[self.type_bois]
         x = x * si.mm
         h_ef = hef * si.mm
         i = i_lo * si.mm / h_ef
         h_calcul = self.h_calcul
-        print(h_ef, h_calcul)
 
         self.h_ef = h_ef
         if ent == "Dessus":
@@ -1186,23 +1617,39 @@ class Cisaillement(Barre):
             self.K_v = value[1]
             return value
 
-    
     def f_v_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
-        """Retourne la résistance f,v,d de l'élément en MPa
+        """Calcule la résistance de calcul au cisaillement f_v,d selon l'EC5 §6.1.7.
+
+        Détermine la résistance à partir de la résistance caractéristique f_v,k
+        et des coefficients de modification (kmod, γM).
 
         Args:
-            loadtype (str): chargement de plus courte durée sur l'élément.
-            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+            loadtype (str): Classe de durée de chargement.
+                Voir Barre.LOAD_TIME pour les valeurs possibles.
+            typecombi (str): Type de combinaison d'actions.
+                "fondamentale" ou "accidentelle". Defaults to "fondamentale".
 
         Returns:
-            float: f,v,d en MPa
+            float: Résistance de calcul f_v,d en MPa avec unité (si.MPa).
         """
         return super()._f_type_d("fvk", loadtype, typecombi)
-       
-    
+
     def tau_d(self, Vd:si.kN):
-        """ Retourne la contrainte tau en  MPa pour le cisaillement longitudinale d'une poutre rectangulaire
-              Vd : Effort de cisaillement sur la poutre en kN"""
+        """Calcule la contrainte de cisaillement tau_d selon l'EC5 §6.1.7.
+
+        Détermine la contrainte de cisaillement longitudinal pour une poutre
+        rectangulaire : τ = 1.5·V/(b_ef·h_ef)
+
+        Args:
+            Vd (si.kN): Effort tranchant (cisaillement) sur la poutre en kN.
+
+        Returns:
+            tuple: (latex_string, valeur) où valeur est tau_d en MPa avec unité.
+
+        Note:
+            La valeur est stockée dans l'attribut tau_rd.
+            Prend en compte K_cr (fissuration) et K_v (entaille si défini).
+        """
         self.V_d = Vd * si.kN
         V_d = self.V_d
         K_cr = self.K_cr
@@ -1214,14 +1661,27 @@ class Cisaillement(Barre):
             b_ef = K_cr * b_calcul
             tau_d = (1.5 * V_d) / (b_ef * h_ef)
             return tau_d
-        
+
         value = val()
         self.tau_rd = value[1]
         return value
 
-
     def taux_tau_d(self):
-        """ Retourne le taux de travail en cisaillement en % """
+        """Calcule les taux de travail au cisaillement selon l'EC5 §6.1.7 et §6.5.
+
+        Vérifie les critères :
+        - Equ. 6.13 : Cisaillement simple (tau_d / f_v,d)
+        - Equ. 6.60 : Cisaillement avec entaille (tau_d / (K_v · f_v,d))
+
+        Returns:
+            tuple: (latex_string, valeurs) où valeurs contient les taux pour
+                equ6.13 (sans entaille) et equ6.60 (avec entaille) en pourcentage.
+                Stockés dans taux_tau_rd['equ6.13'] et ['equ6.60'].
+
+        Note:
+            Cette méthode met à jour automatiquement la synthèse des taux
+            de travail via _add_synthese_taux_travail.
+        """
         self.taux_tau_rd = {}
         tau_d = self.tau_rd
         f_v_d = self.f_type_rd
@@ -1230,9 +1690,9 @@ class Cisaillement(Barre):
         @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             taux_6_13 = tau_d / f_v_d
-            taux_6_60 = tau_d/ (K_v * f_v_d)
+            taux_6_60 = tau_d / (K_v * f_v_d)
             return taux_6_13, taux_6_60
-         
+
         value = val()
         self.taux_tau_rd['equ6.13'] = value[1][0]
         self.taux_tau_rd['equ6.60'] = value[1][1]

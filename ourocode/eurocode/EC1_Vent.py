@@ -5,14 +5,11 @@ import sys
 from PIL import Image
 
 import math as mt
-from math import *
 from copy import copy
 
 import pandas as pd
 import forallpeople as si
 from handcalcs.decorator import handcalc
-from PySide6.QtWidgets import QApplication, QInputDialog
-from PySide6.QtCore import Qt
 
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 # from eurocode.A0_Projet import Batiment
@@ -112,6 +109,8 @@ class Vent(Batiment):
                     "Ao2": "",
                 }
             # Demande des altitudes via des boîtes de dialogue QInputDialog (PySide6), autonome si aucune QApplication n'existe
+            from PySide6.QtWidgets import QApplication, QInputDialog
+            from PySide6.QtCore import Qt
             app = QApplication.instance()
             owns_app = False
             if app is None:
@@ -712,7 +711,6 @@ class Toiture_terrasse_acrotere(Vent):
                                 self.load_area, 1, 10, df.iloc[i + 1, j], df.iloc[i, j]
                             )
                         )
-                        print(row)
                     df.loc[df.shape[0]] = row
             df.reset_index(drop=True, inplace=True)
 
@@ -1108,7 +1106,6 @@ class Toiture_2_pants(Vent):
                                 df_max.iloc[i, j],
                             )
                         )
-                print(row)
                 df.loc[df.shape[0]] = row
 
         if self.load_area > 1 and self.load_area < 10:
@@ -1310,8 +1307,7 @@ class Toiture_isolee_1_pant(Vent):
 
 class Toiture_isolee_2_pants(Vent):
     def __init__(self, phi: float, load_area: float, *args, **kwargs):
-        """Créer une classe permetant le calcul d_bat'une toiture isolée à deux versants au vent selon l'EN 1991-1-4 §7.3
-        ATTENTION : Il ne semble pas y avoir d'inversion de zonage quand le vent est à 0° ou 90° mais une inversion des longueurs de surface A VALIDER !
+        """Créer une classe permetant le calcul d'une toiture isolée à deux versants au vent selon l'EN 1991-1-4 §7.3
 
         Args:
                 phi (int | float): le degré d'obstruction sous une toiture isolée entre 0 et 1.
