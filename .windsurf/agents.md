@@ -2,7 +2,7 @@
 
 ## Vue d'ensemble du projet
 
-**Ourocode** est une bibliothèque Python (v1.9.0, Python ≥ 3.12) de calcul de structure selon les Eurocodes avec Annexes Nationales Françaises.  
+**Ourocode** est une bibliothèque Python (v1.10.0, Python ≥ 3.12) de calcul de structure selon les Eurocodes avec Annexes Nationales Françaises.  
 Auteur : Anthony PARISOT — [OUREA STRUCTURE](https://ourea-structure.fr)  
 Licence : Apache 2.0
 
@@ -39,6 +39,7 @@ ourocode/
 │       ├── EC3_Assemblage.py          # EN 1993 – Assemblages acier
 │       ├── EC3_Feu.py                 # EN 1993 – Vérification feu acier
 │       ├── EC5_Element_droit.py       # EN 1995 – Éléments droits bois
+│       ├── EC5_BLC.py                 # EN 1995 – Paramètres bois lamellé-collé
 │       ├── EC5_Assemblage.py          # EN 1995 – Assemblages bois
 │       ├── EC5_CVT.py                 # EN 1995 – Murs à ossature bois (MOB/CVT)
 │       ├── EC5_Feu.py                 # EN 1995 – Vérification feu bois
@@ -191,21 +192,36 @@ display(Latex(latex_taux))
 
 ## Dépendances principales
 
-| Package | Usage |
-|---------|-------|
-| `forallpeople` | Calcul avec unités physiques SI |
-| `handcalcs` | Génération de LaTeX depuis du Python |
-| `PyNiteFEA` | Modèle éléments finis 3D |
-| `pyvista` + `PySide6` | Visualisation 3D et dialogues fichiers |
-| `pandas` | Lecture des CSV de référence |
-| `Pillow` | Affichage des images de schémas |
+| Package | Usage | Optionnel |
+|---------|-------|----------|
+| `forallpeople` | Calcul avec unités physiques SI | Non |
+| `handcalcs` | Génération de LaTeX depuis du Python | Non |
+| `pandas` | Lecture des CSV de référence | Non |
+| `Pillow` | Affichage des images de schémas | Non |
+| `PyNiteFEA` | Modèle éléments finis 3D | Oui (`[mef]`) |
+| `pyvista` | Visualisation 3D | Oui (`[mef]`) |
+| `PySide6` | Dialogues fichiers Qt | Oui (`[gui]`) |
+| `mkdocs-material` | Génération de la documentation | Oui (`[docs]`) |
+| `mkdocstrings[python]` | Extraction des docstrings | Oui (`[docs]`) |
+| `ruff` | Linting (CI) | Oui (`[dev]`) |
+| `pytest` / `pytest-cov` | Tests unitaires | Oui (`[test]`) |
+
+Installation des extras :
+
+```bash
+pip install "ourocode[full]"    # gui + mef
+pip install "ourocode[docs]"   # documentation
+pip install "ourocode[test]"   # tests
+pip install "ourocode[dev]"    # linting
+```
 
 ---
 
 ## Tests
 
 ```bash
-pytest --cov=. --cov-report html
+pytest tests/ -v --tb=short
+pytest --cov=ourocode --cov-report html
 ```
 
 Fichiers de test dans `tests/`, nommés `test_<module>.py`.  
@@ -213,7 +229,69 @@ Couvrent les modules principaux. Pas de test dédié à `EC1_Vent.py` ni `EC3_Fe
 
 ---
 
+## CI/CD (GitHub Actions — `.github/workflows/ci.yml`)
+
+Trois jobs séquentiels déclenchés sur push/PR vers `main` :
+
+| Job | Dépend de | Condition |
+|-----|-----------|----------|
+| `lint` | — | Toujours |
+| `test` | `lint` | Toujours |
+| `docs` | `test` | Push sur `main` uniquement |
+
+- **`lint`** : `ruff check ourocode/ tests/`
+- **`test`** : `pip install -e ".[test]"` + `pytest tests/ -v --tb=short`
+- **`docs`** : `pip install -e ".[docs]"` + `mkdocs gh-deploy --force --clean` → déploie sur la branche `gh-pages`
+
+URL de la doc déployée : `https://anthonyprst.github.io/ourocode/`
+
+---
+
+## Documentation (`docs/` + `mkdocs.yml`)
+
+Outil : **MkDocs-Material** + **mkdocstrings[python]**.
+
+Structure :
+
+```
+docs/
+├── index.md          # Page d'accueil
+├── guide.md          # Guide de démarrage
+├── normes.md         # Référence EN 1990/1991/1993/1995/1998
+├── changelog.md      # Inclusion automatique du CHANGELOG.md
+├── assets/
+│   └── logo.png
+└── api/
+    ├── objet.md
+    ├── A0_Projet.md
+    ├── EC0_Combinaison.md
+    ├── EC1_Exploitation.md
+    ├── EC1_Neige.md
+    ├── EC1_Vent.md
+    ├── EC3_Element_droit.md
+    ├── EC3_Feu.md
+    ├── EC3_Assemblage.md
+    ├── EC5_Element_droit.md
+    ├── EC5_BLC.md
+    ├── EC5_Feu.md
+    ├── EC5_Assemblage.md
+    ├── EC5_CVT.md
+    └── EC8_Sismique.md
+```
+
+Commandes locales :
+
+```bash
+pip install "ourocode[docs]"
+mkdocs serve    # prévisualisation sur http://127.0.0.1:8000
+mkdocs build    # génération statique dans site/
+```
+
+---
+
 ## Conventions et patterns importants
+
+0. **CHANGELOG.md à maintenir** : toute modification notable (ajout de module, correction de bug, nouvelle fonctionnalité, changement de dépendance, mise à jour de doc ou CI) **doit être documentée dans `CHANGELOG.md`** sous la section `[Unreleased]` ou dans une nouvelle version `[X.Y.Z]`. Format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) avec les sous-sections `Added`, `Changed`, `Fixed`, `Removed`.
 
 1. **Pattern `_from_parent_class`** : pour enchaîner les vérifications, on passe un objet déjà instancié à une sous-classe :
    ```python

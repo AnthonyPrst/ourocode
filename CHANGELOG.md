@@ -7,6 +7,16 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+### Added
+- Documentation API complète avec MkDocs-Material + mkdocstrings (déploiement GitHub Pages automatique).
+- Job `docs` dans le workflow CI : déploiement automatique sur `gh-pages` après passage des tests.
+- Badge "Documentation" dans le README avec lien vers GitHub Pages.
+- Section "Documentation" dans le README avec liens vers le guide, la référence API et les normes.
+- Module `EC5_BLC.py` : paramètres spécifiques au bois lamellé-collé (EN 1995-1-1).
+- Dépendances optionnelles `[docs]` dans `pyproject.toml` (`mkdocs-material`, `mkdocstrings[python]`, `mkdocs-include-markdown-plugin`, `mike`).
+
+## [1.10.0] - 2025
+
 ### Changed
 - PySide6, PyNiteFEA et pyvista sont désormais des dépendances optionnelles (`pip install "ourocode[full]"`).
 - Les messages utilisateur (`print`) convertis en `warnings.warn` dans EC5_Element_droit, EC5_Feu, EC5_Assemblage.

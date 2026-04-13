@@ -1,0 +1,128 @@
+site_name: Ourocode
+site_description: Bibliothèque Python pour le calcul de structure selon les Eurocodes (AN Françaises)
+site_author: Anthony PARISOT
+site_url: https://anthonyprst.github.io/ourocode/
+repo_name: AnthonyPrst/ourocode
+repo_url: https://github.com/AnthonyPrst/ourocode
+edit_uri: edit/main/docs/
+
+copyright: Copyright &copy; 2024 Anthony PARISOT — OUREA STRUCTURE
+
+docs_dir: docs
+theme:
+  name: material
+  language: fr
+  logo: assets/logo.png
+  favicon: assets/logo.png
+  palette:
+    - scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-7
+        name: Passer en mode sombre
+    - scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/brightness-4
+        name: Passer en mode clair
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - search.suggest
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - toc.follow
+
+plugins:
+  - search:
+      lang: fr
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_root_heading: true
+            show_root_full_path: false
+            show_source: false
+            show_bases: true
+            show_inheritance_diagram: false
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+            unwrap_annotated: true
+            merge_init_into_class: true
+            docstring_section_style: table
+            allow_inspection: true
+            filters:
+              - "!^_"
+          paths:
+            - .
+  - include-markdown
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+      title: Sur cette page
+  - attr_list
+  - md_in_html
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/AnthonyPrst/ourocode
+      name: GitHub
+    - icon: fontawesome/solid/globe
+      link: https://ourea-structure.fr
+      name: OUREA STRUCTURE
+  version:
+    provider: mike
+
+nav:
+  - Accueil: index.md
+  - Guide de démarrage: guide.md
+  - Référence API:
+      - Classe de base: api/objet.md
+      - A0 — Projet: api/A0_Projet.md
+      - EC0 — Combinaisons: api/EC0_Combinaison.md
+      - EC1 — Actions:
+          - Exploitation: api/EC1_Exploitation.md
+          - Neige: api/EC1_Neige.md
+          - Vent: api/EC1_Vent.md
+      - EC3 — Acier:
+          - Éléments droits: api/EC3_Element_droit.md
+          - Incendie: api/EC3_Feu.md
+          - Assemblages: api/EC3_Assemblage.md
+      - EC5 — Bois:
+          - Éléments droits: api/EC5_Element_droit.md
+          - BLC: api/EC5_BLC.md
+          - Incendie: api/EC5_Feu.md
+          - Assemblages: api/EC5_Assemblage.md
+          - CVT: api/EC5_CVT.md
+      - EC8 — Sismique: api/EC8_Sismique.md
+  - Normes Eurocodes: normes.md
+  - Changelog: changelog.md

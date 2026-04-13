@@ -4,6 +4,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/AnthonyPrst/ourocode/actions/workflows/ci.yml/badge.svg)](https://github.com/AnthonyPrst/ourocode/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/AnthonyPrst/ourocode)](https://github.com/AnthonyPrst/ourocode/releases)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://anthonyprst.github.io/ourocode/)
 
 ---
 
@@ -15,6 +16,7 @@
 - **EN 1991** : Actions sur les structures
 - **EN 1993** : Calcul des structures en acier
 - **EN 1995** : Calcul des structures en bois
+- **EN 1998** : Calcul des actions sismiques
 
 Elle permet de construire un **catalogue de fonctions réutilisables** pour générer rapidement des **notes de calcul personnalisées**, intégrables dans des applications de vérification ou de génération de rapports.
 
@@ -29,7 +31,9 @@ Elle permet de construire un **catalogue de fonctions réutilisables** pour gén
 ---
 
 ## 📦 Installation
-- Attention le programme ne supporte pas les versions supérieures à Python 3.12, les bibliothèques tierces n'étant pas disponible pour ces versions.
+
+> **Note :** Python 3.12 requis. Les dépendances tierces ne sont pas encore compatibles avec Python 3.13+.
+
 ```bash
 pip install ourocode
 ```
@@ -39,11 +43,13 @@ pip install ourocode
 pip install git+https://github.com/AnthonyPrst/ourocode.git
 ```
 
-> Avec les dépendances optionnelles (GUI PySide6 et/ou MEF Pynite) :
+> Avec les dépendances optionnelles :
 ```bash
-pip install "ourocode[full]"    # GUI + MEF
+pip install "ourocode[full]"    # GUI (PySide6) + MEF (PyNiteFEA + pyvista)
 pip install "ourocode[gui]"     # PySide6 uniquement
 pip install "ourocode[mef]"     # PyNiteFEA + pyvista uniquement
+pip install "ourocode[docs]"    # Génération de la documentation
+pip install "ourocode[test]"    # Outils de test (pytest)
 ```
 
 ---
@@ -51,15 +57,17 @@ pip install "ourocode[mef]"     # PyNiteFEA + pyvista uniquement
 ## ✨ Fonctionnalités
 
 - Calculs normalisés : flexion, traction, cisaillement, flambement, assemblage EC5 et EC3, flèche…
-- Support des classes de résistance bois (C24, GL24h, etc.) et acier (S235, S355…)
-- Prise en compte des effets de feu (EN 1995-1-2)
+- Support des classes de résistance bois massif (C14→C40), lamellé-collé (GL20h→GL32h) et acier (S235, S355…)
+- Prise en compte des effets de feu (EN 1993-1-2, EN 1995-1-2)
+- Calcul des actions sismiques et spectre de réponse (EN 1998-1)
+- Vérification des murs à ossature bois — MOB/CVT (EN 1995-1-1 §9)
 - Intégration avec `handcalcs` pour génération LaTeX des formules
 - Compatible avec le logiciel [OUREA-NoCode](https://ourea-structure.fr/telechargement)
-- Organisé en modules clairs par norme et fonction (EN1990, EN1991, etc.)
+- Organisé en modules clairs par norme et fonction (EN 1990, EN 1991, EN 1993, EN 1995, EN 1998)
 
 ---
 
-## 🛠 Exemple d'utilisation dans jupyter
+## 🛠 Exemple d'utilisation dans Jupyter
 
 ```python
 from IPython.display import display, Latex
@@ -76,10 +84,28 @@ display(Latex(latex_taux))
 ## ✅ Tests & couverture
 
 ```bash
-pytest --cov=. --cov-report html
+pytest tests/ -v --tb=short
+pytest --cov=ourocode --cov-report html
 ```
 
 Les tests couvrent les modules principaux.
+
+---
+
+## 📚 Documentation
+
+La documentation complète est disponible sur **[GitHub Pages](https://anthonyprst.github.io/ourocode/)** :
+
+- [Guide de démarrage](https://anthonyprst.github.io/ourocode/guide/) — Premiers pas et exemples
+- [Référence API](https://anthonyprst.github.io/ourocode/api/objet/) — Classes et méthodes de chaque module
+- [Référence des normes](https://anthonyprst.github.io/ourocode/normes/) — EN 1990, EN 1991, EN 1993, EN 1995, EN 1998
+
+Générer la documentation localement :
+
+```bash
+pip install "ourocode[docs]"
+mkdocs serve
+```
 
 ---
 

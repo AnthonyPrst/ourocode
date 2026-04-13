@@ -21,7 +21,7 @@ class Barre(Projet):
     """Classe définissant les caractéristiques d'un élément droit en bois.
 
     Cette classe décrit la géométrie, la classe de résistance et les conditions
-    d'exploitation d'une barre (poutre, colonne, liteau) selon l'EN 1995.
+    d'exploitation d'une barre (poutre, colonne) selon l'EN 1995.
 
     Elle calcule automatiquement les dimensions de section en fonction de
     l'humidité de pose (retrait/gonflement) et donne accès aux caractéristiques
