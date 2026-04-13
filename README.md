@@ -71,7 +71,7 @@ pip install "ourocode[test]"    # Outils de test (pytest)
 
 ```python
 from IPython.display import display, Latex
-from ourocode.eurocode.EC5_Element_droit import Barre, Flexion
+from ourocode.eurocode.ec5.element_droit import Barre, Flexion
 
 panne = Barre(b=100, h=200, section="Rectangulaire", classe="C24", cs=2, Hi=12, Hf=12)
 panne_flexion = Flexion._from_parent_class(panne, lo_rel_y=5000, lo_rel_z=5000, coeflef=0.9, pos="Charge sur fibre comprimée")

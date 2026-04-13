@@ -2,7 +2,7 @@
 
 Paramètres spécifiques au bois lamellé-collé selon EN 1995-1-1.
 
-::: ourocode.eurocode.EC5_BLC
+::: ourocode.eurocode.ec5.blc
     options:
       members: true
       show_root_heading: true

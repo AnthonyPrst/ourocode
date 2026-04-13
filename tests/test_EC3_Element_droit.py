@@ -8,7 +8,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import forallpeople as si
 si.environment("structural")
-from ourocode.eurocode.EC3_Element_droit import Plat, Traction, Compression, Cisaillement, Flexion
+from ourocode.eurocode.ec3.element_droit import Plat, Traction, Compression, Cisaillement, Flexion
 
 class TestPlat:
     """Tests pour la classe de base Plat."""

@@ -2,7 +2,7 @@
 
 Module contenant la classe `Objet`, classe racine dont héritent toutes les classes du package.
 
-::: ourocode.eurocode.objet
+::: ourocode.eurocode.core.objet
     options:
       members: true
       show_root_heading: true

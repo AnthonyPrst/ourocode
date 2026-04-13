@@ -14,15 +14,25 @@
 Toutes les classes du package héritent de la même classe de base :
 
 ```
-Objet
-└── Projet          (A0_Projet)
-    ├── EC0 — Combinaisons de charges
-    ├── EC1 — Actions (neige, vent, exploitation)
-    ├── EC3 — Structures acier
-    │   ├── Element_droit, Feu, Assemblage
-    └── EC5 — Structures bois
-        ├── Barre, Flexion, Traction, Compression, Cisaillement…
-        └── Feu, Assemblage, CVT
+Objet                          (core.objet)
+└── Projet                     (core.projet)
+    ├── Batiment               (core.batiment)
+    ├── Combinaison            (core.combinaison)
+    ├── Model_generator        (core.model_generator)
+    ├── ec1/
+    │   ├── Neige, Vent, Exploitation
+    ├── ec3/
+    │   ├── element_droit/  — Plat, Traction, Compression, Cisaillement, Flexion
+    │   ├── assemblage/    — Tige, Soudure, Platine
+    │   └── feu            — TemperatureGaz, TemperatureAcier
+    ├── ec5/
+    │   ├── element_droit/  — Barre, Flexion, Traction, Compression, Cisaillement
+    │   ├── assemblage/    — Assemblage, Pointe, Boulon, Broche, Tirefond…
+    │   ├── feu/           — Feu, Flexion_feu, Compression_feu…
+    │   ├── blc            — Poutre_simple_decroissance
+    │   └── cvt            — MOB
+    └── ec8/
+        └── sismique       — Sismique
 ```
 
 ### Pattern `_from_parent_class`
@@ -54,7 +64,7 @@ display(Latex(latex_str))
 ### EN 1995 — Flexion d'une panne bois (EC5_Element_droit)
 
 ```python
-from ourocode.eurocode.EC5_Element_droit import Barre, Flexion
+from ourocode.eurocode.ec5.element_droit import Barre, Flexion
 
 panne = Barre(
     b=100, h=200,
@@ -81,7 +91,7 @@ display(Latex(latex_taux))
 ### EN 1995 — Assemblage boulonné (EC5_Assemblage)
 
 ```python
-from ourocode.eurocode.EC5_Assemblage import Assemblage
+from ourocode.eurocode.ec5.assemblage import Assemblage
 
 # Consulter la référence API pour les paramètres complets
 ```
@@ -89,7 +99,7 @@ from ourocode.eurocode.EC5_Assemblage import Assemblage
 ### EN 1993 — Vérification acier (EC3_Element_droit)
 
 ```python
-from ourocode.eurocode.EC3_Element_droit import Plat
+from ourocode.eurocode.ec3.element_droit import Plat
 
 # Consulter la référence API pour les paramètres complets
 ```
@@ -97,7 +107,7 @@ from ourocode.eurocode.EC3_Element_droit import Plat
 ### EN 1991 — Charges de neige (EC1_Neige)
 
 ```python
-from ourocode.eurocode.EC1_Neige import Neige
+from ourocode.eurocode.ec1.neige import Neige
 
 # Consulter la référence API pour les paramètres complets
 ```
@@ -105,7 +115,7 @@ from ourocode.eurocode.EC1_Neige import Neige
 ### EN 1990 — Combinaisons de charges (EC0_Combinaison)
 
 ```python
-from ourocode.eurocode.EC0_Combinaison import Combinaison
+from ourocode.eurocode.core.combinaison import Combinaison
 
 # Consulter la référence API pour les paramètres complets
 ```

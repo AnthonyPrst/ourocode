@@ -4,7 +4,7 @@
 import pytest
 import math
 
-from ourocode.eurocode.EC1_Neige import Neige
+from ourocode.eurocode.ec1.neige import Neige
 import forallpeople as si
 
 

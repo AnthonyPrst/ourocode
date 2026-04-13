@@ -2,7 +2,7 @@
 
 Assemblages boulonnés et soudés en acier selon EN 1993-1-8.
 
-::: ourocode.eurocode.EC3_Assemblage
+::: ourocode.eurocode.ec3.assemblage
     options:
       members: true
       show_root_heading: true

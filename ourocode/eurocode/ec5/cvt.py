@@ -9,8 +9,8 @@ import forallpeople as si
 si.environment("structural")
 from handcalcs.decorator import handcalc
 
-from ourocode.eurocode.A0_Projet import Batiment
-from ourocode.eurocode.EC5_Assemblage import Assemblage
+from ourocode.eurocode.core.batiment import Batiment
+from ourocode.eurocode.ec5.assemblage import Assemblage
 
 class MOB(Batiment):
     CRITERE_ELS = 200

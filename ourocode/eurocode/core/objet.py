@@ -10,7 +10,11 @@ from PIL import Image
 import pandas as pd
 import pickle
 import inspect
-from IPython.display import display, Latex
+try:
+    from IPython.display import display, Latex
+except ImportError:
+    display = None
+    Latex = None
 
 import forallpeople as si
 si.environment("structural")

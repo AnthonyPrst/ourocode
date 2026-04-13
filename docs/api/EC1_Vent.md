@@ -2,7 +2,7 @@
 
 Actions du vent selon EN 1991-1-4 et l'Annexe Nationale Française.
 
-::: ourocode.eurocode.EC1_Vent
+::: ourocode.eurocode.ec1.vent
     options:
       members: true
       show_root_heading: true

@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Import des modules à tester
-from ourocode.eurocode.A0_Projet import Wood_beam_model
+from ourocode.eurocode.core.model_generator import Wood_beam_model
 import forallpeople as si
 
 

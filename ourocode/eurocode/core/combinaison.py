@@ -6,7 +6,8 @@ import pandas as pd
 
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 # # from A0_Projet import Bar_generator
-from ourocode.eurocode.A0_Projet import Projet, Model_generator
+from ourocode.eurocode.core.projet import Projet
+from ourocode.eurocode.core.model_generator import Model_generator
 
 
 class Combinaison(Projet):

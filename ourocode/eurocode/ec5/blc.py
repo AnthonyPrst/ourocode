@@ -1,7 +1,7 @@
 # coding in UTF-8 
 # by Anthony PARISOT
 import math as mt
-from ourocode.eurocode.EC5_Element_droit import Flexion
+from ourocode.eurocode.ec5.element_droit.flexion import Flexion
 
 class Poutre_simple_decroissance(Flexion):
     """ Défini une classe poutre à simple décroissance hérité à partir de la classe Beam du fichier EC5_Element_droit.py.

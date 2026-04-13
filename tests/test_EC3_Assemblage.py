@@ -8,8 +8,8 @@ import forallpeople as si
 si.environment("structural")
 sys.path.insert(1, "./")
 
-from ourocode.eurocode import EC3_Assemblage as EC3_Assem
-from ourocode.eurocode import EC3_Element_droit as EC3_Elem
+from ourocode.eurocode.ec3 import assemblage as EC3_Assem
+from ourocode.eurocode.ec3 import element_droit as EC3_Elem
 
 
 @pytest.fixture

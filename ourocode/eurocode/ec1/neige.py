@@ -7,7 +7,7 @@ import warnings
 import forallpeople as si
 from handcalcs.decorator import handcalc
 
-from ourocode.eurocode.A0_Projet import Batiment
+from ourocode.eurocode.core.batiment import Batiment
 
 class Neige(Batiment):
 	EXPOSITION = ("Normal", "Protégé")

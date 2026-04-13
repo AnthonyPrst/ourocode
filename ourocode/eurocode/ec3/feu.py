@@ -11,7 +11,7 @@ from handcalcs.decorator import handcalc
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 # from eurocode.EC3_Element_droit import Plat
 
-from ourocode.eurocode.EC3_Element_droit import Plat
+from ourocode.eurocode.ec3.element_droit.plat import Plat
 
 
 class _TemperatureGaz(object):

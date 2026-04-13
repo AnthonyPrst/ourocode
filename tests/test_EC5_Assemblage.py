@@ -8,9 +8,9 @@ from copy import deepcopy
 
 si.environment("structural")
 sys.path.insert(1, "./")
-from ourocode.eurocode import EC5_Assemblage as EC5_Assem
-from ourocode.eurocode import EC5_Element_droit as EC5_Elem
-from ourocode.eurocode import EC3_Element_droit as EC3_Elem
+from ourocode.eurocode.ec5 import assemblage as EC5_Assem
+from ourocode.eurocode.ec5 import element_droit as EC5_Elem
+from ourocode.eurocode.ec3 import element_droit as EC3_Elem
 
 # Fixtures pour les barres de test
 @pytest.fixture

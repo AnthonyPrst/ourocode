@@ -12,8 +12,9 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Import des modules à tester
-from ourocode.eurocode.EC0_Combinaison import Combinaison
-from ourocode.eurocode.A0_Projet import Model_generator, Projet
+from ourocode.eurocode.core.combinaison import Combinaison
+from ourocode.eurocode.core.model_generator import Model_generator
+from ourocode.eurocode.core.projet import Projet
 
 # Fixture pour un projet de base
 @pytest.fixture

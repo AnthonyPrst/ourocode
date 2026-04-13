@@ -13,7 +13,7 @@ from handcalcs.decorator import handcalc
 
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 # from eurocode.A0_Projet import Batiment
-from ourocode.eurocode.A0_Projet import Batiment
+from ourocode.eurocode.core.batiment import Batiment
 
 si.environment("structural")
 

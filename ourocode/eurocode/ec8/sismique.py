@@ -8,7 +8,7 @@ import pandas as pd
 import forallpeople as si
 si.environment("structural")
 from handcalcs.decorator import handcalc
-from ourocode.eurocode.A0_Projet import Batiment
+from ourocode.eurocode.core.batiment import Batiment
 
 class Sismique(Batiment):
     ACTION = (

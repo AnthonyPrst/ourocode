@@ -2,7 +2,7 @@
 
 Assemblages pour structures bois selon EN 1995-1-1 §8.
 
-::: ourocode.eurocode.EC5_Assemblage
+::: ourocode.eurocode.ec5.assemblage
     options:
       members: true
       show_root_heading: true

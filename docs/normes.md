@@ -15,7 +15,7 @@ Cette page récapitule les normes européennes (Eurocodes) implémentées dans O
 - Coefficients partiels γ et coefficients de combinaison ψ
 - Annexe A1 : Bâtiments
 
-**Module Ourocode :** [`EC0_Combinaison`](api/EC0_Combinaison.md)
+**Module Ourocode :** [`core.combinaison`](api/EC0_Combinaison.md)
 
 ---
 
@@ -25,7 +25,7 @@ Cette page récapitule les normes européennes (Eurocodes) implémentées dans O
 
 **Objet :** Densités volumiques des matériaux, charges de planchers, toitures, balcons, etc.
 
-**Module Ourocode :** [`EC1_Exploitation`](api/EC1_Exploitation.md)
+**Module Ourocode :** [`ec1.exploitation`](api/EC1_Exploitation.md)
 
 ---
 
@@ -39,7 +39,7 @@ Cette page récapitule les normes européennes (Eurocodes) implémentées dans O
 - Coefficient de forme `μ1, μ2, μ3` selon la pente du toit et son type
 - Coefficient d'exposition `Ce` et coefficient thermique `Ct`
 
-**Module Ourocode :** [`EC1_Neige`](api/EC1_Neige.md)
+**Module Ourocode :** [`ec1.neige`](api/EC1_Neige.md)
 
 ---
 
@@ -54,7 +54,7 @@ Cette page récapitule les normes européennes (Eurocodes) implémentées dans O
 - Coefficients de pression extérieure `Cpe` selon la géométrie (murs, toitures 1 et 2 versants, toiture terrasse)
 - Pression dynamique de pointe `qp(z)`
 
-**Module Ourocode :** [`EC1_Vent`](api/EC1_Vent.md)
+**Module Ourocode :** [`ec1.vent`](api/EC1_Vent.md)
 
 ---
 
@@ -70,7 +70,7 @@ Cette page récapitule les normes européennes (Eurocodes) implémentées dans O
 - Flambement par flexion (courbes a0, a, b, c, d)
 - Déversement
 
-**Module Ourocode :** [`EC3_Element_droit`](api/EC3_Element_droit.md)
+**Module Ourocode :** [`ec3.element_droit`](api/EC3_Element_droit.md)
 
 ---
 
@@ -78,7 +78,7 @@ Cette page récapitule les normes européennes (Eurocodes) implémentées dans O
 
 **Objet :** Comportement des structures acier en situation d'incendie, évolution de la température.
 
-**Module Ourocode :** [`EC3_Feu`](api/EC3_Feu.md)
+**Module Ourocode :** [`ec3.feu`](api/EC3_Feu.md)
 
 ---
 
@@ -86,7 +86,7 @@ Cette page récapitule les normes européennes (Eurocodes) implémentées dans O
 
 **Objet :** Assemblages boulonnés et soudés en acier.
 
-**Module Ourocode :** [`EC3_Assemblage`](api/EC3_Assemblage.md)
+**Module Ourocode :** [`ec3.assemblage`](api/EC3_Assemblage.md)
 
 ---
 
@@ -110,7 +110,7 @@ Cette page récapitule les normes européennes (Eurocodes) implémentées dans O
 **Classes de résistance bois massif :** C14, C16, C18, C20, C22, C24, C27, C30, C35, C40  
 **Classes de résistance lamellé-collé :** GL20h, GL22h, GL24h, GL26h, GL28h, GL30h, GL32h
 
-**Modules Ourocode :** [`EC5_Element_droit`](api/EC5_Element_droit.md), [`EC5_BLC`](api/EC5_BLC.md), [`EC5_CVT`](api/EC5_CVT.md)
+**Modules Ourocode :** [`ec5.element_droit`](api/EC5_Element_droit.md), [`ec5.blc`](api/EC5_BLC.md), [`ec5.cvt`](api/EC5_CVT.md)
 
 ---
 
@@ -123,7 +123,7 @@ Cette page récapitule les normes européennes (Eurocodes) implémentées dans O
 - Vitesse de carbonisation nominale `β0` et de calcul `βn` selon l'essence
 - Section résiduelle efficace après carbonisation
 
-**Module Ourocode :** [`EC5_Feu`](api/EC5_Feu.md)
+**Module Ourocode :** [`ec5.feu`](api/EC5_Feu.md)
 
 ---
 
@@ -131,7 +131,7 @@ Cette page récapitule les normes européennes (Eurocodes) implémentées dans O
 
 **Objet :** Assemblages avec organes mécaniques (boulons, broches, pointes, vis, connecteurs).
 
-**Module Ourocode :** [`EC5_Assemblage`](api/EC5_Assemblage.md)
+**Module Ourocode :** [`ec5.assemblage`](api/EC5_Assemblage.md)
 
 ---
 
@@ -147,7 +147,7 @@ Cette page récapitule les normes européennes (Eurocodes) implémentées dans O
 - Classe d'importance du bâtiment
 - Type de spectre (type 1 ou type 2)
 
-**Module Ourocode :** [`EC8_Sismique`](api/EC8_Sismique.md)
+**Module Ourocode :** [`ec8.sismique`](api/EC8_Sismique.md)
 
 ---
 
