@@ -114,7 +114,7 @@ class Barre(Projet):
 
     
     @property
-    def aire(self):
+    def aire(self) -> float:
         if self.section == self.LIST_SECTION[0]:
             return self.b_calcul * self.h_calcul
         else:
@@ -122,7 +122,7 @@ class Barre(Projet):
         
 
     @property
-    def inertie(self):
+    def inertie(self) -> list:
         """ Retourne le moment quadratique d'une section rectangulaire en mm4 avec pour argument :
             b ou d : Largeur ou diamètre de la poutre en mm
             h : Hauteur de la poutre en mm """
@@ -141,7 +141,7 @@ class Barre(Projet):
         
     
     @property
-    def caract_meca(self):
+    def caract_meca(self) -> 'pd.Series':
         """ Retourne les caractéristiques méca du bois sous forme de dataframe pandas """
         if self.classe in self.CLASSE_WOOD:
             data_csv_meca = self._data_from_csv("caracteristique_meca_bois.csv")
@@ -152,7 +152,7 @@ class Barre(Projet):
     
 
     @property
-    def gamma_M_table(self):
+    def gamma_M_table(self) -> 'pd.Series':
         """Retourne le tableau des gamma M pour le type de bois sélectionné
         """
         data_csv_gammaM = self._data_from_csv("gammaM.csv")
@@ -198,7 +198,7 @@ class Barre(Projet):
 
     
     @property
-    def type_bois(self):
+    def type_bois(self) -> str:
         if self.classe[0:1] == "C" or self.classe[0:1] == "D":
             type_b = self.LIST_TYPE_B[0]
         elif self.classe[0:2] == "GL":
@@ -309,7 +309,7 @@ class Barre(Projet):
         return kh       
     
     
-    def Emean_fin(self, psy_2: float):
+    def Emean_fin(self, psy_2: float) -> tuple:
         """Calcule le module de Young final E_mean,fin selon l'EC5 §2.3.2.2.
 
         Le module final tient compte du fluage par la formule :
@@ -343,7 +343,7 @@ class Barre(Projet):
         return value   
     
 
-    def fleche(self, long:si.mm, Ed_WinstQ:si.mm=0, Ed_Wnetfin:si.mm=0, Ed_Wfin:si.mm=0, Ed_W2:si.mm=0, limit_W2:int=500, type_ele=TYPE_ELE, type_bat=TYPE_BAT):
+    def fleche(self, long:si.mm, Ed_WinstQ:si.mm=0, Ed_Wnetfin:si.mm=0, Ed_Wfin:si.mm=0, Ed_W2:si.mm=0, limit_W2:int=500, type_ele=TYPE_ELE, type_bat=TYPE_BAT) -> tuple:
         """Vérifie les taux de travail des flèches selon l'EC5 §7.2.
 
         Compare les flèches calculées aux limites normatives pour différents

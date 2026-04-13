@@ -70,7 +70,7 @@ class Compression(Barre):
         self._Anet = self.aire
 
     @property
-    def lamb(self):
+    def lamb(self) -> tuple:
         """ Retourne l'élancement d'un poteau en compression avec risque de flambement suivant son axe de rotation """
         lo_y = self.lo_comp['y'].value * 10**3
         lo_z = self.lo_comp['z'].value * 10**3
@@ -88,7 +88,7 @@ class Compression(Barre):
     
     
     @property
-    def lamb_rel_Axe(self):
+    def lamb_rel_Axe(self) -> tuple:
         """ Retourne l'élancement relatif d'un poteau en compression avec risque de flambement suivant son axe de rotation """
         lamb_y = self.lamb[1]['y']
         lamb_z = self.lamb[1]['z']
@@ -104,7 +104,7 @@ class Compression(Barre):
     
 
     @property
-    def beta_C(self):
+    def beta_C(self) -> float:
         if self.type_bois == 'Massif':
             betaC = 0.2
         else:
@@ -128,7 +128,7 @@ class Compression(Barre):
     
 
     @property
-    def kc_Axe(self):
+    def kc_Axe(self) -> tuple:
         """ Retourne le coefficient multiplicateur KcAxe  (axe = y ou z suivant axe de rotation en flambement) de fc,0,d """
         k_y = self.k_Axe[1]['y']
         k_z = self.k_Axe[1]['z']
@@ -164,7 +164,7 @@ class Compression(Barre):
         return super()._f_type_d("fc0k", loadtype, typecombi)
     
     
-    def sigma_c_0_d(self, Fc0d: si.kN, Anet: si.mm**2=None):
+    def sigma_c_0_d(self, Fc0d: si.kN, Anet: si.mm**2=None) -> tuple:
         """Calcule la contrainte de compression axiale sigma_c,0,d selon l'EC5 §6.2.2.
 
         Détermine la contrainte normale due à l'effort de compression axial.
@@ -199,7 +199,7 @@ class Compression(Barre):
         return value
     
     
-    def taux_c_0_d(self, flexion: object=None):
+    def taux_c_0_d(self, flexion: object=None) -> tuple:
         """Calcule les taux de travail en compression axiale selon l'EC5 §6.2.2 et §6.3.2.
 
         Vérifie les critères de résistance :
@@ -408,7 +408,7 @@ class Compression_perpendiculaire(Barre):
         return super()._f_type_d("fc90k", loadtype, typecombi)
     
     
-    def sigma_c_90_d(self, Fc90d: si.kN):
+    def sigma_c_90_d(self, Fc90d: si.kN) -> tuple:
         """Calcule la contrainte de compression perpendiculaire sigma_c,90,d selon l'EC5 §6.1.5.
 
         Détermine la contrainte en tenant compte de l'aire effective d'appui,
@@ -445,7 +445,7 @@ class Compression_perpendiculaire(Barre):
         return value
 
 
-    def taux_c_90_d(self):
+    def taux_c_90_d(self) -> tuple:
         """Calcule le taux de travail en compression perpendiculaire selon l'EC5 §6.1.5 (Eq. 6.3).
 
         Vérifie le critère : σ_c,90,d / (K_c,90 · f_c,90,d) ≤ 1
@@ -482,7 +482,7 @@ class Compression_perpendiculaire(Barre):
         return value
     
     
-    def show_c90(self):
+    def show_c90(self) -> None:
         """Affiche l'image des caractéristiques d'une compression perpendiculaire
         """
         self._show_element("C90_def.png")
@@ -513,7 +513,7 @@ class Compression_inclinees(Compression_perpendiculaire):
         super().__init__(**kwargs)
         self.alpha = alpha
     
-    def sigma_c_alpha_d(self, Fcad: si.kN):
+    def sigma_c_alpha_d(self, Fcad: si.kN) -> tuple:
         """Calcule la contrainte de compression inclinée sigma_c,alpha,d.
 
         Détermine la contrainte normale due à l'effort de compression inclinée,
@@ -544,7 +544,7 @@ class Compression_inclinees(Compression_perpendiculaire):
         return value
     
 
-    def taux_c_alpha_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
+    def taux_c_alpha_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION) -> tuple:
         """Calcule le taux de travail en compression inclinée selon l'EC5 §6.2.2 (Eq. 6.16).
 
         Vérifie le critère de Hankinson : σ_c,α,d ≤ f_c,α,d

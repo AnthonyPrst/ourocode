@@ -34,7 +34,7 @@ class Compression_feu(Feu, Compression):
         super().__init__(lo_y=lo_y, lo_z=lo_z, type_appuis=type_appuis, **kwargs)
 
     @property
-    def lamb_rel_Axe(self):
+    def lamb_rel_Axe(self) -> tuple:
         """Retourne l'élancement relatif d'un poteau en compression avec risque de flambement suivant son axe de rotation"""
         lamb_y = self.lamb[1]["y"]
         lamb_z = self.lamb[1]["z"]
@@ -51,7 +51,7 @@ class Compression_feu(Feu, Compression):
         return val()
 
     @property
-    def k_Axe(self):
+    def k_Axe(self) -> tuple:
         """Retourne le facteur Ky ou Kz (fonction de l'axe de flambement)"""
         beta_C = self.beta_C
         lamb_rel_y_fi = self.lamb_rel_Axe[1]["y"]
@@ -66,7 +66,7 @@ class Compression_feu(Feu, Compression):
         return val()
 
     @property
-    def kc_Axe(self):
+    def kc_Axe(self) -> tuple:
         """Retourne le coefficient multiplicateur KcAxe  (axe = y ou z suivant axe de rotation en flambement) de fc,0,d"""
         k_y_fi = self.k_Axe[1]["y"]
         k_z_fi = self.k_Axe[1]["z"]
@@ -81,12 +81,12 @@ class Compression_feu(Feu, Compression):
 
         return val()
     
-    def f_c_0_d(self):
+    def f_c_0_d(self) -> tuple:
         """Retourne la résistance f,c,0,d au feu de l'élément en MPa
         """
         return super()._f_type_d("fc0k")
 
-    def taux_c_0_d(self, flexion: object = None):
+    def taux_c_0_d(self, flexion: object = None) -> tuple:
         """Retourne les taux de travaux de la compression axial.
         Si l'élement est un poteau (donc avec un travail principalement en compression) et de la flexion combinée (EN 1995-1-1 §6.3.2),
         il est possible d'ajouter l'objet flexion et de vérifier cette combinaison.

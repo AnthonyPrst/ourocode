@@ -63,7 +63,7 @@ class Traction(Barre):
         return super()._f_type_d("ft0k", loadtype, typecombi)
 
 
-    def sigma_t_0_d(self, Ft0d: si.kN, Anet: si.mm**2=None):
+    def sigma_t_0_d(self, Ft0d: si.kN, Anet: si.mm**2=None) -> tuple:
         """Calcule la contrainte de traction axiale sigma_t,0,d selon l'EC5 §6.1.2.
 
         Détermine la contrainte normale due à l'effort de traction axial.
@@ -100,7 +100,7 @@ class Traction(Barre):
         return value
 
 
-    def taux_t_0_d(self):
+    def taux_t_0_d(self) -> tuple:
         """Calcule le taux de travail en traction axiale selon l'EC5 §6.1.2 (Eq. 6.1).
 
         Vérifie le critère : σ_t,0,d / (k_h · f_t,0,d) ≤ 1

@@ -23,12 +23,12 @@ class Traction_feu(Feu, Traction):
         """
         super().__init__(**kwargs)
     
-    def f_t_0_d(self):
+    def f_t_0_d(self) -> tuple:
         """Retourne la résistance f,t,0,d au feu de l'élément en MPa
         """
         return super()._f_type_d("ft0k")
 
-    def taux_t_0_d(self):
+    def taux_t_0_d(self) -> tuple:
         """Retourne le taux de travail en traction axial.
 
         Returns:

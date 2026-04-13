@@ -186,7 +186,7 @@ class Boulon(Assemblage):
 
 
     @property
-    def MyRk(self):
+    def MyRk(self) -> tuple:
         """Défini le moment d'écoulement plastique d'un boulon en N.mm avec:
             fuk : la valeur caractéristique de résistance à la traction du boulon en N/mm2
             d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm"""
@@ -200,7 +200,7 @@ class Boulon(Assemblage):
 
 
     @property
-    def pince(self):
+    def pince(self) -> dict:
         """Défini les différentes pinces minimales pour un boulon en mm avec :
             alpha : angle entre l'effort de l'organe et le fil du bois en °
             d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm """
@@ -225,7 +225,7 @@ class Boulon(Assemblage):
         return dict_pince
     
         
-    def nef(self, a1_beam1:int, a1_beam2:int):
+    def nef(self, a1_beam1:int, a1_beam2:int) -> tuple:
         """Défini le nombre efficace d'organe (boulon) dans une file avec :
             a1 : l'espacement entre boulon dans le sens du fil du bois
             n : nombre de boulons dans une file 
@@ -270,7 +270,7 @@ class Boulon(Assemblage):
 
 
     # 8.5.2 Boulons chargés axialement
-    def Fax_Rk(self, d_int: float=0, d_ext: float=0, filetage_EN1090: bool=("True", "False")):
+    def Fax_Rk(self, d_int: float=0, d_ext: float=0, filetage_EN1090: bool=("True", "False")) -> tuple:
         """Calcul la résistance axial caractéristique d'un boulon chargé axialement à partir soit de la rondelle soit de la plaque métalique.
 
         Args:

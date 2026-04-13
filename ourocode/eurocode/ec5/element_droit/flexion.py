@@ -106,7 +106,7 @@ class Flexion(Barre):
         return km
 
     @property
-    def sigma_m_crit(self):
+    def sigma_m_crit(self) -> tuple:
         """Contrainte critique de déversement sigma_m,crit selon l'EC5 §6.3.3.
 
         Calculée par la formule de l'EC5 : sigma_m,crit = (0.78 × b² × E_0,05) / (h × l_ef)
@@ -142,7 +142,7 @@ class Flexion(Barre):
         return val()
 
     @property
-    def lamb_rel_m(self):
+    def lamb_rel_m(self) -> tuple:
         """Élancement relatif en flexion lambda_rel,m selon l'EC5 §6.3.3.
 
         Rapport entre la résistance caractéristique et la contrainte critique :
@@ -237,7 +237,7 @@ du risque de déversement latéral. Il dépend de l'élancement relatif :
         return self._f_type_d("fm0k", loadtype, typecombi)
     
     
-    def sigma_m_d(self, My: si.kN*si.m, Mz: si.kN*si.m):
+    def sigma_m_d(self, My: si.kN*si.m, Mz: si.kN*si.m) -> tuple:
         """Calcule les contraintes de flexion sigma_m,d selon l'EC5 §6.1.6.
 
         Détermine les contraintes normales dues aux moments fléchissants My et Mz
@@ -279,7 +279,7 @@ du risque de déversement latéral. Il dépend de l'élancement relatif :
         return value
     
 
-    def taux_m_d(self, compression: object=None, traction: object=None):
+    def taux_m_d(self, compression: object=None, traction: object=None) -> tuple:
         """Calcule les taux de travail en flexion selon l'EC5 §6.1.6, §6.2.3 et §6.3.3.
 
         Vérifie les critères de résistance en flexion pure, flexion déviée,

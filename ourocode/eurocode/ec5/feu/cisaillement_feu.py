@@ -22,7 +22,7 @@ class Cisaillement_feu(Cisaillement, Feu):
         """
         super().__init__(**kwargs)
 
-    def Kv(self, hef: si.mm, x: si.mm, i_lo: si.mm, ent=("Dessous", "Dessus")):
+    def Kv(self, hef: si.mm, x: si.mm, i_lo: si.mm, ent=("Dessous", "Dessus")) -> tuple:
         """Retourne le facteur d'entaille Kv pour une entaille au niveau d'un appuis
 
         Args:
@@ -37,12 +37,12 @@ class Cisaillement_feu(Cisaillement, Feu):
         h_ef = hef*si.mm - self._def["Bas"][1] - self._def["Haut"][1]  # Réduction de la section
         return super().Kv(h_ef.value*10**3, x, i_lo, ent)
     
-    def f_v_d(self):
+    def f_v_d(self) -> tuple:
         """Retourne la résistance f,v,d au feu de l'élément en MPa
         """
         return super()._f_type_d("fvk")
 
-    def taux_tau_d(self):
+    def taux_tau_d(self) -> tuple:
         """Retourne le taux de travail en cisaillement en %"""
         self.taux_tau_rd = {}
         tau_d_fi = self.tau_rd

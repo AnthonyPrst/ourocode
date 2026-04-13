@@ -42,7 +42,7 @@ class Flexion_feu(Feu, Flexion):
         super().__init__(lo_rel_y=lo_rel_y, lo_rel_z=lo_rel_z, coeflef_y=coeflef_y, coeflef_z=coeflef_z, pos=pos, **kwargs)
 
     @property
-    def sigma_m_crit(self):
+    def sigma_m_crit(self) -> tuple:
         """ Retourne sigma m,crit pour la prise en compte du déversement d'une poutre """
         self.l_ef_y = self.lo_rel_y * self.coeflef['y']
         self.l_ef_z = self.lo_rel_z * self.coeflef['z']
@@ -69,7 +69,7 @@ class Flexion_feu(Feu, Flexion):
         return val()
 
     @property
-    def lamb_rel_m(self):
+    def lamb_rel_m(self) -> tuple:
         """ Retourne l'élancement relatif de la section avec pour argument """
         f_m0k = float(self.caract_meca.loc['fm0k']) *si.MPa
         sigma_m_crit_y_fi = self.sigma_m_crit[1]['y']
@@ -84,7 +84,7 @@ class Flexion_feu(Feu, Flexion):
         return val()
 
     @property
-    def K_crit(self):
+    def K_crit(self) -> tuple:
         """ Retourne K,crit le coef. de minoration de la résistance en flexion au déversement"""
         lamb_rel_m_y = self.lamb_rel_m[1]['y']
         lamb_rel_m_z = self.lamb_rel_m[1]['z']
@@ -119,12 +119,12 @@ class Flexion_feu(Feu, Flexion):
         result = (result[0], result[1])
         return result
     
-    def f_m_d(self):
+    def f_m_d(self) -> tuple:
         """Retourne la résistance f,m,d au feu de l'élément en MPa
         """
         return super()._f_type_d("fm0k")
 
-    def taux_m_d(self, compression: object = None, traction: object = None):
+    def taux_m_d(self, compression: object = None, traction: object = None) -> tuple:
         """Retourne les différents taux de travaux en flexion.
         Si l'élement est une poutre (donc avec un travail principalement en flexion) et de la compression (EN 1995-1-1 §6.3.3) ou de la traction (EN 1995-1-1 §6.2.3) combinée,
         il est possible d'ajouter l'objet Compression et Traction et de vérifier ces combinaisons.

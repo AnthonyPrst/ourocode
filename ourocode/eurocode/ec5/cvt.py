@@ -79,7 +79,7 @@ class MOB(Batiment):
                 data.append(sys_name)
         return data
     
-    def calculate_loads_and_deformations(self, Fw_Ed_ELS: si.kN, Fw_Ed_ELU: si.kN, XFw: si.m=0, YFw: si.m=0, alpha_Fw: float=0, etage: str=Batiment.ETAGE,):
+    def calculate_loads_and_deformations(self, Fw_Ed_ELS: si.kN, Fw_Ed_ELU: si.kN, XFw: si.m=0, YFw: si.m=0, alpha_Fw: float=0, etage: str=Batiment.ETAGE,) -> 'pd.DataFrame':
         """Calcule automatiquement les efforts de contreventements et les déformations pour les murs à ossature bois,
         suivant le centre de gravité et la raideur des systèmes de mur. 
         Cette méthode est issue du guide AQCEN MOB et ne fonctionne que si le diaphragme de plancher ou de toiture est
@@ -205,7 +205,7 @@ class MOB(Batiment):
         self._data_MOB = data
 
     @property
-    def data_sys_walls(self):
+    def data_sys_walls(self) -> dict:
         sys_wall_data = {}
         _data = deepcopy(self._data_MOB)
         for etage, sys in _data.items():
@@ -215,7 +215,7 @@ class MOB(Batiment):
         return sys_wall_data
     
     @property
-    def data_walls(self):
+    def data_walls(self) -> dict:
         wall_data = {}
         _data = deepcopy(self._data_MOB)
         for etage, sys in _data.items():
@@ -226,7 +226,7 @@ class MOB(Batiment):
         return wall_data
     
     @property
-    def data_panels(self):
+    def data_panels(self) -> dict:
         panel_data = {}
         for etage, sys in self._data_MOB.items():
             for sys_name, sys_wall in sys.items():
@@ -245,7 +245,7 @@ class MOB(Batiment):
         Xg: si.m=0,
         Yg: si.m=0,
         alpha_sw: float=0,
-        ):
+        ) -> str:
         """
         Ajoute un système de mur à ossature bois.
 
@@ -314,7 +314,7 @@ class MOB(Batiment):
         Ff_Rk_int: si.N=None,
         Kser_ext: si.N/si.mm=None,
         Kser_int: si.N/si.mm=None,
-        ):
+        ) -> str:
         """
         Ajoute un mur interne au système de mur à ossature bois.
 
@@ -396,7 +396,7 @@ class MOB(Batiment):
         number: int=1,
         position_panel: str=POSITION_PANEL,
         on_top_of: str=None,
-        ):
+        ) -> str:
         """
         Ajoute un panneau à un mur.
 
@@ -466,7 +466,7 @@ class MOB(Batiment):
         self.data[etage_found][sys_name]['Murs'][wall_name]['Panneaux'][name] = panel
         return name
 
-    def save_walls_data(self, path: str=None):
+    def save_walls_data(self, path: str=None) -> None:
         """Sauvegarde les données des murs dans un fichier JSON.
 
         Args:
@@ -475,7 +475,7 @@ class MOB(Batiment):
         """
         super().save_data(self.data, type_data="JSON", path=path)
     
-    def load_walls_data(self, path: str=None):
+    def load_walls_data(self, path: str=None) -> dict:
         """Charge les données des murs depuis un fichier JSON.
 
         Args:
@@ -561,7 +561,7 @@ class MOB(Batiment):
 
         return df_kp
 
-    def get_Kser_wall(self):
+    def get_Kser_wall(self) -> 'pd.DataFrame':
         """
         Calcul la raideur des murs du système de mur sélectionné.
 
@@ -659,7 +659,7 @@ class MOB(Batiment):
         return Fv_i_Ed_wall * sys_wall['Hauteur du système de mur'] / wall['Longueur']
         
 
-    def taux_walls(self):
+    def taux_walls(self) -> 'pd.DataFrame':
         """
         Calcul les taux de travail des MOB avec la vérification des critères ELS et ELU du contreventement.
         3 tables sont retournées:
@@ -767,7 +767,7 @@ class MOB(Batiment):
         Fv_Rk_anc_li: si.kN=0, 
         e_anc_li: si.mm=0, 
         etage: str=None
-    ):
+    ) -> 'pd.DataFrame':
         """ Calcul le taux de travail des ancrages, avec:
             - La vérification de l'equerre au soulèvement pour chaques murs
             - La vérification de l'ancrage de la lisse basse sur la lisse d'implantation

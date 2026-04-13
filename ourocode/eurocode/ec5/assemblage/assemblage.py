@@ -14,7 +14,7 @@ from ourocode.eurocode.ec5.element_droit.barre import Barre
 from ourocode.eurocode.ec5.element_droit.cisaillement import Cisaillement
 from ourocode.eurocode.ec5.element_droit.compression import Compression_perpendiculaire, Compression_inclinees
 
-def interpolationLineaire(x, xa, xb, ya, yb):
+def interpolationLineaire(x, xa, xb, ya, yb) -> float:
     """Fait une interpolation linéaire pour trouver un résultat y entre deux valeur xa et xb """
     y = ya + (x - xa) * ((yb - ya)/(xb - xa))
     return y
@@ -81,7 +81,7 @@ class Assemblage(Projet):
         
 
     @property
-    def rho_mean_ass(self):
+    def rho_mean_ass(self) -> float:
         if self.type_assemblage == self.TYPE_ASSEMBLAGE[0]:
             rho_m1 = int(self.beam_1.caract_meca.loc["rhomean"])
             rho_m2 = int(self.beam_2.caract_meca.loc["rhomean"])
@@ -117,7 +117,7 @@ class Assemblage(Projet):
         
         
     # 7.1 Glissement des assemblages
-    def Kser(self):
+    def Kser(self) -> tuple:
         """Retourne le module de glissement de l'organe pour les états limites de services."""
         rho_mean = self.rho_mean_ass
         if self.type_organe == "Anneau" or self.type_organe == "Crampon C10/C11":
@@ -158,7 +158,7 @@ class Assemblage(Projet):
                 return K_ser * si.N / si.mm
         return val()
 
-    def Kser_ass(self):
+    def Kser_ass(self) -> tuple:
         """Retourne le module de glissement de l'assemblage pour les états limites de services."""
         n_file = self.nfile
         K_ser = self.Kser()[1]
@@ -173,7 +173,7 @@ class Assemblage(Projet):
             return K_ser_ass
         return val()
 
-    def Ku(self):
+    def Ku(self) -> tuple:
         """Retourne le module de glissement de l'organe pour les états limites ultimes."""
         K_ser = self.Kser()[1]
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -182,7 +182,7 @@ class Assemblage(Projet):
             return K_u
         return val()
 
-    def Ku_ass(self):
+    def Ku_ass(self) -> tuple:
         """Retourne le module de glissement de l'assemblage pour les états limites ultimes."""
         n_file = self.nfile
         K_u = self.Ku()[1]
@@ -210,7 +210,7 @@ class Assemblage(Projet):
         return w
 
 
-    def F90Rk(self, b:si.mm, h:si.mm, he:si.mm, w: int=1):
+    def F90Rk(self, b:si.mm, h:si.mm, he:si.mm, w: int=1) -> tuple:
         """Calcul la valeur caractérisque de la capacité au fendage en N
 
         Args:
@@ -524,7 +524,7 @@ class Assemblage(Projet):
     
         # 8.1.2 Assemblage par organe multiple
 
-    def FvRk(self, effet_corde: bool=("True", "False")):
+    def FvRk(self, effet_corde: bool=("True", "False")) -> tuple:
         """Calcul la valeur de calcul caractéristique de résistance au cisaillement de l'assemblage en N
 
         Args:
@@ -565,7 +565,7 @@ class Assemblage(Projet):
         return (latex, self.Fv_Rk_ass)
 
 
-    def F_Rd(self, F_Rk: si.kN, loadtype=Barre.LOAD_TIME):
+    def F_Rd(self, F_Rk: si.kN, loadtype=Barre.LOAD_TIME) -> tuple:
         """Calcul la valeur de calcul (design) de résistance de l'assemblage en N avec :
 
         Args:
@@ -588,7 +588,7 @@ class Assemblage(Projet):
     
     
     # Annexe A : Cisaillement de bloc
-    def FbsRk(self, dp:si.mm, a1:si.mm, a2:si.mm, a3t:si.mm, Kcr: float=0.67, num_beam: int=("1", "2")):
+    def FbsRk(self, dp:si.mm, a1:si.mm, a2:si.mm, a3t:si.mm, Kcr: float=0.67, num_beam: int=("1", "2")) -> tuple:
         """Calcul la valeur caractéristique en cisaillement de bloc en N pour l'élément 1 ou 2 de l'assemblage.
         Attention pour que cette fonction puisse s'éxecuter il faut avoir préalablement éxécuté la fontion FvRk.
 
@@ -711,7 +711,7 @@ class Assemblage(Projet):
         self.F_bs_Rk = result[1]
         return (latex + result[0], self.F_bs_Rk)
 
-    def taux_F_bs_Ed(self, Fv_Ed: si.kN=0, FbsRk_1: si.kN=0, FbsRk_2: si.kN=0, loadtype=Barre.LOAD_TIME):
+    def taux_F_bs_Ed(self, Fv_Ed: si.kN=0, FbsRk_1: si.kN=0, FbsRk_2: si.kN=0, loadtype=Barre.LOAD_TIME) -> tuple:
         """Détermine le taux de la rupture de bloc de l'assemblage
 
         Args:
@@ -758,7 +758,7 @@ class Assemblage(Projet):
             return result
 
     
-    def taux_F_v_Ed(self, Fv_Ed: si.kN=0, Fax_Ed: si.kN=0, loadtype=Barre.LOAD_TIME):
+    def taux_F_v_Ed(self, Fv_Ed: si.kN=0, Fax_Ed: si.kN=0, loadtype=Barre.LOAD_TIME) -> tuple:
         """Détermine le taux de cisaillement et éventuellement de la traction combinée de l'assemblage
 
         Args:
@@ -797,7 +797,7 @@ class Assemblage(Projet):
         self._add_synthese_taux_travail(synthese)
         return result
 
-    def taux_F_90_Ed(self, Fv_Ed: si.kN=0, loadtype=Barre.LOAD_TIME):
+    def taux_F_90_Ed(self, Fv_Ed: si.kN=0, loadtype=Barre.LOAD_TIME) -> tuple:
         """Détermine le taux de rupture par fendage de l'assemblage
 
         Args:

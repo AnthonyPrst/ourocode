@@ -8,6 +8,15 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 ## [Unreleased]
 
 ### Changed
+- **Refactoring Phase 2 — Ajout des annotations de type retour** :
+  - Ajout des return type hints (`-> tuple`, `-> dict`, `-> float`, `-> str`, `-> None`, `-> 'pd.Series'`, `-> 'pd.DataFrame'`) sur toutes les méthodes publiques.
+  - Fichiers concernés :
+    - `ec5/element_droit/` : `barre.py`, `compression.py`, `cisaillement.py`, `traction.py`, `flexion.py`
+    - `ec5/assemblage/` : `assemblage.py`, `pointe.py`, `agrafe.py`, `boulon.py`, `broche.py`, `tirefond.py`, `embrevement.py`
+    - `ec5/feu/` : `feu.py`, `cisaillement_feu.py`, `compression_feu.py`, `flexion_feu.py`, `traction_feu.py`
+    - `ec5/cvt.py`
+    - `ec8/sismique.py`
+
 - **Refactoring Phase 1 — Restructuration complète du package** :
   - Création des sous-packages `core/`, `ec1/`, `ec3/`, `ec5/`, `ec8/` sous `ourocode/eurocode/`.
   - `A0_Projet.py` éclaté en `core/projet.py`, `core/batiment.py`, `core/model_generator.py`, `core/model_result.py`.

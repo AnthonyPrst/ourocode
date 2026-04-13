@@ -54,7 +54,7 @@ class _Tirefond(object):
     
 
     # 8.7.2 Tirefond chargés axialement
-    def pince_tirefond_axial(self, t: int):
+    def pince_tirefond_axial(self, t: int) -> dict:
         """
         Défini les pinces d'un tirefond en mm lorsqu'il est chargée axialement et l'epaisseur de bois supérieur à 12*d.
         Args:
@@ -73,7 +73,7 @@ class _Tirefond(object):
 
 
     @property
-    def nefTraction(self):
+    def nefTraction(self) -> tuple:
         """Renvoie le nombre efficace de tirefond quand ils sont solicités par une composante parallèle à la partie lisse."""
         n = self.n * self.nfile
         if n > 1:
@@ -89,7 +89,7 @@ class _Tirefond(object):
         return val()
 
 
-    def faxk(self, l_ef:int, beam:str=["1", "2"]):
+    def faxk(self, l_ef:int, beam:str=["1", "2"]) -> tuple:
         """
         Calcul la valeur caractéristique de la résistance à l'arrachement perpendiculaire au fil en N/mm2 si 6mm<=d<=12mm
         et 0.6<=d1/d<=0.75.
@@ -168,7 +168,7 @@ class _Tirefond(object):
         return val()
     
     
-    def Fax_Rk(self, faxk:float, l_ef:int, alpha:int):
+    def Fax_Rk(self, faxk:float, l_ef:int, alpha:int) -> tuple:
         """Calcul la valeur caractéristique de résistance du tirefond axialement entre la résistance caractéristique de la tête et du pas de vis dans le bois en N.
         Cette fonction détermine ensuite la valeur de résistance caractéristique de l'assemblage en prenant compte du nombre efficace de tirefond en traction.
 
@@ -202,7 +202,7 @@ class _Tirefond(object):
         return (F_ax_a_Rk_value[0] + F_head_Rk_value[0] + FaxRk[0] + F_ax_Rk_ass[0], F_ax_Rk_ass[1])
 
 
-    def FtRk(self):
+    def FtRk(self) -> tuple:
         """ Calcul la résistance caractéristique en traction pur du fil des tirefonds dans l'assemblage en N."""
         n_ef_traction = self.nefTraction[1]
         f_tens_k = self.ftensk
@@ -251,7 +251,7 @@ class Tirefond_inf_7(_Tirefond, Pointe):
             self._MyRk_fourni = MyRk * si.N*si.mm
         
     @property
-    def MyRk(self):
+    def MyRk(self) -> tuple:
         if hasattr(self, "_MyRk_fourni"):
             M_y_Rk_fourni = self._MyRk_fourni
             @handcalc(override="short", precision=2, left="\\[", right="\\]")
@@ -302,7 +302,7 @@ class Tirefond_sup_6(_Tirefond, Boulon):
             self._MyRk_fourni = MyRk * si.N*si.mm
         
     @property
-    def MyRk(self):
+    def MyRk(self) -> tuple:
         if hasattr(self, "_MyRk_fourni"):
             M_y_Rk_fourni = self._MyRk_fourni
             @handcalc(override="short", precision=2, left="\\[", right="\\]")

@@ -74,7 +74,7 @@ class Cisaillement(Barre):
             return 0.67
 
 
-    def Kv(self, hef:si.mm, x:si.mm, i_lo:si.mm, ent=("Dessous", "Dessus")):
+    def Kv(self, hef:si.mm, x:si.mm, i_lo:si.mm, ent=("Dessous", "Dessus")) -> tuple:
         """Calcule le facteur de réduction d'entaille K_v selon l'EC5 §6.5.
 
         Ce coefficient réduit la résistance au cisaillement en présence d'une
@@ -135,7 +135,7 @@ class Cisaillement(Barre):
         """
         return super()._f_type_d("fvk", loadtype, typecombi)
 
-    def tau_d(self, Vd:si.kN):
+    def tau_d(self, Vd:si.kN) -> tuple:
         """Calcule la contrainte de cisaillement tau_d selon l'EC5 §6.1.7.
 
         Détermine la contrainte de cisaillement longitudinal pour une poutre
@@ -167,7 +167,7 @@ class Cisaillement(Barre):
         self.tau_rd = value[1]
         return value
 
-    def taux_tau_d(self):
+    def taux_tau_d(self) -> tuple:
         """Calcule les taux de travail au cisaillement selon l'EC5 §6.1.7 et §6.5.
 
         Vérifie les critères :
@@ -204,7 +204,7 @@ class Cisaillement(Barre):
         return value
     
     
-    def show_Kv(self):
+    def show_Kv(self) -> None:
         """Affiche l'image des caractéristiques d'une entaille au cisaillement
         """
         self._show_element("Kv_def.png")

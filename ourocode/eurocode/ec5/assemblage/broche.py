@@ -35,11 +35,11 @@ class Broche(Boulon):
         self.FaxRk = 0
 
     @property
-    def Fax_Rk(self):
+    def Fax_Rk(self) -> float:
         return self.FaxRk
         
     @property
-    def pince(self):
+    def pince(self) -> dict:
         """Défini les différentes pinces minimales pour une broche en mm avec :
             alpha : angle entre l'effort de l'organe et le fil du bois en °
             d : diamètre efficace du boulon (ou du tire fond si >6mm) en  mm """

@@ -143,7 +143,7 @@ class Embrevement(Assemblage):
         self.dict_taux_embrevement["taux cisaillement talon"] = value[1]
         return value
 
-    def taux_embrevement(self, N_c1_d: si.kN, loadtype: str=Barre.LOAD_TIME, typecombi: str=Barre.TYPE_ACTION):
+    def taux_embrevement(self, N_c1_d: si.kN, loadtype: str=Barre.LOAD_TIME, typecombi: str=Barre.TYPE_ACTION) -> tuple:
         """Retourne les taux de travail de l'embrèvement avec:
             - la compression d'about de la pièce 1
             - la compression transversale de la pièce 2

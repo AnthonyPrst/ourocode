@@ -43,7 +43,7 @@ class Agrafe(Pointe):
             raise ValueError(f"Erreur, la longueur de pénétration t2 est inférieur à 14 fois le diamètre de l'agrafe. La longueur d'agrafe minimal est de {self.t1 + self.d*14}")
         
     @property
-    def MyRk(self):
+    def MyRk(self) -> tuple:
         """ Défini le moment d'écoulement plastique d'une pointe en N.mm avec"""
         d = self.d.value * 10**3
         @handcalc(override="short", precision=2, left="\\[", right="\\]")
@@ -52,13 +52,13 @@ class Agrafe(Pointe):
             return M_y_Rk * si.N*si.mm
         return val()
 
-    def nef(self):
+    def nef(self) -> int:
         """Retourne le nombre efficace d'organe dans une file"""
         self._nef = self.n
         return self._nef
 
     @property
-    def pince(self):
+    def pince(self) -> dict:
         """
         Défini les différentes pinces minimales pour une pointe en mm.
 

@@ -108,7 +108,7 @@ class Pointe(Assemblage):
 
 
     @property
-    def MyRk(self):
+    def MyRk(self) -> tuple:
         """ Défini le moment d'écoulement plastique d'une pointe en N.mm avec:
             d : diamètre de la pointe en mm (pour les pointe carrée = coté de la pointe)
             fu : la résistance caractéristique en traction du fil d'acier en N/mm2 """
@@ -211,7 +211,7 @@ class Pointe(Assemblage):
         return self.fh1k, self.fh2k
     
     
-    def Fax_Rk(self):
+    def Fax_Rk(self) -> tuple:
         """Calcul la valeur caractéristique de résistance axial entre la résistance caractéristique de la tête et du corps de la tige dans le bois en N.
         """
         if self._type_beam[1] == "Métal":
@@ -311,7 +311,7 @@ class Pointe(Assemblage):
         return self.kef
 
 
-    def nef(self, a1_beam1:int, a1_beam2:int):
+    def nef(self, a1_beam1:int, a1_beam2:int) -> tuple:
         """Défini le nombre efficace d'organe dans une file avec :
             a1_beam1 : espacement entre les organes dans la barre 1 en mm
             a1_beam2 : espacement entre les organes dans la barre 2 en mm"""
@@ -343,7 +343,7 @@ class Pointe(Assemblage):
         return result
 
     @property
-    def pince(self):
+    def pince(self) -> dict:
         """
         Défini les différentes pinces minimales pour une pointe en mm.
 
@@ -420,7 +420,7 @@ class Pointe(Assemblage):
         return dict_pince
 
 
-    def prepercage(self, beam: str=["1", "2"], sensible: bool=("False", "True")):
+    def prepercage(self, beam: str=["1", "2"], sensible: bool=("False", "True")) -> tuple:
         """Retourne l'épaisseur en mm minimale pour éviter le pré-perçage des pointes
 
         Args:

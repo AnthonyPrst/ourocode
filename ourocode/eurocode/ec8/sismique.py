@@ -133,7 +133,7 @@ class Sismique(Batiment):
         else:
             return True 
     
-    def save_gravity_load_data(self, path: str=None):
+    def save_gravity_load_data(self, path: str=None) -> None:
         """Sauvegarde les données des charges gravitaires dans un fichier JSON.
 
         Args:
@@ -142,7 +142,7 @@ class Sismique(Batiment):
         """
         super().save_data(self.gravity_loads, type_data="JSON", path=path)
     
-    def load_gravity_load_data(self, path: str=None):
+    def load_gravity_load_data(self, path: str=None) -> dict:
         """Charge les données des charges gravitaires depuis un fichier JSON.
 
         Args:
@@ -212,7 +212,18 @@ class Sismique(Batiment):
             self._loads[etage] = {"load": load_f, "Zi": z_i}
         
 
-    def add_gravity_load(self,name: str, load: si.kN / si.m**2, surface: si.m**2, etage: str=Batiment.ETAGE, z_i: float=0, action: str=ACTION, categorie_Q: str=Batiment.CAT_TYPE, occupations: str=OCCUPATION, comment: str=""):
+    def add_gravity_load(
+        self,
+        name: str, 
+        load: si.kN / si.m**2, 
+        surface: si.m**2, 
+        etage: str=Batiment.ETAGE, 
+        z_i: float=0, 
+        action: str=ACTION, 
+        categorie_Q: str=Batiment.CAT_TYPE, 
+        occupations: str=OCCUPATION, 
+        comment: str=""
+        ) -> dict:
         """Ajoute une charge gravitaire au bâtiment, cela permet de considérer la masse par niveau sur le bâtiment.
         Attention ne pas oublier les charges G de mur, de menuiserie, d'élément technique et autre.
 
@@ -258,28 +269,28 @@ class Sismique(Batiment):
         return value
 
     @property
-    def region_sismique(self):
+    def region_sismique(self) -> str:
         """Retourne la région sismique du bâtiment"""
         file = "carte_action_region.csv"
         df = self._data_from_csv(file, index_col=1)
         return df.loc[str(self.code_INSEE)]["Alea_sismique"]
     
     @property
-    def cat_importance_table(self):
+    def cat_importance_table(self) -> 'pd.Series':
         """Retourne le dataframe de la catégorie d'importance choisi"""
         file = os.path.join("sismique", "categorie_importance.csv")
         data_cat_imp = self._data_from_csv(file)
         return data_cat_imp.loc[self.cat_importance]
 
     @property
-    def classe_sol_table(self):
+    def classe_sol_table(self) -> 'pd.Series':
         """Retourne le dataframe de la classe de sol choisi"""
         file = os.path.join("sismique", "classe_sol.csv")
         data_classe_sol = self._data_from_csv(file)
         return data_classe_sol.loc[self.classe_sol]
 
     @property
-    def type_spectre_table(self):
+    def type_spectre_table(self) -> 'pd.Series':
         """Retourne le dataframe du spectre choisi"""
         if self.type_spectre == "Type 2":
             file = os.path.join("sismique", "spectre_eleastique_h_type2.csv")
@@ -288,17 +299,17 @@ class Sismique(Batiment):
         return self._data_from_csv(file).loc[self.classe_sol]
 
     @property
-    def type_constructif_table(self):
+    def type_constructif_table(self) -> dict:
         """Retourne les classes de ductilité bois"""
         return self.CLASSE_DUCTILITE
 
     @property
-    def a_gr(self):
+    def a_gr(self) -> float:
         """Retourne l'accélération de base pour un sol de classe A"""
         return self.AGR[self.region_sismique] *si.m / si.s**2
 
     @property
-    def a_g(self):
+    def a_g(self) -> tuple:
         """Retourne l'accélération de calcul pour un sol de classe A"""
         a_gr = self.a_gr
         gamma_1 = self.gamma_1
@@ -309,7 +320,7 @@ class Sismique(Batiment):
         return val()
 
     @property
-    def gamma_1(self):
+    def gamma_1(self) -> float:
         """Retourne le gamma_1 fonction de la catégorie d'importance"""
         return self.cat_importance_table["gamma_1"]
     
@@ -370,7 +381,7 @@ class Sismique(Batiment):
         direction: str=("x", "y"), 
         screenshot: bool = ("False", "True"),
         filepath: str=None
-        ):
+        ) -> None:
         """
         Affiche le spectre de calcul pour l'analyse élastique.
 
@@ -425,7 +436,7 @@ class Sismique(Batiment):
             plt.show()
 
     @property
-    def T1(self):
+    def T1(self) -> tuple:
         """
         Retourne les periodes de calcul selon EN 1998-1 §4.3.3.2.2
         """
@@ -440,7 +451,7 @@ class Sismique(Batiment):
         return val()
 
     @property
-    def Sd_t(self):
+    def Sd_t(self) -> tuple:
         """
         Retourne le spectre elastique de calcul selon EN 1998-1 §3.2.2.5
         """
@@ -454,7 +465,7 @@ class Sismique(Batiment):
         return (latex, Sd_t)
 
     @property
-    def Fb(self):
+    def Fb(self) -> tuple:
         """
         Retourne l'effort tranchant à la base de la structure selon EN 1998-1 §4.3.3.2.2
         """
@@ -473,7 +484,7 @@ class Sismique(Batiment):
             return {"x": F_b_x, "y": F_b_y}
         return val()
             
-    def coeff_torsion_accidentelle(self, x: si.m, Le: si.m):
+    def coeff_torsion_accidentelle(self, x: si.m, Le: si.m) -> tuple:
         """
         Retourne le coefficient de torsion accidentelle qui est à déterminer de cette manière si les raideurs latérales et de la masses sont symétriques.
         Selon EN 1998-1 §4.3.3.2.4
@@ -490,7 +501,7 @@ class Sismique(Batiment):
             return delta
         return val()
 
-    def Fi(self, etage: str=Batiment.ETAGE):
+    def Fi(self, etage: str=Batiment.ETAGE) -> tuple:
         """
         Retourne l'effort horizontal équivalent à l'étage i selon EN 1998-1 §4.3.3.2.3.
         Attention cette formule ne fonctionne que si les déplacements horizontaux croissent linéairement suivant la hauteur.
@@ -516,7 +527,7 @@ class Sismique(Batiment):
         return val()
     
     @property
-    def Fi_table(self):
+    def Fi_table(self) -> 'pd.DataFrame':
         """
         Retourne les efforts horizontaux équivalents à chaque étage selon EN 1998-1 §4.3.3.2.3.
         Attention cette méthodes ne fonctionne que si les déplacements horizontaux croissent linéairement suivant la hauteur.
@@ -538,7 +549,7 @@ class Sismique(Batiment):
                 dict_Fi.loc[level] = [F_i_x, F_i_y]
         return dict_Fi
 
-    def ds(self, de: float, direction: str=("x", "y")):
+    def ds(self, de: float, direction: str=("x", "y")) -> tuple:
         """
         Retourne le déplacement de calcul dû à l'action sismique de calcul avec prise en compte du coefficient de comportement
         conformément à EN 1998-1 §4.3.4.
@@ -556,7 +567,7 @@ class Sismique(Batiment):
             return d_s
         return val()
 
-    def coeff_second_ordre(self, dr: float, V_tot: si.kN, etage: str=Batiment.ETAGE):
+    def coeff_second_ordre(self, dr: float, V_tot: si.kN, etage: str=Batiment.ETAGE) -> tuple:
         """
         Retourne le coefficient de second ordre selon EN 1998-1 §4.3.5.2.2
         
@@ -590,7 +601,7 @@ class Sismique(Batiment):
             return coeff_P_delta
         return val()
     
-    def taux_limitations_dommages(self, dr: float, etage: str=Batiment.ETAGE, type_dommages: str=TYPE_DOMMAGES):
+    def taux_limitations_dommages(self, dr: float, etage: str=Batiment.ETAGE, type_dommages: str=TYPE_DOMMAGES) -> tuple:
         """
         Retourne le taux de limitation des dommages selon EN 1998-1 §4.4.3.2.
         
@@ -630,7 +641,15 @@ class Sismique(Batiment):
                 return taux_4_33
         return val()
 
-    def Fa(self, ma: float, Ta_x: float, Ta_y: float, z: float, type_element_ns: str=CLASSE_DUCTILITE_NS, cat_importance_ns: str=CAT_IMPORTANCE_NS):
+    def Fa(
+        self, 
+        ma: float, 
+        Ta_x: float, 
+        Ta_y: float, 
+        z: float, 
+        type_element_ns: str=CLASSE_DUCTILITE_NS, 
+        cat_importance_ns: str=CAT_IMPORTANCE_NS
+        ) -> tuple:
         """
         Retourne l'effort sismique horizontal Fa à appliquer au centre de gravité des éléments non structuraux selon EN 1998-1 §4.3.5.2.
 
@@ -676,7 +695,7 @@ class Sismique(Batiment):
         eta_torsion_y: float=1, 
         P_delta_x: float=1, 
         P_delta_y: float=1
-        ):
+        ) -> tuple:
         """
         Retourne l'effort sismique final pour un dimensionnement bois des éléments en capacités.
 
@@ -715,7 +734,7 @@ class Sismique(Batiment):
         eta_torsion_y: float=1, 
         P_delta_x: float=1, 
         P_delta_y: float=1
-        ):
+        ) -> tuple:
         """
         Retourne l'effort sismique final pour un dimensionnement bois des éléments dissipatifs.
 

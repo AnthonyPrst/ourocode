@@ -101,7 +101,7 @@ class Feu(Barre):
         return latex
 
     @property
-    def K_fi(self):
+    def K_fi(self) -> float:
         data_csv_kfi = self._data_from_csv("kfi.csv")
         return float(data_csv_kfi.loc[self.type_bois]["kfi"])
 
@@ -163,7 +163,7 @@ class Feu(Barre):
                 beta_0 = beta_0 * kp * kh
         return beta_0, beta_n
 
-    def d_char_0(self, t: int, beta_0: float):
+    def d_char_0(self, t: int, beta_0: float) -> tuple:
         """Retourne la valeur de la profondeur de carbonisation en mm pour une carbonisation uni-dimensionnelle
         Args:
             t (int): le temps approprié d'exposition au feu en minutes.
@@ -408,7 +408,7 @@ class Feu(Barre):
         self.b_calcul = self.b_calcul - self._def["Gauche"][1] - self._def["Droite"][1] # Réduction de la section
         self.h_calcul = self.h_calcul - self._def["Haut"][1] - self._def["Bas"][1] # Réduction de la section
 
-    def get_def(self, orientation: str = ORIENTATION):
+    def get_def(self, orientation: str = ORIENTATION) -> tuple:
         """Retourne la profondeur de carbonisation effective en mm suivant l'orientation donnée"""
         return self._def[orientation]
 
@@ -469,7 +469,7 @@ class Feu(Barre):
                 kh[cle] = 1
         return kh
 
-    def Emean_fin(self, psy_2: float):
+    def Emean_fin(self, psy_2: float) -> tuple:
         """Renvoie le E,mean,fin en fonction du Kdef et du psy2"""
         self.psy_2 = psy_2
         E0_mean = int(self.caract_meca.loc["E0mean"]) * si.MPa
