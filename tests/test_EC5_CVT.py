@@ -9,10 +9,10 @@ import numpy as np
 
 si.environment("structural")
 sys.path.insert(1, "./")
-from ourocode.eurocode import EC5_CVT as EC5
-from ourocode.eurocode.A0_Projet import Batiment
-from ourocode.eurocode.EC5_Element_droit import Barre
-from ourocode.eurocode.EC5_Assemblage import Pointe
+from ourocode.eurocode.ec5 import cvt as EC5
+from ourocode.eurocode.core.batiment import Batiment
+from ourocode.eurocode.ec5.element_droit.barre import Barre
+from ourocode.eurocode.ec5.assemblage import Pointe
 
 @pytest.fixture
 def batiment():
@@ -23,8 +23,8 @@ def batiment():
 def connectors():
     """Crée des connecteurs (pointes) et panneaux/montants compatibles avec MOB."""
     # Panneau OSB intérieur/extérieur
-    panel = Barre(b=15, h=1196, classe="OSB/3 11-18 mm", cs=1, effet_systeme=False)
-    montant = Barre(b=60, h=120, classe="C24", cs=1, effet_systeme=False)
+    panel = Barre(b=15, h=1196, section="Rectangulaire", classe="OSB/3 11-18 mm", cs=1, effet_systeme=False)
+    montant = Barre(b=60, h=120, section="Rectangulaire", classe="C24", cs=1, effet_systeme=False)
     # Connecteurs par pointes (paramètres raisonnables)
     conn_int = Pointe(d=2.5, dh=5, l=55, qualite='6.8', n=1, type_organe='Pointe circulaire lisse', percage=False,
                       beam_1=panel, beam_2=montant, nfile=1, nCis=1)
@@ -265,13 +265,36 @@ class TestMOB:
         # 5. Vérifier que le panneau le plus large a un coefficient d'équivalence de 1.0
         max_width_idx = df_kp['Largeur'].idxmax()
         assert np.isclose(df_kp.loc[max_width_idx, 'Coeff. équivalence'], 1.0)
-        
+
+    def _setup_wall_with_panels(self, mob_instance):
+        """Helper : crée un système de mur avec 3 panneaux et retourne (sys_name, wall_name)."""
+        etage = 'RDC'
+        sys_name = mob_instance.add_sys_wall(
+            h_etage=2.8, h_sys_MOB=2.5, l_sys_MOB=10.0, etage=etage
+        )
+        wall_name = mob_instance.add_wall_to_sys(
+            sys_name=sys_name, position=1.5, l_MOB=3.0,
+            couturage_ext_rive=150, couturage_ext_inter=300,
+            couturage_int_rive=150, couturage_int_inter=300,
+        )
+        mob_instance.add_panel_to_wall(
+            wall_name=wall_name, number=2, h_panel=2500,
+            b_panel=1196, position_panel='Extérieur',
+        )
+        mob_instance.add_panel_to_wall(
+            wall_name=wall_name, number=1, h_panel=2500,
+            b_panel=1070, position_panel='Intérieur',
+        )
+        mob_instance.add_panel_to_wall(
+            wall_name=wall_name, number=1, h_panel=2500,
+            b_panel=1070, position_panel='Extérieur',
+        )
         return sys_name, wall_name
-    
+
     def test_k_wall(self, mob_instance):
         """Test le calcul de la raideur des murs et systèmes de murs."""
-        # D'abord, configurer les données de test en utilisant test_K_panel
-        sys_name, wall_name = self.test_K_panel(mob_instance)
+        # Configurer les données de test via le helper
+        sys_name, wall_name = self._setup_wall_with_panels(mob_instance)
         
         # Ajouter un deuxième mur avec des panneaux différents
         wall_name2 = mob_instance.add_wall_to_sys(
@@ -383,9 +406,9 @@ class TestMOB:
         mob_instance.taux_walls()
 
         # Définir les barres pour ancrages
-        montant = Barre(b=45, h=120, classe="C24", cs=1, effet_systeme=False)
-        lisse_basse = Barre(b=60, h=120, classe="C24", cs=1, effet_systeme=False)
-        lisse_impl = Barre(b=80, h=120, classe="C24", cs=1, effet_systeme=False)
+        montant = Barre(b=45, h=120, section="Rectangulaire", classe="C24", cs=1, effet_systeme=False)
+        lisse_basse = Barre(b=60, h=120, section="Rectangulaire", classe="C24", cs=1, effet_systeme=False)
+        lisse_impl = Barre(b=80, h=120, section="Rectangulaire", classe="C24", cs=1, effet_systeme=False)
 
         # Lancer le calcul des taux d'ancrage avec valeurs raisonnables
         df_taux_anc = mob_instance.taux_ancrage(

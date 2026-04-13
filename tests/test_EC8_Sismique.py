@@ -5,8 +5,8 @@ import pytest
 import forallpeople as si
 si.environment("structural")
 # Import des modules à tester
-from ourocode.eurocode import EC8_Sismique as EC8
-from ourocode.eurocode import A0_Projet as A0
+from ourocode.eurocode.ec8 import sismique as EC8
+from ourocode.eurocode import core as A0
 
 # Fixture pour un projet de base
 @pytest.fixture

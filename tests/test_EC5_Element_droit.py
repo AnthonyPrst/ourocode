@@ -6,7 +6,7 @@ import pytest
 import forallpeople as si
 si.environment("structural")
 sys.path.insert(1, "./")
-from ourocode.eurocode import EC5_Element_droit as EC5
+from ourocode.eurocode.ec5 import element_droit as EC5
 
 
 @pytest.fixture
