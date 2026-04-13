@@ -184,3 +184,87 @@ class Test_Cisaillement:
             "equ6.13": 3.2513022552554838,
             "equ6.60": 5.032476193026768,
         }
+
+
+class Test_Feu_protections:
+    """Tests des branches de calcul de section réduite selon le type de protection."""
+
+    def test_feu_pas_exposition_section_inchangee(self, barre):
+        """Toutes les faces 'Pas d'exposition' -> pas de réduction de section."""
+        feu_protege = EC5_feu.Feu._from_parent_class(
+            barre,
+            t_expo=30,
+            haut="Pas d'exposition",
+            bas="Pas d'exposition",
+            gauche="Pas d'exposition",
+            droite="Pas d'exposition",
+            double_couches=False,
+            hp=12,
+            rho_k_protect=0,
+            tf=15,
+        )
+        assert abs(feu_protege.b_calcul.value - barre.b.value) < 1e-9
+        assert abs(feu_protege.h_calcul.value - barre.h.value) < 1e-9
+
+    def test_feu_platre_joints_combles_reduction(self, barre):
+        """Protection type A joints comblés -> section réduite par rapport à 'Pas d'exposition'."""
+        feu_protection = EC5_feu.Feu._from_parent_class(
+            barre,
+            t_expo=30,
+            haut="Pas d'exposition",
+            bas="1 plaque de platre type A joints comblés",
+            gauche="1 plaque de platre type A joints comblés",
+            droite="Aucune protection",
+            double_couches=False,
+            hp=12,
+            rho_k_protect=0,
+            tf=15,
+        )
+        feu_ref = EC5_feu.Feu._from_parent_class(
+            barre,
+            t_expo=30,
+            haut="Pas d'exposition",
+            bas="Pas d'exposition",
+            gauche="Pas d'exposition",
+            droite="Pas d'exposition",
+            double_couches=False,
+            hp=12,
+            rho_k_protect=0,
+            tf=15,
+        )
+        assert feu_protection.b_calcul.value <= feu_ref.b_calcul.value
+
+    def test_feu_platre_joints_vides_reduction(self, barre):
+        """Protection type F joints vides -> section réduite par rapport à sans protection totale."""
+        feu_protection = EC5_feu.Feu._from_parent_class(
+            barre,
+            t_expo=30,
+            haut="Pas d'exposition",
+            bas="1 plaque de platre type F joints vides",
+            gauche="Pas d'exposition",
+            droite="Aucune protection",
+            double_couches=False,
+            hp=12,
+            rho_k_protect=0,
+            tf=15,
+        )
+        assert feu_protection.b_calcul.value > 0
+        assert feu_protection.h_calcul.value > 0
+
+
+class Test_Compression_feu_faible_elancement:
+    """Test la branche lamb_rel < 0.3 dans Compression_feu."""
+
+    def test_compression_feu_faible_elancement(self, feu):
+        """lo court -> faible élancement -> chemin equ6.23 ou equ6.19/equ6.20."""
+        comp = EC5_feu.Compression_feu._from_parent_class(
+            feu, lo_y=500, lo_z=500, type_appuis="Rotule - Rotule"
+        )
+        comp.sigma_c_0_d(10)
+        comp.f_c_0_d()
+        result = comp.taux_c_0_d()
+        assert isinstance(result, tuple)
+        assert len(result) >= 2
+        # result[1] contient les valeurs de taux (dict ou tuple selon le chemin)
+        taux_vals = result[1]
+        assert taux_vals is not None

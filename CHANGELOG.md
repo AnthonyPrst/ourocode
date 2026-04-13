@@ -7,7 +7,32 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-04-13
+
+### Added
+- **Suite de tests unitaires complète (59% → 63% de couverture, 41 → 337 tests)** :
+  - `test_A0_Projet.py` réécrit : couverture de `Projet`, `Objet` et des 4 mixins (`SerializationMixin`, `MathUtilsMixin`, `SyntheseMixin`, `DataLoaderMixin`).
+  - `test_EC1_Exploitation.py` créé : `qk`, `Qk`, `alpha_A`, `alpha_n` pour toutes les catégories.
+  - `test_EC3_Feu.py` créé : `_TemperatureGaz` (courbe ISO 834), `_CoeffFeu` (ky/kb/kp/kE/kw θ), `Feu_acier` (fire_data, c_a branches).
+  - `test_EC3_Platine.py` créé : `Platine_assise_compression_beton` et `Platine_assise_compression_bois`.
+  - `test_EC3_Element_droit.py` complété : `Nb_Rd` (toutes courbes a0/a/b/c/d), `Flexion` classe 3, `Mc_V_Rd` cisaillement élevé/faible, `Traction` Nt_Rd.
+  - `test_EC5_BLC.py` créé : `Poutre_simple_decroissance` (init, héritage, résistances).
+  - `test_EC5_Embrevement.py` créé : `Embrevement` init, profondeur auto/manuel, types (Bissectrice, Équerre p1/p2).
+  - `test_EC5_Feu.py` complété : branches de protection (plâtre joints comblés/vides, pas d'exposition), faible élancement compression feu.
+  - `test_EC0_Combinaison.py` : fixtures corrigées pour correspondre à l'API réelle de `Projet` et `Model_generator`.
+  - `test_EC5_CVT.py` : suppression du `return` dans `test_K_panel`, extraction du helper `_setup_wall_with_panels`.
+
+### Fixed
+- Import conditionnel de `IPython` dans `core/objet.py` pour éviter une erreur si le module n'est pas installé.
+- Correction du paramètre `section` manquant dans les tests CVT.
+
 ### Changed
+- **Refactoring Phase 4 — Réexports & API courte** :
+  - Création d'une API courte via `ourocode/__init__.py` : `from ourocode import Barre, Projet, Flexion, ...`
+  - Réexports intermédiaires via `ourocode/eurocode/__init__.py` : `from ourocode.eurocode import Barre, Projet, ...`
+  - Toutes les classes principales sont accessibles directement depuis le namespace racine.
+  - Centralisation de `si.environment("structural")` dans `ourocode/__init__.py`.
+
 - **Refactoring Phase 2 — Ajout des annotations de type retour** :
   - Ajout des return type hints (`-> tuple`, `-> dict`, `-> float`, `-> str`, `-> None`, `-> 'pd.Series'`, `-> 'pd.DataFrame'`) sur toutes les méthodes publiques.
   - Fichiers concernés :
@@ -34,17 +59,13 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
   - Suppression de tous les anciens fichiers monolithiques.
   - Mise à jour de tous les imports dans les tests et la documentation mkdocs.
 
-### Added
+### Added (suite refactoring)
 - Documentation API complète avec MkDocs-Material + mkdocstrings (déploiement GitHub Pages automatique).
 - Job `docs` dans le workflow CI : déploiement automatique sur `gh-pages` après passage des tests.
 - Badge "Documentation" dans le README avec lien vers GitHub Pages.
 - Section "Documentation" dans le README avec liens vers le guide, la référence API et les normes.
 - Module `EC5_BLC.py` : paramètres spécifiques au bois lamellé-collé (EN 1995-1-1).
 - Dépendances optionnelles `[docs]` dans `pyproject.toml` (`mkdocs-material`, `mkdocstrings[python]`, `mkdocs-include-markdown-plugin`, `mike`).
-
-### Fixed
-- Import conditionnel de `IPython` dans `core/objet.py` pour éviter une erreur si le module n'est pas installé.
-- Correction du paramètre `section` manquant dans les tests CVT.
 
 ## [1.10.0] - 2025
 

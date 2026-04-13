@@ -351,7 +351,7 @@ class Feu(Barre):
 
                 beta_0, beta_n = self._get_bar_beta0_and_betan()
                 beta_0_protect, beta_n_protect = self._get_wood_protect_beta0_and_betan(
-                    orientation
+                    protection
                 )
                 latex_tch_tf, res_tch_tf = self._get_tch_and_tf(
                     orientation, beta_0_protect

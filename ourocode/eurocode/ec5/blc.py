@@ -14,9 +14,9 @@ class Poutre_simple_decroissance(Flexion):
 
 
     def km_alpha(self, type_contrainte=("Traction", "Compression"), loadtype=Flexion.LOAD_TIME, typecombi=Flexion.TYPE_ACTION):
-        fvd = self.f_type_d("fvk", loadtype, typecombi)[1]
-        ft90d = self.f_type_d("ft90k", loadtype, typecombi)[1]
-        fc90d = self.f_type_d("fc90k", loadtype, typecombi)[1]
+        fvd = self._f_type_d("fvk", loadtype, typecombi)[1]
+        ft90d = self._f_type_d("ft90k", loadtype, typecombi)[1]
+        fc90d = self._f_type_d("fc90k", loadtype, typecombi)[1]
         fmd = self.f_m_d(loadtype, typecombi)[1]
 
         if type_contrainte == "Traction":

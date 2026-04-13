@@ -11,7 +11,7 @@ from handcalcs.decorator import handcalc
 
 from ourocode.eurocode.ec5.assemblage.assemblage import Assemblage
 from ourocode.eurocode.ec5.element_droit.barre import Barre
-from ourocode.eurocode.ec5.element_droit.compression import Compression_perpendiculaire
+from ourocode.eurocode.ec5.element_droit.compression import Compression_perpendiculaire, Compression_inclinees
 
 class Embrevement(Assemblage):
     TYPE_EMBREVEMENT = ("Bissectrice", "Equerre à la pièce 2", "Equerre à la pièce 1")

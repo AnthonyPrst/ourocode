@@ -20,20 +20,16 @@ from ourocode.eurocode.core.projet import Projet
 @pytest.fixture
 def basic_project():
     return Projet(
-        nom="Projet Test",
-        auteur="Testeur",
-        date="2025-05-27",
-        unite_longueur="m",
-        unite_force="kN",
-        unite_masse="kg",
-        unite_temp="°C",
+        ingenieur="Testeur",
+        name="Projet Test",
+        code_INSEE=75056,
         alt=100,
     )
 
 # Fixture pour un générateur de modèle de base
 @pytest.fixture
-def basic_model_generator(basic_project):
-    model = Model_generator(projet=basic_project)
+def basic_model_generator():
+    model = Model_generator(ingenieur="Testeur", name="Projet Test", code_INSEE=75056, alt=100)
     # Ajout d'une barre de test
     n1 = model.add_node(X=0, Y=0, Z=0)
     n2 = model.add_node(X=5000, Y=2000, Z=0)
