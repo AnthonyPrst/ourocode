@@ -907,7 +907,7 @@ class Assemblage(Projet):
             return taux_cisaillement
         result = val()
         synthese = [
-            [f"Fendage de la pièce bois", result[1], None],
+            ["Fendage de la pièce bois", result[1], None],
         ]
         self._add_synthese_taux_travail(synthese)
         return result

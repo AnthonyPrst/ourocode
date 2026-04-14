@@ -99,7 +99,7 @@ class Test_Pointe:
         assert pointe.n == 9
         assert pointe.alpha == [0, 0]
         assert pointe.type_organe == "Autres pointes"
-        assert pointe.percage == False
+        assert not pointe.percage
 
     def test_MyRk(self, pointe):
         assert pointe.MyRk[1].value == 1.9494698713738494
@@ -150,10 +150,10 @@ class Test_Agrafe:
         assert agrafe.l == 50 * si.mm
         assert agrafe.qualite == "8.8"
         assert agrafe.n == 9
-        assert agrafe.angle_sup_30 == True
+        assert agrafe.angle_sup_30
         assert agrafe.alpha == [0, 0]
         assert agrafe.type_organe == "Agrafe"
-        assert agrafe.percage == False
+        assert not agrafe.percage
 
     def test_MyRk(self, agrafe):
         assert agrafe.MyRk[1].value == 0.50625

@@ -208,7 +208,7 @@ class Boulon(Assemblage):
         if self.type_organe == "Tirefond":
             self.d = self.d_vis
         for i, alpha in enumerate(self.alpha):
-            if not self._type_beam[i] in self.TYPE_BOIS_ASSEMBLAGE:
+            if self._type_beam[i] not in self.TYPE_BOIS_ASSEMBLAGE:
                 continue
             a1 = round((4 + mt.cos(mt.radians(alpha))) * self.d, 1)
             a2 = round(4 * self.d, 1)

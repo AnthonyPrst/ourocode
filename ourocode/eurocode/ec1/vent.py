@@ -720,7 +720,7 @@ class Toiture_terrasse_acrotere(Vent):
 
         if self._hp_h > 0.1:
             self._hp_h = 0.1
-        elif not self._hp_h in list_type_rapport:
+        elif self._hp_h not in list_type_rapport:
             minimum = list_type_rapport[list_type_rapport < self._hp_h].max()
             maximum = list_type_rapport[list_type_rapport > self._hp_h].min()
             df_min = df[df["Rapport"] == minimum]
@@ -916,7 +916,7 @@ class Toiture_1_pant(Vent):
         touch_min = self.alpha_toit < list_alpha_toit.min()
         touch_max = self.alpha_toit > list_alpha_toit.max()
 
-        if not self.alpha_toit in list_alpha_toit:
+        if self.alpha_toit not in list_alpha_toit:
             if touch_min:
                 minimum = list_alpha_toit.min()
             else:
@@ -1141,7 +1141,7 @@ class Toiture_2_pants(Vent):
         touch_min = self.alpha_toit < list_alpha_toit.min()
         touch_max = self.alpha_toit > list_alpha_toit.max()
 
-        if not self.alpha_toit in list_alpha_toit:
+        if self.alpha_toit not in list_alpha_toit:
             if touch_min:
                 minimum = list_alpha_toit.min()
             else:
@@ -1324,7 +1324,7 @@ class Toiture_isolee_1_pant(Vent):
         touch_min = self.alpha_toit < list_alpha_toit.min()
         touch_max = self.alpha_toit > list_alpha_toit.max()
 
-        if not self.alpha_toit in list_alpha_toit:
+        if self.alpha_toit not in list_alpha_toit:
             if touch_min:
                 minimum = list_alpha_toit.min()
             else:
@@ -1500,7 +1500,7 @@ class Toiture_isolee_2_pants(Vent):
         touch_min = self.alpha_toit < list_alpha_toit.min()
         touch_max = self.alpha_toit > list_alpha_toit.max()
 
-        if not self.alpha_toit in list_alpha_toit:
+        if self.alpha_toit not in list_alpha_toit:
             if touch_min:
                 minimum = list_alpha_toit.min()
             else:

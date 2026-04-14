@@ -54,3 +54,17 @@ docs = [
     "mkdocs-include-markdown-plugin>=6.0",
     "mike>=2.0",
 ]
+
+[tool.ruff]
+line-length = 120
+exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+ignore = [
+    "E402",   # Module level import not at top — intentionnel (si.environment() avant imports)
+    "F401",   # Imported but unused — faux positifs sur les __init__.py de réexport
+    "F403",   # from module import * — utilisé intentionnellement
+    "F405",   # May be undefined from star import — conséquence de F403
+    "E741",   # Ambiguous variable name (l, O, I) — noms de variables physiques courants
+    "F841",   # Local variable assigned but never used
+]

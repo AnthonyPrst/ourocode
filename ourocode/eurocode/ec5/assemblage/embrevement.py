@@ -168,9 +168,9 @@ class Embrevement(Assemblage):
         transversale = self._compression_transversale(N_c1_d, loadtype, typecombi)
         talon = self._cisaillement_talon(N_c1_d, loadtype, typecombi)
         synthese = [
-            [f"Embrèvement avec compression d'about de la pièce 1", about[1], None],
-            [f"Embrèvement avec compression transversale de la pièce 2", transversale[1], None],
-            [f"Embrèvement avec cisaillement du talon de la pièce 2", talon[1], None],
+            ["Embrèvement avec compression d'about de la pièce 1", about[1], None],
+            ["Embrèvement avec compression transversale de la pièce 2", transversale[1], None],
+            ["Embrèvement avec cisaillement du talon de la pièce 2", talon[1], None],
         ]
         self._add_synthese_taux_travail(synthese)
         return (about[0] + transversale[0] + talon[0], self.dict_taux_embrevement)

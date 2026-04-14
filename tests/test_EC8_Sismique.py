@@ -60,8 +60,8 @@ class Test_Sismique:
         assert sismique.type_constructif == {"x": "Panneaux de murs avec diaphragmes cloués, assemblés par clous et boulons", "y": "Panneaux de murs avec diaphragmes cloués, assemblés par clous et boulons"}
         assert sismique.coeff_comportement == {"x": {'Classe de ductilité': 'DCH', 'q': 3}, "y": {'Classe de ductilité': 'DCH', 'q': 3}}
         assert sismique.K_b == {"Raideur du bâtiment dans la direction x": 15000*si.kN / si.m, "Raideur du bâtiment dans la direction y": 10000*si.kN / si.m}
-        assert sismique.regulier_plan == True
-        assert sismique.regulier_elevation == True
+        assert sismique.regulier_plan is True
+        assert sismique.regulier_elevation is True
         assert sismique.cat_importance == "II"
         assert sismique.classe_sol == "C"
         assert sismique.type_spectre == "Type 2"
