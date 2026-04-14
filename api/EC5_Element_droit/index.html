@@ -1,0 +1,6266 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Bibliothèque Python pour le calcul de structure selon les Eurocodes (AN Françaises)">
+      
+      
+        <meta name="author" content="Anthony PARISOT">
+      
+      
+        <link rel="canonical" href="https://anthonyprst.github.io/ourocode/api/EC5_Element_droit/">
+      
+      
+        <link rel="prev" href="../EC3_Assemblage/">
+      
+      
+        <link rel="next" href="../EC5_BLC/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Éléments droits - Ourocode</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ec5_element_droit-en-1995-1-1" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="../.." title="Ourocode" class="md-header__button md-logo" aria-label="Ourocode" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Ourocode
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Éléments droits
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Passer en mode sombre"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Passer en mode sombre" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Passer en mode clair"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Passer en mode clair" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Partager" aria-label="Partager" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/AnthonyPrst/ourocode" title="Aller au dépôt" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    AnthonyPrst/ourocode
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Onglets" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Accueil
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../guide/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Guide de démarrage
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../objet/" class="md-tabs__link">
+          
+  
+  
+  Référence API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../normes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Normes Eurocodes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../changelog/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Ourocode" class="md-nav__button md-logo" aria-label="Ourocode" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    Ourocode
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/AnthonyPrst/ourocode" title="Aller au dépôt" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    AnthonyPrst/ourocode
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide de démarrage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Référence API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Référence API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../objet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Classe de base
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../A0_Projet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A0 — Projet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC0_Combinaison/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC0 — Combinaisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC1 — Actions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EC1 — Actions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC1_Exploitation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exploitation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC1_Neige/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Neige
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC1_Vent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC3 — Acier
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EC3 — Acier
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC3_Element_droit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Éléments droits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC3_Feu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incendie
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC3_Assemblage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assemblages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_6" id="__nav_3_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC5 — Bois
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EC5 — Bois
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Éléments droits
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Éléments droits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="Sur cette page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Sur cette page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        element_droit
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="element_droit">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.__all__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __all__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Barre
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Barre">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.inertie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        inertie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.caract_meca" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        caract_meca
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.gamma_M_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gamma_M_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.K_mod_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_mod_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.k_sys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        k_sys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.Emean_fin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Emean_fin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.fleche" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fleche
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flexion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Flexion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.K_h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_h
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.K_m" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_m
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.sigma_m_crit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_m_crit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.lamb_rel_m" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lamb_rel_m
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.K_crit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_crit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.f_m_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_m_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.sigma_m_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_m_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.taux_m_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_m_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Traction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Traction
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Traction">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Traction.K_h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_h
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Traction.f_t_0_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_t_0_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Traction.sigma_t_0_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_t_0_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Traction.taux_t_0_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_t_0_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compression
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Compression">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.lamb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lamb
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.lamb_rel_Axe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lamb_rel_Axe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.k_Axe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        k_Axe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.kc_Axe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kc_Axe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.f_c_0_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_c_0_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.sigma_c_0_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_c_0_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.taux_c_0_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_c_0_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compression_perpendiculaire
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Compression_perpendiculaire">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.K_c90" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_c90
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.f_c_90_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_c_90_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.sigma_c_90_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_c_90_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.taux_c_90_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_c_90_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.show_c90" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        show_c90
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_inclinees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compression_inclinees
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Compression_inclinees">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_inclinees.sigma_c_alpha_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_c_alpha_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_inclinees.taux_c_alpha_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_c_alpha_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cisaillement
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cisaillement">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.K_cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_cr
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.Kv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.f_v_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_v_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.tau_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tau_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.taux_tau_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_tau_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.show_Kv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        show_Kv
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC5_BLC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BLC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC5_Feu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incendie
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC5_Assemblage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assemblages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC5_CVT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CVT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC8_Sismique/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC8 — Sismique
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../normes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Normes Eurocodes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="Sur cette page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Sur cette page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        element_droit
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="element_droit">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.__all__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __all__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Barre
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Barre">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.inertie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        inertie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.caract_meca" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        caract_meca
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.gamma_M_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gamma_M_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.K_mod_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_mod_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.k_sys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        k_sys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.Emean_fin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Emean_fin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Barre.fleche" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        fleche
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flexion
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Flexion">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.K_h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_h
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.K_m" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_m
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.sigma_m_crit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_m_crit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.lamb_rel_m" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lamb_rel_m
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.K_crit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_crit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.f_m_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_m_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.sigma_m_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_m_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Flexion.taux_m_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_m_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Traction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Traction
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Traction">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Traction.K_h" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_h
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Traction.f_t_0_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_t_0_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Traction.sigma_t_0_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_t_0_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Traction.taux_t_0_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_t_0_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compression
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Compression">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.lamb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lamb
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.lamb_rel_Axe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lamb_rel_Axe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.k_Axe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        k_Axe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.kc_Axe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kc_Axe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.f_c_0_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_c_0_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.sigma_c_0_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_c_0_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression.taux_c_0_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_c_0_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compression_perpendiculaire
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Compression_perpendiculaire">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.K_c90" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_c90
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.f_c_90_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_c_90_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.sigma_c_90_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_c_90_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.taux_c_90_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_c_90_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.show_c90" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        show_c90
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_inclinees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compression_inclinees
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Compression_inclinees">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_inclinees.sigma_c_alpha_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sigma_c_alpha_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Compression_inclinees.taux_c_alpha_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_c_alpha_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cisaillement
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cisaillement">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.K_cr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        K_cr
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.Kv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.f_v_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_v_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.tau_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tau_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.taux_tau_d" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_tau_d
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.show_Kv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        show_Kv
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ec5_element_droit-en-1995-1-1">EC5_Element_droit — EN 1995-1-1<a class="headerlink" href="#ec5_element_droit-en-1995-1-1" title="Permanent link">&para;</a></h1>
+<p>Vérification des éléments droits en bois selon EN 1995-1-1.</p>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="ourocode.eurocode.ec5.element_droit" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">element_droit</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ourocode.eurocode.ec5.element_droit.__all__" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">__all__</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.__all__" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Barre&#39;</span><span class="p">,</span> <span class="s1">&#39;Flexion&#39;</span><span class="p">,</span> <span class="s1">&#39;Traction&#39;</span><span class="p">,</span> <span class="s1">&#39;Compression&#39;</span><span class="p">,</span> <span class="s1">&#39;Compression_perpendiculaire&#39;</span><span class="p">,</span> <span class="s1">&#39;Compression_inclinees&#39;</span><span class="p">,</span> <span class="s1">&#39;Cisaillement&#39;</span><span class="p">]</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ourocode.eurocode.ec5.element_droit.Barre" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Barre</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Barre" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Barre</span><span class="p">(</span><span class="n">b</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">section</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">LIST_SECTION</span><span class="p">,</span> <span class="n">Hi</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">12</span><span class="p">,</span> <span class="n">Hf</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">12</span><span class="p">,</span> <span class="n">classe</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">CLASSE</span><span class="p">,</span> <span class="n">cs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CS</span><span class="p">,</span> <span class="n">effet_systeme</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;False&#39;</span><span class="p">,</span> <span class="s1">&#39;True&#39;</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Projet (ourocode.eurocode.core.projet.Projet)" href="../A0_Projet/#ourocode.eurocode.core.projet.Projet">Projet</a></code></p>
+
+
+
+        <p>Classe définissant les caractéristiques d'un élément droit en bois.</p>
+<p>Cette classe décrit la géométrie, la classe de résistance et les conditions
+d'exploitation d'une barre (poutre, colonne) selon l'EN 1995.</p>
+<p>Elle calcule automatiquement les dimensions de section en fonction de
+l'humidité de pose (retrait/gonflement) et donne accès aux caractéristiques
+mécaniques normatives du matériau.</p>
+
+        <p>Initialise un élément droit en bois avec ses caractéristiques.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>b</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Largeur de pose de la pièce en millimètres (dimension brute).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>h</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Hauteur de pose de la pièce en millimètres (dimension brute).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>section</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type de section transversale.
+"Rectangulaire" ou "Circulaire". Defaults to "Rectangulaire".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.LIST_SECTION">LIST_SECTION</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Hi</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Humidité initiale de pose en %.
+Humidité au moment de la fabrication/pose. Defaults to 12.</p>
+              </div>
+            </td>
+            <td>
+                  <code>12</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Hf</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Humidité finale d'équilibre en % selon l'AN (Hf = 12).
+Humidité en service. Defaults to 12.</p>
+              </div>
+            </td>
+            <td>
+                  <code>12</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>classe</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Classe de résistance du bois selon l'EC5.
+Ex: "C24", "GL28h", "LVL". Defaults to "C24".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.CLASSE">CLASSE</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cs</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Classe de service selon l'EC5 §2.3.1.3.
+1 = intérieur chauffé, 2 = couvert non chauffé, 3 = extérieur.
+Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.CS">CS</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>effet_systeme</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Active l'effet de système (k_sys = 1.1)
+pour les éléments permettant une redistribution des charges
+(solives avec répartition continue). Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(&#39;False&#39;, &#39;True&#39;)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments supplémentaires transmis à Projet.</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Les dimensions de calcul (b_calcul, h_calcul) sont automatiquement
+ajustées pour tenir compte du retrait si Hi &gt; Hf (AN B90 = 0.25%).</p>
+</details>
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Si la section, la classe ou la classe de service est invalide.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Barre.inertie" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">inertie</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Barre.inertie" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">inertie</span><span class="p">:</span> <span class="nb">list</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne le moment quadratique d'une section rectangulaire en mm4 avec pour argument :
+b ou d : Largeur ou diamètre de la poutre en mm
+h : Hauteur de la poutre en mm</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Barre.caract_meca" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">caract_meca</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Barre.caract_meca" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">caract_meca</span><span class="p">:</span> <span class="n">Series</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne les caractéristiques méca du bois sous forme de dataframe pandas</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Barre.gamma_M_table" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">gamma_M_table</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Barre.gamma_M_table" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">gamma_M_table</span><span class="p">:</span> <span class="n">Series</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne le tableau des gamma M pour le type de bois sélectionné</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Barre.K_mod_table" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">K_mod_table</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Barre.K_mod_table" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">K_mod_table</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne le tableau des Kmod du bois</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Barre.k_sys" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">k_sys</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Barre.k_sys" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">k_sys</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Détermine le Ksys d'un élément si celui-ci permet une redistribution des charges continues.</p>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Barre.Emean_fin" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">Emean_fin</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Barre.Emean_fin" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Emean_fin</span><span class="p">(</span><span class="n">psy_2</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le module de Young final E_mean,fin selon l'EC5 §2.3.2.2.</p>
+<p>Le module final tient compte du fluage par la formule :
+E_mean,fin = E_0,mean / (1 + psi_2 × k_def)</p>
+<p>où psi_2 est le coefficient de combinaison quasi-permanente et
+k_def dépend de la classe de service et du type de bois.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>psy_2</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coefficient psi_2 de la combinaison quasi-permanente.
+0 pour le court terme, 1 pour le long terme, ou valeur calculée.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeur) où valeur est E_mean,fin en MPa.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Ce module final est utilisé pour les calculs de flèche en ELS
+selon l'EC5 §2.2.3 et §7.2.</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Barre.fleche" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">fleche</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Barre.fleche" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">fleche</span><span class="p">(</span><span class="n">long</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">Ed_WinstQ</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Ed_Wnetfin</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Ed_Wfin</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Ed_W2</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">limit_W2</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span> <span class="n">type_ele</span><span class="o">=</span><span class="n">TYPE_ELE</span><span class="p">,</span> <span class="n">type_bat</span><span class="o">=</span><span class="n">TYPE_BAT</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Vérifie les taux de travail des flèches selon l'EC5 §7.2.</p>
+<p>Compare les flèches calculées aux limites normatives pour différents
+critères ELS. Génère automatiquement un tableau de synthèse avec
+_add_synthese_taux_travail.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>long</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Portée entre appuis à vérifier en millimètres.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Ed_WinstQ</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Flèche instantanée sous charge variable Q seule.
+Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Ed_Wnetfin</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Flèche nette finale (sous combinaison quasi-permanente).
+Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Ed_Wfin</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Flèche finale totale (y compris fluage).
+Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Ed_W2</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Flèche w2 tenant compte du phasage de pose
+pour éléments fragiles (cloisons, platrerie). Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>limit_W2</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Limite de flèche w2 pour éléments fragiles.
+Valeur courante : 500 (L/500). Defaults to 500.</p>
+              </div>
+            </td>
+            <td>
+                  <code>500</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>type_ele</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type d'élément selon limite_fleche.csv.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.TYPE_ELE">TYPE_ELE</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>type_bat</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type de bâtiment.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.TYPE_BAT">TYPE_BAT</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeurs) où valeurs contient les taux de travail.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Les limites de flèche sont définies dans le fichier limite_fleche.csv
+selon les recommandations de l'Annexe Nationale française.</p>
+</details>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ourocode.eurocode.ec5.element_droit.Flexion" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Flexion</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Flexion" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Flexion</span><span class="p">(</span><span class="n">lo_rel_y</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">lo_rel_z</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">coeflef_y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">coeflef_z</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">pos</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">LOAD_POS</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Barre (ourocode.eurocode.ec5.element_droit.barre.Barre)" href="#ourocode.eurocode.ec5.element_droit.Barre">Barre</a></code></p>
+
+
+
+        <p>Classe de vérification à la flexion selon l'EN 1995-1-1 §6.1.6, §6.2.3, §6.2.4 et §6.3.3.</p>
+<p>Cette classe effectue les vérifications de résistance à la flexion et
+de stabilité au déversement (flambement latéral) pour des poutres en bois.</p>
+<p>Elle hérite de la classe Barre pour récupérer les caractéristiques
+géométriques et mécaniques, et utilise le pattern _from_parent_class
+pour l'enchaînement des vérifications.</p>
+
+        <p>Initialise une vérification en flexion avec paramètres de déversement.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>lo_rel_y</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Longueur de déversement effective autour de l'axe Y
+(entre appuis latéraux), en millimètres.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>lo_rel_z</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Longueur de déversement effective autour de l'axe Z,
+en millimètres.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coeflef_y</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coefficient de longueur efficace selon l'EC5.
+- Appuis simple : 1.0 (moment constant), 0.9 (charge répartie),
+  0.8 (charge concentrée centrale)
+- Porte-à-faux : 0.5 (charge répartie), 0.8 (charge concentrée bout)
+Defaults to 0.9.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.9</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coeflef_z</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Idem pour l'axe Z. Defaults to 0.9.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.9</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pos</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Position de la charge verticale sur la hauteur.
+"Charge sur fibre comprimée": charge au-dessus de l'axe neutre
+    (aggrave le déversement, +2h sur l_ef)
+"Charge sur fibre neutre": charge au centre de gravité
+"Charge sur fibre tendue": charge en dessous de l'axe neutre
+    (favorise la stabilité, -0.5h sur l_ef)</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.flexion.Flexion.LOAD_POS">LOAD_POS</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>*args</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments transmis à la classe parent Barre.</p>
+              </div>
+            </td>
+            <td>
+                  <code>()</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments nommés transmis à Barre (b, h, classe, etc.).</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>La longueur efficace de déversement l_ef est calculée par :
+l_ef = lo_rel × coeflef (+ correction selon pos)</p>
+</details>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Flexion.K_h" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">K_h</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Flexion.K_h" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">K_h</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne le coef. Kh qui peut augmenter la resistance caractéristique fm,k et ft,k</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Flexion.K_m" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">K_m</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Flexion.K_m" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">K_m</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Coefficient de distribution des contraintes K_m selon l'EC5 §6.1.6.</p>
+<p>Ce coefficient réduit la contrainte de flexion calculée pour les
+sections rectangulaires en bois massif, BLC ou LVL afin de tenir
+compte de la redistribution plastique des contraintes.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>float</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Valeur de K_m.
+- 0.7 pour les sections rectangulaires en bois massif, BLC, LVL
+- 1.0 pour les sections circulaires ou les panneaux dérivés</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Flexion.sigma_m_crit" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">sigma_m_crit</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Flexion.sigma_m_crit" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">sigma_m_crit</span><span class="p">:</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Contrainte critique de déversement sigma_m,crit selon l'EC5 §6.3.3.</p>
+<p>Calculée par la formule de l'EC5 : sigma_m,crit = (0.78 × b² × E_0,05) / (h × l_ef)</p>
+<p>Cette contrainte caractérise la stabilité latérale de la poutre.
+Elle est corrigée en fonction de la position de la charge (pos).</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeurs) où valeurs est un dict {'y': ..., 'z': ...}
+avec les contraintes critiques pour chaque direction.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Flexion.lamb_rel_m" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">lamb_rel_m</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Flexion.lamb_rel_m" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">lamb_rel_m</span><span class="p">:</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Élancement relatif en flexion lambda_rel,m selon l'EC5 §6.3.3.</p>
+<p>Rapport entre la résistance caractéristique et la contrainte critique :
+lambda_rel,m = sqrt(f_m,k / sigma_m,crit)</p>
+<p>Cet élancement caractérise le risque de déversement :
+- lambda_rel,m &lt;= 0.75 : pas de risque de déversement (K_crit = 1)
+- 0.75 &lt; lambda_rel,m &lt;= 1.4 : zone de transition
+- lambda_rel,m &gt; 1.4 : risque élevé de déversement</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeurs) où valeurs est un dict {'y': ..., 'z': ...}
+avec les élancements relatifs pour chaque direction.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Flexion.K_crit" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">K_crit</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Flexion.K_crit" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">K_crit</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Coefficient de déversement K_crit selon l'EC5 §6.3.3.</p>
+<div class="language-text highlight"><pre><span></span><code>    Ce coefficient minore la résistance à la flexion pour tenir compte
+</code></pre></div>
+<p>du risque de déversement latéral. Il dépend de l'élancement relatif :</p>
+<div class="language-text highlight"><pre><span></span><code>    - lambda_rel,m &lt;= 0.75 : K_crit = 1 (pas de déversement)
+    - 0.75 &lt; lambda_rel,m &lt;= 1.4 : K_crit = 1.56 - 0.75 × lambda_rel,m
+    - lambda_rel,m &gt; 1.4 : K_crit = 1 / lambda_rel,m²
+
+    Returns:
+        tuple: (latex_string, valeurs) où valeurs est un dict {&#39;y&#39;: ..., &#39;z&#39;: ...}
+            avec les coefficients de déversement pour chaque direction.
+
+    Note:
+        La vérification finale utilise : sigma_m,d &lt;= K_crit × f_m,d
+</code></pre></div>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Flexion.f_m_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">f_m_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Flexion.f_m_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">f_m_d</span><span class="p">(</span><span class="n">loadtype</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">LOAD_TIME</span><span class="p">,</span> <span class="n">typecombi</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">TYPE_ACTION</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la résistance de calcul en flexion f_m,d selon l'EC5 §6.1.6.</p>
+<p>La résistance est déterminée à partir de la résistance caractéristique fm,0,k
+et des coefficients de modification (kmod, γM).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>loadtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Classe de durée de chargement (permanent, long terme, etc.).
+Voir Barre.LOAD_TIME pour les valeurs possibles.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.LOAD_TIME">LOAD_TIME</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>typecombi</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type de combinaison d'actions.
+"fondamentale" ou "accidentelle". Defaults to "fondamentale".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.TYPE_ACTION">TYPE_ACTION</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>float</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Résistance de calcul fm,d en MPa avec unité (si.MPa).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Flexion.sigma_m_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">sigma_m_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Flexion.sigma_m_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">sigma_m_d</span><span class="p">(</span><span class="n">My</span><span class="p">:</span> <span class="n">kN</span> <span class="o">*</span> <span class="n">m</span><span class="p">,</span> <span class="n">Mz</span><span class="p">:</span> <span class="n">kN</span> <span class="o">*</span> <span class="n">m</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule les contraintes de flexion sigma_m,d selon l'EC5 §6.1.6.</p>
+<p>Détermine les contraintes normales dues aux moments fléchissants My et Mz
+en utilisant la formule de Navier : σ = M·y/I</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>My</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.kN">kN</span> * <span title="m">m</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Moment fléchissant autour de l'axe y (moment vertical)
+en kN·m. Mettre 0 si pas de flexion selon cet axe.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Mz</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.kN">kN</span> * <span title="m">m</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Moment fléchissant autour de l'axe z (moment horizontal)
+en kN·m. Mettre 0 si pas de flexion selon cet axe.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeurs) où valeurs est un dictionnaire :
+{"y": sigma_my_d, "z": sigma_mz_d} en MPa avec unités.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Les valeurs sont stockées dans l'attribut sigma_m_rd.
+Pour une section rectangulaire : sigma = M·h/(2·I) = 6·M/(b·h²)</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Flexion.taux_m_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">taux_m_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Flexion.taux_m_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">taux_m_d</span><span class="p">(</span><span class="n">compression</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">traction</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule les taux de travail en flexion selon l'EC5 §6.1.6, §6.2.3 et §6.3.3.</p>
+<p>Vérifie les critères de résistance en flexion pure, flexion déviée,
+flexo-compression et flexo-traction selon les équations :
+- 6.11 et 6.12 : Flexion déviée avec K_m (facteur de distribution)
+- 6.33 : Flexion avec déversement (K_crit)
+- 6.17-6.20 : Combinaisons flexion + traction/compression
+- 6.35 : Flexo-compression avec risque de déversement</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>compression</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="Compression (ourocode.eurocode.ec5.element_droit.compression.Compression)" href="#ourocode.eurocode.ec5.element_droit.Compression">Compression</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Objet Compression déjà calculé
+pour les combinaisons flexo-compression. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>traction</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="Traction (ourocode.eurocode.ec5.element_droit.traction.Traction)" href="#ourocode.eurocode.ec5.element_droit.Traction">Traction</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Objet Traction déjà calculé
+pour les combinaisons flexo-traction. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, taux_dict) où taux_dict contient :
+- "equ6.11", "equ6.12" : Flexion déviée
+- "equ6.33y", "equ6.33z" : Flexion avec déversement
+- "equ6.17", "equ6.18" : Flexion + traction (si traction fournie)
+- "equ6.19", "equ6.20" : Flexion + compression (si compression fournie)
+- "equ6.23-6.35" : Combinaisons avancées (si compression fournie)
+Valeurs en pourcentage (0.85 = 85%).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Cette méthode met à jour automatiquement la synthèse des taux
+de travail via _add_synthese_taux_travail.</p>
+</details>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ourocode.eurocode.ec5.element_droit.Traction" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Traction</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Traction" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Traction</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Barre (ourocode.eurocode.ec5.element_droit.barre.Barre)" href="#ourocode.eurocode.ec5.element_droit.Barre">Barre</a></code></p>
+
+
+
+        <p>Classe de vérification des éléments bois en traction axiale selon l'EC5 §6.1.2.</p>
+<p>Effectue les calculs de résistance et de contrainte en traction axiale selon
+l'Eurocode 5 - Partie 1-1. Hérite de Barre pour les caractéristiques
+géométriques et mécaniques.</p>
+<p>La vérification principale est le taux de travail en traction (équation 6.1):
+σ_t,0,d / (f_t,0,d · k_h) ≤ 1</p>
+
+        <p>Initialise un objet de vérification en traction axiale.</p>
+<p>Hérite de toutes les caractéristiques de Barre (section, classe de bois,
+etc.). Aucun paramètre supplémentaire requis à l'initialisation.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>*args</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments positionnels transmis à Barre.</p>
+              </div>
+            </td>
+            <td>
+                  <code>()</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments nommés transmis à Barre (b, h, classe, etc.).</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Traction.K_h" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">K_h</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Traction.K_h" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">K_h</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne le coef. Kh qui peut augmenter la resistance caractéristique fm,k et ft,k</p>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Traction.f_t_0_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">f_t_0_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Traction.f_t_0_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">f_t_0_d</span><span class="p">(</span><span class="n">loadtype</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">LOAD_TIME</span><span class="p">,</span> <span class="n">typecombi</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">TYPE_ACTION</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la résistance de calcul en traction axiale f_t,0,d selon l'EC5 §6.1.2.</p>
+<p>Détermine la résistance à partir de la résistance caractéristique ft,0,k
+et des coefficients de modification (kmod, γM).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>loadtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Classe de durée de chargement.
+Voir Barre.LOAD_TIME pour les valeurs possibles.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.LOAD_TIME">LOAD_TIME</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>typecombi</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type de combinaison d'actions.
+"fondamentale" ou "accidentelle". Defaults to "fondamentale".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.TYPE_ACTION">TYPE_ACTION</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>float</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Résistance de calcul ft,0,d en MPa avec unité (si.MPa).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Traction.sigma_t_0_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">sigma_t_0_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Traction.sigma_t_0_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">sigma_t_0_d</span><span class="p">(</span><span class="n">Ft0d</span><span class="p">:</span> <span class="n">kN</span><span class="p">,</span> <span class="n">Anet</span><span class="p">:</span> <span class="n">mm</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la contrainte de traction axiale sigma_t,0,d selon l'EC5 §6.1.2.</p>
+<p>Détermine la contrainte normale due à l'effort de traction axial.
+Prend en compte une section nette réduite (perçages, entailles) si spécifiée.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>Ft0d</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.kN">kN</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Effort de traction axial en kN.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Anet</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span> ** 2</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Aire nette de la section en mm² si réduction
+(perçages, entailles). Doit être ≤ aire brute. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeur) où valeur est sigma_t,0,d en MPa avec unité.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Si Anet &gt; aire brute de la section.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>La valeur est stockée dans l'attribut sigma_t_0_rd.
+Pour les assemblages boulonnés, utiliser Anet pour tenir compte des trous.</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Traction.taux_t_0_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">taux_t_0_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Traction.taux_t_0_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">taux_t_0_d</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le taux de travail en traction axiale selon l'EC5 §6.1.2 (Eq. 6.1).</p>
+<p>Vérifie le critère : σ_t,0,d / (k_h · f_t,0,d) ≤ 1</p>
+<p>Le coefficient k_h (effet de hauteur) est pris comme le minimum des
+valeurs selon y et z pour être conservateur.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeur) où valeur est le taux en pourcentage
+(0.75 = 75%). Stocké dans taux_t_0_rd['equ6.1'].</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Cette méthode met à jour automatiquement la synthèse des taux
+de travail via _add_synthese_taux_travail.</p>
+</details>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ourocode.eurocode.ec5.element_droit.Compression" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Compression</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Compression</span><span class="p">(</span><span class="n">lo_y</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">lo_z</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">type_appuis</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">COEF_LF</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Barre (ourocode.eurocode.ec5.element_droit.barre.Barre)" href="#ourocode.eurocode.ec5.element_droit.Barre">Barre</a></code></p>
+
+
+
+        <p>Classe de vérification des éléments bois en compression axiale selon l'EC5 §6.2 et §6.3.2.</p>
+<p>Effectue les calculs de résistance, élancement et flambement selon
+l'Eurocode 5 - Partie 1-1. Hérite de Barre pour les caractéristiques
+géométriques et mécaniques.</p>
+<p>Vérifie :
+- La résistance en compression axiale (§6.2.2, Eq. 6.2)
+- Le flambement avec coefficient kc (§6.3.2, Eq. 6.23-6.24)
+- Les combinaisons flexo-compression (si objet Flexion fourni)</p>
+
+        <p>Initialise un objet de vérification en compression axiale.</p>
+<p>Définit les longueurs de flambement et le coefficient de longueur efficace
+selon les conditions d'appui pour le calcul du flambement.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>lo_y</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Longueur de flambement suivant l'axe y en mm.
+Mettre 0 si pas de risque de flambement selon cet axe.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>lo_z</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Longueur de flambement suivant l'axe z en mm.
+Mettre 0 si pas de risque de flambement selon cet axe.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>type_appuis</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type de conditions d'appui pour le coefficient β.
+Détermine la longueur efficace lf = β · lo.
+Valeurs possibles (voir COEF_LF):
+- "Encastré 1 côté" : β = 2.0 (console)
+- "Rotule - Rotule" : β = 1.0 (articulé-articulé)
+- "Encastré - Rotule" : β = 0.7
+- "Encastré - Encastré" : β = 0.5
+- "Encastré - Rouleau" : β = 1.0 (encastré-glissière)
+Defaults to "Rotule - Rotule".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.compression.Compression.COEF_LF">COEF_LF</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>*args</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments positionnels transmis à Barre.</p>
+              </div>
+            </td>
+            <td>
+                  <code>()</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments nommés transmis à Barre (b, h, classe, etc.).</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>La longueur efficace de flambement lf est calculée par :
+lf = lo × coef_lef</p>
+</details>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression.lamb" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">lamb</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression.lamb" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">lamb</span><span class="p">:</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne l'élancement d'un poteau en compression avec risque de flambement suivant son axe de rotation</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression.lamb_rel_Axe" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">lamb_rel_Axe</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression.lamb_rel_Axe" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">lamb_rel_Axe</span><span class="p">:</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne l'élancement relatif d'un poteau en compression avec risque de flambement suivant son axe de rotation</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression.k_Axe" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">k_Axe</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression.k_Axe" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">k_Axe</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne le facteur Ky ou Kz (fonction de l'axe de flambement)</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression.kc_Axe" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">kc_Axe</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression.kc_Axe" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">kc_Axe</span><span class="p">:</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne le coefficient multiplicateur KcAxe  (axe = y ou z suivant axe de rotation en flambement) de fc,0,d</p>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression.f_c_0_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">f_c_0_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression.f_c_0_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">f_c_0_d</span><span class="p">(</span><span class="n">loadtype</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">LOAD_TIME</span><span class="p">,</span> <span class="n">typecombi</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">TYPE_ACTION</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la résistance de calcul en compression axiale f_c,0,d selon l'EC5 §6.2.2.</p>
+<p>Détermine la résistance à partir de la résistance caractéristique fc,0,k
+et des coefficients de modification (kmod, γM).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>loadtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Classe de durée de chargement.
+Voir Barre.LOAD_TIME pour les valeurs possibles.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.LOAD_TIME">LOAD_TIME</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>typecombi</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type de combinaison d'actions.
+"fondamentale" ou "accidentelle". Defaults to "fondamentale".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.TYPE_ACTION">TYPE_ACTION</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>float</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Résistance de calcul fc,0,d en MPa avec unité (si.MPa).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Cette valeur est réduite par le coefficient kc en cas de flambement.</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression.sigma_c_0_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">sigma_c_0_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression.sigma_c_0_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">sigma_c_0_d</span><span class="p">(</span><span class="n">Fc0d</span><span class="p">:</span> <span class="n">kN</span><span class="p">,</span> <span class="n">Anet</span><span class="p">:</span> <span class="n">mm</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la contrainte de compression axiale sigma_c,0,d selon l'EC5 §6.2.2.</p>
+<p>Détermine la contrainte normale due à l'effort de compression axial.
+Prend en compte une section nette réduite si spécifiée.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>Fc0d</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.kN">kN</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Effort de compression axial en kN.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Anet</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span> ** 2</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Aire nette de la section en mm² si réduction
+(entailles, perçages). Doit être ≤ aire brute. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeur) où valeur est sigma_c,0,d en MPa avec unité.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Si Anet &gt; aire brute de la section.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>La valeur est stockée dans l'attribut sigma_c_0_rd.</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression.taux_c_0_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">taux_c_0_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression.taux_c_0_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">taux_c_0_d</span><span class="p">(</span><span class="n">flexion</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule les taux de travail en compression axiale selon l'EC5 §6.2.2 et §6.3.2.</p>
+<p>Vérifie les critères de résistance :
+- Equ. 6.2 : Compression simple (sigma_c,0,d / f_c,0,d)
+- Equ. 6.23-6.24 : Flambement (sigma_c,0,d / (kc · f_c,0,d))
+- Equ. 6.19-6.20 : Flexo-compression (si objet Flexion fourni)</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>flexion</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="Flexion (ourocode.eurocode.ec5.element_droit.flexion.Flexion)" href="#ourocode.eurocode.ec5.element_droit.Flexion">Flexion</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Objet Flexion déjà calculé
+pour les combinaisons flexo-compression. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, taux_dict) où taux_dict contient :
+- "equ6.2" : Compression simple sans flambement
+- "equ6.23", "equ6.24" : Compression avec flambement selon y et z
+- "equ6.19", "equ6.20" : Flexo-compression (si flexion fournie)
+Valeurs en pourcentage (0.85 = 85%).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Cette méthode met à jour automatiquement la synthèse des taux
+de travail via _add_synthese_taux_travail.</p>
+</details>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Compression_perpendiculaire</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Compression_perpendiculaire</span><span class="p">(</span><span class="n">b_appuis</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">l_appuis</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">l1d</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span> <span class="n">l1g</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span> <span class="n">ad</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ag</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">type_appuis_90</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">TYPE_APPUIS</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Barre (ourocode.eurocode.ec5.element_droit.barre.Barre)" href="#ourocode.eurocode.ec5.element_droit.Barre">Barre</a></code></p>
+
+
+
+        <p>Classe de vérification des éléments bois en compression perpendiculaire selon l'EC5 §6.1.5.</p>
+<p>Effectue les calculs de résistance et de contrainte en compression perpendiculaire
+au fil du bois (appuis de poutres, abouts de pieux, etc.) selon l'Eurocode 5.
+Hérite de Barre pour les caractéristiques géométriques et mécaniques.</p>
+<p>La vérification utilise l'équation 6.3 avec le coefficient K_c,90 :
+σ_c,90,d / (K_c,90 · f_c,90,d) ≤ 1</p>
+
+        <p>Initialise un objet de vérification en compression perpendiculaire.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>b_appuis</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Largeur d'appuis en mm.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>l_appuis</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Longueur de l'appuis en mm.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>l1d</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Distance entre les charges en mm (l et l) (si pas de l1d ne rien mettre). Defaults to 10000.</p>
+              </div>
+            </td>
+            <td>
+                  <code>10000</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>l1g</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Distance entre les charges en mm (l et l) (si pas de l1g ne rien mettre). Defaults to 10000.</p>
+              </div>
+            </td>
+            <td>
+                  <code>10000</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>ad</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Distance depuis le bord jusqu'à l'appuis à droite (l) en mm (si pas de ad et au bord ne rien mettre). Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>ag</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Distance depuis le bord jusqu'à l'appuis à gauche (l) en mm (si pas de ad et au bord ne rien mettre). Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>type_appuis_90</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type d'appuis (Appui continu, Appui discret). Defaults to TYPE_APPUIS.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.compression.Compression_perpendiculaire.TYPE_APPUIS">TYPE_APPUIS</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>*args</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments transmis à Barre (classe, etc.).</p>
+              </div>
+            </td>
+            <td>
+                  <code>()</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments transmis à Barre (b, h, etc.).</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>La longueur efficace de compression perpendiculaire l_ef est calculée
+en fonction de la configuration des appuis et des distances entre charges.</p>
+</details>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.K_c90" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">K_c90</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+      <small class="doc doc-label doc-label-writable"><code>writable</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.K_c90" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">K_c90</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne le facteur K_c,90 qui tient compte de la configuration de chargement, du fendage et de la déformation
+en compression avec pour argument :
+h : Hauteur de l'élement subissant la compression en mm
+lO : Longeur de l'appuis en compression en mm
+l1 : Distance la plus petite entre deux appuis en mm (l et l)</p>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.f_c_90_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">f_c_90_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.f_c_90_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">f_c_90_d</span><span class="p">(</span><span class="n">loadtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Barre</span><span class="o">.</span><span class="n">LOAD_TIME</span><span class="p">,</span> <span class="n">typecombi</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Barre</span><span class="o">.</span><span class="n">TYPE_ACTION</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la résistance de calcul en compression perpendiculaire f_c,90,d selon l'EC5 §6.1.5.</p>
+<p>Détermine la résistance à partir de la résistance caractéristique fc,90,k
+et des coefficients de modification (kmod, γM).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>loadtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Classe de durée de chargement.
+Voir Barre.LOAD_TIME pour les valeurs possibles.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.LOAD_TIME">LOAD_TIME</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>typecombi</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type de combinaison d'actions.
+"fondamentale" ou "accidentelle". Defaults to "fondamentale".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.TYPE_ACTION">TYPE_ACTION</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>float</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Résistance de calcul fc,90,d en MPa avec unité (si.MPa).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.sigma_c_90_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">sigma_c_90_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.sigma_c_90_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">sigma_c_90_d</span><span class="p">(</span><span class="n">Fc90d</span><span class="p">:</span> <span class="n">kN</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la contrainte de compression perpendiculaire sigma_c,90,d selon l'EC5 §6.1.5.</p>
+<p>Détermine la contrainte en tenant compte de l'aire effective d'appui,
+qui inclut une diffusion des efforts sur 30 mm ou jusqu'aux bords/entraxe.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>Fc90d</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.kN">kN</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Effort de compression perpendiculaire en kN.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeur) où valeur est sigma_c,90,d en MPa avec unité.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>L'aire effective a_ef = (l_appuis + min(30mm, distance_bord, l_appuis, 0.5×entraxe)) × b_appuis
+La valeur est stockée dans l'attribut sigma_c_90_rd.</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.taux_c_90_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">taux_c_90_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.taux_c_90_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">taux_c_90_d</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le taux de travail en compression perpendiculaire selon l'EC5 §6.1.5 (Eq. 6.3).</p>
+<p>Vérifie le critère : σ_c,90,d / (K_c,90 · f_c,90,d) ≤ 1</p>
+<p>Le coefficient K_c,90 (déterminé par la propriété K_c90) tient compte :
+- De la configuration des appuis (discrets ou continus)
+- Du type de bois (massif, BLC, etc.)
+- De la hauteur de l'élément et des distances entre appuis</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeur) où valeur est le taux en pourcentage
+(0.75 = 75%). Stocké dans taux_c_90_rd['equ6.3'].</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Cette méthode met à jour automatiquement la synthèse des taux
+de travail via _add_synthese_taux_travail.</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.show_c90" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">show_c90</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire.show_c90" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">show_c90</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Affiche l'image des caractéristiques d'une compression perpendiculaire</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ourocode.eurocode.ec5.element_droit.Compression_inclinees" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Compression_inclinees</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression_inclinees" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Compression_inclinees</span><span class="p">(</span><span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">45</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Compression_perpendiculaire (ourocode.eurocode.ec5.element_droit.compression.Compression_perpendiculaire)" href="#ourocode.eurocode.ec5.element_droit.Compression_perpendiculaire">Compression_perpendiculaire</a></code></p>
+
+
+
+        <p>Classe de vérification des éléments bois en compression inclinée selon l'EC5 §6.2.2.</p>
+<p>Effectue les calculs de résistance et de contrainte en compression inclinée
+par rapport au fil du bois selon l'Eurocode 5 - Partie 1-1, article 6.2.2.
+Hérite de Compression_perpendiculaire pour la gestion des appuis et des coefficients.</p>
+<p>La vérification utilise l'équation 6.16 avec la formule de Hankinson :
+σ_c,α,d ≤ f_c,0,d / [(f_c,0,d/(K_c,90·f_c,90,d))·sin²(α) + cos²(α)]</p>
+
+        <p>Initialise un objet de vérification en compression inclinée.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>alpha</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Angle d'inclinaison de la compression par rapport
+au fil du bois en degrés. 0° = compression axiale, 90° = compression
+perpendiculaire. Defaults to 45°.</p>
+              </div>
+            </td>
+            <td>
+                  <code>45</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments transmis à Compression_perpendiculaire
+(b_appuis, l_appuis, etc.).</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression_inclinees.sigma_c_alpha_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">sigma_c_alpha_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression_inclinees.sigma_c_alpha_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">sigma_c_alpha_d</span><span class="p">(</span><span class="n">Fcad</span><span class="p">:</span> <span class="n">kN</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la contrainte de compression inclinée sigma_c,alpha,d.</p>
+<p>Détermine la contrainte normale due à l'effort de compression inclinée,
+en utilisant l'aire brute d'appui (sans diffusion).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>Fcad</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.kN">kN</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Effort de compression inclinée en kN.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeur) où valeur est sigma_c,alpha,d en MPa avec unité.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>La valeur est stockée dans l'attribut sigma_c_alpha_rd.</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Compression_inclinees.taux_c_alpha_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">taux_c_alpha_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Compression_inclinees.taux_c_alpha_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">taux_c_alpha_d</span><span class="p">(</span><span class="n">loadtype</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">LOAD_TIME</span><span class="p">,</span> <span class="n">typecombi</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">TYPE_ACTION</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le taux de travail en compression inclinée selon l'EC5 §6.2.2 (Eq. 6.16).</p>
+<p>Vérifie le critère de Hankinson : σ_c,α,d ≤ f_c,α,d
+où f_c,α,d = f_c,0,d / [(f_c,0,d/(K_c,90·f_c,90,d))·sin²(α) + cos²(α)]</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>loadtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Classe de durée de chargement.
+Voir Barre.LOAD_TIME pour les valeurs possibles.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.LOAD_TIME">LOAD_TIME</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>typecombi</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type de combinaison d'actions.
+"fondamentale" ou "accidentelle". Defaults to "fondamentale".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.TYPE_ACTION">TYPE_ACTION</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeur) où valeur est le taux en pourcentage
+(0.75 = 75%). Stocké dans taux_c_alpha_rd['equ6.16'].</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Cette méthode met à jour automatiquement la synthèse des taux
+de travail via _add_synthese_taux_travail.</p>
+</details>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ourocode.eurocode.ec5.element_droit.Cisaillement" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Cisaillement</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Cisaillement" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Cisaillement</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Barre (ourocode.eurocode.ec5.element_droit.barre.Barre)" href="#ourocode.eurocode.ec5.element_droit.Barre">Barre</a></code></p>
+
+
+
+        <p>Classe de vérification des éléments bois au cisaillement selon l'EC5 §6.1.7 et §6.5.</p>
+<p>Effectue les calculs de contrainte et taux de travail au cisaillement
+longitudinal pour des poutres en bois selon l'Eurocode 5.
+Hérite de Barre pour les caractéristiques géométriques et mécaniques.</p>
+<p>Vérifie :
+- La résistance au cisaillement (§6.1.7, Eq. 6.13)
+- Le cisaillement avec entaille (§6.5, Eq. 6.60) avec facteur K_v</p>
+
+        <p>Initialise un objet de vérification au cisaillement.</p>
+<p>Hérite de toutes les caractéristiques de Barre. Initialise K_v à 1
+(pas d'entaille) et h_ef à la hauteur totale.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments transmis à Barre (classe, etc.).</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Cisaillement.K_cr" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">K_cr</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.K_cr" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">K_cr</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Facteur de réduction de largeur K_cr selon l'EC5 §6.1.7.</p>
+<p>Tient compte des fissures de séchage dans le bois massif et BLC.
+Réduction de 33% (K_cr = 0.67) pour les sections fragilisées.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>float</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Valeur de K_cr.
+- 1.0 : Pas de réduction (bois sans fissuration significative)
+- 0.67 : Réduction pour bois massif h &gt; 150mm (CS1/CS2) ou BLC (CS2/CS3)</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>CS1/CS2 : K_cr = 0.67 si h &gt; 150mm et bois massif
+CS2 : K_cr = 0.67 pour BLC
+CS3 : K_cr = 0.67 pour tout bois</p>
+</details>
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Cisaillement.Kv" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">Kv</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.Kv" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Kv</span><span class="p">(</span><span class="n">hef</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">i_lo</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">ent</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Dessous&#39;</span><span class="p">,</span> <span class="s1">&#39;Dessus&#39;</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le facteur de réduction d'entaille K_v selon l'EC5 §6.5.</p>
+<p>Ce coefficient réduit la résistance au cisaillement en présence d'une
+entaille au niveau d'un appui (entaille en dessous ou au dessus de la poutre).</p>
+<p>Formule EC5 : K_v = min(1, [K_n(1 + 1.1·i^1.5/√h)] / [√h·(√(α(1-α)) + 0.8·x/h·√(1/α - α²))])
+où α = h_ef/h et i = i_lo/h_ef</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>hef</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Hauteur efficace de la poutre (hauteur - profondeur entaille) en mm.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>x</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Distance entre le centre de réaction à l'appui et le coin de l'entaille en mm.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>i_lo</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.mm">mm</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Longueur horizontale de l'entaille en mm.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>ent</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Position de l'entaille : "Dessous" ou "Dessus".
+Defaults to "Dessous".</p>
+              </div>
+            </td>
+            <td>
+                  <code>(&#39;Dessous&#39;, &#39;Dessus&#39;)</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeur) où valeur est le facteur K_v (≤ 1).
+Si ent="Dessus", retourne K_v = 1 (pas de réduction).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>La valeur est stockée dans l'attribut K_v.
+K_n dépend du type de bois (voir DICT_KN).</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Cisaillement.f_v_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">f_v_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.f_v_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">f_v_d</span><span class="p">(</span><span class="n">loadtype</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">LOAD_TIME</span><span class="p">,</span> <span class="n">typecombi</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">TYPE_ACTION</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la résistance de calcul au cisaillement f_v,d selon l'EC5 §6.1.7.</p>
+<p>Détermine la résistance à partir de la résistance caractéristique f_v,k
+et des coefficients de modification (kmod, γM).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>loadtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Classe de durée de chargement.
+Voir Barre.LOAD_TIME pour les valeurs possibles.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.LOAD_TIME">LOAD_TIME</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>typecombi</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type de combinaison d'actions.
+"fondamentale" ou "accidentelle". Defaults to "fondamentale".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.TYPE_ACTION">TYPE_ACTION</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>float</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Résistance de calcul f_v,d en MPa avec unité (si.MPa).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Cisaillement.tau_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">tau_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.tau_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">tau_d</span><span class="p">(</span><span class="n">Vd</span><span class="p">:</span> <span class="n">kN</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la contrainte de cisaillement tau_d selon l'EC5 §6.1.7.</p>
+<p>Détermine la contrainte de cisaillement longitudinal pour une poutre
+rectangulaire : τ = 1.5·V/(b_ef·h_ef)</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>Vd</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.kN">kN</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Effort tranchant (cisaillement) sur la poutre en kN.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeur) où valeur est tau_d en MPa avec unité.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>La valeur est stockée dans l'attribut tau_rd.
+Prend en compte K_cr (fissuration) et K_v (entaille si défini).</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Cisaillement.taux_tau_d" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">taux_tau_d</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.taux_tau_d" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">taux_tau_d</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule les taux de travail au cisaillement selon l'EC5 §6.1.7 et §6.5.</p>
+<p>Vérifie les critères :
+- Equ. 6.13 : Cisaillement simple (tau_d / f_v,d)
+- Equ. 6.60 : Cisaillement avec entaille (tau_d / (K_v · f_v,d))</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeurs) où valeurs contient les taux pour
+equ6.13 (sans entaille) et equ6.60 (avec entaille) en pourcentage.
+Stockés dans taux_tau_rd['equ6.13'] et ['equ6.60'].</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Cette méthode met à jour automatiquement la synthèse des taux
+de travail via _add_synthese_taux_travail.</p>
+</details>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.element_droit.Cisaillement.show_Kv" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">show_Kv</span>
+
+
+<a href="#ourocode.eurocode.ec5.element_droit.Cisaillement.show_Kv" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">show_Kv</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Affiche l'image des caractéristiques d'une entaille au cisaillement</p>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Retour en haut de la page
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Pied de page" >
+        
+          
+          <a href="../EC3_Assemblage/" class="md-footer__link md-footer__link--prev" aria-label="Précédent: Assemblages">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Précédent
+              </span>
+              <div class="md-ellipsis">
+                Assemblages
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../EC5_BLC/" class="md-footer__link md-footer__link--next" aria-label="Suivant: BLC">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Suivant
+              </span>
+              <div class="md-ellipsis">
+                BLC
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 Anthony PARISOT — OUREA STRUCTURE
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/AnthonyPrst/ourocode" target="_blank" rel="noopener" title="GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://ourea-structure.fr" target="_blank" rel="noopener" title="OUREA STRUCTURE" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M351.9 280H161c2.9 64.5 17.2 123.9 37.5 167.4 11.4 24.5 23.7 41.8 35.1 52.4 11.2 10.5 18.9 12.2 22.9 12.2s11.7-1.7 22.9-12.2c11.4-10.6 23.7-28 35.1-52.4 20.3-43.5 34.6-102.9 37.5-167.4zm-191-48h190.9c-2.8-64.5-17.1-123.9-37.4-167.4-11.4-24.4-23.7-41.8-35.1-52.4C268.1 1.7 260.4 0 256.4 0s-11.7 1.7-22.9 12.2c-11.4 10.6-23.7 28-35.1 52.4-20.3 43.5-34.6 102.9-37.5 167.4m-48 0c3.5-85.6 25.6-165.1 57.9-217.3C78.7 47.3 10.9 131.2 1.5 232zM1.5 280c9.4 100.8 77.2 184.7 169.3 217.3-32.3-52.2-54.4-131.7-57.9-217.3zm398.4 0c-3.5 85.6-25.6 165.1-57.9 217.3 92.1-32.7 159.9-116.5 169.3-217.3zm111.4-48C501.9 131.2 434.1 47.3 342 14.7c32.3 52.2 54.4 131.7 57.9 217.3z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.highlight", "search.suggest", "search.share", "content.code.copy", "content.code.annotate", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

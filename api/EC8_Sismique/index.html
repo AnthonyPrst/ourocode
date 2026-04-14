@@ -1,0 +1,4521 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Bibliothèque Python pour le calcul de structure selon les Eurocodes (AN Françaises)">
+      
+      
+        <meta name="author" content="Anthony PARISOT">
+      
+      
+        <link rel="canonical" href="https://anthonyprst.github.io/ourocode/api/EC8_Sismique/">
+      
+      
+        <link rel="prev" href="../EC5_CVT/">
+      
+      
+        <link rel="next" href="../../normes/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>EC8 — Sismique - Ourocode</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ec8_sismique-en-1998-1" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="../.." title="Ourocode" class="md-header__button md-logo" aria-label="Ourocode" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Ourocode
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              EC8 — Sismique
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Passer en mode sombre"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Passer en mode sombre" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Passer en mode clair"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Passer en mode clair" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Partager" aria-label="Partager" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/AnthonyPrst/ourocode" title="Aller au dépôt" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    AnthonyPrst/ourocode
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Onglets" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Accueil
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../guide/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Guide de démarrage
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../objet/" class="md-tabs__link">
+          
+  
+  
+  Référence API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../normes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Normes Eurocodes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../changelog/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Ourocode" class="md-nav__button md-logo" aria-label="Ourocode" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    Ourocode
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/AnthonyPrst/ourocode" title="Aller au dépôt" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    AnthonyPrst/ourocode
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide de démarrage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Référence API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Référence API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../objet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Classe de base
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../A0_Projet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A0 — Projet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC0_Combinaison/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC0 — Combinaisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC1 — Actions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EC1 — Actions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC1_Exploitation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exploitation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC1_Neige/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Neige
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC1_Vent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC3 — Acier
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EC3 — Acier
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC3_Element_droit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Éléments droits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC3_Feu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incendie
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC3_Assemblage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assemblages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_6" id="__nav_3_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC5 — Bois
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EC5 — Bois
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC5_Element_droit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Éléments droits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC5_BLC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BLC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC5_Feu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incendie
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC5_Assemblage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assemblages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC5_CVT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CVT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC8 — Sismique
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC8 — Sismique
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="Sur cette page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Sur cette page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sismique
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="sismique">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Batiment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batiment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sismique
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sismique">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.region_sismique" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        region_sismique
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.cat_importance_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cat_importance_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.classe_sol_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        classe_sol_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.type_spectre_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type_spectre_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.type_constructif_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type_constructif_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.a_gr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        a_gr
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.a_g" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        a_g
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.gamma_I" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gamma_I
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.T1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T1
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.Sd_t" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sd_t
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.Fb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fb
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.Fi_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fi_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.save_gravity_load_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        save_gravity_load_data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.load_gravity_load_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_gravity_load_data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.add_gravity_load" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_gravity_load
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.show_spectre_elastique_calcul" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        show_spectre_elastique_calcul
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.coeff_torsion_accidentelle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        coeff_torsion_accidentelle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.Fi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fi
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.ds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.coeff_second_ordre" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        coeff_second_ordre
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.taux_limitations_dommages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_limitations_dommages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.Fa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fa
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.F_sismique_final_capacite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F_sismique_final_capacite
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.F_sismique_final_dissipatif" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F_sismique_final_dissipatif
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../normes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Normes Eurocodes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="Sur cette page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Sur cette page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sismique
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="sismique">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Batiment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batiment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sismique
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sismique">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.region_sismique" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        region_sismique
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.cat_importance_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cat_importance_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.classe_sol_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        classe_sol_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.type_spectre_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type_spectre_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.type_constructif_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        type_constructif_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.a_gr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        a_gr
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.a_g" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        a_g
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.gamma_I" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        gamma_I
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.T1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        T1
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.Sd_t" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sd_t
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.Fb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fb
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.Fi_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fi_table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.save_gravity_load_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        save_gravity_load_data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.load_gravity_load_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_gravity_load_data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.add_gravity_load" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_gravity_load
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.show_spectre_elastique_calcul" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        show_spectre_elastique_calcul
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.coeff_torsion_accidentelle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        coeff_torsion_accidentelle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.Fi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fi
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.ds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.coeff_second_ordre" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        coeff_second_ordre
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.taux_limitations_dommages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_limitations_dommages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.Fa" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fa
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.F_sismique_final_capacite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F_sismique_final_capacite
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec8.sismique.Sismique.F_sismique_final_dissipatif" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F_sismique_final_dissipatif
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ec8_sismique-en-1998-1">EC8_Sismique — EN 1998-1<a class="headerlink" href="#ec8_sismique-en-1998-1" title="Permanent link">&para;</a></h1>
+<p>Spectre de réponse élastique et de calcul selon EN 1998-1 et l'Annexe Nationale Française.</p>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="ourocode.eurocode.ec8.sismique" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">sismique</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ourocode.eurocode.ec8.sismique.Batiment" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Batiment</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Batiment" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Batiment</span><span class="p">(</span><span class="n">h_bat</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="n">d_bat</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="n">b_bat</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="n">alpha_toit</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">alpha_toit2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Projet (ourocode.eurocode.core.projet.Projet)" href="../A0_Projet/#ourocode.eurocode.core.projet.Projet">Projet</a></code></p>
+
+
+
+        <p>Classe définissant la géométrie d'un bâtiment pour les calculs de structure.</p>
+<p>Cette classe décrit les dimensions principales du bâtiment et les
+caractéristiques de sa toiture, nécessaires pour le calcul des
+charges climatiques (neige, vent) et sismiques.</p>
+
+
+<details class="attributs-de-classe" open>
+  <summary>Attributs de classe</summary>
+  <p>ETAGE (tuple): Liste des niveaux courants (RDC à Toiture).</p>
+</details>
+        <p>Initialise les dimensions du bâtiment.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>h_bat</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.m">m</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Hauteur totale du bâtiment en mètres, mesurée depuis
+le soubassement rigide ou les fondations (référence sismique).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>d_bat</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.m">m</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Largeur du bâtiment en mètres (dimension perpendiculaire
+au vent dominant pour le calcul du vent).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>b_bat</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.m">m</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Longueur du bâtiment en mètres.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>alpha_toit</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pente du premier versant de toiture en degrés.
+0° pour un toit plat, valeur positive pour un versant.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>alpha_toit2</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pente du second versant pour les
+toits à deux pans (0° si toit à un seul versant ou plat).
+Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>*args</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments positionnels transmis à la classe parent Projet.</p>
+              </div>
+            </td>
+            <td>
+                  <code>()</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments nommés transmis à la classe parent Projet
+(ingenieur, code_INSEE, alt, etc.).</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ourocode.eurocode.ec8.sismique.Sismique" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Sismique</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Sismique</span><span class="p">(</span><span class="n">Kbx</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Kby</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">type_constructif_x</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">CLASSE_DUCTILITE</span><span class="p">,</span> <span class="n">type_constructif_y</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">CLASSE_DUCTILITE</span><span class="p">,</span> <span class="n">regulier_plan</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;True&#39;</span><span class="p">,</span> <span class="s1">&#39;False&#39;</span><span class="p">),</span> <span class="n">regulier_elevation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;True&#39;</span><span class="p">,</span> <span class="s1">&#39;False&#39;</span><span class="p">),</span> <span class="n">cat_importance</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">CAT_IMPORTANCE</span><span class="p">,</span> <span class="n">classe_sol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">CLASSE_SOL</span><span class="p">,</span> <span class="n">type_spectre</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">TYPE_SPECTRE</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Batiment (ourocode.eurocode.core.batiment.Batiment)" href="../A0_Projet/#ourocode.eurocode.core.batiment.Batiment">Batiment</a></code></p>
+
+
+
+        <p>Initialise le calcul sismique d'un bâtiment bois selon la méthode des forces latérales (EN 1998-1 §4.3.3.2).</p>
+<p>Attention : tous les bâtiments ne se prêtent pas à cette méthode (voir EN 1998-1 §4.3.3.2.1).
+La classe vérifie automatiquement la nécessité d'une analyse sismique et la validité de la
+méthode des forces latérales lors de l'instanciation.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>Kbx</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Raideur latérale globale du bâtiment selon la direction x (sens de la longueur) en kN/m.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Kby</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Raideur latérale globale du bâtiment selon la direction y (sens de la largeur) en kN/m.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>type_constructif_x</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Système constructif dissipatif dans la direction x.
+Doit être une clé de CLASSE_DUCTILITE. Détermine le coefficient de comportement q et la
+classe de ductilité (DCL, DCM, DCH) selon l'EN 1998.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec8.sismique.Sismique.CLASSE_DUCTILITE">CLASSE_DUCTILITE</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>type_constructif_y</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Système constructif dissipatif dans la direction y.
+Même valeurs que type_constructif_x.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec8.sismique.Sismique.CLASSE_DUCTILITE">CLASSE_DUCTILITE</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>regulier_plan</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True si le bâtiment est régulier en plan selon EN 1998-1 §4.2.3.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(&#39;True&#39;, &#39;False&#39;)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>regulier_elevation</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>True si le bâtiment est régulier en élévation selon EN 1998-1 §4.2.3.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(&#39;True&#39;, &#39;False&#39;)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cat_importance</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Catégorie d'importance du bâtiment selon EN 1998-1 §4.2.5 :
+- "I"  : Bâtiments sans activité humaine prolongée.
+- "II" : Habitations individuelles, ERP cat. 4/5, logements collectifs &lt; 28 m,
+          bureaux/commerces non ERP ≤ 28 m (≤ 300 pers.), parcs de stationnement.
+- "III": ERP cat. 1-3, logements collectifs/bureaux &gt; 28 m, bâtiments &gt; 300 pers.,
+          établissements sanitaires, scolaires, centres énergétiques.
+- "IV" : Bâtiments indispensables à la sécurité civile, défense, communications,
+          eau potable, énergie, sécurité aérienne, santé de crise, météorologie.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec8.sismique.Sismique.CAT_IMPORTANCE">CAT_IMPORTANCE</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>classe_sol</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Classe de sol selon EN 1998-1 §3.1.2.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec8.sismique.Sismique.CLASSE_SOL">CLASSE_SOL</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>type_spectre</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type de spectre de réponse.
+"Type 2" : France métropolitaine (magnitude &lt; 6).
+"Type 1" : Zones à forte sismicité (magnitude ≥ 6).</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec8.sismique.Sismique.TYPE_SPECTRE">TYPE_SPECTRE</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments transmis à la classe parent Batiment.</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Si le bâtiment n'est pas soumis à une analyse sismique (zone 1, cat. I,
+cat. II en zone 2) ou si la méthode des forces latérales n'est pas applicable
+(cat. IV, irrégularité en élévation, T1 &gt; min(4TC, 2s)).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.region_sismique" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">region_sismique</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.region_sismique" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">region_sismique</span><span class="p">:</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne la zone d'aléa sismique du bâtiment selon l'AN français (carte par code INSEE).</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>str</code></td>            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Zone sismique parmi "Zone 1" à "Zone 5".</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.cat_importance_table" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">cat_importance_table</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.cat_importance_table" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">cat_importance_table</span><span class="p">:</span> <span class="n">Series</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne les données normatives de la catégorie d'importance sélectionnée.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pandas.Series">Series</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>pd.Series: Ligne du fichier categorie_importance.csv correspondant à cat_importance,
+contenant notamment le coefficient d'importance gamma_I.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.classe_sol_table" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">classe_sol_table</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.classe_sol_table" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">classe_sol_table</span><span class="p">:</span> <span class="n">Series</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne les paramètres de sol de la classe sélectionnée selon EN 1998-1 §3.1.2.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pandas.Series">Series</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>pd.Series: Ligne du fichier classe_sol.csv pour la classe_sol choisie,
+contenant les paramètres S, TB, TC, TD du spectre de réponse.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.type_spectre_table" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">type_spectre_table</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.type_spectre_table" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">type_spectre_table</span><span class="p">:</span> <span class="n">Series</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne les paramètres du spectre élastique horizontal selon EN 1998-1 §3.2.2.</p>
+<p>Sélectionne le fichier de spectre type 1 ou type 2 selon type_spectre,
+puis retourne la ligne correspondant à la classe de sol.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pandas.Series">Series</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>pd.Series: Paramètres S, TB, TC, TD pour le couple (type_spectre, classe_sol).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.type_constructif_table" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">type_constructif_table</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.type_constructif_table" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">type_constructif_table</span><span class="p">:</span> <span class="nb">dict</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne le dictionnaire complet des classes de ductilité bois disponibles.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>dict</code></td>            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>CLASSE_DUCTILITE : clés = description du système constructif,
+valeurs = dict {"q": coefficient de comportement, "Classe de ductilité": "DCL"/"DCM"/"DCH"}.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.a_gr" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">a_gr</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.a_gr" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">a_gr</span><span class="p">:</span> <span class="nb">float</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne l'accélération de référence a_gR pour un sol de classe A selon l'AN français.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>float</code></td>            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Accélération de référence en m/s² avec unité (si.m/si.s²),
+issue du dictionnaire AGR pour la zone sismique du projet.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.a_g" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">a_g</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.a_g" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">a_g</span><span class="p">:</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule l'accélération de calcul a_g = a_gR × gamma_I selon EN 1998-1 §3.2.1.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeur) où valeur est l'accélération de calcul en m/s².</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.gamma_I" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">gamma_I</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.gamma_I" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">gamma_I</span><span class="p">:</span> <span class="nb">float</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne le coefficient d'importance gamma_I de la catégorie d'importance selon EN 1998-1 §4.2.5.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>float</code></td>            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coefficient gamma_I (ex. : 0.8, 1.0, 1.2, 1.4 pour cat. I à IV).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.T1" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">T1</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.T1" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">T1</span><span class="p">:</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule les périodes propres de vibration T1 selon EN 1998-1 §4.3.3.2.2.</p>
+<p>Formule : T_1 = 2 * sqrt(m_total / K_b) pour chaque direction.
+La masse totale est déduite des charges gravitaires ajoutées via add_gravity_load.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeurs) où valeurs est un dict {"x": T_1_x, "y": T_1_y}
+avec les périodes en secondes (sans unité forallpeople).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.Sd_t" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">Sd_t</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.Sd_t" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">Sd_t</span><span class="p">:</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne les ordonnées spectrales de calcul S_d(T1) selon EN 1998-1 §3.2.2.5.</p>
+<p>Calcule S_d(T1) pour les périodes T1x et T1y dans chaque direction en appelant
+_spectre_elastique_calcul, avec le coefficient de comportement q propre à chaque direction.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeurs) où valeurs est un dict {"x": Sd_x, "y": Sd_y}
+avec les accélérations spectrales en m/s².</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.Fb" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">Fb</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.Fb" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">Fb</span><span class="p">:</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule l'effort tranchant sismique à la base F_b selon EN 1998-1 §4.3.3.2.2 (éq. 4.5).</p>
+<p>F_b = S_d(T1) × m_total × lambda, avec lambda = 0.85 si T1 ≤ 2TC et plus de 2 niveaux, 1 sinon.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeurs) où valeurs est un dict {"x": F_b_x, "y": F_b_y}
+avec les efforts de base en kN (avec unité si.kN).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.Fi_table" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">Fi_table</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.Fi_table" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">Fi_table</span><span class="p">:</span> <span class="n">DataFrame</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne le tableau des efforts horizontaux équivalents à chaque étage selon EN 1998-1 §4.3.3.2.3.</p>
+<p>Valable uniquement si les déplacements horizontaux croissent linéairement avec la hauteur.
+Le coefficient de torsion accidentelle n'est pas inclus.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>pd.DataFrame: DataFrame indexé par le nom d'étage avec les colonnes ["Fi,x", "Fi,y"]
+contenant les efforts en kN (avec unité si.kN).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.save_gravity_load_data" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">save_gravity_load_data</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.save_gravity_load_data" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">save_gravity_load_data</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Sauvegarde les données des charges gravitaires dans un fichier JSON.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Chemin absolu du fichier de destination (.json).
+Si None, une boîte de dialogue s'ouvre pour sélectionner le fichier.
+Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.load_gravity_load_data" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">load_gravity_load_data</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.load_gravity_load_data" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">load_gravity_load_data</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Charge les données des charges gravitaires depuis un fichier JSON et reconstruit l'état interne.</p>
+<p>Relit le fichier produit par save_gravity_load_data et appelle _set_loads pour
+reconstituer le dictionnaire _loads utilisé dans les calculs sismiques.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Chemin absolu du fichier source (.json).
+Si None, une boîte de dialogue s'ouvre pour sélectionner le fichier.
+Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>dict</code></td>            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dictionnaire gravity_loads mis à jour, structuré par étage puis par nom de charge.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.add_gravity_load" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">add_gravity_load</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.add_gravity_load" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_gravity_load</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">load</span><span class="p">:</span> <span class="n">kN</span> <span class="o">/</span> <span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">surface</span><span class="p">:</span> <span class="n">m</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="n">etage</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Batiment</span><span class="o">.</span><span class="n">ETAGE</span><span class="p">,</span> <span class="n">z_i</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">action</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">ACTION</span><span class="p">,</span> <span class="n">categorie_Q</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Batiment</span><span class="o">.</span><span class="n">CAT_TYPE</span><span class="p">,</span> <span class="n">occupations</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">OCCUPATION</span><span class="p">,</span> <span class="n">comment</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Ajoute une charge gravitaire à un étage pour le calcul de la masse sismique.</p>
+<p>La charge est convertie en masse sismique selon la combinaison quasi-permanente
+(G + psi_2 × Q) conformément à EN 1998-1 §3.2.4. Ne pas oublier les charges permanentes
+de murs, menuiseries, éléments techniques et autres éléments non structuraux.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Identifiant unique de la charge dans l'étage considéré.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>load</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Intensité de la charge gravitaire en kN/m².</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>surface</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Surface d'application de la charge en m².</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>etage</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom de l'étage auquel est appliquée la charge.
+Doit correspondre à une clé de ETAGE définie dans Batiment.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.core.batiment.Batiment.ETAGE">ETAGE</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>z_i</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Hauteur de l'étage i en mètres depuis les fondations
+ou le sommet d'un soubassement rigide. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>action</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type d'action de la charge selon ACTION.
+"Permanente G", "Exploitation Q" ou "Neige normale Sn".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec8.sismique.Sismique.ACTION">ACTION</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>categorie_Q</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Catégorie d'exploitation selon l'EC1-1-1.
+Utilisée uniquement pour les charges Q (psi_2). Defaults to "Aucune".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.core.batiment.Batiment.CAT_TYPE">CAT_TYPE</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>occupations</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type d'occupation pour la réduction de la charge Q
+(coefficient phi selon EN 1998-1 §4.2.4).
+"Étages à occupations corrélées", "Étages à occupations indépendantes",
+"Toiture", ou "Autres". Defaults to "Autres".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec8.sismique.Sismique.OCCUPATION">OCCUPATION</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>comment</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Commentaire descriptif libre sur la charge. Defaults to "".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>dict</code></td>            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dictionnaire décrivant la charge ajoutée avec les clés :
+"Zi", "Charge gravitaire", "Surface", "Action", "Catégorie",
+"Occupations", "Commentaire".</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.show_spectre_elastique_calcul" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">show_spectre_elastique_calcul</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.show_spectre_elastique_calcul" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">show_spectre_elastique_calcul</span><span class="p">(</span><span class="n">direction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">),</span> <span class="n">screenshot</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;False&#39;</span><span class="p">,</span> <span class="s1">&#39;True&#39;</span><span class="p">),</span> <span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Affiche le spectre élastique de calcul S_d(T) selon EN 1998-1 §3.2.2.5.</p>
+<p>Trace la courbe S_d(T) sur [0, 4 s] pour la direction choisie avec matplotlib.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>direction</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Direction du spectre. "x" (bleu) ou "y" (rouge). Defaults to "x".</p>
+              </div>
+            </td>
+            <td>
+                  <code>(&#39;x&#39;, &#39;y&#39;)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>screenshot</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Si True, enregistre le graphique au lieu de l'afficher.
+Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(&#39;False&#39;, &#39;True&#39;)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>filepath</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Chemin du fichier image de sortie (.png).
+Si None et screenshot=True, une boîte de dialogue s'ouvre.
+Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.coeff_torsion_accidentelle" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">coeff_torsion_accidentelle</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.coeff_torsion_accidentelle" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">coeff_torsion_accidentelle</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="n">Le</span><span class="p">:</span> <span class="n">m</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le coefficient de torsion accidentelle delta selon EN 1998-1 §4.3.3.2.4 (éq. 4.12).</p>
+<p>Applicable lorsque les raideurs latérales et les masses sont symétriques.
+Formule : delta = 1 + 1.2 × (x / Le).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>x</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Distance en plan de l'élément au centre de masse du bâtiment,
+mesurée perpendiculairement à la direction de l'action sismique, en m.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Le</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Distance entre les deux éléments de contreventement extrêmes,
+mesurée perpendiculairement à la direction de l'action sismique, en m.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, delta) où delta est le coefficient de torsion accidentelle (sans unité).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.Fi" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">Fi</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.Fi" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Fi</span><span class="p">(</span><span class="n">etage</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Batiment</span><span class="o">.</span><span class="n">ETAGE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule l'effort horizontal équivalent F_i à l'étage i selon EN 1998-1 §4.3.3.2.3 (éq. 4.11).</p>
+<p>Formule : F_i = F_b × (z_i × m_i) / sum(z_j × m_j).
+Valable uniquement si les déplacements horizontaux croissent linéairement avec la hauteur.
+Le coefficient de torsion accidentelle n'est pas inclus (à appliquer séparément).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>etage</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom de l'étage considéré, tel que défini lors de add_gravity_load.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.core.batiment.Batiment.ETAGE">ETAGE</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeurs) où valeurs est un dict {"x": F_i_x, "y": F_i_y}
+avec les efforts horizontaux en kN (avec unité si.kN).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.ds" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">ds</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.ds" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">ds</span><span class="p">(</span><span class="n">de</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">direction</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le déplacement de calcul d_s selon EN 1998-1 §4.3.4 (éq. 4.23).</p>
+<p>Formule : d_s = q_d × d_e, avec q_d = q (coefficient de comportement de la direction).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>de</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Déplacement élastique du même point issu d'une analyse linéaire
+sur le spectre de calcul (EN 1998-1 §3.2.2.5), en mm.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>direction</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Direction du déplacement. "x" ou "y". Defaults to "x".</p>
+              </div>
+            </td>
+            <td>
+                  <code>(&#39;x&#39;, &#39;y&#39;)</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, d_s) où d_s est le déplacement de calcul en mm (avec unité si.mm).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.coeff_second_ordre" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">coeff_second_ordre</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.coeff_second_ordre" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">coeff_second_ordre</span><span class="p">(</span><span class="n">dr</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">V_tot</span><span class="p">:</span> <span class="n">kN</span><span class="p">,</span> <span class="n">etage</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Batiment</span><span class="o">.</span><span class="n">ETAGE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le coefficient d'effet P-delta theta_r selon EN 1998-1 §4.3.5.2.2 (éq. 4.28).</p>
+<p>Formule : theta_r = (P_tot × d_r) / (V_tot × h_lvl).
+Si theta_r ≤ 0.1 : coeff_P_delta = 1 (effets du 2nd ordre négligeables).
+Si 0.1 &lt; theta_r ≤ 0.2 : coeff_P_delta = 1 / (1 - theta_r).
+Si theta_r &gt; 0.2 : non couvert (restructuration requise).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>dr</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Déplacement relatif de calcul entre niveaux en mm (différence des
+déplacements latéraux entre le bas et le haut du niveau). Calculé via ds().</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>V_tot</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Effort tranchant sismique total au niveau de l'étage en kN.
+Inclure le coefficient de torsion accidentelle le cas échéant.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>etage</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom de l'étage considéré, tel que défini lors de add_gravity_load.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.core.batiment.Batiment.ETAGE">ETAGE</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, coeff_P_delta) où coeff_P_delta est le facteur d'amplification
+du 2nd ordre (sans unité).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.taux_limitations_dommages" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">taux_limitations_dommages</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.taux_limitations_dommages" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">taux_limitations_dommages</span><span class="p">(</span><span class="n">dr</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">etage</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Batiment</span><span class="o">.</span><span class="n">ETAGE</span><span class="p">,</span> <span class="n">type_dommages</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">TYPE_DOMMAGES</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le taux de limitation des dommages selon EN 1998-1 §4.4.3.2.</p>
+<p>Vérifie que le déplacement inter-étages d_r × nu reste dans la limite normative
+selon le type d'éléments non structuraux (éq. 4.31, 4.32 ou 4.33).
+Le coefficient de réduction nu = 0.4 est fixe (sismicité modérée AN français).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>dr</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Déplacement relatif de calcul entre niveaux en mm. Calculé via ds().</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>etage</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom de l'étage considéré, tel que défini lors de add_gravity_load.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.core.batiment.Batiment.ETAGE">ETAGE</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>type_dommages</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type d'éléments non structuraux :
+"Fragiles" : éléments en matériaux fragiles fixés à la structure (limite h/200, éq. 4.31).
+"Ductiles" : éléments non structuraux ductiles (limite h/133, éq. 4.32).
+"Désolidarisé/Pas de risque" : éléments sans interaction avec la structure (limite h/100, éq. 4.33).</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec8.sismique.Sismique.TYPE_DOMMAGES">TYPE_DOMMAGES</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, taux) où taux est le taux de travail en limitation de dommages (sans unité,
+valeur ≤ 1 si la vérification est satisfaite).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.Fa" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">Fa</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.Fa" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Fa</span><span class="p">(</span><span class="n">ma</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Ta_x</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Ta_y</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">type_element_ns</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">CLASSE_DUCTILITE_NS</span><span class="p">,</span> <span class="n">cat_importance_ns</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">CAT_IMPORTANCE_NS</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule l'effort sismique horizontal F_a sur un élément non structural selon EN 1998-1 §4.3.5.2 (éq. 4.24).</p>
+<p>Formule : F_a = (S_a × m_a × gamma_a) / q_a, avec S_a basé sur le spectre de plancher.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ma</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Masse de l'élément non structural en kg ou kg/m² en fonction du besoin.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Ta_x</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Période fondamentale de vibration de l'élément suivant la direction x en s.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Ta_y</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Période fondamentale de vibration de l'élément suivant la direction y en s.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>z</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Hauteur de l'élément non structural au-dessus du niveau d'application
+de l'action sismique (base du bâtiment ou sommet du soubassement) en m.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>type_element_ns</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type d'élément non structural selon CLASSE_DUCTILITE_NS.
+Détermine le coefficient de comportement q_a.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec8.sismique.Sismique.CLASSE_DUCTILITE_NS">CLASSE_DUCTILITE_NS</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>cat_importance_ns</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Catégorie d'importance de l'élément non structural selon
+CAT_IMPORTANCE_NS. Détermine le coefficient d'importance gamma_a.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec8.sismique.Sismique.CAT_IMPORTANCE_NS">CAT_IMPORTANCE_NS</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeurs) où valeurs est un dict {"x": F_a_x, "y": F_a_y}
+avec les efforts sismiques en kN (avec unité si.kN).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.F_sismique_final_capacite" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">F_sismique_final_capacite</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.F_sismique_final_capacite" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">F_sismique_final_capacite</span><span class="p">(</span><span class="n">etage</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Batiment</span><span class="o">.</span><span class="n">ETAGE</span><span class="p">,</span> <span class="n">gamma_d_x</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Rupture fragile&#39;</span><span class="p">,</span> <span class="s1">&#39;Rupture ductile&#39;</span><span class="p">),</span> <span class="n">gamma_d_y</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Rupture fragile&#39;</span><span class="p">,</span> <span class="s1">&#39;Rupture ductile&#39;</span><span class="p">),</span> <span class="n">Omega_x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">Omega_y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">eta_torsion_x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">eta_torsion_y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">P_delta_x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">P_delta_y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule l'effort sismique de dimensionnement des éléments non dissipatifs par capacité.</p>
+<p>Formule : F_s = F_i × gamma_d × Omega × eta_torsion × P_delta,
+avec gamma_d = 1.3 (rupture fragile) ou 1.1 (rupture ductile).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>etage</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom de l'étage considéré, tel que défini lors de add_gravity_load.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.core.batiment.Batiment.ETAGE">ETAGE</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>gamma_d_x</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type de rupture dans la direction x :
+"Rupture fragile" (gamma_d = 1.3) : diaphragmes béton, embrèvements, assemblages collés,
+    connecteurs par plaques embouties, instabilité de flambement/déversement.
+"Rupture ductile" (gamma_d = 1.1) : diaphragmes en panneaux bois cloués,
+    assemblages par pointes ou tiges à faible raideur.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(&#39;Rupture fragile&#39;, &#39;Rupture ductile&#39;)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>gamma_d_y</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type de rupture dans la direction y. Mêmes valeurs que gamma_d_x.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(&#39;Rupture fragile&#39;, &#39;Rupture ductile&#39;)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Omega_x</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Facteur de sur-résistance des éléments dissipatifs dans la direction x
+(Rd/Ed). Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Omega_y</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Facteur de sur-résistance dans la direction y. Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>eta_torsion_x</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coefficient de torsion accidentelle dans la direction x,
+calculé via coeff_torsion_accidentelle(). Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>eta_torsion_y</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coefficient de torsion accidentelle dans la direction y. Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>P_delta_x</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coefficient d'effet du second ordre dans la direction x,
+calculé via coeff_second_ordre(). Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>P_delta_y</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coefficient d'effet du second ordre dans la direction y. Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeurs) où valeurs est un dict {"x": F_s_x, "y": F_s_y}
+avec les efforts sismiques de dimensionnement en kN (avec unité si.kN).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec8.sismique.Sismique.F_sismique_final_dissipatif" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">F_sismique_final_dissipatif</span>
+
+
+<a href="#ourocode.eurocode.ec8.sismique.Sismique.F_sismique_final_dissipatif" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">F_sismique_final_dissipatif</span><span class="p">(</span><span class="n">etage</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Batiment</span><span class="o">.</span><span class="n">ETAGE</span><span class="p">,</span> <span class="n">eta_torsion_x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">eta_torsion_y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">P_delta_x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">P_delta_y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule l'effort sismique de dimensionnement des éléments dissipatifs.</p>
+<p>Formule : F_s = F_i × eta_torsion × P_delta (sans amplification par capacité).
+Les éléments dissipatifs sont dimensionnés directement avec l'effort de l'analyse
+spectrale, sans majoration par gamma_d ni Omega.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>etage</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom de l'étage considéré, tel que défini lors de add_gravity_load.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.core.batiment.Batiment.ETAGE">ETAGE</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>eta_torsion_x</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coefficient de torsion accidentelle dans la direction x,
+calculé via coeff_torsion_accidentelle(). Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>eta_torsion_y</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coefficient de torsion accidentelle dans la direction y. Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>P_delta_x</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coefficient d'effet du second ordre dans la direction x,
+calculé via coeff_second_ordre(). Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>P_delta_y</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coefficient d'effet du second ordre dans la direction y. Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, valeurs) où valeurs est un dict {"x": F_s_x, "y": F_s_y}
+avec les efforts sismiques de dimensionnement en kN (avec unité si.kN).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Retour en haut de la page
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Pied de page" >
+        
+          
+          <a href="../EC5_CVT/" class="md-footer__link md-footer__link--prev" aria-label="Précédent: CVT">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Précédent
+              </span>
+              <div class="md-ellipsis">
+                CVT
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../normes/" class="md-footer__link md-footer__link--next" aria-label="Suivant: Normes Eurocodes">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Suivant
+              </span>
+              <div class="md-ellipsis">
+                Normes Eurocodes
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 Anthony PARISOT — OUREA STRUCTURE
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/AnthonyPrst/ourocode" target="_blank" rel="noopener" title="GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://ourea-structure.fr" target="_blank" rel="noopener" title="OUREA STRUCTURE" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M351.9 280H161c2.9 64.5 17.2 123.9 37.5 167.4 11.4 24.5 23.7 41.8 35.1 52.4 11.2 10.5 18.9 12.2 22.9 12.2s11.7-1.7 22.9-12.2c11.4-10.6 23.7-28 35.1-52.4 20.3-43.5 34.6-102.9 37.5-167.4zm-191-48h190.9c-2.8-64.5-17.1-123.9-37.4-167.4-11.4-24.4-23.7-41.8-35.1-52.4C268.1 1.7 260.4 0 256.4 0s-11.7 1.7-22.9 12.2c-11.4 10.6-23.7 28-35.1 52.4-20.3 43.5-34.6 102.9-37.5 167.4m-48 0c3.5-85.6 25.6-165.1 57.9-217.3C78.7 47.3 10.9 131.2 1.5 232zM1.5 280c9.4 100.8 77.2 184.7 169.3 217.3-32.3-52.2-54.4-131.7-57.9-217.3zm398.4 0c-3.5 85.6-25.6 165.1-57.9 217.3 92.1-32.7 159.9-116.5 169.3-217.3zm111.4-48C501.9 131.2 434.1 47.3 342 14.7c32.3 52.2 54.4 131.7 57.9 217.3z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.highlight", "search.suggest", "search.share", "content.code.copy", "content.code.annotate", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

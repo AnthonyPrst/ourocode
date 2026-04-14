@@ -1,0 +1,5035 @@
+
+<!doctype html>
+<html lang="fr" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Bibliothèque Python pour le calcul de structure selon les Eurocodes (AN Françaises)">
+      
+      
+        <meta name="author" content="Anthony PARISOT">
+      
+      
+        <link rel="canonical" href="https://anthonyprst.github.io/ourocode/api/EC5_CVT/">
+      
+      
+        <link rel="prev" href="../EC5_Assemblage/">
+      
+      
+        <link rel="next" href="../EC8_Sismique/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/logo.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>CVT - Ourocode</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ec5_cvt-en-1995-1-1-9" class="md-skip">
+          Aller au contenu
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="En-tête">
+    <a href="../.." title="Ourocode" class="md-header__button md-logo" aria-label="Ourocode" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Ourocode
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              CVT
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Passer en mode sombre"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Passer en mode sombre" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="teal"  aria-label="Passer en mode clair"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Passer en mode clair" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Rechercher" placeholder="Rechercher" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Recherche">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Partager" aria-label="Partager" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Effacer" aria-label="Effacer" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initialisation de la recherche
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/AnthonyPrst/ourocode" title="Aller au dépôt" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    AnthonyPrst/ourocode
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Onglets" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Accueil
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../guide/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Guide de démarrage
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../objet/" class="md-tabs__link">
+          
+  
+  
+  Référence API
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../normes/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Normes Eurocodes
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../changelog/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Changelog
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Ourocode" class="md-nav__button md-logo" aria-label="Ourocode" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    Ourocode
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/AnthonyPrst/ourocode" title="Aller au dépôt" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    AnthonyPrst/ourocode
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accueil
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guide de démarrage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Référence API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Référence API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../objet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Classe de base
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../A0_Projet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    A0 — Projet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC0_Combinaison/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC0 — Combinaisons
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC1 — Actions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EC1 — Actions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC1_Exploitation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exploitation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC1_Neige/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Neige
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC1_Vent/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vent
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC3 — Acier
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EC3 — Acier
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC3_Element_droit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Éléments droits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC3_Feu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incendie
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC3_Assemblage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assemblages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_6" id="__nav_3_6_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC5 — Bois
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EC5 — Bois
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC5_Element_droit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Éléments droits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC5_BLC/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BLC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC5_Feu/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incendie
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC5_Assemblage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assemblages
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CVT
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CVT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="Sur cette page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Sur cette page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cvt
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="cvt">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Batiment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batiment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assemblage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Assemblage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.rho_mean_ass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rho_mean_ass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.Kser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kser
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.Kser_ass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kser_ass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.Ku" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ku
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.Ku_ass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ku_ass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.F90Rk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F90Rk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.FvRk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FvRk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.F_Rd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F_Rd
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.FbsRk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FbsRk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.taux_F_bs_Ed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_F_bs_Ed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.taux_F_v_Ed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_F_v_Ed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.taux_F_90_Ed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_F_90_Ed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MOB
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MOB">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.data_sys_walls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_sys_walls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.data_walls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_walls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.data_panels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_panels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.calculate_loads_and_deformations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        calculate_loads_and_deformations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.add_sys_wall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_sys_wall
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.add_wall_to_sys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_wall_to_sys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.add_panel_to_wall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_panel_to_wall
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.save_walls_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        save_walls_data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.load_walls_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_walls_data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.get_Kser_wall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_Kser_wall
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.taux_walls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_walls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.taux_ancrage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_ancrage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EC8_Sismique/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EC8 — Sismique
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../normes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Normes Eurocodes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+  
+
+<nav class="md-nav md-nav--secondary" aria-label="Sur cette page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Sur cette page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        cvt
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="cvt">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Batiment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Batiment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assemblage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Assemblage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.rho_mean_ass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        rho_mean_ass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.Kser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kser
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.Kser_ass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kser_ass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.Ku" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ku
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.Ku_ass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ku_ass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.F90Rk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F90Rk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.FvRk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FvRk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.F_Rd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        F_Rd
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.FbsRk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FbsRk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.taux_F_bs_Ed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_F_bs_Ed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.taux_F_v_Ed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_F_v_Ed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.Assemblage.taux_F_90_Ed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_F_90_Ed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MOB
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MOB">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.data_sys_walls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_sys_walls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.data_walls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_walls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.data_panels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_panels
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.calculate_loads_and_deformations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        calculate_loads_and_deformations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.add_sys_wall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_sys_wall
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.add_wall_to_sys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_wall_to_sys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.add_panel_to_wall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        add_panel_to_wall
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.save_walls_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        save_walls_data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.load_walls_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_walls_data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.get_Kser_wall" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_Kser_wall
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.taux_walls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_walls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ourocode.eurocode.ec5.cvt.MOB.taux_ancrage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        taux_ancrage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ec5_cvt-en-1995-1-1-9">EC5_CVT — EN 1995-1-1 §9<a class="headerlink" href="#ec5_cvt-en-1995-1-1-9" title="Permanent link">&para;</a></h1>
+<p>Calcul des éléments de contreventement des MOB (Murs Ossature Bois) selon EN 1995-1-1 §9.</p>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<h2 id="ourocode.eurocode.ec5.cvt" class="doc doc-heading">
+            <span class="doc doc-object-name doc-module-name">cvt</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ourocode.eurocode.ec5.cvt.Batiment" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Batiment</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.Batiment" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Batiment</span><span class="p">(</span><span class="n">h_bat</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="n">d_bat</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="n">b_bat</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="n">alpha_toit</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">alpha_toit2</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Projet (ourocode.eurocode.core.projet.Projet)" href="../A0_Projet/#ourocode.eurocode.core.projet.Projet">Projet</a></code></p>
+
+
+
+        <p>Classe définissant la géométrie d'un bâtiment pour les calculs de structure.</p>
+<p>Cette classe décrit les dimensions principales du bâtiment et les
+caractéristiques de sa toiture, nécessaires pour le calcul des
+charges climatiques (neige, vent) et sismiques.</p>
+
+
+<details class="attributs-de-classe" open>
+  <summary>Attributs de classe</summary>
+  <p>ETAGE (tuple): Liste des niveaux courants (RDC à Toiture).</p>
+</details>
+        <p>Initialise les dimensions du bâtiment.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>h_bat</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.m">m</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Hauteur totale du bâtiment en mètres, mesurée depuis
+le soubassement rigide ou les fondations (référence sismique).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>d_bat</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.m">m</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Largeur du bâtiment en mètres (dimension perpendiculaire
+au vent dominant pour le calcul du vent).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>b_bat</code>
+            </td>
+            <td>
+                  <code><span title="forallpeople.m">m</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Longueur du bâtiment en mètres.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>alpha_toit</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pente du premier versant de toiture en degrés.
+0° pour un toit plat, valeur positive pour un versant.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>alpha_toit2</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pente du second versant pour les
+toits à deux pans (0° si toit à un seul versant ou plat).
+Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>*args</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments positionnels transmis à la classe parent Projet.</p>
+              </div>
+            </td>
+            <td>
+                  <code>()</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments nommés transmis à la classe parent Projet
+(ingenieur, code_INSEE, alt, etc.).</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ourocode.eurocode.ec5.cvt.Assemblage" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">Assemblage</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.Assemblage" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Assemblage</span><span class="p">(</span><span class="n">beam_1</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">beam_2</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">nfile</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">nCis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Projet (ourocode.eurocode.core.projet.Projet)" href="../A0_Projet/#ourocode.eurocode.core.projet.Projet">Projet</a></code></p>
+
+
+
+        <p>Initialise un assemblage bois/bois ou bois/métal à organe métallique de type tige selon l'EN 1995-1-1 §8.</p>
+<p>Détecte automatiquement le type d'assemblage (Bois/Bois ou Bois/Métal) en fonction
+des types de matériaux de beam_1 et beam_2.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>beam_1</code>
+            </td>
+            <td>
+                  <code><span title="object">object</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pièce i=1 de l'assemblage. Instance de Barre (ou dérivé, EC5)
+ou de Plat (ou dérivé, EC3). Pièce latérale pour simple cisaillement,
+pièce centrale pour double cisaillement.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>beam_2</code>
+            </td>
+            <td>
+                  <code><span title="object">object</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pièce i=2 de l'assemblage. Même types acceptés que beam_1.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>nfile</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nombre de files d'organes en considérant i=1 (dans la direction
+perpendiculaire à l'effort). Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>nCis</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nombre de plans de cisaillement : 1 ou 2. Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(&#39;1&#39;, &#39;2&#39;)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments transmis à la classe parent Projet.</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.Assemblage.rho_mean_ass" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">rho_mean_ass</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.cvt.Assemblage.rho_mean_ass" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">rho_mean_ass</span><span class="p">:</span> <span class="nb">float</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne la masse volumique moyenne de l'assemblage en kg/m³ selon EN 1995-1-1 §8.5.1.1.</p>
+<p>Pour Bois/Bois : moyenne géométrique de rho_mean1 et rho_mean2.
+Pour Bois/Métal : rho_mean de l'élément bois.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>float</code></td>            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Masse volumique moyenne de référence de l'assemblage en kg/m³ (sans unité forallpeople).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.Assemblage.Kser" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">Kser</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.Assemblage.Kser" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Kser</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le module de glissement de l'organe unitaire K_ser selon EN 1995-1-1 §7.1 (Tableau 7.1).</p>
+<p>La formule dépend du type d'organe (boulon/broche/tirefond, pointe, agrafe, anneau, crampon).</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, K_ser) où K_ser est le module de glissement en N/mm (avec unité si.N/si.mm).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.Assemblage.Kser_ass" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">Kser_ass</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.Assemblage.Kser_ass" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Kser_ass</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le module de glissement total de l'assemblage K_ser,ass selon EN 1995-1-1 §7.1.</p>
+<p>Formule : K_ser,ass = K_ser × n_file × n × n_Cis × k_type,
+avec k_type = 2 pour les assemblages Bois/Métal, 1 pour Bois/Bois.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, K_ser_ass) où K_ser_ass est le module de glissement total de l'assemblage
+en N/mm (avec unité si.N/si.mm).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.Assemblage.Ku" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">Ku</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.Assemblage.Ku" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Ku</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le module de glissement de l'organe à l'ELU K_u selon EN 1995-1-1 §7.1.</p>
+<p>Formule : K_u = (2/3) × K_ser.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, K_u) où K_u est le module de glissement à l'ELU en N/mm
+(avec unité si.N/si.mm).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.Assemblage.Ku_ass" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">Ku_ass</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.Assemblage.Ku_ass" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">Ku_ass</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le module de glissement total de l'assemblage à l'ELU K_u,ass selon EN 1995-1-1 §7.1.</p>
+<p>Formule : K_u,ass = K_u × n_file × n × n_Cis × k_type.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, K_u_ass) où K_u_ass est le module de glissement total à l'ELU en N/mm
+(avec unité si.N/si.mm).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.Assemblage.F90Rk" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">F90Rk</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.Assemblage.F90Rk" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">F90Rk</span><span class="p">(</span><span class="n">b</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">h</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">he</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">w</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la capacité résistante caractéristique au fendage F_90,Rk selon EN 1995-1-1 §8.1.4.</p>
+<p>Formule : F_90,Rk = 14 × b × w × sqrt(h_e / (1 - h_e/h)) en N.
+Stocke le résultat dans self.F90_Rk pour utilisation dans taux_F_90_Ed.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>b</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Épaisseur de l'élément bois en mm.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>h</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Hauteur de l'élément bois en mm.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>he</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Distance de la rive chargée au centre de l'organe le plus éloigné
+(ou au bord de la plaque métallique), en mm.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>w</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Facteur de modification pour les plaques métalliques embouties
+(calculé via _w()). Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, F_90_Rk) où F_90_Rk est la résistance au fendage en N (avec unité si.N).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.Assemblage.FvRk" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">FvRk</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.Assemblage.FvRk" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">FvRk</span><span class="p">(</span><span class="n">effet_corde</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;True&#39;</span><span class="p">,</span> <span class="s1">&#39;False&#39;</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la résistance caractéristique au cisaillement de l'assemblage F_v,Rk,ass selon EN 1995-1-1 §8.2.</p>
+<p>Sélectionne automatiquement le modèle Bois/Bois (§8.2.2) ou Bois/Métal (§8.2.3) et
+applique les facteurs n_file, n_ef, n_Cis, ainsi que le facteur agrafe (0.7 ou 2.0 selon
+l'angle de la tête). Stocke le résultat dans self.Fv_Rk_ass.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>effet_corde</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Active la prise en compte de l'effet de corde (EN 1995-1-1 §8.2.2(2)).
+Nécessite que FaxRk ait été calculé préalablement. Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(&#39;True&#39;, &#39;False&#39;)</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, F_v_Rk_ass) où F_v_Rk_ass est la résistance caractéristique
+totale de l'assemblage en N (avec unité si.N).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.Assemblage.F_Rd" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">F_Rd</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.Assemblage.F_Rd" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">F_Rd</span><span class="p">(</span><span class="n">F_Rk</span><span class="p">:</span> <span class="n">kN</span><span class="p">,</span> <span class="n">loadtype</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">LOAD_TIME</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la valeur de calcul F_Rd d'une résistance d'assemblage selon EN 1995-1-1 §2.4.1.</p>
+<p>Formule : F_Rd = F_Rk × k_mod / gamma_M, avec gamma_M = 1.3.
+k_mod est déterminé selon la pièce bois (ou la moyenne géométrique pour Bois/Bois).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>F_Rk</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Résistance caractéristique à convertir en valeur de calcul, en kN.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>loadtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Classe de durée de chargement selon EN 1995-1-1 §2.3.1.2.
+Valeurs : "Permanente", "Long terme", "Moyen terme", "Court terme", "Instantanée".
+Defaults to "Permanente".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.LOAD_TIME">LOAD_TIME</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, F_Rd) où F_Rd est la valeur de calcul en N (avec unité si.N).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.Assemblage.FbsRk" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">FbsRk</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.Assemblage.FbsRk" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">FbsRk</span><span class="p">(</span><span class="n">dp</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">a1</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">a2</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">a3t</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">Kcr</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.67</span><span class="p">,</span> <span class="n">num_beam</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule la résistance caractéristique en cisaillement de bloc F_bs,Rk selon EN 1995-1-1 Annexe A.</p>
+<p>Nécessite que FvRk ait été exécuté préalablement (utilise le mode de rupture détecté).
+Stocke le résultat dans self.F_bs_Rk pour utilisation dans taux_F_bs_Ed.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>dp</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Diamètre de perçage en mm.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>a1</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pince longitudinale (dans le sens du fil) en mm.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>a2</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pince perpendiculaire au fil en mm.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>a3t</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pince de bord chargée dans le sens du fil en mm.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Kcr</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coefficient de réduction de la largeur en cisaillement.
+Si 0, calculé automatiquement via la classe Cisaillement. Defaults to 0.67.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.67</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>num_beam</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Numéro de l'élément à vérifier (1 ou 2). Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>(&#39;1&#39;, &#39;2&#39;)</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, F_bs_Rk) où F_bs_Rk est la résistance caractéristique
+en cisaillement de bloc en N (avec unité si.N).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.Assemblage.taux_F_bs_Ed" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">taux_F_bs_Ed</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.Assemblage.taux_F_bs_Ed" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">taux_F_bs_Ed</span><span class="p">(</span><span class="n">Fv_Ed</span><span class="p">:</span> <span class="n">kN</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">FbsRk_1</span><span class="p">:</span> <span class="n">kN</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">FbsRk_2</span><span class="p">:</span> <span class="n">kN</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">loadtype</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">LOAD_TIME</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le taux de travail en rupture de bloc de l'assemblage selon EN 1995-1-1 Annexe A.</p>
+<p>Vérifie que l'effort de cisaillement de calcul reste inférieur à la résistance
+de calcul en cisaillement de bloc (F_bs,Rd = F_bs,Rk × k_mod / gamma_M).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>Fv_Ed</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Effort de cisaillement total de calcul sur l'assemblage en kN. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>FbsRk_1</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Résistance caractéristique en cisaillement de bloc de l'élément 1 en kN.
+Si 0, la vérification de l'élément 1 est ignorée. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>FbsRk_2</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Résistance caractéristique en cisaillement de bloc de l'élément 2 en kN.
+Si 0, la vérification de l'élément 2 est ignorée. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>loadtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Classe de durée de chargement. Defaults to "Permanente".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.LOAD_TIME">LOAD_TIME</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, taux) où taux est le taux de travail maximal entre les deux éléments
+(sans unité, valeur ≤ 1 si vérification satisfaite).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Si aucune résistance caractéristique n'est fournie.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.Assemblage.taux_F_v_Ed" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">taux_F_v_Ed</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.Assemblage.taux_F_v_Ed" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">taux_F_v_Ed</span><span class="p">(</span><span class="n">Fv_Ed</span><span class="p">:</span> <span class="n">kN</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Fax_Ed</span><span class="p">:</span> <span class="n">kN</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">loadtype</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">LOAD_TIME</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le taux de travail en cisaillement (ou cisaillement + traction combinés) de l'assemblage.</p>
+<ul>
+<li>Cisaillement seul : taux = F_v,Ed / F_v,Rd,ass.</li>
+<li>Cisaillement + traction combinés pour pointes/boulons : F_ax,Ed/F_ax,Rd + F_v,Ed/F_v,Rd ≤ 1.</li>
+<li>Cisaillement + traction combinés pour tirefonds : (F_ax,Ed/F_ax,Rd)² + (F_v,Ed/F_v,Rd)² ≤ 1.</li>
+</ul>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>Fv_Ed</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Effort de cisaillement total de calcul sur l'assemblage en kN. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Fax_Ed</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Effort axial de calcul (traction dans l'organe) en kN.
+Si 0, la vérification est uniquement en cisaillement. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>loadtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Classe de durée de chargement. Defaults to "Permanente".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.LOAD_TIME">LOAD_TIME</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, taux) où taux est le taux de travail en cisaillement ou combiné
+(sans unité, valeur ≤ 1 si vérification satisfaite).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.Assemblage.taux_F_90_Ed" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">taux_F_90_Ed</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.Assemblage.taux_F_90_Ed" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">taux_F_90_Ed</span><span class="p">(</span><span class="n">Fv_Ed</span><span class="p">:</span> <span class="n">kN</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">loadtype</span><span class="o">=</span><span class="n">Barre</span><span class="o">.</span><span class="n">LOAD_TIME</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule le taux de travail en rupture par fendage de la pièce bois selon EN 1995-1-1 §8.1.4.</p>
+<p>Nécessite que F90Rk ait été exécuté préalablement (utilise self.F90_Rk).
+Vérifie : F_v,Ed ≤ F_90,Rd = F_90,Rk × k_mod / gamma_M.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>Fv_Ed</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Effort de cisaillement de calcul sur l'assemblage en kN. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>loadtype</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Classe de durée de chargement. Defaults to "Permanente".</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.element_droit.barre.Barre.LOAD_TIME">LOAD_TIME</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>tuple</code></td>            <td>
+                  <code><span title="tuple">tuple</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>(latex_string, taux) où taux est le taux de travail en fendage
+(sans unité, valeur ≤ 1 si vérification satisfaite).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="ourocode.eurocode.ec5.cvt.MOB" class="doc doc-heading">
+            <span class="doc doc-object-name doc-class-name">MOB</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.MOB" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">MOB</span><span class="p">(</span><span class="n">connecteurs_int</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">connecteurs_ext</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Batiment (ourocode.eurocode.core.batiment.Batiment)" href="../A0_Projet/#ourocode.eurocode.core.batiment.Batiment">Batiment</a></code></p>
+
+
+
+        <p>Initialise un système de murs à ossature bois (MOB) selon l'EN 1995-1-1 §9.2.4 méthode A.</p>
+<p>Un système MOB est composé de plusieurs murs de contreventement (interrompus par portes/fenêtres),
+eux-mêmes constitués de plusieurs panneaux. Le workflow recommandé est :</p>
+<ol>
+<li>Instancier MOB avec les connecteurs.</li>
+<li>Ajouter les systèmes de mur via add_sys_wall.</li>
+<li>Ajouter les murs internes via add_wall_to_sys.</li>
+<li>Ajouter les panneaux via add_panel_to_wall.</li>
+<li>Calculer les efforts via calculate_loads_and_deformations ou en fournissant Fv_Ed directement dans add_sys_wall.</li>
+<li>Récupérer les taux de vérification via taux_walls et taux_ancrage.</li>
+</ol>
+<p>Cette classe ne calcule pas les montants au flambement ni la compression perpendiculaire
+sur la lisse basse : utiliser Barre et les classes de vérification EC5_Element_droit.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>connecteurs_int</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="Agrafe (ourocode.eurocode.ec5.assemblage.Agrafe)" href="../EC5_Assemblage/#ourocode.eurocode.ec5.assemblage.Agrafe">Agrafe</a> | <a class="autorefs autorefs-internal" title="Pointe (ourocode.eurocode.ec5.assemblage.Pointe)" href="../EC5_Assemblage/#ourocode.eurocode.ec5.assemblage.Pointe">Pointe</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Connecteur intérieur (panneau face intérieure)
+issu du module EC5_Assemblage. Instancier avec n_file=1 et n=1. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>connecteurs_ext</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="Agrafe (ourocode.eurocode.ec5.assemblage.Agrafe)" href="../EC5_Assemblage/#ourocode.eurocode.ec5.assemblage.Agrafe">Agrafe</a> | <a class="autorefs autorefs-internal" title="Pointe (ourocode.eurocode.ec5.assemblage.Pointe)" href="../EC5_Assemblage/#ourocode.eurocode.ec5.assemblage.Pointe">Pointe</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Connecteur extérieur (panneau face extérieure)
+issu du module EC5_Assemblage. Instancier avec n_file=1 et n=1. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>**kwargs</code>
+            </td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Arguments transmis à la classe parent Batiment.</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.MOB.data_sys_walls" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">data_sys_walls</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.cvt.MOB.data_sys_walls" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">data_sys_walls</span><span class="p">:</span> <span class="nb">dict</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne un dictionnaire des systèmes de mur sans leur sous-clé 'Murs'.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>dict</code></td>            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Clés = noms des systèmes de mur, valeurs = dict de leurs propriétés
+(étage, hauteurs, longueur, position, efforts éventuels).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.MOB.data_walls" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">data_walls</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.cvt.MOB.data_walls" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">data_walls</span><span class="p">:</span> <span class="nb">dict</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne un dictionnaire des murs sans leur sous-clé 'Panneaux'.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>dict</code></td>            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Clés = noms des murs (ex. "S1_W1"), valeurs = dict de leurs propriétés
+(position, longueur, couturage, connecteurs).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.MOB.data_panels" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">data_panels</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ourocode.eurocode.ec5.cvt.MOB.data_panels" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">data_panels</span><span class="p">:</span> <span class="nb">dict</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Retourne un dictionnaire de tous les panneaux de tous les murs et systèmes.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>dict</code></td>            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Clés = noms des panneaux (ex. "S1_W1_P1"), valeurs = dict de leurs
+propriétés (type, position, dimensions, nombre, contreventement, panneau double).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.MOB.calculate_loads_and_deformations" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">calculate_loads_and_deformations</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.MOB.calculate_loads_and_deformations" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">calculate_loads_and_deformations</span><span class="p">(</span><span class="n">Fw_Ed_ELS</span><span class="p">:</span> <span class="n">kN</span><span class="p">,</span> <span class="n">Fw_Ed_ELU</span><span class="p">:</span> <span class="n">kN</span><span class="p">,</span> <span class="n">XFw</span><span class="p">:</span> <span class="n">m</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">YFw</span><span class="p">:</span> <span class="n">m</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">alpha_Fw</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">etage</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Batiment</span><span class="o">.</span><span class="n">ETAGE</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule les efforts de contreventement et les déformations par système de mur selon la méthode AQCEN MOB.</p>
+<p>Répartit l'effort global de contreventement entre les systèmes de mur en fonction de leurs
+raideurs et de leurs positions par rapport au centre de rigidité. Nécessite que le diaphragme
+(plancher ou toiture) soit considéré parfaitement rigide (faibles ouvertures et trémies).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>Fw_Ed_ELS</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Force résultante de contreventement à l'ELS en kN, au niveau de l'étage.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Fw_Ed_ELU</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Force résultante de contreventement à l'ELU en kN, au niveau de l'étage.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>XFw</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordonnée X de la force résultante depuis l'origine du repère cartésien
+du calculateur, en m. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>YFw</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordonnée Y de la force résultante depuis l'origine du repère cartésien
+du calculateur, en m. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>alpha_Fw</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Angle d'application de la force résultante par rapport au repère cartésien,
+en degrés dans le sens trigonométrique (sens inverse des aiguilles d'une montre). Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>etage</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom de l'étage où s'applique la force résultante. Defaults to premier étage.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.core.batiment.Batiment.ETAGE">ETAGE</span></code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>pd.DataFrame: Tableau des efforts et déplacements par système de mur avec les colonnes
+["Étage", "delta,v,Ed,i ELS", "Fv,Ed,i ELU"].</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.MOB.add_sys_wall" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">add_sys_wall</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.MOB.add_sys_wall" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_sys_wall</span><span class="p">(</span><span class="n">h_etage</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="n">h_sys_MOB</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="n">l_sys_MOB</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="n">etage</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Batiment</span><span class="o">.</span><span class="n">ETAGE</span><span class="p">,</span> <span class="n">Fv_Ed_ELS</span><span class="p">:</span> <span class="n">kN</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Fv_Ed_ELU</span><span class="p">:</span> <span class="n">kN</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Xg</span><span class="p">:</span> <span class="n">m</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Yg</span><span class="p">:</span> <span class="n">m</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">alpha_sw</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Ajoute un système de mur à ossature bois (contreventement complet) au niveau d'un étage.</p>
+<p>Les systèmes de mur sont nommés automatiquement S1, S2, …
+Le système de mur est défini comme un repère cartésien, coin inférieur gauche
+en (0, 0), la face externe définit le sens positif des abscisses.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>h_etage</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Hauteur de l'étage en m.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>h_sys_MOB</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Hauteur du système de mur en m (hauteur libre entre lisse basse et lisse haute).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>l_sys_MOB</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Longueur totale du système de mur en m (somme des murs et des ouvertures).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>etage</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom de l'étage auquel appartient le système de mur.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.core.batiment.Batiment.ETAGE">ETAGE</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Fv_Ed_ELS</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Effort de contreventement de calcul à l'ELS en kN.
+À renseigner uniquement pour écraser la valeur calculée par calculate_loads_and_deformations.
+Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Fv_Ed_ELU</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Effort de contreventement de calcul à l'ELU en kN.
+À renseigner uniquement pour écraser la valeur calculée par calculate_loads_and_deformations.
+Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Xg</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordonnée X du centre de rigidité du système de mur depuis l'origine
+du repère cartésien du calculateur, en m. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Yg</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordonnée Y du centre de rigidité du système de mur depuis l'origine
+du repère cartésien du calculateur, en m. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>alpha_sw</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Angle d'orientation du système de mur dans le sens trigonométrique
+(anti-horaire) depuis l'origine, en degrés. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>str</code></td>            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom attribué au système de mur (ex. : "S1", "S2").</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.MOB.add_wall_to_sys" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">add_wall_to_sys</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.MOB.add_wall_to_sys" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_wall_to_sys</span><span class="p">(</span><span class="n">sys_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="n">l_MOB</span><span class="p">:</span> <span class="n">m</span><span class="p">,</span> <span class="n">couturage_ext_rive</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">150</span><span class="p">,</span> <span class="n">couturage_ext_inter</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">300</span><span class="p">,</span> <span class="n">couturage_int_rive</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">couturage_int_inter</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Ff_Rk_ext</span><span class="p">:</span> <span class="n">N</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Ff_Rk_int</span><span class="p">:</span> <span class="n">N</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Kser_ext</span><span class="p">:</span> <span class="n">N</span> <span class="o">/</span> <span class="n">mm</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Kser_int</span><span class="p">:</span> <span class="n">N</span> <span class="o">/</span> <span class="n">mm</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Ajoute un mur contreventant interne à un système de mur à ossature bois.</p>
+<p>Les murs sont nommés automatiquement {sys_name}_W1, {sys_name}_W2, …
+Le système de mur est défini comme un repère cartésien, coin inférieur gauche
+en (0, 0), la face externe définit le sens positif des abscisses.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>sys_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom du système de mur auquel le mur est rattaché.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>position</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordonnée X du coin gauche du mur dans le système de mur, en m.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>l_MOB</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Longueur du mur en m (sans les ouvertures).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>couturage_ext_rive</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Entraxe des organes en rive sur la face extérieure du panneau, en mm.
+Defaults to 150 mm.</p>
+              </div>
+            </td>
+            <td>
+                  <code>150</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>couturage_ext_inter</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Entraxe des organes intermédiaires sur la face extérieure, en mm.
+Defaults to 300 mm.</p>
+              </div>
+            </td>
+            <td>
+                  <code>300</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>couturage_int_rive</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Entraxe des organes en rive sur la face intérieure du panneau, en mm.
+0 si pas de panneau intérieur. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>couturage_int_inter</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Entraxe des organes intermédiaires sur la face intérieure, en mm.
+Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Ff_Rk_ext</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Capacité résistante caractéristique de cisaillement unitaire du connecteur
+extérieur en N (valeur brute, sans Kmod ni gamma_M). Écrase la valeur issue de connecteurs_ext.
+Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Ff_Rk_int</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Capacité résistante caractéristique de cisaillement unitaire du connecteur
+intérieur en N (valeur brute, sans Kmod ni gamma_M). Écrase la valeur issue de connecteurs_int.
+Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Kser_ext</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Raideur ELS du connecteur extérieur en N/mm.
+Écrase la valeur issue de connecteurs_ext. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Kser_int</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Raideur ELS du connecteur intérieur en N/mm.
+Écrase la valeur issue de connecteurs_int. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>str</code></td>            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom attribué au mur (ex. : "S1_W1", "S1_W2").</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Si sys_name ne correspond à aucun système de mur enregistré.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.MOB.add_panel_to_wall" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">add_panel_to_wall</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.MOB.add_panel_to_wall" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_panel_to_wall</span><span class="p">(</span><span class="n">wall_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">h_panel</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">b_panel</span><span class="p">:</span> <span class="n">mm</span><span class="p">,</span> <span class="n">number</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">position_panel</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">POSITION_PANEL</span><span class="p">,</span> <span class="n">on_top_of</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Ajoute un panneau de contreventement à un mur interne.</p>
+<p>Les panneaux sont nommés automatiquement {wall_name}_P1, {wall_name}_P2, …
+Un panneau est automatiquement marqué non contreventant si son rapport
+hauteur/largeur (ou largeur/hauteur) dépasse 4 (EN 1995-1-1 §9.2.4.2).
+Les panneaux empilés verticalement (on_top_of) sont traités en série de raideur.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>wall_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom du mur auquel le panneau est rattaché.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>h_panel</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Hauteur du panneau en mm (généralement la dimension verticale).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>b_panel</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Largeur du panneau en mm (généralement la dimension horizontale).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>number</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nombre de panneaux identiques côte à côte. Defaults to 1.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>position_panel</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Face du panneau par rapport à l'ossature.
+"Extérieur" : face extérieure du mur.
+"Intérieur" : face intérieure du mur.</p>
+              </div>
+            </td>
+            <td>
+                  <code><span title="ourocode.eurocode.ec5.cvt.MOB.POSITION_PANEL">POSITION_PANEL</span></code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>on_top_of</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom du panneau inférieur si ce panneau est posé
+en empilé vertical (panneaux en H/2). Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>str</code></td>            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom attribué au panneau (ex. : "S1_W1_P1").</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="ValueError">ValueError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Si le système de mur parent est introuvable dans data.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.MOB.save_walls_data" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">save_walls_data</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.MOB.save_walls_data" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">save_walls_data</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Sauvegarde la structure complète des murs MOB dans un fichier JSON.</p>
+<p>Sérialise le dictionnaire data (systèmes de mur, murs, panneaux) via le
+mécanisme Batiment.save_data. Ce fichier peut ensuite être rechargé avec load_walls_data.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Chemin absolu du fichier de destination (.json).
+Si None, une boîte de dialogue s'ouvre pour sélectionner le fichier.
+Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.MOB.load_walls_data" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">load_walls_data</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.MOB.load_walls_data" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">load_walls_data</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Charge la structure des murs MOB depuis un fichier JSON produit par save_walls_data.</p>
+<p>Reconstruit le dictionnaire data interne (_data_MOB) à partir du fichier JSON.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Chemin absolu du fichier source (.json).
+Si None, une boîte de dialogue s'ouvre pour sélectionner le fichier.
+Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>dict</code></td>            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dictionnaire data structuré par étage → système de mur → mur → panneau.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.MOB.get_Kser_wall" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">get_Kser_wall</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.MOB.get_Kser_wall" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_Kser_wall</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule et retourne la raideur de glissement ELS de chaque système de mur.</p>
+<p>Agrège les raideurs de panneaux (Kser,p) et de murs selon la méthode de la
+section §9.2.4 de l'EN 1995-1-1. Peuple également les attributs
+data_Kser_panels et data_Kser_walls.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>pd.DataFrame: Tableau data_Kser_sys_walls indexé par le nom du système de mur,
+avec les colonnes ["Étage", "Kser système de mur", "Coeff. équivalence", "Kser,p,ref"]
+(Kser en N/mm).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.MOB.taux_walls" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">taux_walls</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.MOB.taux_walls" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">taux_walls</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule les taux de travail ELS et ELU en contreventement pour tous les éléments MOB.</p>
+<p>Peuple trois tableaux d'attribut accessibles après l'appel :</p>
+<ul>
+<li>taux_FvRd_panels : taux de cisaillement de chaque panneau (F_iv,Ed / F_iv,Rd en %).</li>
+<li>taux_FvRd_walls : taux de cisaillement de chaque mur (F_w,Ed / F_w,Rd en %).</li>
+<li>taux_FvRd_sys_walls : taux de cisaillement et de déplacement ELS de chaque système de mur.</li>
+</ul>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>Appelle get_Kser_wall en interne. Les efforts peuvent être issus de
+calculate_loads_and_deformations ou fournis directement dans add_sys_wall.</p>
+</details>
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>pd.DataFrame: Tableau taux_FvRd_walls indexé par le nom du mur, avec les colonnes
+["Étage", "Fw,v,Ed", "Fw,v,Rd", "Taux cisaillement (%)"].</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="ourocode.eurocode.ec5.cvt.MOB.taux_ancrage" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">taux_ancrage</span>
+
+
+<a href="#ourocode.eurocode.ec5.cvt.MOB.taux_ancrage" class="headerlink" title="Permanent link">&para;</a></h4>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">taux_ancrage</span><span class="p">(</span><span class="n">montant</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">lisse_basse</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">lisse_impl</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span> <span class="n">Ft_Rk_wood</span><span class="p">:</span> <span class="n">kN</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Ft_Rd_concrete</span><span class="p">:</span> <span class="n">kN</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Fv_Rk_anc_lb</span><span class="p">:</span> <span class="n">kN</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">e_anc_lb</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">Fv_Rk_anc_li</span><span class="p">:</span> <span class="n">kN</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">e_anc_li</span><span class="p">:</span> <span class="n">mm</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">etage</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Calcule les taux de travail des ancrages pour tous les murs vérifiés.</p>
+<p>Effectue trois vérifications pour chaque mur :</p>
+<ol>
+<li>Équerre de soulèvement (traction) : F_t,Ed / min(F_t,Rd,bois, F_t,Rd,béton).</li>
+<li>Ancrage lisse basse sur lisse d'implantation : F_v,Ed / F_v,anc,lb,Rd.</li>
+<li>Ancrage lisse d'implantation au sol : F_v,Ed / F_v,anc,li,Rd.</li>
+</ol>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>taux_walls doit être appelé avant taux_ancrage pour peupler data_walls_loads.</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>montant</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="Barre (ourocode.eurocode.ec5.element_droit.Barre)" href="../EC5_Element_droit/#ourocode.eurocode.ec5.element_droit.Barre">Barre</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Montant de l'ossature bois portant l'équerre de traction,
+issu de Barre ou dérivé (EC5_Element_droit). Fournit le Kmod.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>lisse_basse</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="Barre (ourocode.eurocode.ec5.element_droit.Barre)" href="../EC5_Element_droit/#ourocode.eurocode.ec5.element_droit.Barre">Barre</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Lisse basse, issue de Barre ou dérivé. Fournit le Kmod.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>lisse_impl</code>
+            </td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="Barre (ourocode.eurocode.ec5.element_droit.Barre)" href="../EC5_Element_droit/#ourocode.eurocode.ec5.element_droit.Barre">Barre</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Lisse d'implantation, issue de Barre ou dérivé. Fournit le Kmod.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Ft_Rk_wood</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Capacité résistante caractéristique de traction de l'équerre
+dans le montant en kN (nef déjà pris en compte). Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Ft_Rd_concrete</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Capacité résistante de calcul en traction de l'équerre
+dans le béton en kN. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Fv_Rk_anc_lb</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Capacité résistante caractéristique de cisaillement de l'ancrage
+unitaire de la lisse basse en kN (nef déjà pris en compte). Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>e_anc_lb</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Entraxe de l'ancrage unitaire de la lisse basse en mm. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>Fv_Rk_anc_li</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Capacité résistante caractéristique de cisaillement de l'ancrage
+unitaire de la lisse d'implantation en kN (nef déjà pris en compte). Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>e_anc_li</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Entraxe de l'ancrage unitaire de la lisse d'implantation en mm. Defaults to 0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>etage</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nom de l'étage à vérifier. Si None, tous les étages
+sont vérifiés avec ces mêmes valeurs. Defaults to None.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>pd.DataFrame: Tableau taux_ancr_walls indexé par le nom du mur, avec les colonnes
+["Étage", "Longueur mur", "Ft,Ed", "Ft,Rd", "Taux ancr. soulèvement (%)",
+"Fv,anc,Ed", "Fv,anc,lb,Rd", "Nbr ancr,lb", "entraxe anc,lb",
+"Taux ancr. lisse basse (%)", "Fv,anc,li,Rd", "Nbr ancr,li",
+"entraxe anc,li", "Taux ancr. lisse impl. (%)"].</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Retour en haut de la page
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Pied de page" >
+        
+          
+          <a href="../EC5_Assemblage/" class="md-footer__link md-footer__link--prev" aria-label="Précédent: Assemblages">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Précédent
+              </span>
+              <div class="md-ellipsis">
+                Assemblages
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../EC8_Sismique/" class="md-footer__link md-footer__link--next" aria-label="Suivant: EC8 — Sismique">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Suivant
+              </span>
+              <div class="md-ellipsis">
+                EC8 — Sismique
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2024 Anthony PARISOT — OUREA STRUCTURE
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+    <a href="https://github.com/AnthonyPrst/ourocode" target="_blank" rel="noopener" title="GitHub" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="https://ourea-structure.fr" target="_blank" rel="noopener" title="OUREA STRUCTURE" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M351.9 280H161c2.9 64.5 17.2 123.9 37.5 167.4 11.4 24.5 23.7 41.8 35.1 52.4 11.2 10.5 18.9 12.2 22.9 12.2s11.7-1.7 22.9-12.2c11.4-10.6 23.7-28 35.1-52.4 20.3-43.5 34.6-102.9 37.5-167.4zm-191-48h190.9c-2.8-64.5-17.1-123.9-37.4-167.4-11.4-24.4-23.7-41.8-35.1-52.4C268.1 1.7 260.4 0 256.4 0s-11.7 1.7-22.9 12.2c-11.4 10.6-23.7 28-35.1 52.4-20.3 43.5-34.6 102.9-37.5 167.4m-48 0c3.5-85.6 25.6-165.1 57.9-217.3C78.7 47.3 10.9 131.2 1.5 232zM1.5 280c9.4 100.8 77.2 184.7 169.3 217.3-32.3-52.2-54.4-131.7-57.9-217.3zm398.4 0c-3.5 85.6-25.6 165.1-57.9 217.3 92.1-32.7 159.9-116.5 169.3-217.3zm111.4-48C501.9 131.2 434.1 47.3 342 14.7c32.3 52.2 54.4 131.7 57.9 217.3z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "navigation.footer", "search.highlight", "search.suggest", "search.share", "content.code.copy", "content.code.annotate", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copi\u00e9 dans le presse-papier", "clipboard.copy": "Copier dans le presse-papier", "search.result.more.one": "1 de plus sur cette page", "search.result.more.other": "# de plus sur cette page", "search.result.none": "Aucun document trouv\u00e9", "search.result.one": "1 document trouv\u00e9", "search.result.other": "# documents trouv\u00e9s", "search.result.placeholder": "Taper pour d\u00e9marrer la recherche", "search.result.term.missing": "Non trouv\u00e9", "select.version": "S\u00e9lectionner la version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
