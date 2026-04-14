@@ -1,6 +1,7 @@
 ﻿# coding in UTF-8
 # by Anthony PARISOT
-import os, sys
+import os
+import sys
 import math as mt
 import numpy as np
 from matplotlib import pyplot as plt

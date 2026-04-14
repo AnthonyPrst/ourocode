@@ -1,5 +1,6 @@
 ﻿# coding in UTF-8
-import os, sys
+import os
+import sys
 from PIL import Image
 from math import *
 import pandas as pd

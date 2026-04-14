@@ -88,7 +88,7 @@ class Agrafe(Pointe):
         """
         dict_pince = {}
         for i, beam in enumerate([self.beam_1, self.beam_2]):
-            if not self._type_beam[i] in self.TYPE_BOIS_ASSEMBLAGE:
+            if self._type_beam[i] not in self.TYPE_BOIS_ASSEMBLAGE:
                 continue
             alpha = self.alpha[i]
             if not self.angle_sup_30:

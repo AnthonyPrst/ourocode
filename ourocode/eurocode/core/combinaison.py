@@ -1,6 +1,7 @@
 # coding in UTF-8
 # by Anthony PARISOT
-import os, sys
+import os
+import sys
 import numpy as np
 import pandas as pd
 
@@ -264,7 +265,7 @@ class Combinaison(Projet):
                 array_load = self._add_combination(name, index_load, 1, load["Charge"], load, array_load)
 
             for var_action in self.combiActionVariable:
-                if not var_action in ("Sx", "Ae"):
+                if var_action not in ("Sx", "Ae"):
                     if load["Action"] == "Permanente G" and var_action == "G":
                         name = "ELU_STR " + str(self.COEF_G[1]) + "G"
                         value = self._calcs_combined_load(
@@ -706,7 +707,7 @@ class Combinaison(Projet):
                                                     load,
                                                     array_load,
                                                 )
-                                    except:
+                                    except Exception:
                                         pass
 
                                     for index2 in range(1, 4):
@@ -901,7 +902,7 @@ class Combinaison(Projet):
                                                                             load,
                                                                             array_load,
                                                                         )
-                                                            except:
+                                                            except Exception:
                                                                 pass
         array_load = array_load[array_load[:, 0].argsort()]
         self._df_load_ELU_STR_ACC = self._create_dataframe_load(array_load)
@@ -929,7 +930,7 @@ class Combinaison(Projet):
 
         for index_load, load in self._model_generator.get_all_loads().items():
             for action in self.combiActionVariable:
-                if not action in ("Sx", "Ae"):
+                if action not in ("Sx", "Ae"):
 
                     if load["Action"] == "Permanente G" and action == "G":
                         name = "ELS_C G"

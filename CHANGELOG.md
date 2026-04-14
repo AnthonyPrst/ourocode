@@ -7,8 +7,6 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
-## [1.11.1] - 2026-04-14
-
 ### Fixed
 - Correction des docstrings `griffe`-incompatibles causant l'échec du job `docs` en CI (`mkdocs build --strict`) :
   - `ec5/feu/feu.py` : paramètre `Attention :` (non présent en signature) déplacé en section `Note`.
