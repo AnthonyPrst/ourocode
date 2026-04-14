@@ -52,7 +52,7 @@ class Test_Sismique:
 
     def test_init(self, sismique):
         assert sismique.region_sismique == "Zone 4"
-        assert sismique.gamma_1 == 1
+        assert sismique.gamma_I == 1
         assert sismique.h_bat == 10
         assert sismique.d_bat == 30
         assert sismique.b_bat == 20

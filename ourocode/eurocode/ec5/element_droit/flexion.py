@@ -10,7 +10,7 @@ import numpy as np
 
 import forallpeople as si
 si.environment("structural")
-from handcalcs.decorator import handcalc
+from ourocode.eurocode.core.renderer import handcalc
 
 from ourocode.eurocode.ec5.element_droit.barre import Barre
 from ourocode.eurocode.ec5.element_droit.compression import Compression

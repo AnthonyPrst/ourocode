@@ -8,21 +8,22 @@ include = ["ourocode*"]
 
 [project]
 name = "ourocode"
-version = "1.11.3"
+version = "2.0.0"
 description = "Ceci est un catalogue de fonction permettant une utilisation rapide pour la réalisation de note de calcul personnalisée."
 readme = "README.md"
 authors = [{name = "Anthony PARISOT", email = "contact@ourea-structure.fr"}]
 license = "Apache-2.0"
 license-files = ["LICEN[CS]E"]
 dependencies = [
-    "handcalcs",
     "forallpeople",
     "pandas",
     "Pillow",
+    "matplotlib",
 ]
 requires-python = ">=3.12"
 classifiers = [
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Operating System :: OS Independent",
 ]
 

@@ -1,4 +1,4 @@
-#! env\Scripts\python.exe
+﻿#! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
 from math import sqrt, radians, cos, sin, floor
 from copy import deepcopy
@@ -7,7 +7,7 @@ import numpy as np
 import forallpeople as si
 
 si.environment("structural")
-from handcalcs.decorator import handcalc
+from ourocode.eurocode.core.renderer import handcalc
 
 from ourocode.eurocode.core.batiment import Batiment
 from ourocode.eurocode.ec5.assemblage import Assemblage
