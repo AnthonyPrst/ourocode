@@ -29,18 +29,20 @@ class Assemblage(Projet):
     TYPE_ASSEMBLAGE = ("Bois/Bois", "Bois/Métal")
 
     def __init__(self, beam_1:object, beam_2:object, nfile: int=1, nCis: int=("1","2"), **kwargs):
-        """Créer un objet Assemblage qui permet de calculer un assemblage bois/bois ou bois/métal à l'EN 1995.
-        Cette classe est hérité de la classe Projet du module A0_Project.py
+        """Initialise un assemblage bois/bois ou bois/métal à organe métallique de type tige selon l'EN 1995-1-1 §8.
+
+        Détecte automatiquement le type d'assemblage (Bois/Bois ou Bois/Métal) en fonction
+        des types de matériaux de beam_1 et beam_2.
 
         Args:
-            beam_1 (object): objet correspondant à i=1, Barre ou dérivé de cet objet provenant du module EC5_Element_droit.py
-                             ou bien objet Element ou dérivé de cet objet provenant du module EC3_Element_droit.py
-                             
-            beam_2 (object): objet correspondant à i=2, Barre ou dérivé de cet objet provenant du module EC5_Element_droit.py
-                             ou bien objet Element ou dérivé de cet objet provenant du module EC3_Element_droit.py
-                             
-            nfile (int, optional): le nombre de file dans l'assemblage en considérant i=1. Defaults to 1.
-            nCis (int, optional): Nombre de plan cisaillé entre 1 et 2. Defaults to ["1","2"].
+            beam_1 (object): Pièce i=1 de l'assemblage. Instance de Barre (ou dérivé, EC5)
+                ou de Plat (ou dérivé, EC3). Pièce latérale pour simple cisaillement,
+                pièce centrale pour double cisaillement.
+            beam_2 (object): Pièce i=2 de l'assemblage. Même types acceptés que beam_1.
+            nfile (int, optional): Nombre de files d'organes en considérant i=1 (dans la direction
+                perpendiculaire à l'effort). Defaults to 1.
+            nCis (int, optional): Nombre de plans de cisaillement : 1 ou 2. Defaults to 1.
+            **kwargs: Arguments transmis à la classe parent Projet.
         """
         
         super().__init__(**kwargs)
@@ -82,6 +84,14 @@ class Assemblage(Projet):
 
     @property
     def rho_mean_ass(self) -> float:
+        """Retourne la masse volumique moyenne de l'assemblage en kg/m³ selon EN 1995-1-1 §8.5.1.1.
+
+        Pour Bois/Bois : moyenne géométrique de rho_mean1 et rho_mean2.
+        Pour Bois/Métal : rho_mean de l'élément bois.
+
+        Returns:
+            float: Masse volumique moyenne de référence de l'assemblage en kg/m³ (sans unité forallpeople).
+        """
         if self.type_assemblage == self.TYPE_ASSEMBLAGE[0]:
             rho_m1 = int(self.beam_1.caract_meca.loc["rhomean"])
             rho_m2 = int(self.beam_2.caract_meca.loc["rhomean"])
@@ -118,7 +128,13 @@ class Assemblage(Projet):
         
     # 7.1 Glissement des assemblages
     def Kser(self) -> tuple:
-        """Retourne le module de glissement de l'organe pour les états limites de services."""
+        """Calcule le module de glissement de l'organe unitaire K_ser selon EN 1995-1-1 §7.1 (Tableau 7.1).
+
+        La formule dépend du type d'organe (boulon/broche/tirefond, pointe, agrafe, anneau, crampon).
+
+        Returns:
+            tuple: (latex_string, K_ser) où K_ser est le module de glissement en N/mm (avec unité si.N/si.mm).
+        """
         rho_mean = self.rho_mean_ass
         if self.type_organe == "Anneau" or self.type_organe == "Crampon C10/C11":
             dc = self.dc.value*10**3
@@ -159,7 +175,15 @@ class Assemblage(Projet):
         return val()
 
     def Kser_ass(self) -> tuple:
-        """Retourne le module de glissement de l'assemblage pour les états limites de services."""
+        """Calcule le module de glissement total de l'assemblage K_ser,ass selon EN 1995-1-1 §7.1.
+
+        Formule : K_ser,ass = K_ser × n_file × n × n_Cis × k_type,
+        avec k_type = 2 pour les assemblages Bois/Métal, 1 pour Bois/Bois.
+
+        Returns:
+            tuple: (latex_string, K_ser_ass) où K_ser_ass est le module de glissement total de l'assemblage
+                en N/mm (avec unité si.N/si.mm).
+        """
         n_file = self.nfile
         K_ser = self.Kser()[1]
         n = self.n
@@ -174,7 +198,14 @@ class Assemblage(Projet):
         return val()
 
     def Ku(self) -> tuple:
-        """Retourne le module de glissement de l'organe pour les états limites ultimes."""
+        """Calcule le module de glissement de l'organe à l'ELU K_u selon EN 1995-1-1 §7.1.
+
+        Formule : K_u = (2/3) × K_ser.
+
+        Returns:
+            tuple: (latex_string, K_u) où K_u est le module de glissement à l'ELU en N/mm
+                (avec unité si.N/si.mm).
+        """
         K_ser = self.Kser()[1]
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
@@ -183,7 +214,14 @@ class Assemblage(Projet):
         return val()
 
     def Ku_ass(self) -> tuple:
-        """Retourne le module de glissement de l'assemblage pour les états limites ultimes."""
+        """Calcule le module de glissement total de l'assemblage à l'ELU K_u,ass selon EN 1995-1-1 §7.1.
+
+        Formule : K_u,ass = K_u × n_file × n × n_Cis × k_type.
+
+        Returns:
+            tuple: (latex_string, K_u_ass) où K_u_ass est le module de glissement total à l'ELU en N/mm
+                (avec unité si.N/si.mm).
+        """
         n_file = self.nfile
         K_u = self.Ku()[1]
         n = self.n
@@ -211,13 +249,22 @@ class Assemblage(Projet):
 
 
     def F90Rk(self, b:si.mm, h:si.mm, he:si.mm, w: int=1) -> tuple:
-        """Calcul la valeur caractérisque de la capacité au fendage en N
+        """Calcule la capacité résistante caractéristique au fendage F_90,Rk selon EN 1995-1-1 §8.1.4.
+
+        Formule : F_90,Rk = 14 × b × w × sqrt(h_e / (1 - h_e/h)) en N.
+        Stocke le résultat dans self.F90_Rk pour utilisation dans taux_F_90_Ed.
 
         Args:
-            b (int) : l'épaisseur de l'élément en mm
-            h (int) : la hauteur de l'élément en mm
-            he (int) : la distance de rive chargée vis à vis du centre de l'organe le plus plus éloigné ou du bord de la plaque
-            w (int) : facteur de modification """
+            b (float): Épaisseur de l'élément bois en mm.
+            h (float): Hauteur de l'élément bois en mm.
+            he (float): Distance de la rive chargée au centre de l'organe le plus éloigné
+                (ou au bord de la plaque métallique), en mm.
+            w (int, optional): Facteur de modification pour les plaques métalliques embouties
+                (calculé via _w()). Defaults to 1.
+
+        Returns:
+            tuple: (latex_string, F_90_Rk) où F_90_Rk est la résistance au fendage en N (avec unité si.N).
+        """
         h_e = he
         @handcalc(override="short", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
@@ -525,14 +572,19 @@ class Assemblage(Projet):
         # 8.1.2 Assemblage par organe multiple
 
     def FvRk(self, effet_corde: bool=("True", "False")) -> tuple:
-        """Calcul la valeur de calcul caractéristique de résistance au cisaillement de l'assemblage en N
+        """Calcule la résistance caractéristique au cisaillement de l'assemblage F_v,Rk,ass selon EN 1995-1-1 §8.2.
+
+        Sélectionne automatiquement le modèle Bois/Bois (§8.2.2) ou Bois/Métal (§8.2.3) et
+        applique les facteurs n_file, n_ef, n_Cis, ainsi que le facteur agrafe (0.7 ou 2.0 selon
+        l'angle de la tête). Stocke le résultat dans self.Fv_Rk_ass.
 
         Args:
-            effet_corde (bool): prise en compte de l'effet de corde, si oui alors True.
-            Attention: pour que l'effet de corde soit prit en compte, il faut que le FaxRk du type de tige est été calculé préalablement.
+            effet_corde (bool): Active la prise en compte de l'effet de corde (EN 1995-1-1 §8.2.2(2)).
+                Nécessite que FaxRk ait été calculé préalablement. Defaults to False.
 
         Returns:
-            float: effort de reprise caractéristique de l'assemblage en N
+            tuple: (latex_string, F_v_Rk_ass) où F_v_Rk_ass est la résistance caractéristique
+                totale de l'assemblage en N (avec unité si.N).
         """
         #     Fvrktot : capacité résistante en cisaillement caractéristique avec la partie de Johansen + l'effet de corde en N
         if self.type_assemblage == self.TYPE_ASSEMBLAGE[0]:
@@ -566,11 +618,20 @@ class Assemblage(Projet):
 
 
     def F_Rd(self, F_Rk: si.kN, loadtype=Barre.LOAD_TIME) -> tuple:
-        """Calcul la valeur de calcul (design) de résistance de l'assemblage en N avec :
+        """Calcule la valeur de calcul F_Rd d'une résistance d'assemblage selon EN 1995-1-1 §2.4.1.
+
+        Formule : F_Rd = F_Rk × k_mod / gamma_M, avec gamma_M = 1.3.
+        k_mod est déterminé selon la pièce bois (ou la moyenne géométrique pour Bois/Bois).
 
         Args:
-            F_rk (float): capacité résistante caractéristique de l'organe en kN
-            loadtype (str, optional): Durée de chargement (Permanente, Court terme etc.). Defaults to "Permanente"."""
+            F_Rk (float): Résistance caractéristique à convertir en valeur de calcul, en kN.
+            loadtype (str, optional): Classe de durée de chargement selon EN 1995-1-1 §2.3.1.2.
+                Valeurs : "Permanente", "Long terme", "Moyen terme", "Court terme", "Instantanée".
+                Defaults to "Permanente".
+
+        Returns:
+            tuple: (latex_string, F_Rd) où F_Rd est la valeur de calcul en N (avec unité si.N).
+        """
         F_Rk = F_Rk * si.kN
         gamma_M = self.GAMMA_M_ASS
         if "Métal" in self._type_beam:
@@ -589,17 +650,23 @@ class Assemblage(Projet):
     
     # Annexe A : Cisaillement de bloc
     def FbsRk(self, dp:si.mm, a1:si.mm, a2:si.mm, a3t:si.mm, Kcr: float=0.67, num_beam: int=("1", "2")) -> tuple:
-        """Calcul la valeur caractéristique en cisaillement de bloc en N pour l'élément 1 ou 2 de l'assemblage.
-        Attention pour que cette fonction puisse s'éxecuter il faut avoir préalablement éxécuté la fontion FvRk.
+        """Calcule la résistance caractéristique en cisaillement de bloc F_bs,Rk selon EN 1995-1-1 Annexe A.
+
+        Nécessite que FvRk ait été exécuté préalablement (utilise le mode de rupture détecté).
+        Stocke le résultat dans self.F_bs_Rk pour utilisation dans taux_F_bs_Ed.
 
         Args:
-            dp (float): diamètre de perçage en mm
-            a1 (float): pince longitudinale en mm
-            a2 (float):  pince perpendiculaire en mm
-            a3t (float): pince en bord chargée suivant le file en mm
-            kcr (float, optional): coeff de réduction largeur en cisaillement. 
-                Si aucune valeur n'est rentrée alors il sera automatiquement calculé. Defaults to 0.67.
-            num_beam (int, optional): numéro de l'élément à vérifier. Defaults to 1.
+            dp (float): Diamètre de perçage en mm.
+            a1 (float): Pince longitudinale (dans le sens du fil) en mm.
+            a2 (float): Pince perpendiculaire au fil en mm.
+            a3t (float): Pince de bord chargée dans le sens du fil en mm.
+            Kcr (float, optional): Coefficient de réduction de la largeur en cisaillement.
+                Si 0, calculé automatiquement via la classe Cisaillement. Defaults to 0.67.
+            num_beam (int, optional): Numéro de l'élément à vérifier (1 ou 2). Defaults to 1.
+
+        Returns:
+            tuple: (latex_string, F_bs_Rk) où F_bs_Rk est la résistance caractéristique
+                en cisaillement de bloc en N (avec unité si.N).
         """
         diam = self.d
         diam_percage = dp * si.mm
@@ -712,13 +779,25 @@ class Assemblage(Projet):
         return (latex + result[0], self.F_bs_Rk)
 
     def taux_F_bs_Ed(self, Fv_Ed: si.kN=0, FbsRk_1: si.kN=0, FbsRk_2: si.kN=0, loadtype=Barre.LOAD_TIME) -> tuple:
-        """Détermine le taux de la rupture de bloc de l'assemblage
+        """Calcule le taux de travail en rupture de bloc de l'assemblage selon EN 1995-1-1 Annexe A.
+
+        Vérifie que l'effort de cisaillement de calcul reste inférieur à la résistance
+        de calcul en cisaillement de bloc (F_bs,Rd = F_bs,Rk × k_mod / gamma_M).
 
         Args:
-            Fv_Ed (si.kN, optional): effort de cisaillement total sur l'assemblage en kN. Defaults to 0.
-            FbsRk_1 (si.kN, optional): Résistance caractéristique en cisaillement de bloc de l'élément 1 en kN. Defaults to 0.
-            FbsRk_2 (si.kN, optional): Résistance caractéristique en cisaillement de bloc de l'élément 2 en kN. Defaults to 0.
-            loadtype (str, optional): type de durée de chargement.
+            Fv_Ed (float, optional): Effort de cisaillement total de calcul sur l'assemblage en kN. Defaults to 0.
+            FbsRk_1 (float, optional): Résistance caractéristique en cisaillement de bloc de l'élément 1 en kN.
+                Si 0, la vérification de l'élément 1 est ignorée. Defaults to 0.
+            FbsRk_2 (float, optional): Résistance caractéristique en cisaillement de bloc de l'élément 2 en kN.
+                Si 0, la vérification de l'élément 2 est ignorée. Defaults to 0.
+            loadtype (str, optional): Classe de durée de chargement. Defaults to "Permanente".
+
+        Returns:
+            tuple: (latex_string, taux) où taux est le taux de travail maximal entre les deux éléments
+                (sans unité, valeur ≤ 1 si vérification satisfaite).
+
+        Raises:
+            ValueError: Si aucune résistance caractéristique n'est fournie.
         """
         Fv_Ed = abs(Fv_Ed) * si.kN
         Fbs_Rd_1 = self.F_Rd(abs(FbsRk_1), loadtype)[1]
@@ -759,12 +838,21 @@ class Assemblage(Projet):
 
     
     def taux_F_v_Ed(self, Fv_Ed: si.kN=0, Fax_Ed: si.kN=0, loadtype=Barre.LOAD_TIME) -> tuple:
-        """Détermine le taux de cisaillement et éventuellement de la traction combinée de l'assemblage
+        """Calcule le taux de travail en cisaillement (ou cisaillement + traction combinés) de l'assemblage.
+
+        - Cisaillement seul : taux = F_v,Ed / F_v,Rd,ass.
+        - Cisaillement + traction combinés pour pointes/boulons : F_ax,Ed/F_ax,Rd + F_v,Ed/F_v,Rd ≤ 1.
+        - Cisaillement + traction combinés pour tirefonds : (F_ax,Ed/F_ax,Rd)² + (F_v,Ed/F_v,Rd)² ≤ 1.
 
         Args:
-            Fv_Ed (float): effort de cisaillement total sur l'assemblage en kN
-            Fax_Ed (float, optional): effort axialement à reprendre en kN. Defaults to 0.
-            loadtype (str, optional): type de durée de chargement.
+            Fv_Ed (float, optional): Effort de cisaillement total de calcul sur l'assemblage en kN. Defaults to 0.
+            Fax_Ed (float, optional): Effort axial de calcul (traction dans l'organe) en kN.
+                Si 0, la vérification est uniquement en cisaillement. Defaults to 0.
+            loadtype (str, optional): Classe de durée de chargement. Defaults to "Permanente".
+
+        Returns:
+            tuple: (latex_string, taux) où taux est le taux de travail en cisaillement ou combiné
+                (sans unité, valeur ≤ 1 si vérification satisfaite).
         """
         Fv_Rd_ass = self.F_Rd(self.Fv_Rk_ass.value*10**-3, loadtype)[1]
         Fv_Ed = abs(Fv_Ed) * si.kN
@@ -798,11 +886,18 @@ class Assemblage(Projet):
         return result
 
     def taux_F_90_Ed(self, Fv_Ed: si.kN=0, loadtype=Barre.LOAD_TIME) -> tuple:
-        """Détermine le taux de rupture par fendage de l'assemblage
+        """Calcule le taux de travail en rupture par fendage de la pièce bois selon EN 1995-1-1 §8.1.4.
+
+        Nécessite que F90Rk ait été exécuté préalablement (utilise self.F90_Rk).
+        Vérifie : F_v,Ed ≤ F_90,Rd = F_90,Rk × k_mod / gamma_M.
 
         Args:
-            Fv_Ed (float): effort de cisaillement en kN.
-            loadtype (str, optional): type de durée de chargement.
+            Fv_Ed (float, optional): Effort de cisaillement de calcul sur l'assemblage en kN. Defaults to 0.
+            loadtype (str, optional): Classe de durée de chargement. Defaults to "Permanente".
+
+        Returns:
+            tuple: (latex_string, taux) où taux est le taux de travail en fendage
+                (sans unité, valeur ≤ 1 si vérification satisfaite).
         """
         F_90_Rd = self.F_Rd(self.F90_Rk.value*10**-3, loadtype)[1]
         Fv_Ed = abs(Fv_Ed) * si.kN

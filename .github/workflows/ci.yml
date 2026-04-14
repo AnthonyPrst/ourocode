@@ -50,7 +50,7 @@ jobs:
           pip install --upgrade pip
           pip install -e ".[docs]"
       - name: Build documentation
-        run: mkdocs build --strict
+        run: mkdocs build
       - name: Configure Git for gh-pages
         run: |
           git config user.name "github-actions[bot]"

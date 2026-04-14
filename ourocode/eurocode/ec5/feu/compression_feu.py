@@ -22,14 +22,14 @@ class Compression_feu(Feu, Compression):
         Cette classe est hérité de la classe Feu, provenant du module EC5_Feu.py.
 
         Args:
-            lo : Longueur de flambement suivant l'axe de rotation (y ou z) en mm si pas de flambement alors 0
-            type_appuis : Coefficient multiplicateur de la longueur pour obtenir la longeur efficace de flambement en
-                        fonction des du type d'appuis :
-                                                        Encastré 1 côté : 2
-                                                        Rotule - Rotule : 1
-                                                        Encastré - Rotule : 0.7
-                                                        Encastré - Encastré : 0.5
-                                                        Encastré - Rouleau : 1
+            lo_y (float): Longueur de flambement suivant l'axe y en mm (0 si pas de flambement).
+            lo_z (float): Longueur de flambement suivant l'axe z en mm (0 si pas de flambement).
+            type_appuis (str): Coefficient multiplicateur pour la longueur efficace de flambement selon le type d'appuis :
+                - Encastré 1 côté : 2
+                - Rotule - Rotule : 1
+                - Encastré - Rotule : 0.7
+                - Encastré - Encastré : 0.5
+                - Encastré - Rouleau : 1
         """
         super().__init__(lo_y=lo_y, lo_z=lo_z, type_appuis=type_appuis, **kwargs)
 

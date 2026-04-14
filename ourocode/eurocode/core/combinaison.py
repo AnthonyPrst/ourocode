@@ -136,7 +136,15 @@ class Combinaison(Projet):
 
     @property
     def coef_psy(self):
-        """Retourne les caractéristiques psy sous forme de dictionnaire"""
+        """Retourne les coefficients de combinaison psi pour chaque type d'action selon l'EC0 Annexe Nationale.
+
+        Lit les valeurs depuis le fichier CSV ``coeff_psy.csv`` et les organise par
+        type d'action (catégorie d'exploitation, neige, vent, température).
+
+        Returns:
+            dict: Dictionnaire imbriqué de la forme ``{type_action: {"psy0": v, "psy1": v, "psy2": v}}``
+                avec les catégories "Neige > 1000m" ou "Neige <= 1000m" selon self.alt.
+        """
         dict_psy = {self.cat: {}, "Vent": {}, "Température": {}}
         if self.alt.value > 1000:
             dict_psy["Neige > 1000m"] = {}
@@ -900,7 +908,15 @@ class Combinaison(Projet):
         self._create_analyze_type("ELU_STR_ACC", self._df_load_ELU_STR_ACC)
 
     def get_ELU_STR_ACC_loads(self):
-        """Retourne les charges de la combinaison ELU STR ACC"""
+        """Retourne le DataFrame des charges pour les combinaisons ELU accidentelles (ELU_STR_ACC).
+
+        Nécessite ELU_STR_ACC=True à l'instanciation.
+
+        Returns:
+            pandas.DataFrame: Tableau des charges combinées ELU accidentelles avec les colonnes
+                Combinaison, Index, N° de barre, Nom, Action, Type, Facteur de charge, Charge combinée,
+                Position, Axe.
+        """
         return self._df_load_ELU_STR_ACC
 
     def _return_combi_ELU_STR_ACC(self, combi):
@@ -1150,7 +1166,15 @@ class Combinaison(Projet):
         self._create_analyze_type("ELS_C", self._df_load_ELScarac)
 
     def get_ELS_C_loads(self):
-        """Retourne les charges des combinaisons ELS CARACTERISTIQUE"""
+        """Retourne le DataFrame des charges pour les combinaisons ELS caractéristiques.
+
+        Nécessite ELS_C=True à l'instanciation.
+
+        Returns:
+            pandas.DataFrame: Tableau des charges combinées ELS caractéristiques avec les colonnes
+                Combinaison, Index, N° de barre, Nom, Action, Type, Facteur de charge, Charge combinée,
+                Position, Axe.
+        """
         return self._df_load_ELScarac
 
     def _return_combi_ELScarac(self, combi):
@@ -1466,17 +1490,33 @@ class Combinaison(Projet):
         self._create_analyze_type("ELS_QP", self._df_load_ELSqp)
 
     def get_ELS_QP_loads(self):
-        """Retourne les charges des combinaisons ELS Quasi Permanente"""
+        """Retourne le DataFrame des charges pour les combinaisons ELS quasi-permanentes.
+
+        Nécessite ELS_QP=True à l'instanciation.
+
+        Returns:
+            pandas.DataFrame: Tableau des charges combinées ELS quasi-permanentes avec les colonnes
+                Combinaison, Index, N° de barre, Nom, Action, Type, Facteur de charge, Charge combinée,
+                Position, Axe.
+        """
         return self._df_load_ELSqp
 
     def _return_combi_ELSqp(self, combi):
         return self._df_load_ELSqp.loc[self._df_load_ELSqp["Combinaison"] == combi]
 
     def get_psy_2_by_combination(self, name: str):
-        """Récupère le psy 2 en fonction de l'action la plus défavorable soit le psy2 le plus élevé
+        """Retourne le coefficient psi_2 effectif pour une combinaison donnée, utilisé pour le fluage bois.
+
+        Selon self.type_psy_2 :
+        - "Court terme" : retourne 0 (pas de fluage).
+        - "Long terme" : retourne 1 (fluage complet).
+        - "Moyen terme" : retourne le psi_2 maximal des actions variables présentes dans la combinaison.
 
         Args:
-                name (str): nom de la combinaison
+            name (str): Nom de la combinaison ELS_QP (ex. "ELS_QP G + 0.3Q").
+
+        Returns:
+            float: Valeur de psi_2 effective (entre 0 et 1).
         """
         match self.type_psy_2:
             case "Court terme":
@@ -1621,7 +1661,14 @@ class Combinaison(Projet):
                 # print(self._df_W_net_fin)
 
     def get_W_inst_Q_loads(self):
-        """Retourne les charges des combinaisons Winst (Q)"""
+        """Retourne le DataFrame des charges variables instantanées W_inst(Q) pour le calcul des flèches en bois.
+
+        Correspond aux charges de l'ELS caractéristique sans la partie permanente G.
+        Nécessite ELS_C=True et kdef fourni à l'instanciation.
+
+        Returns:
+            pandas.DataFrame | None: DataFrame W_inst(Q) si disponible, None sinon.
+        """
         if hasattr(self, "_df_W_inst_Q"):
             return self._df_W_inst_Q
         return None
@@ -1630,7 +1677,15 @@ class Combinaison(Projet):
         return self._df_W_inst_Q.loc[self._df_W_inst_Q["Combinaison"] == combi]
 
     def get_W_net_fin_loads(self):
-        """Retourne les charges des combinaisons Wnet fin"""
+        """Retourne le DataFrame des charges de flèche nette finale W_net,fin pour le bois.
+
+        Combine ELS caractéristique + kdef × psi_2 × ELS quasi-permanente pour intégrer
+        la déformation différée (fluage) selon EN 1995-1-1 §2.2.3.
+        Nécessite ELS_C=True, ELS_QP=True et kdef fourni à l'instanciation.
+
+        Returns:
+            pandas.DataFrame | None: DataFrame W_net,fin si disponible, None sinon.
+        """
         if hasattr(self, "_df_W_net_fin"):
             return self._df_W_net_fin
         return None
@@ -1640,18 +1695,33 @@ class Combinaison(Projet):
 
     @property
     def list_combination(self):
-        """Retourne un data frame avec toute les combinaison créer"""
+        """Retourne un DataFrame trié listant toutes les combinaisons générées.
+
+        Returns:
+            pandas.DataFrame: DataFrame avec une colonne "Combinaison" contenant les noms
+                de toutes les combinaisons créées, triées alphabétiquement.
+        """
         self._name_combination.sort()
         return pd.DataFrame(self._name_combination, columns=["Combinaison"])
 
     def get_list_combination(self, type: str=("Toutes", "ELU_ALL", "ELU_STR", "ELU_STR_ACC", "ELS_ALL", "ELS_C", "ELS_QP", "W_inst_Q", "W_net_fin")):
-        """Retourne la liste des combinaisons pour le type sélectionné.
+        """Retourne la liste filtrée des noms de combinaisons selon le type demandé.
 
         Args:
-            type (str): Le type de combinaison à retourner. Defaults to ("Toutes").
+            type (str): Filtre de type de combinaison :
+                - "Toutes" : toutes les combinaisons générées.
+                - "ELU_ALL" : toutes les combinaisons ELU (STR + ACC).
+                - "ELU_STR" : combinaisons ELU STR uniquement.
+                - "ELU_STR_ACC" : combinaisons ELU accidentelles uniquement.
+                - "ELS_ALL" : toutes les combinaisons ELS (caract., QP, W_inst, W_net).
+                - "ELS_C" : combinaisons ELS caractéristiques uniquement.
+                - "ELS_QP" : combinaisons ELS quasi-permanentes uniquement.
+                - "W_inst_Q" : combinaisons de flèche instantanée variable.
+                - "W_net_fin" : combinaisons de flèche nette finale.
+                Defaults to "Toutes".
 
         Returns:
-            list: Liste des combinaisons
+            list[str]: Liste des noms de combinaisons correspondant au filtre.
         """
         match type:
             case "Toutes":
@@ -1705,10 +1775,16 @@ class Combinaison(Projet):
         return dict_load_combi
 
     def get_combi_list_load(self, nom: str):
-        """Retourne la liste des charges combinées pour la combinaison sélectionné
+        """Retourne la liste des lignes de charge pour une combinaison donnée.
 
         Args:
-                nom (str): nom de la combinaison à récupérer. Defaults to "Sélectionner tout".
+            nom (str): Nom exact de la combinaison à récupérer
+                (ex. "ELU_STR 1.35G + 1.5Q").
+
+        Returns:
+            list[list]: Liste de listes, chaque sous-liste représente une ligne de charge
+                avec les champs : Index, N° de barre, Nom, Action, Type, Facteur de charge,
+                Charge combinée, Position, Axe.
         """
         self.list_loads = self._choice_combi_df()[nom]
         return self.list_loads
@@ -1728,10 +1804,19 @@ class Combinaison(Projet):
 
 
     def min_type_load(self, name_combi: str) -> str:
-        """Retourne le type de chargement de plus courte durée
+        """Retourne la classe de durée de chargement la plus courte présente dans une combinaison.
+
+        Utilisé pour déterminer k_mod selon EN 1995-1-1 §2.3.1.2. La hiérarchie est :
+        Permanente < Long terme < Moyen terme < Court terme < Instantanée.
+        Retourne la classe correspondant à l'action variable la plus courte trouvée dans le nom
+        de la combinaison.
 
         Args:
-                name_combi (str): Combinaison à analyser
+            name_combi (str): Nom de la combinaison à analyser (ex. "ELU_STR 1.35G + 1.5Sn").
+
+        Returns:
+            str: Classe de durée de chargement ("Permanente", "Long terme", "Moyen terme",
+                "Court terme" ou "Instantanee").
         """
 
         dictName = {

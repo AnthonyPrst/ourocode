@@ -17,18 +17,24 @@ class Agrafe(Pointe):
     TYPE_ASSEMBLAGE = ("Bois/Bois", ("CP", "Panneau dur", "PP/OSB"), "Bois/Métal")
     QUALITE_ACIER = ('8.8', '9.8', '10.9', '12.9')
     def __init__(self, d:si.mm, b_agrafe:si.mm, l:si.mm, qualite: str=QUALITE_ACIER, n: int=1, angle_sup_30: bool=["True", "False"], alpha1: float=0, alpha2: float=0, **kwargs):
-        """
-        Créer une classe Agrafe hérité de la classe Assemblage du module EC5_Assemblage.py.
-        
+        """Initialise une agrafe selon EN 1995-1-1 §8.4.
+
+        Hérite de Pointe. Vérifie automatiquement les dimensions minimales (dos ≥ 6d,
+        pénétration t2 ≥ 14d).
+
         Args:
-            d (float): diamètre de l'agrafe en mm, si l'agrafe est de section rectangulaire alors c'est la racine carrée du produit des 2 dimensions selon EN1995 §8.4(2).
-            b_agrafe (float): dimension du dos de l'agrafe en mm.
-            l (int): longueur sous la tête en mm
-            qualite (str): qualité de l'acier
-            n (int): nombre d'agrafe dans une file 
-            angle_sup_30 (str): Si l'angle entre la tête de l'agrafe et le fil du bois est supérieur à 30° alors True sinon False. Defaults to True.
-            alpha1 (float, optional): angle entre l'effort de l'agrafe et le fil du bois 1 en °. Defaults to 0.
-            alpha2 (float, optional): angle entre l'effort de l'agrafe et le fil du bois 2 en °. Defaults to 0.
+            d (float): Diamètre de l'agrafe en mm. Pour section rectangulaire : racine carrée
+                du produit des deux dimensions (EN 1995-1-1 §8.4(2)).
+            b_agrafe (float): Dimension du dos de l'agrafe en mm (doit être ≥ 6d).
+            l (float): Longueur sous tête en mm.
+            qualite (str): Qualité de l'acier selon EN ISO 898-2. Defaults to "8.8".
+            n (int): Nombre d'agrafes dans une file. Defaults to 1.
+            angle_sup_30 (bool): True si l'angle entre la tête de l'agrafe et le fil du bois
+                est supérieur à 30° (entraîne un facteur multiplicateur de 2 sur F_v,Rk,ass),
+                False sinon (facteur 0.7). Defaults to True.
+            alpha1 (float, optional): Angle entre l'effort et le fil du bois 1 en °. Defaults to 0.
+            alpha2 (float, optional): Angle entre l'effort et le fil du bois 2 en °. Defaults to 0.
+            **kwargs: Arguments transmis à la classe parent Pointe / Assemblage.
         """
         super().__init__(d=d, dh=0, l=l, qualite=qualite, n=n, alpha1=alpha1, alpha2=alpha2, type_organe="Agrafe", percage=False, **kwargs)
         self.b_agrafe = b_agrafe * si.mm
@@ -44,7 +50,13 @@ class Agrafe(Pointe):
         
     @property
     def MyRk(self) -> tuple:
-        """ Défini le moment d'écoulement plastique d'une pointe en N.mm avec"""
+        """Calcule le moment d'écoulement plastique d'une agrafe M_y,Rk selon EN 1995-1-1 §8.4(3).
+
+        Formule : M_y,Rk = 150 × d³ en N.mm.
+
+        Returns:
+            tuple: (latex_string, M_y_Rk) où M_y_Rk est le moment plastique en N.mm (avec unité si.N×si.mm).
+        """
         d = self.d.value * 10**3
         @handcalc(override="short", precision=2, left="\\[", right="\\]")
         def val():
@@ -53,18 +65,26 @@ class Agrafe(Pointe):
         return val()
 
     def nef(self) -> int:
-        """Retourne le nombre efficace d'organe dans une file"""
+        """Retourne le nombre efficace d'agrafes n_ef dans une file.
+
+        Pour les agrafes, n_ef = n (pas de réduction par effet de groupe, EN 1995-1-1 §8.4).
+
+        Returns:
+            int: Nombre efficace d'agrafes dans une file (= n).
+        """
         self._nef = self.n
         return self._nef
 
     @property
     def pince(self) -> dict:
-        """
-        Défini les différentes pinces minimales pour une pointe en mm.
+        """Retourne les pinces minimales pour une agrafe selon EN 1995-1-1 §8.4.
 
-        Args:
-            alpha : angle entre l'effort de l'organe et le fil du bois en °
-            d : diamètre efficace de la pointe ou du tire fond si d<=6mm en mm
+        Les pinces dépendent de l'angle alpha entre l'effort et le fil du bois,
+        et de l'option angle_sup_30.
+
+        Returns:
+            dict: Dictionnaire par barre ("barre 1", "barre 2") contenant les pinces
+                a1, a2, a3t, a3c, a4t, a4c en mm (avec unité si.mm).
         """
         dict_pince = {}
         for i, beam in enumerate([self.beam_1, self.beam_2]):

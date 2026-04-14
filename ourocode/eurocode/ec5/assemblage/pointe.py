@@ -344,13 +344,7 @@ class Pointe(Assemblage):
 
     @property
     def pince(self) -> dict:
-        """
-        Défini les différentes pinces minimales pour une pointe en mm.
-
-        Args:
-            alpha : angle entre l'effort de l'organe et le fil du bois en °
-            d : diamètre efficace de la pointe ou du tire fond si d<=6mm en mm
-        """
+        """Retourne les différentes pinces minimales pour une pointe en mm."""
         dict_pince = {}
         if self.type_organe == "Tirefond":
             self.d = self.d_vis

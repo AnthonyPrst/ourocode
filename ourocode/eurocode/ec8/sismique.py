@@ -54,42 +54,40 @@ class Sismique(Batiment):
         type_spectre: str=TYPE_SPECTRE,
         **kwargs
         ):
-        """
-        Créer une classe qui permet de calculer l'action sismique pour les bâtiments bois, selon la méthode des forces latérales.
-        Attention, tout les bâtiments ne ce prêtent pas à ce type d'étude (voir EN 1998).
-        Cette classe est hérité de la classe Batiment du module A0_Projet.py.
+        """Initialise le calcul sismique d'un bâtiment bois selon la méthode des forces latérales (EN 1998-1 §4.3.3.2).
+
+        Attention : tous les bâtiments ne se prêtent pas à cette méthode (voir EN 1998-1 §4.3.3.2.1).
+        La classe vérifie automatiquement la nécessité d'une analyse sismique et la validité de la
+        méthode des forces latérales lors de l'instanciation.
 
         Args:
-            Kbx (float): Raideur du bâtiment selon la direction x en kN/m.
-            Kby (float): Raideur du bâtiment selon la direction y en kN/m.
-            type_constructif_x (str): Type de système constructif pour les éléments dissipatifs dans la longeur x du bâtiment.
-            type_constructif_y (str): Type de système constructif pour les éléments dissipatifs dans la largeur y du bâtiment.
-            regulier_plan (bool): Détermine si le bâtiment est régulier en plan.
-            regulier_elevation (bool): Détermine si le bâtiment est régulier en élévation.
-            cat_importance (str): Catégorie d'importance du bâtiment:
-                - I : Bâtiments dans lesquels il n'y a aucune activité humaine nécessitant un séjour de longue durée.
-                - II : 
-                    - Habitations individuelles.
-                    - Établissements recevant du public (ERP) de catégories 4 et 5.
-                    - Habitations collectives de hauteur inférieure à 28 m.
-                    - Bureaux ou établissements commerciaux non ERP, h ≤ 28 m, max. 300 pers. 
-                    - Bâtiments industriels pouvant accueillir au plus 300 personnes.
-                    - Parcs de stationnement ouverts au public.
-                - III : 
-                    - ERP de catégories 1, 2 et 3.
-                    - Habitations collectives et bureaux, h > 28 m.
-                    - Bâtiments pouvant accueillir plus de 300 personnes. 
-                    - Établissements sanitaires et sociaux.
-                    - Centres de production collective d'énergie.
-                    - Établissements scolaires.
-                - IV : 
-                    - Bâtiments indispensables à la sécurité civile, la défense nationale et le maintien de l'ordre public.
-                    - Bâtiments assurant le maintien des communications, la production et le stockage d'eau potable, la distribution publique de l'énergie.
-                    - Bâtiments assurant le contrôle de la sécurité aérienne.
-                    - Établissements de santé nécessaires à la gestion de crise.
-                    - Centres météorologiques.
-            classe_sol (str): Classe du sol selon EN 1998-1 §3.1.2.
-            type_spectre (str): Type de spectre. Le spectre en France métropolitaine est de type 2 (magnitude < 6) pour le reste type 1 (magnitude >= 6).
+            Kbx (float): Raideur latérale globale du bâtiment selon la direction x (sens de la longueur) en kN/m.
+            Kby (float): Raideur latérale globale du bâtiment selon la direction y (sens de la largeur) en kN/m.
+            type_constructif_x (str): Système constructif dissipatif dans la direction x.
+                Doit être une clé de CLASSE_DUCTILITE. Détermine le coefficient de comportement q et la
+                classe de ductilité (DCL, DCM, DCH) selon l'EN 1998.
+            type_constructif_y (str): Système constructif dissipatif dans la direction y.
+                Même valeurs que type_constructif_x.
+            regulier_plan (bool): True si le bâtiment est régulier en plan selon EN 1998-1 §4.2.3.
+            regulier_elevation (bool): True si le bâtiment est régulier en élévation selon EN 1998-1 §4.2.3.
+            cat_importance (str): Catégorie d'importance du bâtiment selon EN 1998-1 §4.2.5 :
+                - "I"  : Bâtiments sans activité humaine prolongée.
+                - "II" : Habitations individuelles, ERP cat. 4/5, logements collectifs < 28 m,
+                          bureaux/commerces non ERP ≤ 28 m (≤ 300 pers.), parcs de stationnement.
+                - "III": ERP cat. 1-3, logements collectifs/bureaux > 28 m, bâtiments > 300 pers.,
+                          établissements sanitaires, scolaires, centres énergétiques.
+                - "IV" : Bâtiments indispensables à la sécurité civile, défense, communications,
+                          eau potable, énergie, sécurité aérienne, santé de crise, météorologie.
+            classe_sol (str): Classe de sol selon EN 1998-1 §3.1.2.
+            type_spectre (str): Type de spectre de réponse.
+                "Type 2" : France métropolitaine (magnitude < 6).
+                "Type 1" : Zones à forte sismicité (magnitude ≥ 6).
+            **kwargs: Arguments transmis à la classe parent Batiment.
+
+        Raises:
+            ValueError: Si le bâtiment n'est pas soumis à une analyse sismique (zone 1, cat. I,
+                cat. II en zone 2) ou si la méthode des forces latérales n'est pas applicable
+                (cat. IV, irrégularité en élévation, T1 > min(4TC, 2s)).
         """
         super().__init__(**kwargs)
         self.gravity_loads = {}
@@ -137,17 +135,25 @@ class Sismique(Batiment):
         """Sauvegarde les données des charges gravitaires dans un fichier JSON.
 
         Args:
-            path (str, optional): Chemin du fichier à créer, s'il n'est pas fourni, une boite de dialogue s'ouvre 
-                pour choisir le fichier. Defaults to None.
+            path (str, optional): Chemin absolu du fichier de destination (.json).
+                Si None, une boîte de dialogue s'ouvre pour sélectionner le fichier.
+                Defaults to None.
         """
         super().save_data(self.gravity_loads, type_data="JSON", path=path)
     
     def load_gravity_load_data(self, path: str=None) -> dict:
-        """Charge les données des charges gravitaires depuis un fichier JSON.
+        """Charge les données des charges gravitaires depuis un fichier JSON et reconstruit l'état interne.
+
+        Relit le fichier produit par save_gravity_load_data et appelle _set_loads pour
+        reconstituer le dictionnaire _loads utilisé dans les calculs sismiques.
 
         Args:
-            path (str, optional): Chemin du fichier à charger, s'il n'est pas fourni, une boite de dialogue s'ouvre 
-                pour choisir le fichier. Defaults to None.
+            path (str, optional): Chemin absolu du fichier source (.json).
+                Si None, une boîte de dialogue s'ouvre pour sélectionner le fichier.
+                Defaults to None.
+
+        Returns:
+            dict: Dictionnaire gravity_loads mis à jour, structuré par étage puis par nom de charge.
         """
         data = super().load_data(type_data="JSON", path=path)
         self.gravity_loads = data
@@ -224,19 +230,34 @@ class Sismique(Batiment):
         occupations: str=OCCUPATION, 
         comment: str=""
         ) -> dict:
-        """Ajoute une charge gravitaire au bâtiment, cela permet de considérer la masse par niveau sur le bâtiment.
-        Attention ne pas oublier les charges G de mur, de menuiserie, d'élément technique et autre.
+        """Ajoute une charge gravitaire à un étage pour le calcul de la masse sismique.
+
+        La charge est convertie en masse sismique selon la combinaison quasi-permanente
+        (G + psi_2 × Q) conformément à EN 1998-1 §3.2.4. Ne pas oublier les charges permanentes
+        de murs, menuiseries, éléments techniques et autres éléments non structuraux.
 
         Args:
-            name (str): nom de la charge.
-            load (float): charge gravitaire en kN/m².
-            surface (float): surface d'application de la charge.
-            etage (str): étage auquel est appliquée la charge.
-            z_i (float): est la hauteur de l'étage i en mètres depuis les fondations ou le sommet d'un soubassement rigide.
-            action (str): type d'action de la charge.
-            categorie_Q (str): catégorie d'exploitation (valable uniquement pour les charges d'exploitation Q, mettre "Aucune" pour les autres charges).
-            occupations (str): type d'occupation du bâtiment (valable uniquement pour les charges d'exploitation Q, mettre "Autres" pour les autres charges).
-            comment (str): commentaire sur la charge.
+            name (str): Identifiant unique de la charge dans l'étage considéré.
+            load (float): Intensité de la charge gravitaire en kN/m².
+            surface (float): Surface d'application de la charge en m².
+            etage (str): Nom de l'étage auquel est appliquée la charge.
+                Doit correspondre à une clé de ETAGE définie dans Batiment.
+            z_i (float): Hauteur de l'étage i en mètres depuis les fondations
+                ou le sommet d'un soubassement rigide. Defaults to 0.
+            action (str): Type d'action de la charge selon ACTION.
+                "Permanente G", "Exploitation Q" ou "Neige normale Sn".
+            categorie_Q (str): Catégorie d'exploitation selon l'EC1-1-1.
+                Utilisée uniquement pour les charges Q (psi_2). Defaults to "Aucune".
+            occupations (str): Type d'occupation pour la réduction de la charge Q
+                (coefficient phi selon EN 1998-1 §4.2.4).
+                "Étages à occupations corrélées", "Étages à occupations indépendantes",
+                "Toiture", ou "Autres". Defaults to "Autres".
+            comment (str): Commentaire descriptif libre sur la charge. Defaults to "".
+
+        Returns:
+            dict: Dictionnaire décrivant la charge ajoutée avec les clés :
+                "Zi", "Charge gravitaire", "Surface", "Action", "Catégorie",
+                "Occupations", "Commentaire".
         """
             
         load = abs(load) * si.kN / si.m**2
@@ -270,28 +291,49 @@ class Sismique(Batiment):
 
     @property
     def region_sismique(self) -> str:
-        """Retourne la région sismique du bâtiment"""
+        """Retourne la zone d'aléa sismique du bâtiment selon l'AN français (carte par code INSEE).
+
+        Returns:
+            str: Zone sismique parmi "Zone 1" à "Zone 5".
+        """
         file = "carte_action_region.csv"
         df = self._data_from_csv(file, index_col=1)
         return df.loc[str(self.code_INSEE)]["Alea_sismique"]
     
     @property
     def cat_importance_table(self) -> 'pd.Series':
-        """Retourne le dataframe de la catégorie d'importance choisi"""
+        """Retourne les données normatives de la catégorie d'importance sélectionnée.
+
+        Returns:
+            pd.Series: Ligne du fichier categorie_importance.csv correspondant à cat_importance,
+                contenant notamment le coefficient d'importance gamma_I.
+        """
         file = os.path.join("sismique", "categorie_importance.csv")
         data_cat_imp = self._data_from_csv(file)
         return data_cat_imp.loc[self.cat_importance]
 
     @property
     def classe_sol_table(self) -> 'pd.Series':
-        """Retourne le dataframe de la classe de sol choisi"""
+        """Retourne les paramètres de sol de la classe sélectionnée selon EN 1998-1 §3.1.2.
+
+        Returns:
+            pd.Series: Ligne du fichier classe_sol.csv pour la classe_sol choisie,
+                contenant les paramètres S, TB, TC, TD du spectre de réponse.
+        """
         file = os.path.join("sismique", "classe_sol.csv")
         data_classe_sol = self._data_from_csv(file)
         return data_classe_sol.loc[self.classe_sol]
 
     @property
     def type_spectre_table(self) -> 'pd.Series':
-        """Retourne le dataframe du spectre choisi"""
+        """Retourne les paramètres du spectre élastique horizontal selon EN 1998-1 §3.2.2.
+
+        Sélectionne le fichier de spectre type 1 ou type 2 selon type_spectre,
+        puis retourne la ligne correspondant à la classe de sol.
+
+        Returns:
+            pd.Series: Paramètres S, TB, TC, TD pour le couple (type_spectre, classe_sol).
+        """
         if self.type_spectre == "Type 2":
             file = os.path.join("sismique", "spectre_eleastique_h_type2.csv")
         else:
@@ -300,29 +342,47 @@ class Sismique(Batiment):
 
     @property
     def type_constructif_table(self) -> dict:
-        """Retourne les classes de ductilité bois"""
+        """Retourne le dictionnaire complet des classes de ductilité bois disponibles.
+
+        Returns:
+            dict: CLASSE_DUCTILITE : clés = description du système constructif,
+                valeurs = dict {"q": coefficient de comportement, "Classe de ductilité": "DCL"/"DCM"/"DCH"}.
+        """
         return self.CLASSE_DUCTILITE
 
     @property
     def a_gr(self) -> float:
-        """Retourne l'accélération de base pour un sol de classe A"""
+        """Retourne l'accélération de référence a_gR pour un sol de classe A selon l'AN français.
+
+        Returns:
+            float: Accélération de référence en m/s² avec unité (si.m/si.s²),
+                issue du dictionnaire AGR pour la zone sismique du projet.
+        """
         return self.AGR[self.region_sismique] *si.m / si.s**2
 
     @property
     def a_g(self) -> tuple:
-        """Retourne l'accélération de calcul pour un sol de classe A"""
+        """Calcule l'accélération de calcul a_g = a_gR × gamma_I selon EN 1998-1 §3.2.1.
+
+        Returns:
+            tuple: (latex_string, valeur) où valeur est l'accélération de calcul en m/s².
+        """
         a_gr = self.a_gr
-        gamma_1 = self.gamma_1
+        gamma_I = self.gamma_I
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            a_g = a_gr * gamma_1
+            a_g = a_gr * gamma_I
             return a_g
         return val()
 
     @property
-    def gamma_1(self) -> float:
-        """Retourne le gamma_1 fonction de la catégorie d'importance"""
-        return self.cat_importance_table["gamma_1"]
+    def gamma_I(self) -> float:
+        """Retourne le coefficient d'importance gamma_I de la catégorie d'importance selon EN 1998-1 §4.2.5.
+
+        Returns:
+            float: Coefficient gamma_I (ex. : 0.8, 1.0, 1.2, 1.4 pour cat. I à IV).
+        """
+        return self.cat_importance_table["gamma_I"]
     
 
     def _spectre_elastique_calcul(self, T1: float, q: float, dir: str) -> tuple[str, dict[str, float]]:
@@ -382,14 +442,17 @@ class Sismique(Batiment):
         screenshot: bool = ("False", "True"),
         filepath: str=None
         ) -> None:
-        """
-        Affiche le spectre de calcul pour l'analyse élastique.
+        """Affiche le spectre élastique de calcul S_d(T) selon EN 1998-1 §3.2.2.5.
+
+        Trace la courbe S_d(T) sur [0, 4 s] pour la direction choisie avec matplotlib.
 
         Args:
-            direction (str): direction du spectre ("x" ou "y")
-            screenshot (bool): si True, enregistre le graphique
-            filepath (str): chemin d'enregistrement du graphique, si ce dernier est vide, 
-                alors une boite de dialogue s'ouvre pour choisir le chemin.
+            direction (str): Direction du spectre. "x" (bleu) ou "y" (rouge). Defaults to "x".
+            screenshot (bool): Si True, enregistre le graphique au lieu de l'afficher.
+                Defaults to False.
+            filepath (str, optional): Chemin du fichier image de sortie (.png).
+                Si None et screenshot=True, une boîte de dialogue s'ouvre.
+                Defaults to None.
         """
         q = self.coeff_comportement[direction]["q"]
         array = np.array([])
@@ -437,8 +500,14 @@ class Sismique(Batiment):
 
     @property
     def T1(self) -> tuple:
-        """
-        Retourne les periodes de calcul selon EN 1998-1 §4.3.3.2.2
+        """Calcule les périodes propres de vibration T1 selon EN 1998-1 §4.3.3.2.2.
+
+        Formule : T_1 = 2 * sqrt(m_total / K_b) pour chaque direction.
+        La masse totale est déduite des charges gravitaires ajoutées via add_gravity_load.
+
+        Returns:
+            tuple: (latex_string, valeurs) où valeurs est un dict {"x": T_1_x, "y": T_1_y}
+                avec les périodes en secondes (sans unité forallpeople).
         """
         K_b_x = self.Kbx.value
         K_b_y = self.Kby.value
@@ -452,8 +521,14 @@ class Sismique(Batiment):
 
     @property
     def Sd_t(self) -> tuple:
-        """
-        Retourne le spectre elastique de calcul selon EN 1998-1 §3.2.2.5
+        """Retourne les ordonnées spectrales de calcul S_d(T1) selon EN 1998-1 §3.2.2.5.
+
+        Calcule S_d(T1) pour les périodes T1x et T1y dans chaque direction en appelant
+        _spectre_elastique_calcul, avec le coefficient de comportement q propre à chaque direction.
+
+        Returns:
+            tuple: (latex_string, valeurs) où valeurs est un dict {"x": Sd_x, "y": Sd_y}
+                avec les accélérations spectrales en m/s².
         """
         Sd_t = {}
         latex = ""
@@ -466,8 +541,13 @@ class Sismique(Batiment):
 
     @property
     def Fb(self) -> tuple:
-        """
-        Retourne l'effort tranchant à la base de la structure selon EN 1998-1 §4.3.3.2.2
+        """Calcule l'effort tranchant sismique à la base F_b selon EN 1998-1 §4.3.3.2.2 (éq. 4.5).
+
+        F_b = S_d(T1) × m_total × lambda, avec lambda = 0.85 si T1 ≤ 2TC et plus de 2 niveaux, 1 sinon.
+
+        Returns:
+            tuple: (latex_string, valeurs) où valeurs est un dict {"x": F_b_x, "y": F_b_y}
+                avec les efforts de base en kN (avec unité si.kN).
         """
         m_total = sum(load["load"].value/9.81 for load in self._loads.values()) * si.kg
         Sd_t = self.Sd_t[1]
@@ -485,15 +565,19 @@ class Sismique(Batiment):
         return val()
             
     def coeff_torsion_accidentelle(self, x: si.m, Le: si.m) -> tuple:
-        """
-        Retourne le coefficient de torsion accidentelle qui est à déterminer de cette manière si les raideurs latérales et de la masses sont symétriques.
-        Selon EN 1998-1 §4.3.3.2.4
-        
+        """Calcule le coefficient de torsion accidentelle delta selon EN 1998-1 §4.3.3.2.4 (éq. 4.12).
+
+        Applicable lorsque les raideurs latérales et les masses sont symétriques.
+        Formule : delta = 1 + 1.2 × (x / Le).
+
         Args:
-            x (si.m): est la distance en plan de l'élément considéré au centre de masse du bâtiment en plan,
-                mesurée perpendiculairement à la direction de l'action sismique considérée.
-            Le (si.m): est la distance entre les deux éléments de contreventement extrêmes, mesurée perpendiculairement à la direction de
-                l'action sismique considérée.
+            x (float): Distance en plan de l'élément au centre de masse du bâtiment,
+                mesurée perpendiculairement à la direction de l'action sismique, en m.
+            Le (float): Distance entre les deux éléments de contreventement extrêmes,
+                mesurée perpendiculairement à la direction de l'action sismique, en m.
+
+        Returns:
+            tuple: (latex_string, delta) où delta est le coefficient de torsion accidentelle (sans unité).
         """
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
@@ -502,13 +586,18 @@ class Sismique(Batiment):
         return val()
 
     def Fi(self, etage: str=Batiment.ETAGE) -> tuple:
-        """
-        Retourne l'effort horizontal équivalent à l'étage i selon EN 1998-1 §4.3.3.2.3.
-        Attention cette formule ne fonctionne que si les déplacements horizontaux croissent linéairement suivant la hauteur.
-        Les efforts n'intègrent pas le coefficient de torsion accidentelle !
-        
+        """Calcule l'effort horizontal équivalent F_i à l'étage i selon EN 1998-1 §4.3.3.2.3 (éq. 4.11).
+
+        Formule : F_i = F_b × (z_i × m_i) / sum(z_j × m_j).
+        Valable uniquement si les déplacements horizontaux croissent linéairement avec la hauteur.
+        Le coefficient de torsion accidentelle n'est pas inclus (à appliquer séparément).
+
         Args:
-            etage (str): est le nom de l'étage considéré.
+            etage (str): Nom de l'étage considéré, tel que défini lors de add_gravity_load.
+
+        Returns:
+            tuple: (latex_string, valeurs) où valeurs est un dict {"x": F_i_x, "y": F_i_y}
+                avec les efforts horizontaux en kN (avec unité si.kN).
         """
         sum_zj_mj = 0
         for level, load in self._loads.items():
@@ -528,10 +617,14 @@ class Sismique(Batiment):
     
     @property
     def Fi_table(self) -> 'pd.DataFrame':
-        """
-        Retourne les efforts horizontaux équivalents à chaque étage selon EN 1998-1 §4.3.3.2.3.
-        Attention cette méthodes ne fonctionne que si les déplacements horizontaux croissent linéairement suivant la hauteur.
-        Les efforts n'intègrent pas le coefficient de torsion accidentelle !
+        """Retourne le tableau des efforts horizontaux équivalents à chaque étage selon EN 1998-1 §4.3.3.2.3.
+
+        Valable uniquement si les déplacements horizontaux croissent linéairement avec la hauteur.
+        Le coefficient de torsion accidentelle n'est pas inclus.
+
+        Returns:
+            pd.DataFrame: DataFrame indexé par le nom d'étage avec les colonnes ["Fi,x", "Fi,y"]
+                contenant les efforts en kN (avec unité si.kN).
         """
         dict_Fi = pd.DataFrame(columns=["Fi,x", "Fi,y"])
         F_b_x = self.Fb[1]["x"]
@@ -550,14 +643,17 @@ class Sismique(Batiment):
         return dict_Fi
 
     def ds(self, de: float, direction: str=("x", "y")) -> tuple:
-        """
-        Retourne le déplacement de calcul dû à l'action sismique de calcul avec prise en compte du coefficient de comportement
-        conformément à EN 1998-1 §4.3.4.
+        """Calcule le déplacement de calcul d_s selon EN 1998-1 §4.3.4 (éq. 4.23).
+
+        Formule : d_s = q_d × d_e, avec q_d = q (coefficient de comportement de la direction).
 
         Args:
-            de (float): déplacement du même point déterminé par une analyse linéaire basée sur le spectre de réponse de calcul en mm, 
-                conformément à EN 1998-1 §3.2.2.5
-            direction (str): direction du déplacement selon l'axe x ou y du bâtiment.
+            de (float): Déplacement élastique du même point issu d'une analyse linéaire
+                sur le spectre de calcul (EN 1998-1 §3.2.2.5), en mm.
+            direction (str): Direction du déplacement. "x" ou "y". Defaults to "x".
+
+        Returns:
+            tuple: (latex_string, d_s) où d_s est le déplacement de calcul en mm (avec unité si.mm).
         """
         d_e = de * si.mm
         q_d = self.coeff_comportement[direction]["q"]
@@ -568,15 +664,23 @@ class Sismique(Batiment):
         return val()
 
     def coeff_second_ordre(self, dr: float, V_tot: si.kN, etage: str=Batiment.ETAGE) -> tuple:
-        """
-        Retourne le coefficient de second ordre selon EN 1998-1 §4.3.5.2.2
-        
+        """Calcule le coefficient d'effet P-delta theta_r selon EN 1998-1 §4.3.5.2.2 (éq. 4.28).
+
+        Formule : theta_r = (P_tot × d_r) / (V_tot × h_lvl).
+        Si theta_r ≤ 0.1 : coeff_P_delta = 1 (effets du 2nd ordre négligeables).
+        Si 0.1 < theta_r ≤ 0.2 : coeff_P_delta = 1 / (1 - theta_r).
+        Si theta_r > 0.2 : non couvert (restructuration requise).
+
         Args:
-            dr (float): déplacement relatif de calcul entre étages en mm, pris comme la diférence de 
-                déplacement latéral entre le bas et le haut du niveau considéré. Calculé conformément à EN 1998-1 §4.3.4
-            V_tot (float): effort tranchant sismique total au niveau de l'étage considéré en kN.
-                Ne pas oublier de multiplier par le coefficient de torsion accidentelle !
-            etage (str): nom de l'étage considéré.
+            dr (float): Déplacement relatif de calcul entre niveaux en mm (différence des
+                déplacements latéraux entre le bas et le haut du niveau). Calculé via ds().
+            V_tot (float): Effort tranchant sismique total au niveau de l'étage en kN.
+                Inclure le coefficient de torsion accidentelle le cas échéant.
+            etage (str): Nom de l'étage considéré, tel que défini lors de add_gravity_load.
+
+        Returns:
+            tuple: (latex_string, coeff_P_delta) où coeff_P_delta est le facteur d'amplification
+                du 2nd ordre (sans unité).
         """
         P_tot = 0
         V_tot = V_tot * si.kN
@@ -602,18 +706,23 @@ class Sismique(Batiment):
         return val()
     
     def taux_limitations_dommages(self, dr: float, etage: str=Batiment.ETAGE, type_dommages: str=TYPE_DOMMAGES) -> tuple:
-        """
-        Retourne le taux de limitation des dommages selon EN 1998-1 §4.4.3.2.
-        
+        """Calcule le taux de limitation des dommages selon EN 1998-1 §4.4.3.2.
+
+        Vérifie que le déplacement inter-étages d_r × nu reste dans la limite normative
+        selon le type d'éléments non structuraux (éq. 4.31, 4.32 ou 4.33).
+        Le coefficient de réduction nu = 0.4 est fixe (sismicité modérée AN français).
+
         Args:
-            dr (float): déplacement relatif de calcul entre étages en mm, pris comme la diférence de 
-                déplacement latéral entre le bas et le haut du niveau considéré. Calculé conformément à EN 1998-1 §4.3.4
-            etage (str): nom de l'étage considéré.
-            type_dommages (str): type de dommage considéré:
-                Fragiles: pour les bâtiments ayant des éléments non structuraux composés de matériaux fragiles fixés à la structure
-                Ductiles: pour les bâtiments ayant des éléments non structuraux ductiles
-                Désolidarisé/Pas de risque: pour les bâtiments ayant des éléments non structuraux fixés de manière à ne pas interférer 
-                    avec les déformations de la structure ou n'ayant pas d'éléments non structuraux
+            dr (float): Déplacement relatif de calcul entre niveaux en mm. Calculé via ds().
+            etage (str): Nom de l'étage considéré, tel que défini lors de add_gravity_load.
+            type_dommages (str): Type d'éléments non structuraux :
+                "Fragiles" : éléments en matériaux fragiles fixés à la structure (limite h/200, éq. 4.31).
+                "Ductiles" : éléments non structuraux ductiles (limite h/133, éq. 4.32).
+                "Désolidarisé/Pas de risque" : éléments sans interaction avec la structure (limite h/100, éq. 4.33).
+
+        Returns:
+            tuple: (latex_string, taux) où taux est le taux de travail en limitation de dommages (sans unité,
+                valeur ≤ 1 si la vérification est satisfaite).
         """
         nu = 0.4
         d_r = dr * si.mm
@@ -650,13 +759,24 @@ class Sismique(Batiment):
         type_element_ns: str=CLASSE_DUCTILITE_NS, 
         cat_importance_ns: str=CAT_IMPORTANCE_NS
         ) -> tuple:
-        """
-        Retourne l'effort sismique horizontal Fa à appliquer au centre de gravité des éléments non structuraux selon EN 1998-1 §4.3.5.2.
+        """Calcule l'effort sismique horizontal F_a sur un élément non structural selon EN 1998-1 §4.3.5.2 (éq. 4.24).
+
+        Formule : F_a = (S_a × m_a × gamma_a) / q_a, avec S_a basé sur le spectre de plancher.
 
         Args:
-            ma (float): masse de l'élément en kg.
-            Ta_(x/y) (float): période fondamentale de vibration de l'élément non structural en seconde suivant la direction x ou y.
-            z (float): hauteur de l'élément non structural au-dessus du niveau d'application de l'action sismique en m.
+            ma (float): Masse de l'élément non structural en kg ou kg/m² en fonction du besoin.
+            Ta_x (float): Période fondamentale de vibration de l'élément suivant la direction x en s.
+            Ta_y (float): Période fondamentale de vibration de l'élément suivant la direction y en s.
+            z (float): Hauteur de l'élément non structural au-dessus du niveau d'application
+                de l'action sismique (base du bâtiment ou sommet du soubassement) en m.
+            type_element_ns (str): Type d'élément non structural selon CLASSE_DUCTILITE_NS.
+                Détermine le coefficient de comportement q_a.
+            cat_importance_ns (str): Catégorie d'importance de l'élément non structural selon
+                CAT_IMPORTANCE_NS. Détermine le coefficient d'importance gamma_a.
+
+        Returns:
+            tuple: (latex_string, valeurs) où valeurs est un dict {"x": F_a_x, "y": F_a_y}
+                avec les efforts sismiques en kN (avec unité si.kN).
         """
         z = z * si.m
         h_bat = self.h_bat
@@ -696,19 +816,32 @@ class Sismique(Batiment):
         P_delta_x: float=1, 
         P_delta_y: float=1
         ) -> tuple:
-        """
-        Retourne l'effort sismique final pour un dimensionnement bois des éléments en capacités.
+        """Calcule l'effort sismique de dimensionnement des éléments non dissipatifs par capacité.
+
+        Formule : F_s = F_i × gamma_d × Omega × eta_torsion × P_delta,
+        avec gamma_d = 1.3 (rupture fragile) ou 1.1 (rupture ductile).
 
         Args:
-            etage (str): nom de l'étage considéré.
-            gamma_d (str): type de rupture considéré:
-                Fragile: tels que l'effort tranchant dans les diaphragmes en béton, cisaillant dans les embrèvements, 
-                    assemblages collés, connecteurs par plaques embouties, instabilité de flambement déversement.
-                Ductile: tels que l'effort tranchant dans les diaphragmes en panneaux dérivés du bois cloué, 
-                    assemblages par pointes ou tiges avec raideurs faibles.
-            omega (float): facteur de sur résistance des éléments dissipatifs (Rd/Ed).
-            eta_torsion (float): facteur de prise en compte de la torsion accidentelle.
-            P_delta (float): facteur de prise en compte des effets du second ordre.
+            etage (str): Nom de l'étage considéré, tel que défini lors de add_gravity_load.
+            gamma_d_x (str): Type de rupture dans la direction x :
+                "Rupture fragile" (gamma_d = 1.3) : diaphragmes béton, embrèvements, assemblages collés,
+                    connecteurs par plaques embouties, instabilité de flambement/déversement.
+                "Rupture ductile" (gamma_d = 1.1) : diaphragmes en panneaux bois cloués,
+                    assemblages par pointes ou tiges à faible raideur.
+            gamma_d_y (str): Type de rupture dans la direction y. Mêmes valeurs que gamma_d_x.
+            Omega_x (float): Facteur de sur-résistance des éléments dissipatifs dans la direction x
+                (Rd/Ed). Defaults to 1.
+            Omega_y (float): Facteur de sur-résistance dans la direction y. Defaults to 1.
+            eta_torsion_x (float): Coefficient de torsion accidentelle dans la direction x,
+                calculé via coeff_torsion_accidentelle(). Defaults to 1.
+            eta_torsion_y (float): Coefficient de torsion accidentelle dans la direction y. Defaults to 1.
+            P_delta_x (float): Coefficient d'effet du second ordre dans la direction x,
+                calculé via coeff_second_ordre(). Defaults to 1.
+            P_delta_y (float): Coefficient d'effet du second ordre dans la direction y. Defaults to 1.
+
+        Returns:
+            tuple: (latex_string, valeurs) où valeurs est un dict {"x": F_s_x, "y": F_s_y}
+                avec les efforts sismiques de dimensionnement en kN (avec unité si.kN).
         """
         F_i_x = self.Fi_table.loc[etage]["Fi,x"]
         F_i_y = self.Fi_table.loc[etage]["Fi,y"]
@@ -735,13 +868,24 @@ class Sismique(Batiment):
         P_delta_x: float=1, 
         P_delta_y: float=1
         ) -> tuple:
-        """
-        Retourne l'effort sismique final pour un dimensionnement bois des éléments dissipatifs.
+        """Calcule l'effort sismique de dimensionnement des éléments dissipatifs.
+
+        Formule : F_s = F_i × eta_torsion × P_delta (sans amplification par capacité).
+        Les éléments dissipatifs sont dimensionnés directement avec l'effort de l'analyse
+        spectrale, sans majoration par gamma_d ni Omega.
 
         Args:
-            etage (str): nom de l'étage considéré.
-            eta_torsion (float): facteur de prise en compte de la torsion accidentelle.
-            P_delta (float): facteur de prise en compte des effets du second ordre.
+            etage (str): Nom de l'étage considéré, tel que défini lors de add_gravity_load.
+            eta_torsion_x (float): Coefficient de torsion accidentelle dans la direction x,
+                calculé via coeff_torsion_accidentelle(). Defaults to 1.
+            eta_torsion_y (float): Coefficient de torsion accidentelle dans la direction y. Defaults to 1.
+            P_delta_x (float): Coefficient d'effet du second ordre dans la direction x,
+                calculé via coeff_second_ordre(). Defaults to 1.
+            P_delta_y (float): Coefficient d'effet du second ordre dans la direction y. Defaults to 1.
+
+        Returns:
+            tuple: (latex_string, valeurs) où valeurs est un dict {"x": F_s_x, "y": F_s_y}
+                avec les efforts sismiques de dimensionnement en kN (avec unité si.kN).
         """
         F_i_x = self.Fi_table.loc[etage]["Fi,x"]
         F_i_y = self.Fi_table.loc[etage]["Fi,y"]

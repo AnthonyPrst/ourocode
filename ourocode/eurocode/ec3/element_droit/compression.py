@@ -47,7 +47,13 @@ class Compression(Plat):
     
     @property
     def Nc_Rd(self):
-        """Calcul la résistance en compression de la section transversale en N (équa 6.10 et 6.11)
+        """Retourne la résistance en compression de la section transversale N_c,Rd en N selon EN 1993-1-1 §6.2.4.
+
+        Formule : N_c,Rd = A × f_y / γ_M0 (classes 1, 2, 3) (eq. 6.10).
+        Pour la classe 4, utiliser A_eff (non implémenté automatiquement).
+
+        Returns:
+            tuple: (latex_string, N_c_Rd) où N_c_Rd est la résistance en compression en N (avec unité si.N).
         """
         gamma_M0 = self.GAMMA_M["gamma_M0"]
         A = self.A
@@ -60,7 +66,14 @@ class Compression(Plat):
 
     @property
     def lamb(self):
-        """ Retourne l'élancement d'un poteau en compression avec risque de flambement suivant son axe de rotation """
+        """Retourne l'élancement géométrique λ du poteau selon EN 1993-1-1 §6.3.1.
+
+        Calcule λ_y = (l_0 × k_lf) / i_y et λ_z = (l_0 × k_lf) / i_z
+        où i = sqrt(I / A) est le rayon de giration.
+
+        Returns:
+            dict: {"y": λ_y, "z": λ_z} (élancements sans unité).
+        """
         lamb = {'y':0, 'z':0}
         lamb['y'] = (self.lo['y'].value * 10**3 * self.coef_lef) / mt.sqrt(self.Iy / (self.A))
         lamb['z'] = (self.lo['z'].value * 10**3 * self.coef_lef) / mt.sqrt(self.Iz / (self.A))
@@ -103,7 +116,13 @@ class Compression(Plat):
     
     @property
     def Nb_Rd(self):
-        """Renvoie la capacité résitante en compression avec flambement en N (fonction de l'axe de flambement)
+        """Retourne la résistance au flambement N_b,Rd en N selon EN 1993-1-1 §6.3.1.
+
+        Formule : N_b,Rd = χ × A × f_y / γ_M1 pour les axes y et z.
+        Le facteur de réduction χ est déterminé par la courbe de flambement (a0, a, b, c, d).
+
+        Returns:
+            tuple: (latex_string, {"y": N_b_y_Rd, "z": N_b_z_Rd}) où les valeurs sont en N (avec unité si.N).
         """
         gamma_M0 = self.GAMMA_M["gamma_M0"]
         f_y = self.fy

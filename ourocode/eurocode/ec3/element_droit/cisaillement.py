@@ -23,7 +23,12 @@ class Cisaillement(Plat):
 
     @property
     def Vpl_Rd(self):
-        """Calcul la résistance du cisaillement plastique en N (équa 6.18)
+        """Retourne la résistance plastique en cisaillement V_pl,Rd en N selon EN 1993-1-1 §6.2.6.
+
+        Formule : V_pl,Rd = (A_v × f_y / √3) / γ_M0 (eq. 6.18).
+
+        Returns:
+            tuple: (latex_string, V_pl_Rd) où V_pl_Rd est la résistance en cisaillement en N (avec unité si.N).
         """
         A_v = self.Av
         f_y = self.fy

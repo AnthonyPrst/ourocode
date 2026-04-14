@@ -61,19 +61,22 @@ class Vent(Batiment):
     CFR = {"Lisse": 0.01, "Rugueuse": 0.02, "Très rugueuse": 0.04}
 
     def __init__(self, z: si.m, terrain: str = CAT_TERRAIN, oro: str = CAT_ORO, CsCd: float = 1, **kwargs):
-        """
-        Créer une classe qui permet de calculer l'action de vent.
-        Cette classe est hérité de la classe Batiment du module A0_Projet.py.
+        """Initialise le calcul de l'action du vent selon l'EN 1991-1-4 et son Annexe Nationale française.
+
+        Hérite de Batiment. La zone de vent est déterminée automatiquement via le code_INSEE du projet.
 
         Args:
-                z (float): hauteur en m sur le bâtiment ou est étudié le vent (Ze suivant EN 1991-1-4 §7.2.2).
-                alt (int): altitude du batiment étudié en m.
-                cat_terrain (str): Catégorie de terrain du projet.
-                cat_oro (str): Catégorie orographique. Default to "Aucun".
-                    cas 1 : orographie constituée d'obstacles de hauteurs et de formes variées. Ce type d'orographie est le plus
-                        fréquemment rencontré.
-                    cas 2 : Non traité dans ce logiciel ! Orographie constituée d'obstacles bien individualisés. Une falaise ou une colline isolée appartiennent à 
-                        cette catégorie d'orographie, plus rarement rencontrée.
+            z (float): Hauteur de référence z_e en m selon EN 1991-1-4 §7.2.2
+                (hauteur à laquelle est étudiée la pression de vent).
+            terrain (str): Catégorie de rugosité du terrain selon EN 1991-1-4 §4.3.2 :
+                "0", "II", "IIIa", "IIIb" ou "IV". Defaults to "II".
+            oro (str): Catégorie orographique selon AN français :
+                - "Aucun" : pas d'effet orographique (C_0 = 1).
+                - "Cas 1" : obstacles de hauteurs variées (calcul interactif des altitudes environnantes).
+                - "Cas 2" : non implémenté (levée d'une ValueError).
+                Defaults to "Aucun".
+            CsCd (float): Coefficient structurel selon EN 1991-1-4 §6. Defaults to 1.
+            **kwargs: Arguments transmis à la classe parent Batiment.
         """
         super().__init__(**kwargs)
         self.terrain = terrain
@@ -162,24 +165,24 @@ class Vent(Batiment):
 
     @property
     def Vb_0(self):
-        """Vb,0 est la valeur de base de la vitesse de référence du vent en m/s
+        """Retourne la vitesse de base de référence V_b,0 en m/s selon EN 1991-1-4 AN §4.2.
+
+        Valeur déterminée par la zone de vent du projet (code_INSEE → zone 1 à 4, ou DOM).
 
         Returns:
-                int: vitesse de référence du vent en m/s
+            forallpeople.Physical: V_b,0 en m/s.
         """
         return self.VB0[str(self.zone_vent)] * si.m / si.s
 
     @property
     def Vb(self):
-        """Retourne la vitesse de référence du vent en m/s fonction de cette dernière et de la période de l'année
-        à une hauteur de 10 m au-dessus d'un sol relevant de la catégorie de terrain II
+        """Retourne la vitesse de référence du vent V_b en m/s selon EN 1991-1-4 §4.2(2).
 
-        Args:
-                Cdir (float): coefficient de direction. Defaults to 1.
-                Cseason (float): coefficient de saison. Defaults to 1.
+        Formule : V_b = C_dir × C_season × V_b,0.
+        C_dir et C_season sont pris égaux à 1 (valeurs conservatrices de l'AN français).
 
         Returns:
-                float: vitesse de référence du vent en m/s
+            tuple: (latex_string, V_b) où V_b est la vitesse de référence en m/s (avec unité si.m/si.s).
         """
         V_b_0 = self.Vb_0
         Cdir = 1
@@ -194,10 +197,12 @@ class Vent(Batiment):
 
     @property
     def rayon_secteur_angu(self):
-        """Retourne le rayon du secteur angulaire dans lequel la rugosité de terrain est à qualifier fonction de la hauteur du bâtiment étudier
+        """Retourne le rayon du secteur angulaire R à l'intérieur duquel la rugosité est à qualifier selon AN français.
+
+        Formule : R = max(23 × z^1.2, 300) en m.
 
         Returns:
-                float: max entre 300m et R
+            tuple: (latex_string, R) où R est le rayon du secteur angulaire en m (avec unité si.m).
         """
         z = self.z.value
 
@@ -233,10 +238,13 @@ class Vent(Batiment):
 
     @property
     def Co_z(self):
-        """Retourne le coeficient orographique du terrain suivant la catégorie orographique et la hauteur z du bâtiment
+        """Retourne le coefficient orographique C_0(z) selon l'AN français de l'EN 1991-1-4 §4.3.3.
+
+        - "Aucun" : C_0 = 1 (pas d'effet orographique).
+        - "Cas 1" : C_0 calculé en fonction de delta_AC et de la hauteur z.
 
         Returns:
-                float: coef orographique
+            tuple: (latex_string, C_0_z) où C_0_z est le coefficient orographique (sans unité, ≥ 1).
         """
         # ATTENTION vérifier le z et zmin si toujours comptatible quand ajout du cas 2 !!!
         if self.z.value < self.cat_terrain["Zmin"]:
@@ -272,11 +280,12 @@ class Vent(Batiment):
     @property
     # @handcalc(override="params", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
     def Vm_z(self):
-        """Retourne la vitesse moyenne du vent à une hauteur z au dessus du sol en fonction de la rugosité de terrain,
-           de l'orographie et de la vitesse de référence du vent Vb
+        """Retourne la vitesse moyenne du vent V_m(z) en m/s selon EN 1991-1-4 §4.3.1.
+
+        Formule : V_m(z) = C_r(z) × C_0(z) × V_b.
 
         Returns:
-                float: vitesse moyenne du vent en m/s
+            tuple: (latex_string, V_m_z) où V_m_z est la vitesse moyenne en m/s (avec unité si.m/si.s).
         """
         C_r_z = self._Cr_z
         C_o_z = self.Co_z[1]
@@ -331,10 +340,12 @@ class Vent(Batiment):
 
     @property
     def Qb(self):
-        """Retour la pression dynamique de référence (informatif)
+        """Retourne la pression dynamique de référence Q_b en N/m² selon EN 1991-1-4 §4.5(1) (valeur informative).
+
+        Formule : Q_b = 0.5 × ρ × V_b².
 
         Returns:
-                float: pression en N/m²
+            tuple: (latex_string, Q_b) où Q_b est la pression dynamique de référence en N/m² (avec unité si.Pa).
         """
         V_b = self.Vb[1]
         rho_air = self.RHO_AIR
@@ -348,11 +359,13 @@ class Vent(Batiment):
 
     @property
     def Qp_z(self):
-        """Retour la pression dynamique de pointe à la hauteur z qui est induite par la vitesse moyenne
-        et les fluctuation rapides de vitesse
+        """Retourne la pression dynamique de pointe Q_p(z) en N/m² selon EN 1991-1-4 §4.5(1).
+
+        Formule : Q_p(z) = (1 + 7 × I_v(z)) × 0.5 × ρ × V_m(z)².
+        Tient compte de la turbulence via I_v(z).
 
         Returns:
-                float: pression en N/m²
+            tuple: (latex_string, Q_p_z) où Q_p_z est la pression de pointe en N/m² (avec unité si.Pa).
         """
         I_v_z = self._Iv_z
         rho_air = self.RHO_AIR
@@ -367,10 +380,12 @@ class Vent(Batiment):
 
     @property
     def Ce_z(self):
-        """Retourne le coefficient d'exposition à la hauteur z (informatif)
+        """Retourne le coefficient d'exposition C_e(z) selon EN 1991-1-4 §4.5(2) (valeur informative).
+
+        Formule : C_e(z) = Q_p(z) / Q_b.
 
         Returns:
-                float: coef d'expo
+            tuple: (latex_string, C_e_z) où C_e_z est le coefficient d'exposition (sans unité).
         """
         Q_p_z = self.Qp_z[1]
         Q_b = self.Qb[1]
@@ -383,13 +398,15 @@ class Vent(Batiment):
         return val()
 
     def We(self, Cpe: float):
-        """Retourne la pression aérodynamique sur les surfaces extérieures
+        """Retourne la pression aérodynamique extérieure W_e en N/m² selon EN 1991-1-4 §5.2(1).
+
+        Formule : W_e = Q_p(z) × C_pe.
 
         Args:
-                Cpe (float): coefficient de pression extérieure
+            Cpe (float): Coefficient de pression extérieure (C_pe,10 ou C_pe,1 selon l'aire chargée).
 
         Returns:
-                float: pression en N/m²
+            tuple: (latex_string, W_e) où W_e est la pression extérieure en N/m² (avec unité si.Pa).
         """
         Q_p_z = self.Qp_z[1]
         C_pe = Cpe
@@ -402,13 +419,17 @@ class Vent(Batiment):
         return val()
 
     def Wi(self, Cpi: float):
-        """Retourne la pression aérodynamique sur les surfaces intérieures
+        """Retourne la pression aérodynamique intérieure W_i en N/m² selon EN 1991-1-4 §5.2(2).
+
+        Formule : W_i = Q_p(z) × C_pi.
+        Les valeurs standard de C_pi sont +0.2 (pression) et -0.3 (dépression) selon CPI.
 
         Args:
-                Cpi (float): coefficient de pression intérieure
+            Cpi (float): Coefficient de pression intérieure (C_pi).
 
         Returns:
-                float: pression en N/m²"""
+            tuple: (latex_string, W_i) où W_i est la pression intérieure en N/m² (avec unité si.Pa).
+        """
         Q_p_z = self.Qp_z[1]
         C_pi = Cpi
 
@@ -461,12 +482,14 @@ class Vent(Batiment):
         image.show()
 
     def K_red_U(self):
-        """Retourne le coefficient de défaut de corrélation entre les pressions aérodynamiques au vent et sous le vent,
-        uniquement pour les faces D et E. §7.2.2(3)
+        """Calcule et stocke le coefficient de défaut de corrélation K_red selon EN 1991-1-4 §7.2.2(3).
 
-        Args:
-                h_bat (float): hauteur du bâtiment en m
-                d_bat (float): longeur parallèle à la direction du vent en m
+        Applicable uniquement aux faces D et E des murs verticaux.
+        Formule dépendante de h_bat/d_bat :
+        - h/d ≥ 5 : K_red = 1.0.
+        - h/d ≤ 1 : K_red = 0.85.
+        - 1 < h/d < 5 : interpolation linéaire.
+        Le résultat est stocké dans self.Kred_U.
         """
         if self.h_bat / self.d_bat >= 5:
             self.Kred_U = 1
@@ -478,10 +501,17 @@ class Vent(Batiment):
 
 class Murs_verticaux(Vent):
     def __init__(self, load_area: float, *args, **kwargs):
-        """Créer une classe permettant le calcul des voiles verticaux au vent selon l'EN 1991-1-4 §7.2.2
+        """Crée un objet pour le calcul des pressions sur les murs verticaux selon EN 1991-1-4 §7.2.2.
+
+        Le calcul est effectué automatiquement pour les deux directions de vent (0° et 90°).
+        Les zones sont A, B, C, D, E déterminées à partir de e = min(b, 2h) pour chaque direction.
+        Les C_pe sont interpolés selon le rapport h/d et l'aire chargée.
 
         Args:
-                load_area (float): aire chargée pour le calcul des éléments ou des fixations
+            load_area (float): Aire chargée en m² pour le calcul des éléments ou des fixations.
+                Si 1 < load_area < 10, interpolation logarithmique entre C_pe,1 et C_pe,10.
+            *args: Arguments positionnels transmis à la classe parent Vent.
+            **kwargs: Arguments nommés transmis à la classe parent Vent.
         """
         super().__init__(*args, **kwargs)
         self.load_area = load_area
@@ -587,23 +617,29 @@ class Murs_verticaux(Vent):
         return self._wind_direction
 
     def get_geo(self, dir=("0°", "90°")):
-        """Retourne les caractéristiques géométrique pour la direction de vent donnée.
+        """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+
+        Returns:
+            dict: {"A": ..., "B": ..., "C": ..., "D": ..., "E": ...} avec les dimensions en m.
         """
         return self._wind_direction[dir]["geometrie"]
 
     def get_Cpe(self, dir=("0°", "90°")):
-        """Retourne les Cpe pour la direction de vent donnée.
+        """Retourne les coefficients de pression extérieure C_pe pour la direction de vent donnée.
 
         Args:
-                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+
+        Returns:
+            pandas.DataFrame: C_pe par zone (A, B, C, D, E), interpolés selon h/d et load_area.
         """
         return self._wind_direction[dir]["Cpe"]
 
     def show_zonage(self):
-        """Affiche l'image du zonage pour les murs verticaux"""
+        """Affiche l'image du zonage pour les murs verticaux selon EN 1991-1-4 §7.2.2."""
         file = os.path.join(
             Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_mur_verticaux.png"
         )
@@ -612,12 +648,19 @@ class Murs_verticaux(Vent):
 
 class Toiture_terrasse_acrotere(Vent):
     def __init__(self, load_area:float, hp:si.m, h:si.m, *args, **kwargs):
-        """Créer une classe permetant le calcul d'une toiture terrasse au vent selon l'EN 1991-1-4 §7.2.3
+        """Crée un objet pour le calcul des pressions sur une toiture terrasse avec acrotère selon EN 1991-1-4 §7.2.3.
+
+        Le calcul est effectué pour la direction de vent 0° uniquement (symétrie).
+        Les zones de pression sont F, G, H, I déterminées à partir de e = min(b, 2h).
+        Les C_pe sont interpolés selon le rapport hp/h (plafonné à 0.1) et l'aire chargée.
 
         Args:
-            load_area (float): aire chargée pour le calcul des éléments ou des fixations.
-            hp (si.m): hauteur de l'acrotère
-            h (si.m): hauteur sous l'acrotère
+            load_area (float): Aire chargée en m² pour le calcul des éléments ou des fixations.
+                Si 1 < load_area < 10, interpolation logarithmique entre C_pe,1 et C_pe,10.
+            hp (float): Hauteur de l'acrotère en m.
+            h (float): Hauteur du bâtiment sous l'acrotère en m.
+            *args: Arguments positionnels transmis à la classe parent Vent.
+            **kwargs: Arguments nommés transmis à la classe parent Vent.
         """
         super().__init__(*args, **kwargs)
         self.type_terrasse = "Acrotères"
@@ -723,23 +766,23 @@ class Toiture_terrasse_acrotere(Vent):
         return self._wind_direction
 
     def get_geo(self):
-        """Retourne les caractéristiques géométrique pour la direction de vent donnée.
+        """Retourne les dimensions des zones de pression pour la direction de vent 0°.
 
-        Args:
-                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°", "180°").
+        Returns:
+            dict: {"F": ..., "G": ..., "H": ..., "I": ...} avec Longueur, Largeur et Surface en m / m².
         """
         return self._wind_direction["0°"]["geometrie"]
 
     def get_Cpe(self):
-        """Retourne les Cpe pour la direction de vent donnée.
+        """Retourne les coefficients de pression extérieure C_pe pour la direction de vent 0°.
 
-        Args:
-                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°", "180°").
+        Returns:
+            pandas.DataFrame: C_pe par zone (F, G, H, I), interpolés selon hp/h et load_area.
         """
         return self._wind_direction["0°"]["Cpe"]
 
     def show_zonage(self):
-        """Affiche l'image du zonage pour une toiture à 1 versant"""
+        """Affiche l'image du zonage pour une toiture terrasse avec acrotère selon EN 1991-1-4 §7.2.3."""
         file = os.path.join(
             Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_toiture_terrasse.png"
         )
@@ -749,12 +792,20 @@ class Toiture_terrasse_acrotere(Vent):
 
 class Toiture_1_pant(Vent):
     def __init__(self, load_area: float, *args, **kwargs):
-        """Créer une classe permetant le calcul d'une toiture à deux versant symétrique au vent selon l'EN 1991-1-4 §7.2.5
-        ATTENTION cette classe ne prend en compte que le premier alpha_toit,
-        les pentes doivent être les mêmes entre les deux pants et le faîtage centré.
+        """Crée un objet pour le calcul des pressions sur une toiture à un versant selon EN 1991-1-4 §7.2.4.
+
+        Le calcul est effectué pour les directions de vent 0°, 90° et 180°.
+        Les zones de pression sont F, G, H (directions 0° et 180°) et F_up/F_low, G, H, I (direction 90°).
+        Les C_pe sont interpolés en fonction de alpha_toit et de l'aire chargée.
+
+        Note:
+            Cette classe ne prend en compte qu'une seule valeur d'alpha_toit.
 
         Args:
-                load_area (int | float): aire chargée pour le calcul des éléments ou des fixations.
+            load_area (float): Aire chargée en m² pour le calcul des éléments ou des fixations.
+                Si 1 < load_area < 10, interpolation logarithmique entre C_pe,1 et C_pe,10.
+            *args: Arguments positionnels transmis à la classe parent Vent.
+            **kwargs: Arguments nommés transmis à la classe parent Vent.
         """
         super().__init__(*args, **kwargs)
         self.load_area = load_area
@@ -922,23 +973,31 @@ class Toiture_1_pant(Vent):
         return self._wind_direction
 
     def get_geo(self, direction=("0°", "90°", "180°")):
-        """Retourne les caractéristiques géométrique pour la direction de vent donnée.
+        """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°", "180°").
+            direction (str): Direction du vent ("0°", "90°" ou "180°"). Defaults to ("0°", "90°", "180°").
+
+        Returns:
+            dict: Zones avec Longueur, Largeur et Surface en m / m².
+                - 0° / 180° : zones F, G, H.
+                - 90° : zones F_up/F_low, G, H, I.
         """
         return self._wind_direction[direction]["geometrie"]
 
     def get_Cpe(self, direction=("0°", "90°", "180°")):
-        """Retourne les Cpe pour la direction de vent donnée.
+        """Retourne les coefficients de pression extérieure C_pe pour la direction de vent donnée.
 
         Args:
-                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°", "180°").
+            direction (str): Direction du vent ("0°", "90°" ou "180°"). Defaults to ("0°", "90°", "180°").
+
+        Returns:
+            pandas.DataFrame: C_pe par zone, interpolés selon alpha_toit et load_area.
         """
         return self._wind_direction[direction]["Cpe"]
 
     def show_zonage(self):
-        """Affiche l'image du zonage pour une toiture à 1 versant"""
+        """Affiche l'image du zonage pour une toiture à 1 versant selon EN 1991-1-4 §7.2.4."""
         file = os.path.join(
             Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_toiture_1_versant.png"
         )
@@ -948,12 +1007,21 @@ class Toiture_1_pant(Vent):
 
 class Toiture_2_pants(Vent):
     def __init__(self, load_area: float, *args, **kwargs):
-        """Créer une classe permetant le calcul d'une toiture à deux versant symétrique au vent selon l'EN 1991-1-4 §7.2.5
-        ATTENTION cette classe ne prend en compte que le premier alpha_toit,
-        les pentes doivent être les mêmes entre les deux pants et le faîtage centré.
+        """Crée un objet pour le calcul des pressions sur une toiture à deux versants selon EN 1991-1-4 §7.2.5.
+
+        Le calcul est effectué pour les directions de vent 0° et 90°.
+        Les zones de pression sont F, G, H, I, J (direction 0°) et F, G, H, I (direction 90°).
+        Les C_pe sont interpolés en fonction de alpha_toit et de l'aire chargée.
+
+        Note:
+            Cette classe suppose des pentes identiques sur les deux versants et un faîtage centré.
+            Un seul alpha_toit est pris en compte.
 
         Args:
-                load_area (int | float): aire chargée pour le calcul des éléments ou des fixations.
+            load_area (float): Aire chargée en m² pour le calcul des éléments ou des fixations.
+                Si 1 < load_area < 10, interpolation logarithmique entre C_pe,1 et C_pe,10.
+            *args: Arguments positionnels transmis à la classe parent Vent.
+            **kwargs: Arguments nommés transmis à la classe parent Vent.
         """
         super().__init__(*args, **kwargs)
         self.load_area = load_area
@@ -1130,23 +1198,31 @@ class Toiture_2_pants(Vent):
         return self._wind_direction
 
     def get_geo(self, dir=("0°", "90°")):
-        """Retourne les caractéristiques géométrique pour la direction de vent donnée.
+        """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+
+        Returns:
+            dict: Zones avec Longueur, Largeur et Surface en m / m².
+                - 0° : zones F, G, H, I, J.
+                - 90° : zones F, G, H, I.
         """
         return self._wind_direction[dir]["geometrie"]
 
     def get_Cpe(self, dir=("0°", "90°")):
-        """Retourne les Cpe pour la direction de vent donnée.
+        """Retourne les coefficients de pression extérieure C_pe pour la direction de vent donnée.
 
         Args:
-                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+
+        Returns:
+            pandas.DataFrame: C_pe par zone, interpolés selon alpha_toit et load_area.
         """
         return self._wind_direction[dir]["Cpe"]
 
     def show_zonage(self):
-        """Affiche l'image du zonage pour une toiture à 2 versants"""
+        """Affiche l'image du zonage pour une toiture à 2 versants selon EN 1991-1-4 §7.2.5."""
         file = os.path.join(
             Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_toiture_2_versants.png"
         )
@@ -1156,11 +1232,19 @@ class Toiture_2_pants(Vent):
 
 class Toiture_isolee_1_pant(Vent):
     def __init__(self, phi: float, load_area: float, *args, **kwargs):
-        """Créer une classe permetant le calcul d'une toiture isolée à un versant au vent selon l'EN 1991-1-4 §7.3
+        """Crée un objet pour le calcul des pressions sur une toiture isolée à un versant selon EN 1991-1-4 §7.3.
+
+        Le calcul est effectué pour les directions de vent 0° et 90°.
+        Les zones de pression nettes sont A, B, C, déterminées à partir des dimensions du bâtiment.
+        Les C_p nets (pression et dépression simultanées) sont interpolés selon phi et alpha_toit.
+        Utilise les coefficients C_p (pression nette) et non C_pe/C_pi séparément.
 
         Args:
-                phi (int | float): le degré d'obstruction sous une toiture isolée entre 0 et 1.
-                load_area (int | float): aire chargée pour le calcul des éléments ou des fixations.
+            phi (float): Degré d'obstruction sous la toiture (0 = libre, 1 = totalement obstruée).
+                Valeur comprise entre 0 et 1. Interpolation linéaire pour les valeurs intermédiaires.
+            load_area (float): Aire chargée en m² pour le calcul des éléments ou des fixations.
+            *args: Arguments positionnels transmis à la classe parent Vent.
+            **kwargs: Arguments nommés transmis à la classe parent Vent.
         """
         super().__init__(*args, **kwargs)
         self.phi = phi
@@ -1281,23 +1365,30 @@ class Toiture_isolee_1_pant(Vent):
         return self._wind_direction
 
     def get_geo(self, dir=("0°", "90°")):
-        """Retourne les caractéristiques géométrique pour la direction de vent donnée.
+        """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+
+        Returns:
+            dict: {"A": ..., "B": ..., "C": ...} avec Longueur, Largeur et Surface en m / m².
         """
         return self._wind_direction[dir]["geometrie"]
 
     def get_Cp(self, dir=("0°", "90°")):
-        """Retourne les Cp pour la direction de vent donnée.
+        """Retourne les coefficients de pression nette C_p pour la direction de vent donnée.
 
         Args:
-                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+
+        Returns:
+            pandas.DataFrame: C_p nets par zone (A, B, C), interpolés selon phi et alpha_toit.
+                Inclut les valeurs maximales ("max") et pour la valeur de phi donnée.
         """
         return self._wind_direction[dir]["Cp"]
 
     def show_zonage(self):
-        """Affiche l'image du zonage pour une toiture isolée un versant"""
+        """Affiche l'image du zonage pour une toiture isolée à un versant selon EN 1991-1-4 §7.3."""
         file = os.path.join(
             Vent.PATH_CATALOG, "data", "vent", "vent_Cp_toiture_isolee_1_versant.png"
         )
@@ -1307,11 +1398,19 @@ class Toiture_isolee_1_pant(Vent):
 
 class Toiture_isolee_2_pants(Vent):
     def __init__(self, phi: float, load_area: float, *args, **kwargs):
-        """Créer une classe permetant le calcul d'une toiture isolée à deux versants au vent selon l'EN 1991-1-4 §7.3
+        """Crée un objet pour le calcul des pressions sur une toiture isolée à deux versants selon EN 1991-1-4 §7.3.
+
+        Le calcul est effectué pour les directions de vent 0° et 90°.
+        Les zones de pression nettes sont A, B, C, D, déterminées à partir des dimensions du bâtiment.
+        Les C_p nets sont interpolés selon phi et alpha_toit.
+        Utilise les coefficients C_p (pression nette) et non C_pe/C_pi séparément.
 
         Args:
-                phi (int | float): le degré d'obstruction sous une toiture isolée entre 0 et 1.
-                load_area (int | float): aire chargée pour le calcul des éléments ou des fixations.
+            phi (float): Degré d'obstruction sous la toiture (0 = libre, 1 = totalement obstruée).
+                Valeur comprise entre 0 et 1. Interpolation linéaire pour les valeurs intermédiaires.
+            load_area (float): Aire chargée en m² pour le calcul des éléments ou des fixations.
+            *args: Arguments positionnels transmis à la classe parent Vent.
+            **kwargs: Arguments nommés transmis à la classe parent Vent.
         """
         super().__init__(*args, **kwargs)
         self.phi = phi
@@ -1442,23 +1541,30 @@ class Toiture_isolee_2_pants(Vent):
         return self._wind_direction
 
     def get_geo(self, dir=("0°", "90°")):
-        """Retourne les caractéristiques géométrique pour la direction de vent donnée.
+        """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+
+        Returns:
+            dict: {"A": ..., "B": ..., "C": ..., "D": ...} avec Longueur, Largeur et Surface en m / m².
         """
         return self._wind_direction[dir]["geometrie"]
 
     def get_Cp(self, dir=("0°", "90°")):
-        """Retourne les Cp pour la direction de vent donnée.
+        """Retourne les coefficients de pression nette C_p pour la direction de vent donnée.
 
         Args:
-                direction (str): direction du vent vis à vis du bâtiment. Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+
+        Returns:
+            pandas.DataFrame: C_p nets par zone (A, B, C, D), interpolés selon phi et alpha_toit.
+                Inclut les valeurs maximales ("max") et pour la valeur de phi donnée.
         """
         return self._wind_direction[dir]["Cp"]
 
     def show_zonage(self):
-        """Affiche l'image du zonage pour une toiture isolée un versant"""
+        """Affiche l'image du zonage pour une toiture isolée à deux versants selon EN 1991-1-4 §7.3."""
         file = os.path.join(
             Vent.PATH_CATALOG, "data", "vent", "vent_Cp_toiture_isolee_2_versants.png"
         )
