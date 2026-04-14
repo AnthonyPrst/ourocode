@@ -26,7 +26,8 @@ class Compression(Plat):
             A (float): Aire brute si classe 1,2 ou 3 et Aeff si classe 4 en mm²
             Iy (float): Moment quadratique suivant l'axe de rotation y en mm4
             Iz (float): Moment quadratique suivant l'axe de rotation z en mm4
-            lo (int): Longueur de flambement suivant l'axe de rotation (y ou z) en mm. Defaults to {'y':0, 'z':0}.
+            lo_y (float): Longueur de flambement suivant l'axe de rotation y en mm. Defaults to 0.
+            lo_z (float): Longueur de flambement suivant l'axe de rotation z en mm. Defaults to 0.
             type_appuis (str): Permet de déterminé la forme du flambement en fonction des types d'appui:
                 Encastré 1 côté : 2
                 Rotule - Rotule : 1

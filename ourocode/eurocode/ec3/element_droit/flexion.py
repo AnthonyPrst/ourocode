@@ -17,9 +17,8 @@ class Flexion(Plat):
         Cette classe est hérité de la classe Plat du module EC3_Element_droit.py.
 
         Args:
-            Wpl (float, optional): Module de flexion plastique (pour les sections transversales de classe 1 et 2) de la section en mm3.
-            Wel_min (float, optional): Module de flexion élastique (pour les sections transversales de classe 3) de la section en mm3.
-            Weff_min (float, optional): Module de flexion efficace (pour les sections transversales de classe 4) de la section en mm3.
+            W (float): Module de flexion de la section en mm³.
+                Utiliser Wpl pour les sections de classe 1 ou 2, Wel_min pour la classe 3, Weff_min pour la classe 4.
         """
         super().__init__(*args, **kwargs)
         self.W = W * si.mm**3

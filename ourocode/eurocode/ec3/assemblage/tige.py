@@ -352,7 +352,6 @@ class Tige(Plat):
             e2 (float): pince e2 en mm perpendiculaire à l'effort si alpha = 0°
             p1 (float): pince p1 en mm parallèlle à l'effort si alpha = 0°
             p2 (float): pince p2 en mm perpendiculaire à l'effort si alpha = 0°
-            alpha (float): angle de l'effort en degrés
 
         Returns:
             float: résistance de calcul en N 
