@@ -1,5 +1,6 @@
 ﻿# coding in UTF-8
-import os, sys
+import os
+import sys
 from math import *
 import pandas as pd
 
@@ -46,7 +47,13 @@ class Platine_assise_compression_beton(Tige):
 
     @property
     def f_jd(self):
-        """Valeur de calcul de la résistance à la compression localisée de la plaque d'assise sur le béton
+        """Retourne la valeur de calcul de la résistance à la compression localisée f_jd en MPa selon EN 1993-1-8 §6.2.5.
+
+        Formule : f_jd = β_j × (α_cc × f_ck / γ_c) × α_bf.
+        Coefficients conservateurs par défaut : β_j = 1, α_cc = 1, α_bf = 1.
+
+        Returns:
+            tuple: (latex_string, f_jd) en MPa (avec unité si.MPa).
         """
         alpha_cc = 1
         alpha_bf = 1
@@ -60,7 +67,12 @@ class Platine_assise_compression_beton(Tige):
         return val()
 
     def c(self):
-        """Détermine la largeur effective complémentaire depuis la face d'une semelle ou d'une ame métallique en mm.
+        """Retourne la largeur effective complémentaire C depuis la face d'une semelle ou d'une âme selon EN 1993-1-8 §6.2.5(4).
+
+        Formule : C = t × √(f_y / (3 × f_jd × γ_M0)).
+
+        Returns:
+            tuple: (latex_string, C) en mm (avec unité si.mm).
         """
         t = self.t
         f_y = self.fy
@@ -73,11 +85,17 @@ class Platine_assise_compression_beton(Tige):
         return val()
 
     def taux_compression(self, N_c_Ed:si.kN, Aef: si.mm**2):
-        """Détermine le taux de travail en compression de la plaque d'assise sur le béton.
+        """Retourne le taux de travail en compression de la plaque d'assise sur le béton selon EN 1993-1-8 §6.2.5(6).
+
+        Formule : taux = N_c,Ed / (A_ef × f_jd).
 
         Args:
-            N_c_Ed (si.kN): Effort de compression sur la plaque d'assise
-            Aef (si.mm): Aire efficace de compression sur le béton tenant compte de la largeur effective complémentaire C
+            N_c_Ed (float): Effort de compression de calcul sur la plaque d'assise en kN.
+            Aef (float): Aire efficace de compression sur le béton en mm²
+                (tenant compte de la largeur effective complémentaire C obtenue via la méthode c()).
+
+        Returns:
+            tuple: (latex_string, taux_compression) sans unité.
         """
         N_c_Ed = N_c_Ed * si.kN
         A_ef = Aef * si.mm**2
@@ -131,7 +149,17 @@ class Platine_assise_compression_bois(Tige):
         return result
 
     def c(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
-        """Détermine la largeur effective complémentaire depuis la face d'une semelle ou d'une ame métallique en mm.
+        """Retourne la largeur effective complémentaire C pour une platine sur support bois selon EN 1993-1-8 §6.2.5(4).
+
+        Formule : C = t × √(f_y / (3 × f_jd × γ_M0)) + a_ef
+        où a_ef = 0.8 × (a × √2) est la largeur efficace de la soudure.
+
+        Args:
+            loadtype: Classe de durée de charge du bois (via Barre.LOAD_TIME). Defaults to Barre.LOAD_TIME.
+            typecombi: Type de combinaison d'actions (via Barre.TYPE_ACTION). Defaults to Barre.TYPE_ACTION.
+
+        Returns:
+            tuple: (latex_string, C) en mm (avec unité si.mm).
         """
         t = self.t
         f_y = self.fy
@@ -146,11 +174,18 @@ class Platine_assise_compression_bois(Tige):
         return val()
 
     def taux_compression(self, N_c_Ed:si.kN, Aef: si.mm**2):
-        """Détermine le taux de travail en compression de la plaque d'assise sur le bois.
+        """Retourne le taux de travail en compression de la plaque d'assise sur le bois selon EN 1993-1-8 §6.2.5(6).
+
+        Formule : taux = N_c,Ed / (A_ef × f_jd).
+        Appeler d'abord self._f_jd() puis self.c() pour obtenir A_ef.
 
         Args:
-            N_c_Ed (si.kN): Effort de compression sur la plaque d'assise
-            Aef (si.mm): Aire efficace de compression sur le bois tenant compte de la largeur effective complémentaire C
+            N_c_Ed (float): Effort de compression de calcul sur la plaque d'assise en kN.
+            Aef (float): Aire efficace de compression sur le bois en mm²
+                (tenant compte de la largeur effective complémentaire C obtenue via la méthode c()).
+
+        Returns:
+            tuple: (latex_string, taux_compression) sans unité.
         """
         N_c_Ed = N_c_Ed * si.kN
         A_ef = Aef * si.mm**2
@@ -538,6 +573,18 @@ class Platine_assise_traction(Tige):
         return row
 
     def taux_traction(self, N_T_Ed:si.kN):
+        """Retourne le taux de travail global en traction de la platine d'about selon EN 1993-1-8 §6.2.6.5 et CNC2M §4.3.3.
+
+        Parcourt toutes les rangées/groupes de tronçons ajoutés préalablement pour calculer F_T,Rd
+        selon les trois modes de rupture (modes 1, 2, 3) et le résultat minimisant.
+        La résistance globale est min(somme des F_T,Rd isolés, F_T,Rd groupé).
+
+        Args:
+            N_T_Ed (float): Effort de traction de calcul sur la platine en kN.
+
+        Returns:
+            tuple: (latex_string, taux_traction) sans unité.
+        """
         N_T_Ed = N_T_Ed * si.kN
         F_T_Rd_isole = 0 * si.kN
         F_T_Rd_groupe = 0 * si.kN

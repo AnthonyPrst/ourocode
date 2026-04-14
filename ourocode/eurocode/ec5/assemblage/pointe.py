@@ -52,7 +52,7 @@ class Pointe(Assemblage):
         if self.fu < 600*si.MPa:
             raise ValueError("La résistance du fil en traction est inférieur à 600 MPa, vérifier vos données !")
         if not self.percage and self.d > 6*si.mm:
-            raise ValueError(f"Erreur, le diamètre de la pointe est supérieur à 6mm, le prépercage est obligatoire")
+            raise ValueError("Erreur, le diamètre de la pointe est supérieur à 6mm, le prépercage est obligatoire")
         if self.type_assemblage == self.TYPE_ASSEMBLAGE[0]: #Si assemblage bois bois
             if self.type_organe in ("Pointe circulaire lisse", "Pointe carrée lisse") and self.t2 < 8*self.d:
                 raise ValueError(f"Erreur, la longueur de pénétration t2 est inférieur à 8 fois le diamètre de la pointe. La longueur de pénétration minimal est de {self.d*8}")
@@ -115,7 +115,7 @@ class Pointe(Assemblage):
         f_u = self.fu.value * 10**-6
         d = self.d.value * 10**3
         if self.fu >= 600:
-            if self._type_circulaire == True:
+            if self._type_circulaire:
                 @handcalc(override="short", precision=2, left="\\[", right="\\]")
                 def val():
                     M_y_Rk = 0.3 * f_u* d**2.6 # N.mm
@@ -288,19 +288,19 @@ class Pointe(Assemblage):
                 if a1 == listeTab[i]:
                     kef = listeTab[4][i]
 
-                    if kef == "x" and self.percage == False:
+                    if kef == "x" and not self.percage:
                         kef = 0
 
-                    elif kef == "x" and self.percage == True:
+                    elif kef == "x" and self.percage:
                         kef = 0.5
                 j += 1
 
             else:
-                if listeTab[4][j-1] == "x" and self.percage == False:
+                if listeTab[4][j-1] == "x" and not self.percage:
                     kef = interpolationLineaire(
                         a1, listeTab[j-1], listeTab[j], 0, listeTab[4][j])
 
-                elif listeTab[4][j-1] == "x" and self.percage == True:
+                elif listeTab[4][j-1] == "x" and self.percage:
                     kef = interpolationLineaire(
                         a1, listeTab[j-1], listeTab[j], 0.5, listeTab[4][j])
 
@@ -344,23 +344,17 @@ class Pointe(Assemblage):
 
     @property
     def pince(self) -> dict:
-        """
-        Défini les différentes pinces minimales pour une pointe en mm.
-
-        Args:
-            alpha : angle entre l'effort de l'organe et le fil du bois en °
-            d : diamètre efficace de la pointe ou du tire fond si d<=6mm en mm
-        """
+        """Retourne les différentes pinces minimales pour une pointe en mm."""
         dict_pince = {}
         if self.type_organe == "Tirefond":
             self.d = self.d_vis
         for i, beam in enumerate([self.beam_1, self.beam_2]):
-            if not self._type_beam[i] in self.TYPE_BOIS_ASSEMBLAGE:
+            if self._type_beam[i] not in self.TYPE_BOIS_ASSEMBLAGE:
                 continue
             
             alpha = self.alpha[i]
             rho_k = beam.rho_k
-            if self.percage == True:
+            if self.percage:
                 a1 = round((4 + mt.cos(mt.radians(alpha))) * self.d, 1)
                 a2 = round((3 + mt.sin(mt.radians(alpha))) * self.d, 1)
                 a3t = round((7 + 5 * mt.cos(mt.radians(alpha))) * self.d, 1)

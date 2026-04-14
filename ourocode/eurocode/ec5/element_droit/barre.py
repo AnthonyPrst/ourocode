@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import math as mt
 from math import sqrt, pi, cos, sin, radians
 import numpy as np
+import pandas as pd
 
 import forallpeople as si
 si.environment("structural")
@@ -141,7 +142,7 @@ class Barre(Projet):
         
     
     @property
-    def caract_meca(self) -> 'pd.Series':
+    def caract_meca(self) -> 'pd.Series':  # noqa: F821
         """ Retourne les caractéristiques méca du bois sous forme de dataframe pandas """
         if self.classe in self.CLASSE_WOOD:
             data_csv_meca = self._data_from_csv("caracteristique_meca_bois.csv")
@@ -152,7 +153,7 @@ class Barre(Projet):
     
 
     @property
-    def gamma_M_table(self) -> 'pd.Series':
+    def gamma_M_table(self) -> 'pd.Series':  # noqa: F821
         """Retourne le tableau des gamma M pour le type de bois sélectionné
         """
         data_csv_gammaM = self._data_from_csv("gammaM.csv")

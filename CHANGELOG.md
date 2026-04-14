@@ -5,7 +5,31 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
-## [Unreleased]
+## [1.11.3] - 2026-04-14
+
+### Fixed
+- Correction des docstrings `griffe`-incompatibles causant l'échec du job `docs` en CI (`mkdocs build --strict`) :
+  - `ec5/feu/feu.py` : paramètre `Attention :` (non présent en signature) déplacé en section `Note`.
+  - `ec5/feu/compression_feu.py` : noms `lo` et `type_appuis ` (avec espace) → `lo_y`, `lo_z`, `type_appuis`.
+  - `ec5/feu/flexion_feu.py` : noms `lo_rel_y/z` et `coeflef_y/z` (caractère `/` invalide) → noms réels de la signature.
+  - `ec5/assemblage/pointe.py` : suppression des `Args` erronés dans la docstring de la property `pince` (pas de paramètres).
+- Retrait du flag `--strict` de `mkdocs build` dans `.github/workflows/ci.yml` — les warnings griffe sur `*args`/`**kwargs` non annotés ne sont pas bloquants.
+
+### Changed
+- **Amélioration des docstrings** — `ec1/vent.py` :
+  - `Murs_verticaux.__init__` : zones A/B/C/D/E, calcul de `e`, interpolation C_pe.
+  - `Toiture_terrasse_acrotere.__init__` : zones F/G/H/I, rapport hp/h, direction 0° uniquement.
+  - `Toiture_1_pant.__init__` : zones F/G/H (0°/180°) et F_up/F_low/G/H/I (90°), Note sur alpha_toit unique.
+  - `Toiture_2_pants.__init__` : zones F/G/H/I/J (0°) et F/G/H/I (90°), Note hypothèses (pentes égales, faîtage centré).
+  - `Toiture_isolee_1_pant.__init__` : zones A/B/C, C_p nets, degré d'obstruction phi.
+  - `Toiture_isolee_2_pants.__init__` : zones A/B/C/D, C_p nets.
+  - `get_geo` / `get_Cpe` / `get_Cp` / `show_zonage` de toutes les classes ci-dessus : Returns documentés, référence §EN ajoutée.
+- **Amélioration des docstrings** — `ec3/assemblage/soudure.py` :
+  - `verif_soudure`, `beta_Lw1`, `cordon_frontal`, `cordon_lateral`, `cordon_oblique`, `cordon_pieces_obliques`, `critere_generale`, `soudure_discontinue`.
+- **Amélioration des docstrings** — `ec3/assemblage/platine.py` :
+  - `f_jd`, `c`, `taux_compression` (béton et bois), `taux_traction`.
+- **Amélioration des docstrings** — `ec3/assemblage/tige.py` :
+  - `FvRd`, `FtRd`, `pince_metal_boulon`, `Bp_Rd`, `taux_FvEd_FtEd`.
 
 ## [1.11.0] - 2026-04-13
 

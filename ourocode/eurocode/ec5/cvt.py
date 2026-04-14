@@ -21,32 +21,27 @@ class MOB(Batiment):
         connecteurs_int: object=None, 
         connecteurs_ext: object=None, 
         **kwargs):
-        """Classe permettant de définir des systemes de mur à ossature bois (MOB) d'un projet selon l'EN 1995-1-1 §9.2.4 méthode A.
-        Cette classe est hérité de la classe Batiment, provenant du module A0_Projet.py.
+        """Initialise un système de murs à ossature bois (MOB) selon l'EN 1995-1-1 §9.2.4 méthode A.
 
-        Un système de mur à ossature bois est composé de plusieurs murs servant aux contreventements, 
-        ces murs sont intérompus par les portes et fenêtres. Ces murs sont eux même composés de plusieurs panneaux.
+        Un système MOB est composé de plusieurs murs de contreventement (interrompus par portes/fenêtres),
+        eux-mêmes constitués de plusieurs panneaux. Le workflow recommandé est :
 
-        Il convient donc d'ajouter une classe MOB puis d'ajouter via la méthode "add_sys_wall" chaque système de mur. 
-        Ensuite d'ajouter les murs internes au système de mur via la méthode "add_wall_to_sys", puis d'ajouter ensuite les panneaux
-        à chaque murs via la méthode "add_panel_to_wall".
-        Une méthode plus efficace consiste à écrire dans un fichier JSON les informations pour chaque système de mur, 
-        puis d'utiliser la méthode "load_walls_data" pour charger les informations.
+        1. Instancier MOB avec les connecteurs.
+        2. Ajouter les systèmes de mur via add_sys_wall.
+        3. Ajouter les murs internes via add_wall_to_sys.
+        4. Ajouter les panneaux via add_panel_to_wall.
+        5. Calculer les efforts via calculate_loads_and_deformations ou en fournissant Fv_Ed directement dans add_sys_wall.
+        6. Récupérer les taux de vérification via taux_walls et taux_ancrage.
 
-        Ensuite on peu utiliser la méthode "calculate_loads_and_deformations" pour calculer les efforts de contreventements et les déformations,
-        suivant le centre de gravité et la raideur des systèmes de mur. 
-        Sinon on peux donner directement les efforts Fv_Ed_ELS et Fv_Ed_ELU par système de mur dans la méthode "add_sys_wall".
-
-        Enfin on utilise les méthodes "taux_walls" et "taux_ancrage" pour récupérer les taux de contreventements et les taux d'ancrage.
-        Attention cette classe ne calcule pas les montants bois notamment au flambement, ni la compression perpendiculaire des montants sur la lisse basse.
-        Pour réaliser ces calculs, il faut utiliser la classe Barre et les classes de vérification associées du module EC5_Element_droit.py
+        Cette classe ne calcule pas les montants au flambement ni la compression perpendiculaire
+        sur la lisse basse : utiliser Barre et les classes de vérification EC5_Element_droit.
 
         Args:
-            connecteurs_int (Agrafe, Pointe, optional): Objet Agrafe ou Pointe, représentant les connecteurs intérieurs du mur à ossature bois provenant du module EC5_Assemblage.py.
-                Attention: lors de l'instanciation de la classe Assemblage puis de la tige elle-même, il faut un n_file = 1 et un n = 1.
-
-            connecteurs_ext (Agrafe, Pointe, optional): Objet Agrafe ou Pointe, représentant les connecteurs extérieurs du mur à ossature bois provenant du module EC5_Assemblage.py.
-                Attention: lors de l'instanciation de la classe Assemblage puis de la tige elle-même, il faut un n_file = 1 et un n = 1.
+            connecteurs_int (Agrafe | Pointe, optional): Connecteur intérieur (panneau face intérieure)
+                issu du module EC5_Assemblage. Instancier avec n_file=1 et n=1. Defaults to None.
+            connecteurs_ext (Agrafe | Pointe, optional): Connecteur extérieur (panneau face extérieure)
+                issu du module EC5_Assemblage. Instancier avec n_file=1 et n=1. Defaults to None.
+            **kwargs: Arguments transmis à la classe parent Batiment.
         """
         super().__init__(**kwargs)
         self._connecteurs = {"Intérieur": connecteurs_int, "Extérieur": connecteurs_ext}
@@ -72,7 +67,7 @@ class MOB(Batiment):
             }
 
     def _get_all_sys_walls_names(self):
-        """Récupère tous les noms des systèmes de mur."""
+        """Retourne la liste de tous les noms des systèmes de mur."""
         data = []
         for etage, sys in self.data.items():
             for sys_name in sys.keys():
@@ -80,26 +75,26 @@ class MOB(Batiment):
         return data
     
     def calculate_loads_and_deformations(self, Fw_Ed_ELS: si.kN, Fw_Ed_ELU: si.kN, XFw: si.m=0, YFw: si.m=0, alpha_Fw: float=0, etage: str=Batiment.ETAGE,) -> 'pd.DataFrame':
-        """Calcule automatiquement les efforts de contreventements et les déformations pour les murs à ossature bois,
-        suivant le centre de gravité et la raideur des systèmes de mur. 
-        Cette méthode est issue du guide AQCEN MOB et ne fonctionne que si le diaphragme de plancher ou de toiture est
-        considéré parfaitement rigide, donc avec de faible ouverture et trémie. 
+        """Calcule les efforts de contreventement et les déformations par système de mur selon la méthode AQCEN MOB.
+
+        Répartit l'effort global de contreventement entre les systèmes de mur en fonction de leurs
+        raideurs et de leurs positions par rapport au centre de rigidité. Nécessite que le diaphragme
+        (plancher ou toiture) soit considéré parfaitement rigide (faibles ouvertures et trémies).
 
         Args:
-            Fw_Ed_ELS (float): Force résultante de contreventement à la combinaison ELS en kN au niveau de l'étage.
-            
-            Fw_Ed_ELU (float): Force résultante de contreventement à la combinaison ELU en kN au niveau de l'étage.
-            
-            XFw (float): Position X en m depuis l'origine du repère cartésien choisi par le calculateur, 
-                de la force résultante de contreventement sur un système de mur.
-            
-            YFw (float): Position Y en m depuis l'origine du repère cartésien choisi par le calculateur, 
-                de la force résultante de contreventement sur un système de mur.
-            
-            alpha_Fw (float): Angle de la direction d'application de la force résultante de contreventement 
-                sur un système de mur en degrés par rapport au repère cartésien choisi par le calculateur inscrit dans le cercle trigonométrique.
-            
-            etage (str): nom de l'étage où s'applique la force résultante de contreventement.
+            Fw_Ed_ELS (float): Force résultante de contreventement à l'ELS en kN, au niveau de l'étage.
+            Fw_Ed_ELU (float): Force résultante de contreventement à l'ELU en kN, au niveau de l'étage.
+            XFw (float): Coordonnée X de la force résultante depuis l'origine du repère cartésien
+                du calculateur, en m. Defaults to 0.
+            YFw (float): Coordonnée Y de la force résultante depuis l'origine du repère cartésien
+                du calculateur, en m. Defaults to 0.
+            alpha_Fw (float): Angle d'application de la force résultante par rapport au repère cartésien,
+                en degrés dans le sens trigonométrique (sens inverse des aiguilles d'une montre). Defaults to 0.
+            etage (str): Nom de l'étage où s'applique la force résultante. Defaults to premier étage.
+
+        Returns:
+            pd.DataFrame: Tableau des efforts et déplacements par système de mur avec les colonnes
+                ["Étage", "delta,v,Ed,i ELS", "Fv,Ed,i ELU"].
         """
         Fw_Ed_ELS = Fw_Ed_ELS * si.kN
         Fw_Ed_ELU = Fw_Ed_ELU * si.kN
@@ -206,6 +201,12 @@ class MOB(Batiment):
 
     @property
     def data_sys_walls(self) -> dict:
+        """Retourne un dictionnaire des systèmes de mur sans leur sous-clé 'Murs'.
+
+        Returns:
+            dict: Clés = noms des systèmes de mur, valeurs = dict de leurs propriétés
+                (étage, hauteurs, longueur, position, efforts éventuels).
+        """
         sys_wall_data = {}
         _data = deepcopy(self._data_MOB)
         for etage, sys in _data.items():
@@ -216,6 +217,12 @@ class MOB(Batiment):
     
     @property
     def data_walls(self) -> dict:
+        """Retourne un dictionnaire des murs sans leur sous-clé 'Panneaux'.
+
+        Returns:
+            dict: Clés = noms des murs (ex. "S1_W1"), valeurs = dict de leurs propriétés
+                (position, longueur, couturage, connecteurs).
+        """
         wall_data = {}
         _data = deepcopy(self._data_MOB)
         for etage, sys in _data.items():
@@ -227,6 +234,12 @@ class MOB(Batiment):
     
     @property
     def data_panels(self) -> dict:
+        """Retourne un dictionnaire de tous les panneaux de tous les murs et systèmes.
+
+        Returns:
+            dict: Clés = noms des panneaux (ex. "S1_W1_P1"), valeurs = dict de leurs
+                propriétés (type, position, dimensions, nombre, contreventement, panneau double).
+        """
         panel_data = {}
         for etage, sys in self._data_MOB.items():
             for sys_name, sys_wall in sys.items():
@@ -246,34 +259,32 @@ class MOB(Batiment):
         Yg: si.m=0,
         alpha_sw: float=0,
         ) -> str:
-        """
-        Ajoute un système de mur à ossature bois.
+        """Ajoute un système de mur à ossature bois (contreventement complet) au niveau d'un étage.
+
+        Les systèmes de mur sont nommés automatiquement S1, S2, …
+        Le système de mur est défini comme un repère cartésien, coin inférieur gauche
+        en (0, 0), la face externe définit le sens positif des abscisses.
 
         Args:
-            h_etage (float): hauteur de l'étage en m.
-            h_sys_MOB (float): hauteur du système de mur à ossature bois en m.
-            l_sys_MOB (float): longueur du système de mur à ossature bois en m.
-            etage (str): nom de l'étage où se trouve le système de mur bois.
+            h_etage (float): Hauteur de l'étage en m.
+            h_sys_MOB (float): Hauteur du système de mur en m (hauteur libre entre lisse basse et lisse haute).
+            l_sys_MOB (float): Longueur totale du système de mur en m (somme des murs et des ouvertures).
+            etage (str): Nom de l'étage auquel appartient le système de mur.
+            Fv_Ed_ELS (float, optional): Effort de contreventement de calcul à l'ELS en kN.
+                À renseigner uniquement pour écraser la valeur calculée par calculate_loads_and_deformations.
+                Defaults to None.
+            Fv_Ed_ELU (float, optional): Effort de contreventement de calcul à l'ELU en kN.
+                À renseigner uniquement pour écraser la valeur calculée par calculate_loads_and_deformations.
+                Defaults to None.
+            Xg (float, optional): Coordonnée X du centre de rigidité du système de mur depuis l'origine
+                du repère cartésien du calculateur, en m. Defaults to 0.
+            Yg (float, optional): Coordonnée Y du centre de rigidité du système de mur depuis l'origine
+                du repère cartésien du calculateur, en m. Defaults to 0.
+            alpha_sw (float, optional): Angle d'orientation du système de mur dans le sens trigonométrique
+                (anti-horaire) depuis l'origine, en degrés. Defaults to 0.
 
-            Fv_Ed_ELS (float, optional): Effort de contreventement à l'ELS en kN.
-                Cette valeur n'est à rentrer que si l'on souhaite écraser la valeur calculée automatiquement.
-
-            Fv_Ed_ELU (float, optional): Effort de contreventement à l'ELU en kN.
-                Cette valeur n'est à rentrer que si l'on souhaite écraser la valeur calculée automatiquement.
-
-            Les arguments suivants sont optionnels, s'ils sont rentrés, ils permettent de calculer les déformations et les efforts de contreventement:
-
-            Xg (float, optional): position X depuis l'origine du repère cartésien choisi par le calculateur, 
-                du centre de gravité du système de mur à ossature bois en m.
-
-            Yg (float, optional): position Y depuis l'origine du repère cartésien choisi par le calculateur, 
-                du centre de gravité du système de mur à ossature bois en m.
-
-            alpha_sw (float, optional): angle de rotation suivant le cercle trigonométrique du système de mur à ossature bois en degrés à l'origine O,i,g via le repère cartésien choisi par le calculateur.
-                Cela veux donc dire que l'angle de rotation des systèmes de mur est mesuré dans le sens inverse des aiguilles d'une montre depuis l'origine gravitaire du système de mur.
-        
         Returns:
-            str: Nom du système de mur ajouté.
+            str: Nom attribué au système de mur (ex. : "S1", "S2").
         """
         # Nommer les systèmes de mur de façon continue indépendamment des étages
         total_sys = sum(len(sys) for sys in self.data.values()) if self.data else 0
@@ -315,37 +326,40 @@ class MOB(Batiment):
         Kser_ext: si.N/si.mm=None,
         Kser_int: si.N/si.mm=None,
         ) -> str:
-        """
-        Ajoute un mur interne au système de mur à ossature bois.
+        """Ajoute un mur contreventant interne à un système de mur à ossature bois.
+
+        Les murs sont nommés automatiquement {sys_name}_W1, {sys_name}_W2, …
+        Le système de mur est défini comme un repère cartésien, coin inférieur gauche
+        en (0, 0), la face externe définit le sens positif des abscisses.
 
         Args:
-            sys_name (str): Nom du système de mur auquel le mur est ajouté.
+            sys_name (str): Nom du système de mur auquel le mur est rattaché.
+            position (float): Coordonnée X du coin gauche du mur dans le système de mur, en m.
+            l_MOB (float): Longueur du mur en m (sans les ouvertures).
+            couturage_ext_rive (float): Entraxe des organes en rive sur la face extérieure du panneau, en mm.
+                Defaults to 150 mm.
+            couturage_ext_inter (float): Entraxe des organes intermédiaires sur la face extérieure, en mm.
+                Defaults to 300 mm.
+            couturage_int_rive (float): Entraxe des organes en rive sur la face intérieure du panneau, en mm.
+                0 si pas de panneau intérieur. Defaults to 0.
+            couturage_int_inter (float): Entraxe des organes intermédiaires sur la face intérieure, en mm.
+                Defaults to 0.
+            Ff_Rk_ext (float, optional): Capacité résistante caractéristique de cisaillement unitaire du connecteur
+                extérieur en N (valeur brute, sans Kmod ni gamma_M). Écrase la valeur issue de connecteurs_ext.
+                Defaults to None.
+            Ff_Rk_int (float, optional): Capacité résistante caractéristique de cisaillement unitaire du connecteur
+                intérieur en N (valeur brute, sans Kmod ni gamma_M). Écrase la valeur issue de connecteurs_int.
+                Defaults to None.
+            Kser_ext (float, optional): Raideur ELS du connecteur extérieur en N/mm.
+                Écrase la valeur issue de connecteurs_ext. Defaults to None.
+            Kser_int (float, optional): Raideur ELS du connecteur intérieur en N/mm.
+                Écrase la valeur issue de connecteurs_int. Defaults to None.
 
-            position (float): Position X à partir du coin inférieur gauche du mur dans le système de mur en m.
-                On regarde le système de mur comme un repère cartésien avec le coin inférieur gauche en (0,0), 
-                avec la face externe du système de mur comme définition du sens des abscisses.
-
-            l_MOB (float): Longueur du mur en m.
-
-            couturage_ext_rive (float): Entraxe du couturage rive face extérieure en mm.
-            couturage_ext_inter (float): Entraxe du couturage intermédiaire face extérieure en mm.
-            couturage_int_rive (float): Entraxe du couturage rive face intérieure en mm.
-            couturage_int_inter (float): Entraxe du couturage intermédiaire face intérieure en mm.:
-
-            Ff_Rk_ext (float, optional): Capacité résistante caractéristique de cisaillement du connecteur en N sur la face extérieure.
-                Attention, aucune majoration ne doit être faite sur cette valeur. Cette valeur n'est à rentrer que si l'on souhaite écraser la valeur calculée.
-                
-            Ff_Rk_int (float, optional): Capacité résistante caractéristique de cisaillement du connecteur en N sur la face intérieure.
-                Attention, aucune majoration ne doit être faite sur cette valeur. Cette valeur n'est à rentrer que si l'on souhaite écraser la valeur calculée.
-
-            Kser_ext (float, optional): Raideur du connecteur entre le panneau extérieur et les montants bois en N/mm.
-                Cette valeur n'est à rentrer que si l'on souhaite écraser la valeur calculée.
-
-            Kser_int (float, optional): Raideur du connecteur entre le panneau intérieur et les montants bois en N/mm.
-                Cette valeur n'est à rentrer que si l'on souhaite écraser la valeur calculée.
-        
         Returns:
-            str: Nom du mur ajouté.
+            str: Nom attribué au mur (ex. : "S1_W1", "S1_W2").
+
+        Raises:
+            ValueError: Si sys_name ne correspond à aucun système de mur enregistré.
         """
         etage_found = None
         for etage, sys in self.data.items():
@@ -397,19 +411,29 @@ class MOB(Batiment):
         position_panel: str=POSITION_PANEL,
         on_top_of: str=None,
         ) -> str:
-        """
-        Ajoute un panneau à un mur.
+        """Ajoute un panneau de contreventement à un mur interne.
+
+        Les panneaux sont nommés automatiquement {wall_name}_P1, {wall_name}_P2, …
+        Un panneau est automatiquement marqué non contreventant si son rapport
+        hauteur/largeur (ou largeur/hauteur) dépasse 4 (EN 1995-1-1 §9.2.4.2).
+        Les panneaux empilés verticalement (on_top_of) sont traités en série de raideur.
 
         Args:
-            wall_name (str): Nom du mur auquel le panneau est ajouté.
-            h_panel (float): Hauteur du panneau en mm (dimension la plus grande en théorie).
-            b_panel (float): Largeur du panneau en mm (dimension la plus petite en théorie).
-            number (int): Nombre de panneaux de même dimension.
-            position_panel (str): Position du panneau par rapport au mur.
-            on_top_of (str): Si le panneau est placé au-dessus d'un panneau, donner le nom du panneau au-dessus duquel le panneau est ajouté.
-        
+            wall_name (str): Nom du mur auquel le panneau est rattaché.
+            h_panel (float): Hauteur du panneau en mm (généralement la dimension verticale).
+            b_panel (float): Largeur du panneau en mm (généralement la dimension horizontale).
+            number (int): Nombre de panneaux identiques côte à côte. Defaults to 1.
+            position_panel (str): Face du panneau par rapport à l'ossature.
+                "Extérieur" : face extérieure du mur.
+                "Intérieur" : face intérieure du mur.
+            on_top_of (str, optional): Nom du panneau inférieur si ce panneau est posé
+                en empilé vertical (panneaux en H/2). Defaults to None.
+
         Returns:
-            str: Nom du panneau ajouté.
+            str: Nom attribué au panneau (ex. : "S1_W1_P1").
+
+        Raises:
+            ValueError: Si le système de mur parent est introuvable dans data.
         """
         sys_name = wall_name.split("_")[0]
         etage_found = None
@@ -467,20 +491,30 @@ class MOB(Batiment):
         return name
 
     def save_walls_data(self, path: str=None) -> None:
-        """Sauvegarde les données des murs dans un fichier JSON.
+        """Sauvegarde la structure complète des murs MOB dans un fichier JSON.
+
+        Sérialise le dictionnaire data (systèmes de mur, murs, panneaux) via le
+        mécanisme Batiment.save_data. Ce fichier peut ensuite être rechargé avec load_walls_data.
 
         Args:
-            path (str, optional): Chemin du fichier à créer, s'il n'est pas fourni, une boite de dialogue s'ouvre 
-                pour choisir le fichier. Defaults to None.
+            path (str, optional): Chemin absolu du fichier de destination (.json).
+                Si None, une boîte de dialogue s'ouvre pour sélectionner le fichier.
+                Defaults to None.
         """
         super().save_data(self.data, type_data="JSON", path=path)
     
     def load_walls_data(self, path: str=None) -> dict:
-        """Charge les données des murs depuis un fichier JSON.
+        """Charge la structure des murs MOB depuis un fichier JSON produit par save_walls_data.
+
+        Reconstruit le dictionnaire data interne (_data_MOB) à partir du fichier JSON.
 
         Args:
-            path (str, optional): Chemin du fichier à charger, s'il n'est pas fourni, une boite de dialogue s'ouvre 
-                pour choisir le fichier. Defaults to None.
+            path (str, optional): Chemin absolu du fichier source (.json).
+                Si None, une boîte de dialogue s'ouvre pour sélectionner le fichier.
+                Defaults to None.
+
+        Returns:
+            dict: Dictionnaire data structuré par étage → système de mur → mur → panneau.
         """
         self.data = super().load_data(type_data="JSON", path=path)
         return self.data
@@ -562,11 +596,16 @@ class MOB(Batiment):
         return df_kp
 
     def get_Kser_wall(self) -> 'pd.DataFrame':
-        """
-        Calcul la raideur des murs du système de mur sélectionné.
+        """Calcule et retourne la raideur de glissement ELS de chaque système de mur.
 
-        Args:
-            sys_name (str): Nom du système de mur auquel le mur est ajouté.
+        Agrège les raideurs de panneaux (Kser,p) et de murs selon la méthode de la
+        section §9.2.4 de l'EN 1995-1-1. Peuple également les attributs
+        data_Kser_panels et data_Kser_walls.
+
+        Returns:
+            pd.DataFrame: Tableau data_Kser_sys_walls indexé par le nom du système de mur,
+                avec les colonnes ["Étage", "Kser système de mur", "Coeff. équivalence", "Kser,p,ref"]
+                (Kser en N/mm).
         """
         self.data_Kser_panels = self._k_panel()
         # Colonnes alignées avec les valeurs calculées: [Étage, Kser, Coeff, Kser,p,ref]
@@ -660,16 +699,21 @@ class MOB(Batiment):
         
 
     def taux_walls(self) -> 'pd.DataFrame':
-        """
-        Calcul les taux de travail des MOB avec la vérification des critères ELS et ELU du contreventement.
-        3 tables sont retournées:
-            - taux_FvRd_panels: Taux de travail des panneaux avec:
-                - Taux de vérification de la capacité de chaque panneau à reprendre l'effort de contreventement (%)
-            - taux_FvRd_walls: Taux de travail des murs avec:
-                - Taux de vérification de la capacité de chaque mur à reprendre l'effort de contreventement (%)
-            - taux_FvRd_sys_walls: Taux de travail des systèmes de mur avec:
-                - Taux de vérification de la capacité de chaque système de mur à reprendre l'effort de contreventement (%)
-                - Taux du déplacement ELS de chaque système de mur (%)
+        """Calcule les taux de travail ELS et ELU en contreventement pour tous les éléments MOB.
+
+        Peuple trois tableaux d'attribut accessibles après l'appel :
+
+        - taux_FvRd_panels : taux de cisaillement de chaque panneau (F_iv,Ed / F_iv,Rd en %).
+        - taux_FvRd_walls : taux de cisaillement de chaque mur (F_w,Ed / F_w,Rd en %).
+        - taux_FvRd_sys_walls : taux de cisaillement et de déplacement ELS de chaque système de mur.
+
+        Note:
+            Appelle get_Kser_wall en interne. Les efforts peuvent être issus de
+            calculate_loads_and_deformations ou fournis directement dans add_sys_wall.
+
+        Returns:
+            pd.DataFrame: Tableau taux_FvRd_walls indexé par le nom du mur, avec les colonnes
+                ["Étage", "Fw,v,Ed", "Fw,v,Rd", "Taux cisaillement (%)"].
         """
         self.taux_FvRd_panels = pd.DataFrame(columns=['Étage', 'Fiv,Ed', 'ci', 'Coeff. panneau double', 'Fiv,Rd', 'Taux cisaillement (%)'])
         self.taux_FvRd_panels.index.name = 'Panneau'
@@ -768,26 +812,41 @@ class MOB(Batiment):
         e_anc_li: si.mm=0, 
         etage: str=None
     ) -> 'pd.DataFrame':
-        """ Calcul le taux de travail des ancrages, avec:
-            - La vérification de l'equerre au soulèvement pour chaques murs
-            - La vérification de l'ancrage de la lisse basse sur la lisse d'implantation
-            - La vérification de l'ancrage de la lisse d'implantation au sol
-        
+        """Calcule les taux de travail des ancrages pour tous les murs vérifiés.
+
+        Effectue trois vérifications pour chaque mur :
+
+        1. Équerre de soulèvement (traction) : F_t,Ed / min(F_t,Rd,bois, F_t,Rd,béton).
+        2. Ancrage lisse basse sur lisse d'implantation : F_v,Ed / F_v,anc,lb,Rd.
+        3. Ancrage lisse d'implantation au sol : F_v,Ed / F_v,anc,li,Rd.
+
+        Note:
+            taux_walls doit être appelé avant taux_ancrage pour peupler data_walls_loads.
+
         Args:
-            montant (Barre): montant de l'ossature bois sur lequel l'équerre de traction est installée, 
-                issue de la classe Barre ou dérivé de cet objet provenant du module EC5_Element_droit.py
-            lisse_basse (Barre): lisse basse issue de la classe Barre ou dérivé de cet objet provenant du module EC5_Element_droit.py
-            lisse_impl (Barre): lisse d'implantation issue de la classe Barre ou dérivé de cet objet provenant du module EC5_Element_droit.py
-            Ft_Rk_wood (float): Capacité résistante caractéristique de traction de l'équerre dans le montant en kN
-                (attention à prendre le nef en compte).
-            Ft_Rd_concrete (float): Capacité résistante de calcul en traction de l'équerre dans le béton en kN
-            Fv_Rk_anc_lb (float): Capacité résistante caractéristique de cisaillement de l'ancrage unitaire de la lisse basse en kN
-                (attention à prendre le nef en compte).
-            e_anc_lb (float): Entraxe de couturage de l'ancrage unitaire de la lisse basse en mm.
-            Fv_Rk_anc_li (float): Capacité résistante caractéristique de cisaillement de l'ancrage unitaire de la lisse d'implantation en kN
-                (attention à prendre le nef en compte).
-            e_anc_li (float): Entraxe de couturage de l'ancrage unitaire de la lisse d'implantation en mm.
-            etage (str): nom de l'étage à vérifier, si vide alors on vérifie tous les étages avec ces valeurs.
+            montant (Barre): Montant de l'ossature bois portant l'équerre de traction,
+                issu de Barre ou dérivé (EC5_Element_droit). Fournit le Kmod.
+            lisse_basse (Barre): Lisse basse, issue de Barre ou dérivé. Fournit le Kmod.
+            lisse_impl (Barre): Lisse d'implantation, issue de Barre ou dérivé. Fournit le Kmod.
+            Ft_Rk_wood (float): Capacité résistante caractéristique de traction de l'équerre
+                dans le montant en kN (nef déjà pris en compte). Defaults to 0.
+            Ft_Rd_concrete (float): Capacité résistante de calcul en traction de l'équerre
+                dans le béton en kN. Defaults to 0.
+            Fv_Rk_anc_lb (float): Capacité résistante caractéristique de cisaillement de l'ancrage
+                unitaire de la lisse basse en kN (nef déjà pris en compte). Defaults to 0.
+            e_anc_lb (float): Entraxe de l'ancrage unitaire de la lisse basse en mm. Defaults to 0.
+            Fv_Rk_anc_li (float): Capacité résistante caractéristique de cisaillement de l'ancrage
+                unitaire de la lisse d'implantation en kN (nef déjà pris en compte). Defaults to 0.
+            e_anc_li (float): Entraxe de l'ancrage unitaire de la lisse d'implantation en mm. Defaults to 0.
+            etage (str, optional): Nom de l'étage à vérifier. Si None, tous les étages
+                sont vérifiés avec ces mêmes valeurs. Defaults to None.
+
+        Returns:
+            pd.DataFrame: Tableau taux_ancr_walls indexé par le nom du mur, avec les colonnes
+                ["Étage", "Longueur mur", "Ft,Ed", "Ft,Rd", "Taux ancr. soulèvement (%)",
+                "Fv,anc,Ed", "Fv,anc,lb,Rd", "Nbr ancr,lb", "entraxe anc,lb",
+                "Taux ancr. lisse basse (%)", "Fv,anc,li,Rd", "Nbr ancr,li",
+                "entraxe anc,li", "Taux ancr. lisse impl. (%)"].
         """
         Ft_Rk_wood = Ft_Rk_wood * si.kN
         Ft_Rd_concrete = Ft_Rd_concrete * si.kN

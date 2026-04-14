@@ -8,7 +8,7 @@ include = ["ourocode*"]
 
 [project]
 name = "ourocode"
-version = "1.11.0"
+version = "1.11.3"
 description = "Ceci est un catalogue de fonction permettant une utilisation rapide pour la réalisation de note de calcul personnalisée."
 readme = "README.md"
 authors = [{name = "Anthony PARISOT", email = "contact@ourea-structure.fr"}]
@@ -53,4 +53,18 @@ docs = [
     "mkdocstrings[python]>=0.25",
     "mkdocs-include-markdown-plugin>=6.0",
     "mike>=2.0",
+]
+
+[tool.ruff]
+line-length = 120
+exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+ignore = [
+    "E402",   # Module level import not at top — intentionnel (si.environment() avant imports)
+    "F401",   # Imported but unused — faux positifs sur les __init__.py de réexport
+    "F403",   # from module import * — utilisé intentionnellement
+    "F405",   # May be undefined from star import — conséquence de F403
+    "E741",   # Ambiguous variable name (l, O, I) — noms de variables physiques courants
+    "F841",   # Local variable assigned but never used
 ]

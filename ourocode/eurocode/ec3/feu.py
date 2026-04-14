@@ -222,14 +222,21 @@ class Feu_acier(Plat):
         k_sh: float = 1.0,
         **kwargs,
     ):
-        """
+        """Initialise le calcul thermique d'un élément acier non protégé selon EN 1993-1-2 §4.2.3.
+
+        Le calcul incrémental est exécuté automatiquement à l'instanciation (pas de 5 s).
+        La courbe de feu utilisée est la courbe nominale ISO 834.
+        Les résultats sont stockés dans self.fire_data (DataFrame).
+
         Args:
-            time (float): durée attendue totale en minutes du feu.
-            am_v (float): facteur de section A/V en m⁻¹ (surface exposée / volume acier).
-            theta_a0 (float): température initiale de l'acier en °C.
-            epsilon_m (float): émissivité de l'acier (0.7 typique).
-            rho_a (float): masse volumique de l'acier kg/m³ (7850 par défaut).
-            k_sh (float): facteur de correction forme/ombrage (k_sh = 1 par défaut).
+            time (int): Durée totale de l'exposé au feu en minutes.
+            am_v (float): Facteur de massivité A_m/V en m⁻¹ (surface exposée / volume acier).
+                Valeur plancher appliquée à 10 m⁻¹ si am_v < 10.
+            theta_a0 (float): Température initiale de l'acier en °C. Defaults to 20.
+            epsilon_m (float): Émissivité de la surface de l'acier (EN 1993-1-2 §2.2). Defaults to 0.7.
+            rho_a (float): Masse volumique de l'acier en kg/m³ (EN 1993-1-2 §3.2.2). Defaults to 7850.
+            k_sh (float): Facteur de correction d'ombrage (k_sh ≤ 1). Defaults to 1.0.
+            **kwargs: Arguments transmis à la classe parent Plat.
         """
         super().__init__(**kwargs)
         self.time = time
@@ -348,27 +355,45 @@ class Feu_acier(Plat):
         return self.fire_data
 
     def get_fire_data(self):
-        """Récupère les données du feu normalisées et de l'acier avec un intervalle de 5 secondes.
+        """Retourne le DataFrame complet de l'évolution thermique et des facteurs de réduction.
+
+        Colonnes : t (s), θg (°C), Δθa,t (C°), θa (°C), ky,θ, kp,θ, kE,θ, kb,θ, kw,θ.
+        Pas de temps : 5 secondes.
+
+        Returns:
+            pandas.DataFrame: Évolution complète de la température acier et des coefficients
+                de réduction sur la durée ``time`` minutes.
         """
         return self.fire_data
 
     def get_specific_time_data(self, time: float):
-        """Récupère les données du feu normalisées et de l'acier au temps donné.
+        """Retourne une ligne du DataFrame à un instant donné.
 
         Args:
-            time (float): temps en minutes.
+            time (float): Instant à lire en minutes (doit être dans [0, self.time]).
+
+        Returns:
+            pandas.Series: Ligne du DataFrame fire_data correspondant à ``time`` minutes,
+                contenant θg, Δθa,t, θa et les facteurs de réduction.
+
+        Raises:
+            ValueError: Si time < 0 ou time > self.time.
         """
         if time < 0 or time > self.time:
             raise ValueError(f"Le temps doit être compris entre 0 et la durée totale du feu, soit {self.time} minutes.")
         return self.fire_data.loc[time*60]
 
     def show_temperatures(self, screenshot: bool = ("False", "True"), filepath: str=None):
-        """Affiche l'évolution de la température θg(t) et θa(t) en fonction du temps (minutes) avec pas 5 s.
-        
+        """Affiche ou enregistre le graphique de l'évolution des températures θ_g(t) et θ_a(t).
+
         Args:
-            screenshot (bool): si True, enregistre le graphique
-            filepath (str): chemin d'enregistrement du graphique, si ce dernier est vide, 
-                alors une boite de dialogue s'ouvre pour choisir le chemin.
+            screenshot (bool): Si True, enregistre le graphique au format PNG.
+                Si False, ouvre une fenêtre matplotlib. Defaults to False.
+            filepath (str, optional): Chemin de fichier PNG pour l'enregistrement.
+                Si None et screenshot=True, une boîte de dialogue PySide6 s'ouvre.
+
+        Returns:
+            str | None: Chemin du fichier enregistré si screenshot=True, None sinon.
         """
         plt.figure(figsize=(10, 5))
         plt.plot(self.fire_data["t (s)"]/60, self.fire_data["θg (°C)"], label="Température des gaz θg(t) (°C)")
@@ -391,12 +416,16 @@ class Feu_acier(Plat):
             plt.show()
 
     def show_reductions_factors(self, screenshot: bool = ("False", "True"), filepath: str=None):
-        """Affiche le graphiques des facteurs de réduction ky,θ, kb,θ et kE,θ en fonction du temps (minutes) avec pas 5 s.
-        
+        """Affiche ou enregistre le graphique des facteurs de réduction au feu k_y,θ, k_p,θ, k_E,θ, k_b,θ, k_w,θ.
+
         Args:
-            screenshot (bool): si True, enregistre le graphique
-            filepath (str): chemin d'enregistrement du graphique, si ce dernier est vide, 
-                alors une boite de dialogue s'ouvre pour choisir le chemin.
+            screenshot (bool): Si True, enregistre le graphique au format PNG.
+                Si False, ouvre une fenêtre matplotlib. Defaults to False.
+            filepath (str, optional): Chemin de fichier PNG pour l'enregistrement.
+                Si None et screenshot=True, une boîte de dialogue PySide6 s'ouvre.
+
+        Returns:
+            str | None: Chemin du fichier enregistré si screenshot=True, None sinon.
         """
         plt.figure(figsize=(10, 5))
         plt.plot(self.fire_data["t (s)"]/60, self.fire_data["ky,θ"], label="Facteur de réduction ky,θ")

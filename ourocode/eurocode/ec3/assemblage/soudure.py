@@ -1,5 +1,6 @@
 ﻿# coding in UTF-8
-import os, sys
+import os
+import sys
 from PIL import Image
 from math import *
 import pandas as pd
@@ -49,10 +50,18 @@ class Soudure(Plat):
 
 
     def verif_soudure(self):
-        """Vérifie que la soudure répond aux critères de l'EC3
+        """Vérifie que la géométrie du cordon de soudure est conforme à l'EN 1993-1-8 et au CNC2M-N0175-REC §3.3.
+
+        Contrôles effectués :
+        - Angle α entre les deux pièces : 60° ≤ α ≤ 120°.
+        - Gorge a : max(3 mm, (√t_max - 0.5) mm) ≤ a ≤ 0.7 × t_min.
+        - Longueur de soudure l : l > max(30 mm, 6a).
 
         Returns:
-            bool: si la soudure est correctement définie, alors True sinon False
+            bool: True si la géométrie est valide.
+
+        Raises:
+            ValueError: Si l'angle, la gorge ou la longueur ne respectent pas les critères.
         """
         if 60 <= self.alpha <= 120:
             # selon CNC2M-N0175-REC §3.3
@@ -73,20 +82,32 @@ class Soudure(Plat):
         
     
     def beta_Lw1(self, Lj: si.mm) -> float:
-        """Calcul le facteur beta_Lw,1 qui dimminue la résistance pour des cordons de soudure des assemblages par recouvrement (à plat)
+        """Retourne le facteur β_Lw,1 de réduction pour les cordons de soudure longs selon EN 1993-1-8 §4.11.
+
+        S'applique aux assemblages par recouvrement où la longueur de l'assemblage L_j est grande.
+        Formule : β_Lw,1 = min((1.2 - 0.2 × L_j) / (150 × a), 1).
 
         Args:
-            Lj (int): Longueur de recouvrement des plats en mm
+            Lj (float): Longueur de recouvrement des pièces en mm.
+
+        Returns:
+            float: Facteur β_Lw,1 (≤ 1).
         """
         Lj = Lj * si.mm
         return min((1.2 - 0.2 * Lj) / (150 * self.gorge), 1)
 
     
     def cordon_frontal(self, N_Ed: si.kN=0):
-        """Calcul un cordon de soudure frontale et retourne le taux de travail.
+        """Retourne le taux de travail d'un cordon de soudure frontal selon EN 1993-1-8 §4.5.3.
+
+        Cordon sollicité perpendiculairement à son axe (traction ou compression).
+        Formule : taux = (β_w × γ_M2 × N_Ed × √2) / (f_u × a × l_ef).
 
         Args:
-            N_Ed (float): Effort de traction en kN.
+            N_Ed (float): Effort normal de calcul perpendiculaire au cordon en kN. Defaults to 0.
+
+        Returns:
+            tuple: (latex_string, taux_frontal) sans unité.
         """
         N_Ed = N_Ed * si.kN
         gamma_M_2 = self.GAMMA_M["gamma_M2"]
@@ -107,10 +128,16 @@ class Soudure(Plat):
 
 
     def cordon_lateral(self, V_Ed: si.kN=0):
-        """Calcul un cordon de soudure latérale et retourne le taux de travail.
+        """Retourne le taux de travail d'un cordon de soudure latéral selon EN 1993-1-8 §4.5.3.
+
+        Cordon sollicité parallèlement à son axe (cisaillement).
+        Formule : taux = (β_w × γ_M2 × V_Ed × √3) / (f_u × a × l_ef).
 
         Args:
-            V_Ed (float): Effort de cisaillement du cordon en kN.
+            V_Ed (float): Effort de cisaillement de calcul parallèle au cordon en kN. Defaults to 0.
+
+        Returns:
+            tuple: (latex_string, taux_latéral) sans unité.
         """
         V_Ed = V_Ed * si.kN
         gamma_M_2 = self.GAMMA_M["gamma_M2"]
@@ -131,10 +158,17 @@ class Soudure(Plat):
 
 
     def cordon_oblique(self, alpha_cordon: float, N_Ed: si.kN=0):
-        """Calcul un cordon de soudure oblique et retourne le taux de travail.
+        """Retourne le taux de travail d'un cordon de soudure oblique selon EN 1993-1-8 §4.5.3.
+
+        Cordon dont l'effort fait un angle alpha_cordon avec l'axe du cordon.
+        Formule : taux = (β_w × γ_M2 × N_Ed × √(3 - sin²(α))) / (f_u × a × l_ef).
 
         Args:
-            N_Ed (float): Effort de traction en kN.
+            alpha_cordon (float): Angle en degrés entre l'effort et l'axe du cordon.
+            N_Ed (float): Effort de calcul en kN. Defaults to 0.
+
+        Returns:
+            tuple: (latex_string, taux_oblique) sans unité.
         """
         self.alpha_cordon = alpha_cordon
         N_Ed = N_Ed * si.kN
@@ -157,10 +191,17 @@ class Soudure(Plat):
 
 
     def cordon_pieces_obliques(self, N_Ed: si.kN=0):
-        """Calcul un cordon de soudure sur des pièces à positionnement obliques et retourne le taux de travail.
+        """Retourne le taux de travail d'un cordon sur des pièces obliques selon EN 1993-1-8 §4.5.3.
+
+        Tient compte de l'angle α de la pièce 2 sur la pièce 1 (défini à l'instanciation).
+        - Si α < 90° : facteur = √(2 - sin(α)).
+        - Si α ≥ 90° : facteur = √(2 + sin(α)).
 
         Args:
-            N_Ed (float): Effort de traction en kN.
+            N_Ed (float): Effort de calcul perpendiculaire à la pièce 1 en kN. Defaults to 0.
+
+        Returns:
+            tuple: (latex_string, taux_oblique) sans unité.
         """
         N_Ed = N_Ed * si.kN
         gamma_M_2 = self.GAMMA_M["gamma_M2"]
@@ -188,14 +229,19 @@ class Soudure(Plat):
 
 
     def critere_generale(self, FvEd: si.kN=0, FaxEd: si.kN=0):
-        """Calcul le critère générale de Von Mises d'une soudure et retourne le taux.
+        """Retourne le taux de travail de la soudure selon le critère de Von Mises (EN 1993-1-8 §4.5.3).
+
+        Vérifie simultanément :
+        - σ_e / (f_u / (β_w × γ_M2)) ≤ 1
+        - σ_⊥ / (0.9 × f_u / γ_M2) ≤ 1
+        où σ_e = √(σ_⊥² + 3(τ_⊥² + τ_∥²)).
 
         Args:
-            FvEd (int | float): Effort de cisaillement sur la en kN
-            FaxEd (int | float): Effort de traction sur la soudure en kN
+            FvEd (float): Effort de cisaillement parallèle au cordon en kN. Defaults to 0.
+            FaxEd (float): Effort de traction sur la soudure en kN. Defaults to 0.
 
         Returns:
-            (float) : Taux de travail de la soudure
+            tuple: (latex_string, taux_von_mises) sans unité, correspondant au taux le plus défavorable.
         """
         F_v_Ed = FvEd * si.kN
         F_ax_Ed = FaxEd * si.kN
@@ -224,15 +270,18 @@ class Soudure(Plat):
     
 
     def soudure_discontinue(self, b: si.mm, b1: si.mm, corrosion: bool=("False", "True")):
-        """Détermine les dimensions des cordons de soudure discontinue
+        """Retourne les dimensions maximales des cordons de soudure discontinue selon EN 1993-1-8 §4.3.4.
 
         Args:
-            b (int): voir EC3 1-8
-            b1 (int): hauteur en mm de la pièce 2 soudé sur la pièce 1
-            corrosion (bool, optional): _description_. Defaults to False.
+            b (float): Distance entre les deux cordons de soudure (voir EN 1993-1-8 §4.3.4) en mm.
+            b1 (float): Hauteur de la pièce 2 soudée sur la pièce 1 en mm.
+            corrosion (bool): True si l'ambiance est corrosive (soudure discontinue interdite). Defaults to False.
 
         Returns:
-            dict: dimensions des cordons de soudure discontinue
+            dict: {"Lwe": longueur minimale d'un tronçon, "L1": espacement max intérieur, "L2": espacement max extérieur} en mm.
+
+        Raises:
+            ValueError: Si corrosion=True (soudure discontinue interdite en milieu corrosif).
         """
         if corrosion:
             raise ValueError("Il n'est pas possible d'avoir une soudure discontinue en ambiance corrosive")

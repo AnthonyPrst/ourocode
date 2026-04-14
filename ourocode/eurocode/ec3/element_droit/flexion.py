@@ -17,16 +17,23 @@ class Flexion(Plat):
         Cette classe est hérité de la classe Plat du module EC3_Element_droit.py.
 
         Args:
-            Wpl (float, optional): Module de flexion plastique (pour les sections transversales de classe 1 et 2) de la section en mm3.
-            Wel_min (float, optional): Module de flexion élastique (pour les sections transversales de classe 3) de la section en mm3.
-            Weff_min (float, optional): Module de flexion efficace (pour les sections transversales de classe 4) de la section en mm3.
+            W (float): Module de flexion de la section en mm³.
+                Utiliser Wpl pour les sections de classe 1 ou 2, Wel_min pour la classe 3, Weff_min pour la classe 4.
         """
         super().__init__(*args, **kwargs)
         self.W = W * si.mm**3
 
     @property
     def Mc_Rd(self):
-        """Calcul la résistance du moment fléchissant de la section transversale en N.mm (équa 6.13, 6.14, et 6.15)
+        """Retourne la résistance au moment fléchissant M_c,Rd en N.mm selon EN 1993-1-1 §6.2.5.
+
+        Sélectionne la formule selon la classe transversale :
+        - Classe 1 ou 2 : M_pl,Rd = W_pl × f_y / γ_M0 (eq. 6.13).
+        - Classe 3 : M_el,Rd = W_el,min × f_y / γ_M0 (eq. 6.14).
+        - Classe 4 : M_c,Rd = W_eff,min × f_y / γ_M0 (eq. 6.15).
+
+        Returns:
+            tuple: (latex_string, M_c_Rd) où M_c_Rd est la résistance en flexion en N.mm (avec unité si.N×si.mm).
         """
         gamma_M0 = self.GAMMA_M["gamma_M0"]
         f_y = self.fy
@@ -53,12 +60,17 @@ class Flexion(Plat):
             
         
     def Mc_V_Rd(self, Av: si.mm**2, V_Ed: si.kN):
-        """Calcul la résistance du moment fléchissant avec prise en compte de l'incidence du cisaillement sur ce dernier EN 1993-1-1 §6.2.8
-            (équa 6.29)
+        """Retourne la résistance réduite au moment fléchissant avec cisaillement M_V,Rd selon EN 1993-1-1 §6.2.8.
+
+        Si V_Ed > 0.5 × V_pl,Rd, le moment résistant est réduit par le facteur ρ (eq. 6.29).
+        Sinon, M_V,Rd = M_c,Rd (pas d'interaction).
 
         Args:
-            Av (float): Aire de cisaillemment en mm².
-            V_Ed (float): Effort de cisaillement en kN.
+            Av (float): Aire de cisaillement de la section en mm².
+            V_Ed (float): Effort de cisaillement de calcul en kN.
+
+        Returns:
+            tuple: (latex_string, M_V_Rd) où M_V_Rd est le moment réduit en N.mm (avec unité si.N×si.mm).
         """
         V_Ed = V_Ed * si.kN
         cis = Cisaillement._from_parent_class(self, Av=Av)

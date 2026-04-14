@@ -1,5 +1,6 @@
 ﻿# coding in UTF-8
-import os, sys
+import os
+import sys
 from PIL import Image
 from math import *
 import pandas as pd
@@ -106,12 +107,18 @@ class Tige(Plat):
             
 
     def pince_metal_boulon(self, trous_oblongs: bool=("False", "True"), corrosion: bool=("False", "True")):
-        """ Retourne les pinces du métal minimum dans un assemblage constitué de tige (EN 1993-1-8 §3.5) avec:
-            trous_oblongs : si les trous oblongs True sinon False
-            corrosion : assemblage exposé à la corrosion = True sinon False 
-            en_10025_5 : structure réalisées en acier conformes à l'EN 10025-5, True si vrai sinon False
+        """Retourne les pinces et entraxes minimum/maximum du métal selon EN 1993-1-8 §3.5.
 
-            NE PRENDS PAS EN COMPTE P1,0 ou P1,i ou P2 diminué quand les boulons sont en quinconce (voir §3.5 -5)
+        Note : Ne prend pas en compte P1,0, P1,i ou P2 diminué en cas de boulons en quinconce (§3.5-5).
+
+        Args:
+            trous_oblongs (bool): True si les trous sont oblongs (e3, e4 au lieu de e1, e2). Defaults to False.
+            corrosion (bool): True si l'assemblage est exposé à la corrosion (limite les distances de bord). Defaults to False.
+
+        Returns:
+            dict: Selon le type de trou et l'exposition :
+                - {"e1": {"e1_min": ..., ["e1_max_corro": ...]}, "e2": ..., "p1": {"p1_min": ..., "p1_max": ...}, "p2": ...}
+                - ou {"e3": ..., "e4": ..., "p1": ..., "p2": ...} si trous_oblongs=True.
         """
         en_10025_5 = False
         if self._Plat__classe_acier.loc["norme"] == "EN 10025-5": 
@@ -153,7 +160,15 @@ class Tige(Plat):
 
     @property
     def FvRd(self) -> float:
-        """Retourne la résistance en cisaillement de la partie fileté et lisse d'une tige par plan en N
+        """Retourne la résistance en cisaillement par plan de la tige F_v,Rd en N selon EN 1993-1-8 Tableau 3.4.
+
+        Calcule séparément la résistance sur la partie filetée (A_s) et la partie lisse (A_n).
+        - α_v = 0.6 pour les qualités 4.6, 5.6, 8.8.
+        - α_v = 0.5 pour les autres qualités.
+        Appliquer le coefficient k_d0 = 0.85 pour les boulons M12/M14 avec trou d+2 mm.
+
+        Returns:
+            dict: {"filetage": (latex, F_v_Rd_fileté), "lisse": (latex, F_v_Rd_lisse)} en N.
         """
         k_filetage_EN1090 = self.filetage_EN1090
         A_s = self.As
@@ -190,7 +205,13 @@ class Tige(Plat):
     
     @property
     def FtRd(self) -> float:
-        """Retourne la résistance en traction de la tige en N
+        """Retourne la résistance en traction de la tige F_t,Rd en N selon EN 1993-1-8 Tableau 3.4.
+
+        Formule : F_t,Rd = k_2 × f_ub × A_s / γ_M2.
+        - k_2 = 0.9 (boulon normal) ou 0.63 (tête frasée).
+
+        Returns:
+            tuple: (latex_string, F_t_Rd) en N (avec unité si.N).
         """
         f_ub = self.fub
         A_s = self.As
@@ -209,14 +230,19 @@ class Tige(Plat):
     
     #Combinaison des efforts
     def taux_FvEd_FtEd(self, FvEd: si.kN=0, FtEd: si.kN=0):
-        """Retourne les taux de travail en cisaillement, en traction et combiné d'une tige
+        """Retourne les taux de travail en cisaillement, traction et combinaison selon EN 1993-1-8 Tableau 3.4.
+
+        Calcule les taux selon les cas :
+        - Cisaillement seul : taux_v_d = F_v,Ed / F_v,Rd.
+        - Traction seule : taux_t_d = F_t,Ed / F_t,Rd.
+        - Combinaison si verif_filetage=True : taux_v_t_d = F_v,Ed / min(F_v,Rd) + F_t,Ed / (1.4 × F_t,Rd).
 
         Args:
-            FvEd (int): effort à reprendre en cisaillment en kN
-            FtEd (int): effort de traction à reprendre en kN 
+            FvEd (float): Effort de cisaillement de calcul en kN. Defaults to 0.
+            FtEd (float): Effort de traction de calcul en kN. Defaults to 0.
 
         Returns:
-            dict: dictionnaire des taux de travail slon tab. 3.4 de l'EN 1993-1-8
+            tuple: (latex_string, dict) où dict contient les taux par catégorie.
         """
         self.FvEd = FvEd * si.kN
         F_v_Ed = self.FvEd
@@ -284,14 +310,17 @@ class Tige(Plat):
     
     
     def Bp_Rd(self, d_ecrou: si.mm, d_head_bl: si.mm):
-        """Retourne la résistance au poinçonnement de la plaque en N
+        """Retourne la résistance au poinçonnement de la tête de boulon B_p,Rd en N selon EN 1993-1-8 Tableau 3.4.
+
+        Formule : B_p,Rd = 0.6 × π × d_m × t_p × f_u / γ_M2.
+        où d_m = (d_ecrou + d_head_bl) / 2.
 
         Args:
-            d_ecrou (int): diamètre extérieur de l'écrou en mm
-            d_head_bl (int): diamètre de la tête de boulon en mm
+            d_ecrou (float): Diamètre extérieur de l'écrou en mm.
+            d_head_bl (float): Diamètre de la tête de boulon en mm.
 
         Returns:
-            float: résistance de calcul en N
+            tuple: (latex_string, B_p_Rd) en N (avec unité si.N).
         """
         d_ecrou = d_ecrou * si.mm
         d_head_bl = d_head_bl * si.mm
@@ -324,7 +353,6 @@ class Tige(Plat):
             e2 (float): pince e2 en mm perpendiculaire à l'effort si alpha = 0°
             p1 (float): pince p1 en mm parallèlle à l'effort si alpha = 0°
             p2 (float): pince p2 en mm perpendiculaire à l'effort si alpha = 0°
-            alpha (float): angle de l'effort en degrés
 
         Returns:
             float: résistance de calcul en N 

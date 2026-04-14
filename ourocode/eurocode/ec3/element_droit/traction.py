@@ -66,7 +66,17 @@ class Traction(Plat):
         return val()
     
     @property
-    def Nt_Rd (self):
+    def Nt_Rd(self):
+        """Retourne la résistance de la section transversale en traction N_t,Rd en N selon EN 1993-1-1 §6.2.3.
+
+        Sélectionne la formule appropriée selon la présence de trous et la catégorie d'assemblage :
+        - Assemblage cat. C (glissement à l'ELU) : N_net,Rd = A_net × f_y / γ_M0 (eq. 6.8).
+        - Avec trous : N_t,Rd = min(N_pl,Rd, N_u,Rd) (eq. 6.6 et 6.7).
+        - Sans trous : N_t,Rd = N_pl,Rd (eq. 6.6).
+
+        Returns:
+            tuple: (latex_string, N_t_Rd) où N_t_Rd est la résistance en traction en N (avec unité si.N).
+        """
         if self.ass_cat_C:
             return self._Nnet_Rd
         if self.Anet:
