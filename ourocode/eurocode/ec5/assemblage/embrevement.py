@@ -144,15 +144,25 @@ class Embrevement(Assemblage):
         return value
 
     def taux_embrevement(self, N_c1_d: si.kN, loadtype: str=Barre.LOAD_TIME, typecombi: str=Barre.TYPE_ACTION) -> tuple:
-        """Retourne les taux de travail de l'embrèvement avec:
-            - la compression d'about de la pièce 1
-            - la compression transversale de la pièce 2
-            - le cisaillement du talon de la pièce 2
+        """Calcule les taux de travail de l'embrèvement simple selon EN 1995-1-1 §8.8.
+
+        Effectue trois vérifications :
+
+        1. Compression d'about de la pièce 1 (angle alpha_about selon type_embrevement).
+        2. Compression transversale au fil de la pièce 2 (90° au fil).
+        3. Cisaillement du talon de la pièce 2 (longueur efficace ≤ min(l_talon, 8×t_v)).
 
         Args:
-            N_c1_d (si.kN): effort normal de la pièce 1 en kN.
-            loadtype (str): chargement de plus courte durée sur l'élément.
-            typecombi (str): type de combinaison, fondamentale ou accidentelle.
+            N_c1_d (float): Effort normal de calcul dans la pièce 1 (force diagonale) en kN.
+            loadtype (str): Classe de durée de chargement selon EN 1995-1-1 §2.3.1.2.
+                Defaults to "Permanente".
+            typecombi (str): Type de combinaison (fondamentale ou accidentelle). Defaults to fondamentale.
+
+        Returns:
+            tuple: (latex_string, dict_taux_embrevement) où dict_taux_embrevement contient :
+                - "taux compression about" : taux de compression inclinée de la pièce 1.
+                - "taux compression transversale" : taux de compression perpendiculaire de la pièce 2.
+                - "taux cisaillement talon" : taux de cisaillement du talon de la pièce 2.
         """
         about =self._compression_about(N_c1_d, loadtype, typecombi)
         transversale = self._compression_transversale(N_c1_d, loadtype, typecombi)

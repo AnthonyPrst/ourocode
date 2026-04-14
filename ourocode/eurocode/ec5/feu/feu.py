@@ -59,21 +59,18 @@ class Feu(Barre):
 
         Args:
             t_expo (int, optional): Durée d'exposition au feu en minutes. Defaults to 30.
-
-            Attention :
-                Pour la détermination des joints vides ou comblés en cas de protection rapportée:
-                    un joint est considéré comme comblé si le vide est <= à 2mm.
-
             haut (str): Type d'expostion ou de protection au feu sur le haut de l'élément.
             bas (str): Type d'expostion ou de protection au feu sur le bas de l'élément.
             gauche (str): Type d'expostion ou de protection au feu sur le gauche de l'élément.
             droite (str): Type d'expostion ou de protection au feu sur le droite de l'élément.
-            hp (int)): épaisseur totale (si double couches) des panneaux de protection en mm. Defaults to 0.
-            rho_k_protect (float): A définir uniquement si il y a un ou des panneaux de protection bois ou en fibre de roche.
-                Masse volumique des panneaux de protection en kg/m3. Defaults to 0.
-            tf (int, optional): Durée avant rupture du matériaux de protection au feu en minutes. Defaults to None.
-                Attention uniquement pour les plaques de platre de type F ou les panneaux de fibres de roche.
-                On ne peut par conséquent pas définir des plaques de platre de type F en même temps que des panneaux de fibres de roche.
+            hp (int): Épaisseur totale (si double couches) des panneaux de protection en mm. Defaults to 0.
+            rho_k_protect (float): Masse volumique des panneaux de protection bois ou fibre de roche en kg/m3. Defaults to 0.
+            tf (int, optional): Durée avant rupture du matériau de protection au feu en minutes. Defaults to None.
+                Uniquement pour les plaques de plâtre de type F ou les panneaux de fibres de roche.
+
+        Note:
+            Pour la détermination des joints vides ou comblés en cas de protection rapportée :
+            un joint est considéré comme comblé si le vide est ≤ 2 mm.
         """
         super().__init__(**kwargs)
         self.t_expo = t_expo

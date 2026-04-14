@@ -17,15 +17,26 @@ class Plat(Projet):
     CLASSE_STEEL = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_acier.csv").index)
              
     def __init__(self, t: si.mm=0, h: si.mm=0, b: si.mm=0, classe_acier: str=CLASSE_STEEL, classe_transv: int=("1","2","3","4"), **kwargs):
-        """Configure un objet Plat pour vérifier un plat en acier suivant l'EN 1993-1-1. 
+        """Initialise un élément acier de section rectangulaire selon l'EN 1993-1-1.
+
+        Définit la géométrie (t, b, h) et les caractéristiques mécaniques (fy, fu) en fonction
+        de la classe d'acier et de l'épaisseur. Classe de base dont héritent Traction, Compression,
+        Cisaillement et Flexion.
 
         Args:
-            t (int, optional): épaisseur de la plaque en mm.
-            h (int, optional): hauteur de la plaque en mm.
-            b (int, optional): largeur de la plaque en mm.
-                Attention: c'est cette dimension qui détermine le calcul d'inertie avec l'épaisseur t pour les vérifications.
-            classe_acier (str, optional): classe d'acier. Defaults to "S235".
-            classe_transv (int, optional): classe transversale de la section en fonction de sa capacité de plastification. Defaults to 1.
+            t (int, optional): Épaisseur du plat en mm. Defaults to 0.
+            h (int, optional): Hauteur du plat en mm. Defaults to 0.
+            b (int, optional): Largeur du plat en mm. C'est cette dimension qui, avec t,
+                détermine le moment quadratique pour les vérifications. Defaults to 0.
+            classe_acier (str, optional): Classe d'acier selon EN 1993-1-1 Tableau 3.1
+                (ex. "S235", "S275", "S355"). Defaults to "S235".
+            classe_transv (int, optional): Classe transversale de la section (1, 2 ou 3)
+                selon EN 1993-1-1 §5.5. La classe 4 n'est pas implémentée. Defaults to 1.
+            **kwargs: Arguments transmis à la classe parent Projet.
+
+        Raises:
+            ValueError: Si classe_acier n'est pas dans CLASSE_STEEL.
+            ValueError: Si classe_transv n'est pas 1, 2 ou 3.
         """
         super().__init__(**kwargs)
         if classe_acier not in self.CLASSE_STEEL:
@@ -67,9 +78,14 @@ class Plat(Projet):
     
     @property
     def _inertie(self):
-        """ Retourne le moment quadratique d'une section rectangulaire en mm4 avec pour argument :
-            b ou d : Largeur ou diamètre de la poutre en mm
-            h : Hauteur de la poutre en mm """
+        """Retourne les moments quadratiques [I_y, I_z] d'une section rectangulaire en mm⁴.
+
+        Calcule I_y = t × b³ / 12 et I_z = b × t³ / 12 si b et t sont renseignés.
+        Retourne les valeurs pré-calculées sinon.
+
+        Returns:
+            list: [I_y, I_z] en mm⁴ (avec unité si.mm⁴).
+        """
         if self.t and self.b:
             self.Iy = (self.t * self.b**3)/12
             self.Iz = (self.b * self.t**3)/12

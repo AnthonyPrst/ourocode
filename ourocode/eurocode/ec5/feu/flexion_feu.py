@@ -29,15 +29,13 @@ class Flexion_feu(Feu, Flexion):
         Cette classe est hérité de la classe Feu, provenant du module EC5_Feu.py.
 
         Args:
-            lo_rel_y/z (int): longueur de déversemment autour de l'axe défini en mm
-            coeflef_y/z (float): appuis simple :
-                                            Moment constant : 1
-                                            Charge répartie constante : 0.9
-                                            Charge concentrée au milieu de la portée : 0.8
-                                porte à faux :
-                                            Charge répartie constante : 0.5
-                                            Charge concentrée agissant à l'extrémité libre : 0.8.
-            pos (str): positionnement de la charge sur la hauteur de poutre
+            lo_rel_y (float): Longueur de déversement autour de l'axe y en mm.
+            lo_rel_z (float): Longueur de déversement autour de l'axe z en mm.
+            coeflef_y (float): Coefficient de longueur efficace de déversement axe y.
+                Appuis simple — Moment constant : 1, Charge répartie : 0.9, Charge concentrée milieu : 0.8.
+                Porte-à-faux — Charge répartie : 0.5, Charge concentrée extrémité libre : 0.8.
+            coeflef_z (float): Coefficient de longueur efficace de déversement axe z (mêmes valeurs que coeflef_y).
+            pos (str): Positionnement de la charge sur la hauteur de la poutre.
         """
         super().__init__(lo_rel_y=lo_rel_y, lo_rel_z=lo_rel_z, coeflef_y=coeflef_y, coeflef_z=coeflef_z, pos=pos, **kwargs)
 

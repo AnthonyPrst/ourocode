@@ -90,13 +90,18 @@ class _Tirefond(object):
 
 
     def faxk(self, l_ef:int, beam:str=["1", "2"]) -> tuple:
-        """
-        Calcul la valeur caractéristique de la résistance à l'arrachement perpendiculaire au fil en N/mm2 si 6mm<=d<=12mm
-        et 0.6<=d1/d<=0.75.
+        """Calcule la résistance caractéristique à l'arrachement f_ax,k selon EN 1995-1-1 §8.7.2(4).
+
+        Applicable uniquement pour 6 mm ≤ d ≤ 12 mm et 0.6 ≤ d1/d ≤ 0.75.
+        Formule : f_ax,k = 0.52 × d⁻°·⁵ × l_ef⁻°·¹ × ρ_k°·⁸ en N/mm².
 
         Args:
-            l_ef (int): longueur de pénétration de la partie filetée en mm
-            beam (str): élément à calculer 1 ou 2
+            l_ef (int): Longueur de pénétration de la partie filentée dans l'élément bois, en mm.
+            beam (str): Numéro de l'élément bois à considérer ("1" ou "2"). Defaults to "1".
+
+        Returns:
+            tuple: (latex_string, f_ax_k) où f_ax_k est la résistance à l'arrachement en N/mm²
+                (valeur scalaire, sans unité forallpeople).
         """
         d = self.d_vis.value*10**3
         d1 = self.d1.value*10**3
@@ -169,13 +174,19 @@ class _Tirefond(object):
     
     
     def Fax_Rk(self, faxk:float, l_ef:int, alpha:int) -> tuple:
-        """Calcul la valeur caractéristique de résistance du tirefond axialement entre la résistance caractéristique de la tête et du pas de vis dans le bois en N.
-        Cette fonction détermine ensuite la valeur de résistance caractéristique de l'assemblage en prenant compte du nombre efficace de tirefond en traction.
+        """Calcule la résistance caractéristique axiale de l'assemblage F_ax,Rk,ass selon EN 1995-1-1 §8.7.2.
+
+        Détermine min(F_ax,alpha,Rk, F_head,Rk) pour chaque tirefond, puis applique n_ef,traction
+        pour obtenir la résistance de l'assemblage. Stocke les résultats dans self.FaxRk et self.Fax_Rk_ass.
 
         Args:
-            faxk (float): Valeur caractéristique de résistance à l'arrachement perpendiculaire au fil en N/mm2
-            l_ef (int): longueur de pénétration de la partie filetée en mm
-            alpha (int): angle formé entre l'axe du tirefond et le fil du bois, doit être supérieur à 30°
+            faxk (float): Résistance caractéristique à l'arrachement perpendiculaire au fil en N/mm².
+            l_ef (int): Longueur de pénétration de la partie filentée dans l'élément bois, en mm.
+            alpha (int): Angle entre l'axe du tirefond et le fil du bois en ° (doit être ≥ 30°).
+
+        Returns:
+            tuple: (latex_string, F_ax_Rk_ass) où F_ax_Rk_ass est la résistance axiale caractéristique
+                totale de l'assemblage en N (avec unité si.N).
         """
         F_ax_a_Rk_value = self._FaxaRk(faxk, l_ef, alpha)
         F_ax_a_Rk = F_ax_a_Rk_value[1]
@@ -203,7 +214,13 @@ class _Tirefond(object):
 
 
     def FtRk(self) -> tuple:
-        """ Calcul la résistance caractéristique en traction pur du fil des tirefonds dans l'assemblage en N."""
+        """Calcule la résistance caractéristique en traction nette du fil des tirefonds de l'assemblage.
+
+        Formule : F_t,Rk = n_ef,traction × f_tens,k en N.
+
+        Returns:
+            tuple: (latex_string, F_t_Rk) où F_t_Rk est la résistance en traction en N (avec unité si.N).
+        """
         n_ef_traction = self.nefTraction[1]
         f_tens_k = self.ftensk
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
