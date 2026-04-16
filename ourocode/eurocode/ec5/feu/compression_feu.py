@@ -9,7 +9,7 @@ import pandas as pd
 
 import forallpeople as si
 si.environment("structural")
-from handcalcs.decorator import handcalc
+from ourocode.eurocode.core.renderer import handcalc
 
 from ourocode.eurocode.ec5.feu.feu import Feu
 from ourocode.eurocode.ec5.element_droit.compression import Compression
@@ -139,4 +139,9 @@ class Compression_feu(Feu, Compression):
             self.taux_c_0_rd["equ6.24"] = value[1][2]
 
         self.taux_c_0_rd["equ6.2"] = value[1][0]
+        max_taux = max([v for v in self.taux_c_0_rd.values()])
+        synthese = [
+            ["Compression bois", None, max_taux],
+        ]
+        self._add_synthese_taux_travail(synthese)
         return value

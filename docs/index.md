@@ -36,7 +36,6 @@ Avec les dépendances optionnelles :
 ```bash
 pip install "ourocode[full]"    # GUI (PySide6) + MEF (PyNiteFEA + pyvista)
 pip install "ourocode[gui]"     # PySide6 uniquement
-pip install "ourocode[mef]"     # PyNiteFEA + pyvista uniquement
 ```
 
 ---

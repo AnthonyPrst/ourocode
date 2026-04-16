@@ -9,7 +9,7 @@ import pandas as pd
 
 import forallpeople as si
 si.environment("structural")
-from handcalcs.decorator import handcalc
+from ourocode.eurocode.core.renderer import handcalc
 
 from ourocode.eurocode.ec5.feu.feu import Feu
 from ourocode.eurocode.ec5.element_droit.cisaillement import Cisaillement
@@ -58,4 +58,8 @@ class Cisaillement_feu(Cisaillement, Feu):
         value = val()
         self.taux_tau_rd["equ6.13"] = value[1][0]
         self.taux_tau_rd["equ6.60"] = value[1][1]
+        synthese = [
+            ["Cisaillement bois", None, max(value[1][0], value[1][1])],
+        ]
+        self._add_synthese_taux_travail(synthese)
         return value

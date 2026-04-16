@@ -1,4 +1,4 @@
-#! env\Scripts\python.exe
+﻿#! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
 import os
 import sys
@@ -9,7 +9,7 @@ from copy import copy
 
 import pandas as pd
 import forallpeople as si
-from handcalcs.decorator import handcalc
+from ourocode.eurocode.core.renderer import handcalc
 
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 # from eurocode.A0_Projet import Batiment

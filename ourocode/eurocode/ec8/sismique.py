@@ -1,4 +1,4 @@
-#! env\Scripts\python.exe
+﻿#! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
 import os
 import matplotlib.pyplot as plt
@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import forallpeople as si
 si.environment("structural")
-from handcalcs.decorator import handcalc
+from ourocode.eurocode.core.renderer import handcalc
 from ourocode.eurocode.core.batiment import Batiment
 
 class Sismique(Batiment):

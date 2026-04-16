@@ -7,8 +7,25 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-04-16
+
+### Added
+- **`ourocode/eurocode/core/renderer.py`** : nouveau module de rendu LaTeX maison, remplaçant `handcalcs` — compatible Python 3.12+.
+  - Décorateur `@handcalc` basé sur l'AST (`ast` + `inspect`), sans dépendance à `innerscope`.
+  - Rendu symbolique (noms → symboles LaTeX, grecs, indices), numérique (substitution des valeurs) et résultat final sur une même ligne (`override="short"`) ou sur trois lignes alignées (`override="long"`).
+  - Extraction correcte des unités `forallpeople` via `str(x).rsplit()` → `\,\mathrm{...}`.
+  - Support des fonctions `sqrt`, `sin`, `cos`, `tan`, `log`, `log10`, `exp`, `floor`, `ceil`, `abs`, `min`, `max`, `radians`.
+  - Capture des variables de fermeture (closures), du scope module (globals) et des arguments positionnels.
+
 ### Changed
-- **CI/CD** : Migration du déploiement de la documentation vers l'action officielle GitHub Pages (`actions/deploy-pages@v4`) pour une meilleure fiabilité et compatibilité avec les paramètres de sécurité GitHub.
+- **Suppression de la dépendance `handcalcs`** dans `pyproject.toml` — incompatible avec Python 3.13+ (bug `FrameLocalsProxy` dans `innerscope`).
+- `requires-python` élargi à `>=3.12` (sans borne supérieure).
+- Classifiers Python mis à jour : ajout `3.13`, `3.14`.
+- Tous les imports `from handcalcs.decorator import handcalc` remplacés par `from ourocode.eurocode.core.renderer import handcalc` dans les modules EC1, EC5.
+- **`ourocode/eurocode/ec1/exploitation.py`** : correction des séquences d'échappement invalides `"\["` / `"\]"` → `"\\["` / `"\\]"` dans le décorateur `@handcalc` de `alpha_A` (`SyntaxWarning` Python 3.14+).
+
+### Changed (CI/CD)
+- Migration du déploiement de la documentation vers l'action officielle GitHub Pages (`actions/deploy-pages@v4`).
 
 ## [1.11.3] - 2026-04-14
 

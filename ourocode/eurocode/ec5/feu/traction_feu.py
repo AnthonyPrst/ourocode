@@ -9,7 +9,7 @@ import pandas as pd
 
 import forallpeople as si
 si.environment("structural")
-from handcalcs.decorator import handcalc
+from ourocode.eurocode.core.renderer import handcalc
 
 from ourocode.eurocode.ec5.feu.feu import Feu
 from ourocode.eurocode.ec5.element_droit.traction import Traction
@@ -47,6 +47,9 @@ class Traction_feu(Feu, Traction):
             return taux_6_1
 
         value = val()
-
         self.taux_t_0_rd["equ6.1"] = value[1]
+        synthese = [
+            ["Traction bois", None, self.taux_t_0_rd['equ6.1']],
+        ]
+        self._add_synthese_taux_travail(synthese)
         return value

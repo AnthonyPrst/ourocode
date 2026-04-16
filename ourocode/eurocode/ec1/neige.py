@@ -1,11 +1,11 @@
-#! env\Scripts\python.exe
+﻿#! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
 from math import sin, radians
 import pandas as pd
 import warnings
 
 import forallpeople as si
-from handcalcs.decorator import handcalc
+from ourocode.eurocode.core.renderer import handcalc
 
 from ourocode.eurocode.core.batiment import Batiment
 

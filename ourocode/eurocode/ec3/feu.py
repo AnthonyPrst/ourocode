@@ -1,4 +1,4 @@
-#! env\Scripts\python.exe
+﻿#! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
 import math as mt
 import pandas as pd
@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 
 import forallpeople as si
 si.environment("structural")
-from handcalcs.decorator import handcalc
+from ourocode.eurocode.core.renderer import handcalc
 
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 # from eurocode.EC3_Element_droit import Plat

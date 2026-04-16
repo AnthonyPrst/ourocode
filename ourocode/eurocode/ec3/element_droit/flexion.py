@@ -5,7 +5,7 @@ from math import sqrt
 
 import forallpeople as si
 si.environment("structural")
-from handcalcs.decorator import handcalc
+from ourocode.eurocode.core.renderer import handcalc
 
 from ourocode.eurocode.ec3.element_droit.plat import Plat
 from ourocode.eurocode.ec3.element_droit.cisaillement import Cisaillement
