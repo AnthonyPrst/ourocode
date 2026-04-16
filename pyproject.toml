@@ -19,11 +19,14 @@ dependencies = [
     "pandas",
     "Pillow",
     "matplotlib",
+    "pyvista[all,trame]",
+    "PyNiteFEA",
 ]
 requires-python = ">=3.12"
 classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Operating System :: OS Independent",
 ]
 
@@ -33,10 +36,6 @@ Homepage = "https://github.com/AnthonyPrst/ourocode"
 [project.optional-dependencies]
 gui = [
     "PySide6",
-]
-mef = [
-    "PyNiteFEA",
-    "pyvista[all,trame]",
 ]
 full = [
     "ourocode[gui,mef]",

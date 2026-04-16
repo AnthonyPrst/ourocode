@@ -47,6 +47,9 @@ class Traction_feu(Feu, Traction):
             return taux_6_1
 
         value = val()
-
         self.taux_t_0_rd["equ6.1"] = value[1]
+        synthese = [
+            ["Traction bois", None, self.taux_t_0_rd['equ6.1']],
+        ]
+        self._add_synthese_taux_travail(synthese)
         return value

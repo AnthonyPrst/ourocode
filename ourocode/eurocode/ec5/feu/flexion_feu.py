@@ -211,4 +211,9 @@ class Flexion_feu(Feu, Flexion):
             self.taux_m_rd["equ6.11"] = traction_val[1][0]
             self.taux_m_rd["equ6.12"] = traction_val[1][1]
 
+        max_taux = max([v for v in self.taux_m_rd.values()])
+        synthese = [
+            ["Flexion bois", None, max_taux],
+        ]
+        self._add_synthese_taux_travail(synthese)
         return (latex, self.taux_m_rd)

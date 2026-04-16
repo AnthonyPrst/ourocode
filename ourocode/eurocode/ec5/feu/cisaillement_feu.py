@@ -58,4 +58,8 @@ class Cisaillement_feu(Cisaillement, Feu):
         value = val()
         self.taux_tau_rd["equ6.13"] = value[1][0]
         self.taux_tau_rd["equ6.60"] = value[1][1]
+        synthese = [
+            ["Cisaillement bois", None, max(value[1][0], value[1][1])],
+        ]
+        self._add_synthese_taux_travail(synthese)
         return value
