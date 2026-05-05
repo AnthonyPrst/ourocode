@@ -60,6 +60,61 @@ class Objet(SerializationMixin, DataLoaderMixin, MathUtilsMixin, SyntheseMixin):
         """
         return self
 
+    def set_value(self, value: float | int | str = None, unit: str = MathUtilsMixin._SET_VALUE_UNITS):
+        """Retourne une valeur typee avec une unite physique optionnelle.
+
+        Equivalent inverse de ``get_value`` : permet a l'utilisateur de
+        saisir une valeur numerique brute et de l'encapsuler dans un objet
+        ``Physical`` (forallpeople) avec l'unite choisie parmi la liste
+        definie dans ``_PHYSICAL_UNITS`` (m, mm, cm, km, m2, N, kN, daN,
+        N.m, kN/m, Pa, MPa, etc.).
+
+        Args:
+            value (float|int|str): la valeur numerique a encapsuler. Les
+                chaines numeriques ("5", "5,3") sont converties.
+            unit (str): unite cible. La valeur
+                speciale ``"Aucune"`` (par defaut) retourne la valeur brute
+                sans conversion.
+
+        Returns:
+            - ``Physical`` si une unite valide est specifiee (ex: ``5 * si.m``)
+            - valeur brute (int/float/str) si ``unit == "Aucune"`` ou unite
+              inconnue
+
+        Exemple:
+            >>> obj.set_value(5, unit="m")
+            5.000 m
+            >>> obj.set_value("5,3", unit="kN")
+            5.300 kN
+            >>> obj.set_value(42, unit="Aucune")
+            42
+        """
+        # "unit" arrive sous forme de tuple au premier chargement (valeur par
+        # defaut du widget combobox) ; on normalise en chaine.
+        if not isinstance(unit, str):
+            unit = "Aucune"
+
+        if value is None:
+            return None
+
+        if unit == "Aucune" or unit not in self._PHYSICAL_UNITS:
+            return value
+
+        # Conversion robuste en float (gere int/float/str numerique)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            numeric = float(value)
+        elif isinstance(value, str):
+            try:
+                numeric = float(value.strip().replace(",", "."))
+            except ValueError:
+                return value
+        else:
+            # Valeur non convertible (Physical deja type, objet, etc.) :
+            # on retourne tel quel pour ne pas ecraser le sens.
+            return value
+
+        return numeric * self._PHYSICAL_UNITS[unit]
+
     def get_value(self, value: dict|list|str, index: int=None, key: str=None, get_keys: bool=("False", "True"),):
         """Extrait et retourne une valeur depuis une structure de données complexe.
 

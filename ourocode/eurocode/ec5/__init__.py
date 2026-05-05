@@ -14,6 +14,8 @@ from ourocode.eurocode.ec5.feu import (
 )
 from ourocode.eurocode.ec5.blc import Poutre_simple_decroissance
 from ourocode.eurocode.ec5.cvt import MOB
+from ourocode.eurocode.ec5.element_droit.verification_EC5 import Verification_EC5
+
 
 __all__ = [
     "Barre", "Flexion", "Traction",
@@ -25,4 +27,5 @@ __all__ = [
     "Feu", "Flexion_feu", "Traction_feu", "Compression_feu", "Cisaillement_feu",
     "Poutre_simple_decroissance",
     "MOB",
+    "Verification_EC5",
 ]

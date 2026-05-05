@@ -33,7 +33,7 @@ def traction(barre, load_and_combi_data):
 @pytest.fixture
 def compression(barre, load_and_combi_data):
     compression = EC5.Compression._from_parent_class(
-        barre, lo_y=7000, lo_z=7000, type_appuis="Rotule - Rotule"
+        barre, lo_y=7000, lo_z=7000, type_appuis_y="Rotule - Rotule", type_appuis_z="Rotule - Rotule",
     )
     compression.sigma_c_0_d(50)
     compression.f_c_0_d(**load_and_combi_data)
