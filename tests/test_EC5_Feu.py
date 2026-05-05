@@ -67,7 +67,7 @@ def traction(feu):
 @pytest.fixture
 def compression(feu):
     compression = EC5_feu.Compression_feu._from_parent_class(
-        feu, lo_y=7000, lo_z=7000, type_appuis="Rotule - Rotule"
+        feu, lo_y=7000, lo_z=7000, type_appuis_y="Rotule - Rotule", type_appuis_z="Rotule - Rotule",
     )
     compression.sigma_c_0_d(50)
     compression.f_c_0_d()
@@ -258,7 +258,7 @@ class Test_Compression_feu_faible_elancement:
     def test_compression_feu_faible_elancement(self, feu):
         """lo court -> faible élancement -> chemin equ6.23 ou equ6.19/equ6.20."""
         comp = EC5_feu.Compression_feu._from_parent_class(
-            feu, lo_y=500, lo_z=500, type_appuis="Rotule - Rotule"
+            feu, lo_y=500, lo_z=500, type_appuis_y="Rotule - Rotule", type_appuis_z="Rotule - Rotule",
         )
         comp.sigma_c_0_d(10)
         comp.f_c_0_d()

@@ -20,6 +20,34 @@ class MathUtilsMixin:
     """
 
     OPERATOR = ("+", "-", "x", "/")
+    # Registre des unites physiques supportees par set_value.
+    # L'ordre du tuple SET_VALUE_UNITS sert de valeurs du combobox dans l'UI.
+    # Les cles sont en ASCII (pas d'exposants) pour la saisie utilisateur.
+    _PHYSICAL_UNITS = {
+        # Longueurs
+        "m": si.m, "mm": si.mm,
+        # Surfaces
+        "m2": si.m**2, "mm2": si.mm**2,
+        # Volumes
+        "m3": si.m**3, "mm3": si.mm**3,
+        # Inerties
+        "m4": si.m**4, "mm4": si.mm**4,
+        # Forces
+        "N": si.N, "kN": si.kN,
+        # Moments
+        "N.m": si.N * si.m, "kN.m": si.kN * si.m,
+        "N.mm": si.N * si.mm,
+        # Forces lineiques
+        "N/m": si.N / si.m, "kN/m": si.kN / si.m,
+        "N/mm": si.N / si.mm,
+        # Pressions / contraintes
+        "Pa": si.Pa, "kPa": si.kPa, "MPa": si.MPa,
+        "N/m2": si.N / si.m**2, "kN/m2": si.kN / si.m**2,
+        "N/mm2": si.N / si.mm**2,
+    }
+    # Tuple d'unites propose a l'utilisateur (sert de widget combobox).
+    # "none" = valeur brute retournee telle quelle (int/float/str).
+    _SET_VALUE_UNITS = ("Aucune",) + tuple(_PHYSICAL_UNITS.keys())
     
     def abs_value(self, value: float):
         """Retourne la valeur absolue (module) d'un nombre.

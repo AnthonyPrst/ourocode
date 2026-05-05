@@ -1804,6 +1804,41 @@ class Combinaison(Projet):
         return dict_loads
 
 
+    def type_combi(self, name_combi: str) -> str:
+        """Retourne le type de combinaison EC0 (``"Fondamentales"`` ou ``"Accidentelles"``).
+
+        Déduit le type à partir du préfixe du nom de la combinaison tel que
+        généré par :class:`Combinaison` :
+
+        - ``"ELU_STR_ACC ..."`` -> ``"Accidentelles"`` (EC0 §6.4.3.3)
+        - ``"ELU_STR ..."`` ou tout autre ELU -> ``"Fondamentales"`` (EC0 §6.4.3.2)
+
+        Cette information sert notamment à déterminer le coefficient partiel
+        ``γM`` pour les vérifications Eurocode (EC5 §2.4.1, EC3 §6.1…) selon
+        que la situation est durable/transitoire ou accidentelle.
+
+        Args:
+            name_combi (str): Nom de la combinaison à analyser
+                (ex. ``"ELU_STR 1.35G + 1.5Q"`` ou ``"ELU_STR_ACC G + Ae"``).
+
+        Returns:
+            str: ``"Accidentelles"`` si le nom débute par ``ELU_STR_ACC``,
+                sinon ``"Fondamentales"``.
+
+        Raises:
+            ValueError: Si ``name_combi`` ne correspond pas à une combinaison
+                ELU reconnue (ni ``ELU_STR`` ni ``ELU_STR_ACC``).
+        """
+        if name_combi.startswith("ELU_STR_ACC"):
+            return "Accidentelles"
+        if name_combi.startswith("ELU_STR"):
+            return "Fondamentales"
+        raise ValueError(
+            f"La combinaison '{name_combi}' n'est pas une combinaison ELU "
+            f"(préfixe attendu : 'ELU_STR' ou 'ELU_STR_ACC')."
+        )
+
+
     def min_type_load(self, name_combi: str) -> str:
         """Retourne la classe de durée de chargement la plus courte présente dans une combinaison.
 

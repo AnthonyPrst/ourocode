@@ -34,19 +34,21 @@ class Compression(Barre):
                 "Encastré - Encastré" : 0.5,
                 "Encastré - Rouleau" : 1}
 
-    def __init__(self, lo_y: si.mm, lo_z: si.mm, type_appuis: str=COEF_LF, *args, **kwargs):
+    def __init__(self, lo_y: si.mm, lo_z: si.mm,
+                 type_appuis_y: str = COEF_LF, type_appuis_z: str = COEF_LF,
+                 *args, **kwargs):
         """Initialise un objet de vérification en compression axiale.
 
-        Définit les longueurs de flambement et le coefficient de longueur efficace
-        selon les conditions d'appui pour le calcul du flambement.
+        Définit les longueurs de flambement et les coefficients de longueur
+        efficace par axe selon les conditions d'appui.
 
         Args:
-            lo_y (si.mm): Longueur de flambement suivant l'axe y en mm.
+            lo_y (si.mm): Longueur de flambement suivant l'axe de rotation y en mm (flèche dans la direction z).
                 Mettre 0 si pas de risque de flambement selon cet axe.
-            lo_z (si.mm): Longueur de flambement suivant l'axe z en mm.
+            lo_z (si.mm): Longueur de flambement suivant l'axe de rotation z en mm (flèche dans la direction y).
                 Mettre 0 si pas de risque de flambement selon cet axe.
-            type_appuis (str): Type de conditions d'appui pour le coefficient β.
-                Détermine la longueur efficace lf = β · lo.
+            type_appuis_y (str): Conditions d'appui pour le flambement selon l'axe de rotation y.
+                Détermine β_y dans lf_y = β_y · lo_y.
                 Valeurs possibles (voir COEF_LF):
                 - "Encastré 1 côté" : β = 2.0 (console)
                 - "Rotule - Rotule" : β = 1.0 (articulé-articulé)
@@ -54,19 +56,23 @@ class Compression(Barre):
                 - "Encastré - Encastré" : β = 0.5
                 - "Encastré - Rouleau" : β = 1.0 (encastré-glissière)
                 Defaults to "Rotule - Rotule".
+            type_appuis_z (str, optional): Conditions d'appui pour le flambement
+                selon l'axe de rotation z.
             *args: Arguments positionnels transmis à Barre.
             **kwargs: Arguments nommés transmis à Barre (b, h, classe, etc.).
 
         Note:
-            La longueur efficace de flambement lf est calculée par :
-            lf = lo × coef_lef
+            La longueur efficace de flambement est calculée par axe :
+            lf_y = lo_y × β_y  ;  lf_z = lo_z × β_z
         """
         super().__init__(*args, **kwargs)
-        self.lo_comp = {"y":lo_y * si.mm, "z":lo_z * si.mm}
+        self.lo_comp = {"y": lo_y * si.mm, "z": lo_z * si.mm}
         self.lo_y = self.lo_comp['y']
         self.lo_z = self.lo_comp['z']
-        self.type_appuis = type_appuis
-        self.coef_lef = self.COEF_LF[type_appuis]
+        self.type_appuis_y = type_appuis_y
+        self.type_appuis_z = type_appuis_z
+        self.coef_lef_y = self.COEF_LF[type_appuis_y]
+        self.coef_lef_z = self.COEF_LF[type_appuis_z]
         self._Anet = self.aire
 
     @property
@@ -74,15 +80,16 @@ class Compression(Barre):
         """ Retourne l'élancement d'un poteau en compression avec risque de flambement suivant son axe de rotation """
         lo_y = self.lo_comp['y'].value * 10**3
         lo_z = self.lo_comp['z'].value * 10**3
-        coef_lef = self.coef_lef
+        coef_lef_y = self.coef_lef_y
+        coef_lef_z = self.coef_lef_z
         I_y = self.inertie[0].value * 10**12
         I_z = self.inertie[1].value * 10**12
         A = self._Anet.value * 10**6
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            lamb_y = (lo_y * coef_lef) / sqrt(I_y / A)
-            lamb_z = (lo_z * coef_lef) / sqrt(I_z / A)
+            lamb_y = (lo_y * coef_lef_y) / sqrt(I_y / A)
+            lamb_z = (lo_z * coef_lef_z) / sqrt(I_z / A)
             return {'y': lamb_y, 'z': lamb_z}
         return val()
     

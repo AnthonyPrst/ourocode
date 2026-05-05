@@ -58,6 +58,7 @@ class Model_generator(Projet):
             "members": {},
             "supports": {"classic": {}, "spring": {}},
             "loads": {},
+            "structural_members": {},
         }
         self._model = None
 
@@ -1240,6 +1241,887 @@ class Model_generator(Projet):
             for load in self._data["loads"].values()
             if load["N° barre"] == member_id
         ]
+
+    ################## Barre structurale (regroupement de barres FEM continues) ##################
+
+    def _member_unit_vector(self, member_id: str, from_node: str) -> np.ndarray:
+        """Retourne le vecteur unitaire d'une barre, orienté depuis ``from_node``.
+
+        Args:
+            member_id (str): identifiant de la barre FEM.
+            from_node (str): noeud de départ (doit être une extrémité de la barre).
+
+        Returns:
+            np.ndarray: vecteur unitaire 3D (sans dimension).
+        """
+        n1, n2 = self._data["members"][member_id]["Noeuds"]
+        other = n2 if n1 == from_node else n1
+        c_from = self._data["nodes"][from_node]
+        c_to = self._data["nodes"][other]
+        v = np.array(
+            [
+                (c_to["X"] - c_from["X"]).value,
+                (c_to["Y"] - c_from["Y"]).value,
+                (c_to["Z"] - c_from["Z"]).value,
+            ]
+        )
+        norm = np.linalg.norm(v)
+        return v / norm if norm > 0 else v
+
+    def _end_at_node(self, member_id: str, node_id: str) -> str:
+        """Retourne ``"start"`` ou ``"end"`` selon l'extrémité de la barre au noeud donné."""
+        n1, _ = self._data["members"][member_id]["Noeuds"]
+        return "start" if node_id == n1 else "end"
+
+    def _has_flexural_release_at(self, member_id: str, end: str) -> bool:
+        """Indique si la barre a un relâchement en rotation (rotule fléchie) à l'extrémité.
+
+        Un relâchement ``teta_y`` ou ``teta_z`` rompt la continuité de la flexion
+        et donc la barre structurale.
+        """
+        rel = self._data["members"][member_id]["Relaxation"].get(end)
+        if not rel:
+            return False
+        return bool(rel.get("teta_y") or rel.get("teta_z"))
+
+    def detect_continuous_members(
+        self, angle_tol_deg: float = 1.0
+    ) -> list[list[str]]:
+        """Détecte automatiquement les chaînes de barres FEM formant une barre continue.
+
+        Deux barres FEM sont considérées comme continues au travers d'un noeud partagé si :
+
+        1. Elles utilisent le même matériau et la même section.
+        2. Aucune des deux n'a de relâchement en rotation (``teta_y`` ou ``teta_z``)
+           à l'extrémité partagée — une rotule rompt la continuité en flexion.
+        3. Elles sont colinéaires au noeud partagé à ``angle_tol_deg`` près :
+           les deux vecteurs sortants du noeud partagé sont quasi-opposés
+           (``cos(angle) ≈ -1``).
+
+        Le degré du noeud n'est pas contraint : un noeud T ou Y (contrefiche fixée
+        en milieu d'arbalétrier par ex.) ne rompt pas la continuité de l'arbalétrier
+        tant que les barres de l'arbalétrier sont colinéaires et sans relâchement.
+        La présence d'un appui intermédiaire ne rompt pas non plus la continuité.
+
+        Args:
+            angle_tol_deg (float): Tolérance angulaire en degrés pour la colinéarité.
+                Valeurs typiques : 0.5° (strict) à 5° (tolérant sur CAO imprécise).
+                Defaults to 1.0.
+
+        Returns:
+            list[list[str]]: Liste de chaînes ordonnées de ``member_id``.
+                Chaque chaîne est orientée d'une extrémité libre vers l'autre.
+                Une barre isolée (non continue) est retournée comme une chaîne
+                d'un seul élément.
+
+        Exemple:
+            >>> chains = model.detect_continuous_members()
+            >>> # [["M1"], ["M2", "M3", "M4"], ["M5"]]
+            >>> # M2→M3→M4 forment une solive continue sur 4 appuis par exemple.
+
+        Note:
+            La méthode ne modifie pas le modèle. Pour créer effectivement les
+            barres structurales à partir du résultat, utilisez ``group_members``
+            ou ``auto_group_continuous_members``.
+        """
+        from collections import defaultdict
+
+        # 1. Index noeud -> [(member_id, end)]
+        node_to_ends: dict[str, list[tuple[str, str]]] = defaultdict(list)
+        for mid, m in self._data["members"].items():
+            n1, n2 = m["Noeuds"]
+            node_to_ends[n1].append((mid, "start"))
+            node_to_ends[n2].append((mid, "end"))
+
+        cos_threshold = -np.cos(np.radians(angle_tol_deg))
+
+        def can_connect(m1: str, m2: str, shared: str) -> bool:
+            mem1 = self._data["members"][m1]
+            mem2 = self._data["members"][m2]
+            if mem1["Matériaux"] != mem2["Matériaux"]:
+                return False
+            if mem1["Section"] != mem2["Section"]:
+                return False
+            # Ne pas exiger degré 2 au noeud : une contrefiche (T/Y) ne rompt
+            # pas la continuité de l'arbalétrier si les deux barres sont
+            # colinéaires et sans relâchement.
+            if self._has_flexural_release_at(
+                m1, self._end_at_node(m1, shared)
+            ) or self._has_flexural_release_at(m2, self._end_at_node(m2, shared)):
+                return False
+            v1 = self._member_unit_vector(m1, shared)
+            v2 = self._member_unit_vector(m2, shared)
+            # Continuité : v1 et v2 sortent du noeud partagé en directions opposées
+            return float(np.dot(v1, v2)) <= cos_threshold
+
+        # 2. Construire la table des voisins : member_id -> {node_partage: voisin}
+        # Au noeud partagé il peut y avoir N barres (T, Y…) : on cherche parmi
+        # toutes celles qui passent le test de continuité (même matériau, même
+        # section, colinéaires, sans relâchement). Au plus une sera retenue.
+        neighbors: dict[str, dict[str, str]] = {}
+        for mid, m in self._data["members"].items():
+            n1, n2 = m["Noeuds"]
+            nb: dict[str, str] = {}
+            for shared in (n1, n2):
+                ends = node_to_ends[shared]
+                other = next(
+                    (om for om, _ in ends if om != mid and can_connect(mid, om, shared)),
+                    None,
+                )
+                if other is not None:
+                    nb[shared] = other
+            neighbors[mid] = nb
+
+        # 3. Parcourir les chaînes (graphe localement linéaire)
+        visited: set[str] = set()
+        chains: list[list[str]] = []
+        for start_mid in self._data["members"].keys():
+            if start_mid in visited:
+                continue
+            n1, n2 = self._data["members"][start_mid]["Noeuds"]
+
+            def walk(direction_node: str) -> list[str]:
+                chain_ids: list[str] = []
+                cur_mid = start_mid
+                out_node = direction_node
+                while True:
+                    nxt = neighbors[cur_mid].get(out_node)
+                    if nxt is None or nxt == start_mid or nxt in chain_ids:
+                        break
+                    chain_ids.append(nxt)
+                    nxt_nodes = self._data["members"][nxt]["Noeuds"]
+                    out_node = (
+                        nxt_nodes[0] if nxt_nodes[1] == out_node else nxt_nodes[1]
+                    )
+                    cur_mid = nxt
+                return chain_ids
+
+            forward = walk(n2)
+            backward = walk(n1)
+            chain = list(reversed(backward)) + [start_mid] + forward
+            visited.update(chain)
+            chains.append(chain)
+        return chains
+
+    def group_members(
+        self,
+        name: str,
+        member_ids: list[str],
+        role: str = None,
+        design_params: dict = None,
+        comment: str = None,
+    ) -> str:
+        """Crée une barre structurale (regroupement de barres FEM continues).
+
+        Regroupe une ou plusieurs barres FEM en un unique élément structurel,
+        destiné à être vérifié comme un tout selon un Eurocode (EC2, EC3, EC5, etc.).
+        La continuité n'est pas vérifiée ici : utilisez ``detect_continuous_members``
+        en amont si vous voulez une vérification automatique.
+
+        Args:
+            name (str): Nom unique de la barre structurale (ex: "Solive_S1").
+            member_ids (list[str]): Liste ordonnée des identifiants de barres FEM
+                constituant la barre structurale (ex: ["M12", "M13", "M14"]).
+                Pour une barre simple non continue : ``[member_id]``.
+            role (str, optional): Rôle structurel (ex: "Solive", "Panne", "Poteau",
+                "Arbalétrier", "Moise", "Poutre", "Voile"). Utilisé par les modules
+                de vérification.
+            design_params (dict, optional): Paramètres de design spécifiques à l'Eurocode
+                utilisé. Le contenu dépend du matériau (EC2=béton, EC3=acier, EC5=bois).
+                Exemple EC5: {"classe_bois": "C24", "cs": 1, "Hi": 12, "Hf": 12,
+                "effet_systeme": False, "type_element_fleche": "Solives"}.
+                Exemple EC3: {"classe_acier": "S355", "classe_section": 1}.
+            lo_rel_y (float, optional): Longueur de flambement/déversement autour
+                de l'axe y, en mm. Si None, à déterminer automatiquement au moment
+                de la vérification.
+            lo_rel_z (float, optional): Longueur de flambement/déversement autour
+                de l'axe z, en mm.
+            comment (str, optional): Commentaire descriptif.
+
+        Returns:
+            str: Nom de la barre structurale créée (= ``name``).
+
+        Raises:
+            ValueError: Si une barre FEM listée n'existe pas, si ``member_ids`` est
+                vide, ou si ``name`` existe déjà.
+
+        Exemple:
+            >>> chains = model.detect_continuous_members()
+            >>> # supposons chains[0] == ["M1", "M2", "M3"]
+            >>> model.group_members("Solive_S1", chains[0],
+            ...                     role="Solive",
+            ...                     design_params={"classe_bois": "C24",})
+        """
+        if not member_ids:
+            raise ValueError("`member_ids` ne peut pas être vide.")
+        if name in self._data["structural_members"]:
+            raise ValueError(
+                f"La barre structurale '{name}' existe déjà. "
+                f"Utilisez `del_structural_member` d'abord pour la remplacer."
+            )
+        for mid in member_ids:
+            if mid not in self._data["members"]:
+                raise ValueError(f"La barre FEM '{mid}' n'existe pas dans le modèle.")
+
+        total_length = sum(
+            (self._data["members"][mid]["Longueur"] for mid in member_ids),
+            start=0 * si.mm,
+        )
+
+        design = dict(design_params) if design_params else {}
+
+        # Paramètres de flambement (EC5 §6.3.2) — longueurs et types d'appui par axe
+        comp_params = self._determine_compression_params(member_ids)
+        design["lo_flamb_y"] = comp_params["lo_flamb_y"]
+        design["lo_flamb_z"] = comp_params["lo_flamb_z"]
+        design["type_appuis_y"] = comp_params["type_appuis_y"]
+        design["type_appuis_z"] = comp_params["type_appuis_z"]
+
+        # Paramètres de déversement en flexion (EC5 §6.3.3) — longueurs et coeflef par axe
+        flexion_params = self._determine_flexion_params(member_ids)
+        design["lo_rel_y"] = flexion_params["lo_rel_y"]
+        design["lo_rel_z"] = flexion_params["lo_rel_z"]
+        design["coeflef_y"] = flexion_params["coeflef_y"]
+        design["coeflef_z"] = flexion_params["coeflef_z"]
+
+        self._data["structural_members"][name] = {
+            "Barres FEM": list(member_ids),
+            "Rôle": role,
+            "Longueur totale": total_length,
+            "Design": design,
+            "Commentaire": comment,
+        }
+        return name
+
+    def _node_is_rotationally_fixed(
+        self, node_id: str, member_id: str, end: str, axis: str
+    ) -> bool:
+        """Indique si une extrémité de barre est effectivement encastrée en rotation.
+
+        Un encastrement en rotation sur ``axis`` requiert **deux conditions**
+        simultanées :
+
+        1. Le nœud bloque la rotation via un appui classique (``R{axis}=True``).
+        2. La barre elle-même n'a pas de relâchement ``teta_{axis}`` à cette
+           extrémité — sinon la rotule de barre annule l'appui en rotation.
+
+        Si le nœud n'a pas d'appui classique (nœud de ferme interne, faîtage…),
+        la rotation est libre quelle que soit la continuité de la barre.
+
+        Args:
+            node_id: Identifiant du nœud à analyser.
+            member_id: Barre FEM dont l'extrémité est au nœud.
+            end: ``"start"`` ou ``"end"``.
+            axis: ``"y"`` ou ``"z"``.
+
+        Returns:
+            bool: ``True`` si le nœud constitue un encastrement en rotation
+                pour la barre analysée.
+        """
+        rot_key = "R" + axis.upper()
+        support = self._get_support_conditions_at_node(node_id)
+        if not support[rot_key]:
+            return False
+        return not self._has_rotation_release_at(member_id, end, axis)
+
+    def _type_appuis_between_nodes(
+        self,
+        node_start: str, node_end: str,
+        member_start: str, member_end: str,
+        axis: str,
+        end_str_start: str, end_str_end: str,
+    ) -> str:
+        """Retourne le type d'appui en flambement entre deux nœuds consécutifs.
+
+        Args:
+            node_start: nœud de début du segment.
+            node_end: nœud de fin du segment.
+            member_start: barre FEM dont l'extrémité est en ``node_start``.
+            member_end: barre FEM dont l'extrémité est en ``node_end``.
+            axis: ``"y"`` ou ``"z"``.
+            end_str_start: ``"start"`` ou ``"end"`` pour ``member_start`` à ``node_start``.
+            end_str_end: ``"start"`` ou ``"end"`` pour ``member_end`` à ``node_end``.
+
+        Returns:
+            str: Type d'appui selon ``Compression.COEF_LF``.
+
+        Note:
+            L'encastrement en rotation est déterminé par ``_node_is_rotationally_fixed`` :
+            il requiert à la fois un appui classique bloquant ``R{axis}`` **et** l'absence
+            de relâchement ``teta_{axis}`` sur la barre analysée à cette extrémité.
+            Un nœud sans appui classique (nœud de ferme, faîtage…) est toujours une rotule,
+            même si la barre n'a pas de relâchement explicite.
+        """
+        start_fixed = self._node_is_rotationally_fixed(
+            node_start, member_start, end_str_start, axis
+        )
+        end_fixed = self._node_is_rotationally_fixed(
+            node_end, member_end, end_str_end, axis
+        )
+        if start_fixed and end_fixed:
+            return "Encastré - Encastré"
+        if start_fixed or end_fixed:
+            # Un seul côté est encastré (rotation bloquée sans relâchement).
+            # L'autre extrémité doit être libre (pas de translation latérale bloquée)
+            # pour que ce soit un porte-à-faux, sinon c'est Encastré-Rotule.
+            lat_dof = "DZ" if axis == "y" else "DY"
+            s_lat = self._get_support_conditions_at_node(node_start)
+            e_lat = self._get_support_conditions_at_node(node_end)
+            other_lat_free = (start_fixed and not e_lat[lat_dof]) or (end_fixed and not s_lat[lat_dof])
+            if other_lat_free:
+                return "Encastré 1 côté"
+            return "Encastré - Rotule"
+        return "Rotule - Rotule"
+
+    def _determine_type_appuis(self, member_ids: list[str], axis: str) -> str:
+        """Détermine le type d'appui aux **extrémités** de la barre structurale
+        pour le calcul de flambement.
+
+        Utilise ``_ordered_chain_nodes`` pour respecter la topologie réelle
+        (barres éventuellement à sens alternés).
+
+        Args:
+            member_ids (list[str]): Liste des identifiants de barres FEM.
+            axis (str): Axe de flambement ("y" ou "z").
+
+        Returns:
+            str: Type d'appui selon Compression.COEF_LF.
+        """
+        chain_nodes = self._ordered_chain_nodes(member_ids)
+        start_node = chain_nodes[0][0]
+        end_node = chain_nodes[-1][0]
+        end_str_start = self._end_at_node(member_ids[0], start_node)
+        end_str_end = self._end_at_node(member_ids[-1], end_node)
+        return self._type_appuis_between_nodes(
+            start_node, end_node,
+            member_ids[0], member_ids[-1],
+            axis,
+            end_str_start, end_str_end,
+        )
+
+    def _determine_compression_params(
+        self, member_ids: list[str]
+    ) -> dict:
+        """Calcule les paramètres de flambement (EC5 §6.3.2) par axe.
+
+        Pour chaque axe (y, z) :
+
+        - Les appuis en **translation** latérale (``DZ`` pour axe y, ``DY`` pour
+          axe z) découpent la barre structurale en sous-portées.
+        - La longueur de flambement ``lo_flamb`` retenue est la longueur de la
+          sous-portée la plus longue (cas le plus défavorable).
+        - Le ``type_appuis`` est déterminé aux extrémités de cette sous-portée
+          par analyse des conditions de rotation (``RY``/``RZ``) et des
+          relâchements éventuels.
+
+        La convention de DDL est :
+
+        =========  =================  ==================
+        Axe         Translation lat.   Rotation bloquante
+        =========  =================  ==================
+        y (plan XZ) DZ                 RY
+        z (plan XY) DY                 RZ
+        =========  =================  ==================
+
+        Args:
+            member_ids (list[str]): Liste ordonnée de barres FEM.
+
+        Returns:
+            dict: Clés ``lo_flamb_y``, ``lo_flamb_z``,
+                ``type_appuis_y``, ``type_appuis_z`` (flottants mm et str).
+        """
+        chain_nodes = self._ordered_chain_nodes(member_ids)  # [(node, abs), …]
+        node_at_abs: dict[float, str] = {pos: nid for nid, pos in chain_nodes}
+
+        def _worst_span_for_axis(lat_dof: str, axis: str) -> tuple[float, str]:
+            rot_dof = "R" + axis.upper()
+            spans = self._compute_spans(member_ids, lat_dof, rot_dof)
+            worst_lo = 0.0
+            worst_type = "Rotule - Rotule"
+            for x0, x1, span_len in spans:
+                node_s = node_at_abs[x0]
+                node_e = node_at_abs[x1]
+                # Trouve les barres FEM dont les extrémités tombent sur ces nœuds
+                mid_s = next(
+                    m for m in member_ids
+                    if node_s in self._data["members"][m]["Noeuds"]
+                )
+                mid_e = next(
+                    m for m in reversed(member_ids)
+                    if node_e in self._data["members"][m]["Noeuds"]
+                )
+                end_s = self._end_at_node(mid_s, node_s)
+                end_e = self._end_at_node(mid_e, node_e)
+                t = self._type_appuis_between_nodes(
+                    node_s, node_e, mid_s, mid_e, axis, end_s, end_e
+                )
+                if span_len >= worst_lo:
+                    worst_lo = span_len
+                    worst_type = t
+            return worst_lo, worst_type
+
+        lo_flamb_y, type_appuis_y = _worst_span_for_axis("DY", "z") #inversé pour convertir le repère locale à l'EUROCODE 5
+        lo_flamb_z, type_appuis_z = _worst_span_for_axis("DZ", "y") #inversé pour convertir le repère locale à l'EUROCODE 5
+        return {
+            "lo_flamb_y": lo_flamb_y,
+            "lo_flamb_z": lo_flamb_z,
+            "type_appuis_y": type_appuis_y,
+            "type_appuis_z": type_appuis_z,
+        }
+
+    def _ordered_chain_nodes(
+        self, member_ids: list[str]
+    ) -> list[tuple[str, float]]:
+        """Retourne la liste ordonnée ``[(node_id, abscisse_mm), …]`` pour une chaîne
+        de barres FEM consécutives, en respectant la topologie réelle (sens des
+        barres potentiellement alternés).
+
+        Args:
+            member_ids (list[str]): Barres FEM de la chaîne, dans l'ordre structural.
+
+        Returns:
+            list[tuple[str, float]]: Du premier nœud au dernier, avec abscisse
+                cumulée en mm.
+        """
+        if not member_ids:
+            return []
+
+        # Pour la première barre on choisit Noeuds[0] comme nœud de départ.
+        first = self._data["members"][member_ids[0]]["Noeuds"]
+        result: list[tuple[str, float]] = [(first[0], 0.0)]
+        prev_node = first[0]
+        cumul = 0.0
+
+        for mid in member_ids:
+            n1, n2 = self._data["members"][mid]["Noeuds"]
+            length_mm = self._data["members"][mid]["Longueur"].value * 1000.0
+            # Le nœud de sortie est celui qui n'est pas le nœud d'entrée
+            next_node = n2 if n1 == prev_node else n1
+            cumul += length_mm
+            result.append((next_node, cumul))
+            prev_node = next_node
+
+        return result
+
+    def _compute_spans(
+        self,
+        member_ids: list[str],
+        lateral_dof: str,
+        rot_dof: str,
+    ) -> list[tuple[float, float, float]]:
+        """Retourne la liste des sous-portées entre appuis latéraux consécutifs.
+
+        Parcourt la séquence ordonnée de barres FEM et identifie les nœuds
+        qui bloquent le déversement. Chaque sous-portée est décrite par ses
+        abscisses de début et de fin ainsi que sa longueur.
+
+        Args:
+            member_ids (list[str]): Liste ordonnée des identifiants de barres FEM.
+            lateral_dof (str): DDL en translation bloquant le déversement
+                (ex: ``"DZ"`` pour déversement selon Y).
+            rot_dof (str): DDL en rotation bloquant le déversement
+                (ex: ``"RY"`` pour déversement selon Y).
+
+        Returns:
+            list[tuple[float, float, float]]: Liste de ``(x_debut, x_fin, longueur)``
+                en mm, du premier au dernier segment entre appuis latéraux.
+                S'il n'y a aucun appui latéral, retourne un seul segment couvrant
+                toute la longueur.
+
+        Note:
+            Un nœud est considéré appui latéral s'il bloque ``lateral_dof``
+            ou ``rot_dof``.
+        """
+        nodes_with_pos = self._ordered_chain_nodes(member_ids)
+        cumul = nodes_with_pos[-1][1] if nodes_with_pos else 0.0
+
+        bracing_positions: list[float] = []
+        for node_id, pos in nodes_with_pos:
+            support = self._get_support_conditions_at_node(node_id)
+            if support[lateral_dof] or support[rot_dof]:
+                bracing_positions.append(pos)
+
+        all_positions = sorted(set([0.0] + bracing_positions + [cumul]))
+        return [
+            (all_positions[i], all_positions[i + 1], all_positions[i + 1] - all_positions[i])
+            for i in range(len(all_positions) - 1)
+        ]
+
+    def _compute_lo_rel(
+        self,
+        member_ids: list[str],
+        lateral_dof: str,
+        rot_dof: str,
+    ) -> float:
+        """Calcule la longueur de déversement maximale entre appuis latéraux.
+
+        Délègue à ``_compute_spans`` et retourne la longueur du segment le plus long.
+
+        Args:
+            member_ids (list[str]): Liste ordonnée des identifiants de barres FEM.
+            lateral_dof (str): DDL en translation bloquant le déversement.
+            rot_dof (str): DDL en rotation bloquant le déversement.
+
+        Returns:
+            float: Longueur de déversement maximale en mm.
+        """
+        spans = self._compute_spans(member_ids, lateral_dof, rot_dof)
+        return max(s[2] for s in spans) if spans else 0.0
+
+    def _determine_flexion_params(self, member_ids: list[str]) -> dict:
+        """Détermine les paramètres de déversement en flexion selon l'EC5.
+
+        Analyse les charges appliquées et les conditions d'appui pour déterminer
+        les longueurs efficaces de déversement et les coefficients associés.
+
+        Args:
+            member_ids (list[str]): Liste des identifiants de barres FEM.
+
+        Returns:
+            dict: Paramètres de flexion avec clés :
+                - "lo_rel_y" (float): Longueur de déversement axe y en mm
+                - "lo_rel_z" (float): Longueur de déversement axe z en mm
+                - "coeflef_y" (float): Coefficient de longueur efficace axe y
+                - "coeflef_z" (float): Coefficient de longueur efficace axe z
+                - "pos_charge" (str): Position de la charge verticale
+
+        Note:
+            Les coefficients coeflef dépendent du type de chargement :
+            - 1.0 : moment constant
+            - 0.9 : charge répartie (défaut)
+            - 0.8 : charge concentrée centrale
+            - 0.5 : porte-à-faux charge répartie
+            - 0.8 : porte-à-faux charge concentrée bout
+
+            La position de la charge est déterminée par la direction des charges
+            verticales appliquées.
+        """
+        # Vérifie si c'est un porte-à-faux (un côté encastré, l'autre libre)
+        # _ordered_chain_nodes respecte la topologie réelle des barres enchaînées.
+        chain_nodes = self._ordered_chain_nodes(member_ids)
+        start_node = chain_nodes[0][0]
+        end_node = chain_nodes[-1][0]
+
+        start_support = self._get_support_conditions_at_node(start_node)
+        end_support = self._get_support_conditions_at_node(end_node)
+
+        start_blocked = start_support["DX"] or start_support["DY"] or start_support["DZ"]
+        end_blocked = end_support["DX"] or end_support["DY"] or end_support["DZ"]
+
+        is_cantilever = (start_blocked and not end_blocked) or (end_blocked and not start_blocked)
+
+        # Abscisses cumulées des barres (calculé une seule fois, capturé par closure)
+        cumul_map: dict[str, tuple[float, float]] = {}
+        x_cur = 0.0
+        for _mid in member_ids:
+            _len = self._data["members"][_mid]["Longueur"].value * 1000.0
+            cumul_map[_mid] = (x_cur, x_cur + _len)
+            x_cur += _len
+
+        def _coeflef_for_span(
+            x0: float, x1: float, is_cant: bool
+        ) -> float:
+            """Retourne le coeflef le plus défavorable pour un segment [x0, x1].
+
+            Pour chaque charge verticale portant sur une barre dont l'abscisse
+            locale chevauche le segment, détermine la contribution (distribuée,
+            ponctuelle centrale, ponctuelle en bout). Le coeflef le plus élevé
+            (le plus défavorable) est retenu ; 1.0 est utilisé si aucune charge
+            n'est trouvée (moment constant, hypothèse conservative).
+            """
+            span_len = x1 - x0
+            local_dist = False
+            local_center = False
+            local_end = False
+
+            for load in self._data["loads"].values():
+                if load["N° barre"] not in member_ids:
+                    continue
+                if load["Axe"] not in ("Fy", "Fz", "FY", "FZ"):
+                    continue
+                mid = load["N° barre"]
+                bar_x0, bar_x1 = cumul_map[mid]
+                # La barre doit chevaucher le segment
+                if bar_x1 <= x0 or bar_x0 >= x1:
+                    continue
+                if load["Type de charge"] == "Distribuée":
+                    local_dist = True
+                elif load["Type de charge"] == "Ponctuelle":
+                    pos_rel = load.get("Position", 0.5)
+                    # Abscisse absolue de la charge
+                    x_load = bar_x0 + pos_rel * (bar_x1 - bar_x0)
+                    if x0 <= x_load <= x1:
+                        # Position relative dans le segment
+                        pos_in_span = (x_load - x0) / span_len if span_len > 0 else 0.5
+                        if 0.4 <= pos_in_span <= 0.6:
+                            local_center = True
+                        else:
+                            local_end = True
+
+            if is_cant:
+                return 0.8 if local_end else 0.5
+            else:
+                if local_center:
+                    return 0.8
+                if local_dist:
+                    return 0.9
+                return 1.0  # moment constant — hypothèse conservative
+
+        def _worst_case_axis(
+            lateral_dof: str, rot_dof: str
+        ) -> tuple[float, float]:
+            """Retourne ``(lo_rel, coeflef)`` les plus défavorables pour un axe.
+
+            Pour chaque sous-portée entre appuis latéraux, calcule le coeflef
+            associé. La paire ``(lo_rel × coeflef)`` maximale détermine la
+            longueur efficace de déversement la plus défavorable.
+            """
+            spans = self._compute_spans(member_ids, lateral_dof, rot_dof)
+            worst_lo = 0.0
+            worst_coeflef = 0.9  # valeur par défaut
+            for x0, x1, span_len in spans:
+                c = _coeflef_for_span(x0, x1, is_cantilever)
+                if span_len * c >= worst_lo * worst_coeflef:
+                    worst_lo = span_len
+                    worst_coeflef = c
+            return worst_lo, worst_coeflef
+
+        lo_rel_y, coeflef_y = _worst_case_axis("DZ", "RY") #inversé pour convertir le repère locale à l'EUROCODE 5
+        lo_rel_z, coeflef_z = _worst_case_axis("DY", "RZ") #inversé pour convertir le repère locale à l'EUROCODE 5
+
+        return {
+            "lo_rel_y": lo_rel_y,
+            "lo_rel_z": lo_rel_z,
+            "coeflef_y": coeflef_y,
+            "coeflef_z": coeflef_z,
+        }
+
+    def auto_group_continuous_members(
+        self,
+        angle_tol_deg: float = 1.0,
+        role: str = None,
+        name_prefix: str = "SM",
+        only_continuous: bool = ("False", "True"),
+        design_params: dict = None,
+    ) -> list[str]:
+        """Détecte et regroupe automatiquement toutes les barres continues du modèle.
+
+        Combine ``detect_continuous_members`` et ``group_members`` : chaque chaîne
+        détectée devient une barre structurale nommée ``{name_prefix}{i}``.
+
+        Args:
+            angle_tol_deg (float): Tolérance angulaire pour la détection.
+                Defaults to 1.0.
+            role (str, optional): Rôle appliqué à toutes les barres créées.
+            name_prefix (str): Préfixe pour les noms auto-générés.
+                Defaults to "SM".
+            only_continuous (bool): Si True, ignore les chaînes d'une seule barre FEM
+                (barres isolées non continues). Defaults to False.
+            design_params (dict, optional): Paramètres de design spécifiques à l'Eurocode.
+                Transmis à ``group_members`` pour chaque barre créée.
+
+        Returns:
+            list[str]: Noms des barres structurales créées, dans l'ordre de détection.
+
+        Exemple:
+            >>> names = model.auto_group_continuous_members(
+            ...     role="Solive", design_params={"classe_bois": "C24", "cs": 1})
+            >>> # ["SM1", "SM2", ...]
+        """
+        chains = self.detect_continuous_members(angle_tol_deg=angle_tol_deg)
+        created: list[str] = []
+        idx = 1
+        for chain in chains:
+            if only_continuous and len(chain) < 2:
+                continue
+            name = f"{name_prefix}{idx}"
+            while name in self._data["structural_members"]:
+                idx += 1
+                name = f"{name_prefix}{idx}"
+            self.group_members(
+                name, chain, role=role,
+                design_params=design_params,
+            )
+            created.append(name)
+            idx += 1
+        return created
+
+    def get_structural_member(self, name: str) -> dict:
+        """Retourne les données d'une barre structurale par son nom.
+
+        Args:
+            name (str): Nom de la barre structurale (ex: "Solive_S1").
+
+        Returns:
+            dict: Dictionnaire contenant :
+
+                - ``"Barres FEM"`` : liste ordonnée des ``member_id`` FEM
+                - ``"Rôle"`` : rôle structurel
+                - ``"Longueur totale"`` : longueur cumulée avec unité (``si.mm``)
+                - ``"Design"`` : paramètres de design spécifiques à l'Eurocode
+                - ``"Commentaire"`` : texte libre
+
+        Raises:
+            KeyError: Si le nom n'existe pas.
+        """
+        return self._data["structural_members"][name]
+
+    def get_all_structural_members(self) -> dict:
+        """Retourne toutes les barres structurales du modèle.
+
+        Returns:
+            dict: Dictionnaire ``{name: données}`` de toutes les barres structurales.
+        """
+        return self._data["structural_members"]
+
+    def del_structural_member(self, name: str) -> dict:
+        """Supprime une barre structurale par son nom.
+
+        Args:
+            name (str): Nom de la barre structurale à supprimer.
+
+        Returns:
+            dict: Données de la barre structurale supprimée.
+
+        Raises:
+            KeyError: Si le nom n'existe pas.
+        """
+        return self._data["structural_members"].pop(name)
+
+    def _iter_structural_members(self):
+        """Itère sur toutes les barres structurales du modèle.
+
+        Yields:
+            tuple[str, dict]: Couple ``(name, data)`` pour chaque barre structurale.
+
+        Exemple:
+            >>> for name, sm in model.iter_structural_members():
+            ...     print(name, sm["Rôle"], sm["Longueur totale"])
+        """
+        yield from self._data["structural_members"].items()
+
+    def debug_node_compression(self, structural_member_name: str, axis: str = "y") -> None:
+        """Affiche les informations de debug pour le calcul du type d'appui en compression.
+
+        Affiche les conditions d'appui et de relâchement aux nœuds d'extrémité de la
+        barre structurale, ainsi que le résultat final du type d'appui.
+
+        Args:
+            structural_member_name (str): Nom de la barre structurale à analyser.
+            axis (str): Axe de flambement ("y" ou "z"). Defaults to "y".
+        """
+        sm = self._data["structural_members"][structural_member_name]
+        member_ids = sm["Barres FEM"]
+        chain_nodes = self._ordered_chain_nodes(member_ids)
+        start_node = chain_nodes[0][0]
+        end_node = chain_nodes[-1][0]
+        mid_s = member_ids[0]
+        mid_e = member_ids[-1]
+        end_s = self._end_at_node(mid_s, start_node)
+        end_e = self._end_at_node(mid_e, end_node)
+        s_sup = self._get_support_conditions_at_node(start_node)
+        e_sup = self._get_support_conditions_at_node(end_node)
+        s_rel = self._has_rotation_release_at(mid_s, end_s, axis)
+        e_rel = self._has_rotation_release_at(mid_e, end_e, axis)
+        rot_key = "R" + axis.upper()
+        start_fixed = s_sup[rot_key] and not s_rel
+        end_fixed = e_sup[rot_key] and not e_rel
+        print(f"=== debug_node_compression : '{structural_member_name}' axe={axis} ===")
+        print(f"  Barres FEM      : {member_ids}")
+        print(f"  Nœud début      : {start_node}  (barre {mid_s}, extrémité '{end_s}')")
+        print(f"    Appui classique : {s_sup}")
+        print(f"    Relâchement teta_{axis} : {s_rel}")
+        print(f"    → start_fixed = {start_fixed}")
+        print(f"  Nœud fin        : {end_node}  (barre {mid_e}, extrémité '{end_e}')")
+        print(f"    Appui classique : {e_sup}")
+        print(f"    Relâchement teta_{axis} : {e_rel}")
+        print(f"    → end_fixed = {end_fixed}")
+        result = self._determine_type_appuis(member_ids, axis)
+        print(f"  → type_appuis   : '{result}'")
+
+    def get_type_appuis_for_compression(
+        self,
+        structural_member_name: str,
+        axis: str = "y",
+    ) -> str:
+        """Détermine le type d'appui pour le calcul de flambement en compression.
+
+        Analyse les conditions d'appui aux extrémités d'une barre structurale
+        (membre continu ou simple) pour déterminer le coefficient β de longueur
+        efficace selon l'EC5.
+
+        Args:
+            structural_member_name (str): Nom de la barre structurale à analyser
+                (ex: "Poteau_P1", "SM1").
+            axis (str): Axe de flambement à considérer ("y" ou "z").
+                Defaults to "y".
+
+        Returns:
+            str: Type d'appui selon Compression.COEF_LF :
+                - "Encastré 1 côté" : β = 2.0 (console)
+                - "Rotule - Rotule" : β = 1.0 (articulé-articulé)
+                - "Encastré - Rotule" : β = 0.7
+                - "Encastré - Encastré" : β = 0.5
+                - "Encastré - Rouleau" : β = 1.0 (encastré-glissière)
+
+        Raises:
+            KeyError: Si la barre structurale n'existe pas.
+
+        Note:
+            La méthode analyse :
+            1. Les appuis classiques (DX, DY, DZ, RX, RY, RZ) aux nœuds d'extrémité
+            2. Les relâchements (releases) en rotation aux extrémités des barres FEM
+            3. La continuité du membre (barre continue ou simple)
+
+            Pour un axe donné (y ou z), une rotation bloquée sur cet axe
+            correspond à un encastrement, une rotation libre à une rotule.
+        """
+        sm = self._data["structural_members"][structural_member_name]
+        member_ids = sm["Barres FEM"]
+
+        return self._determine_type_appuis(member_ids, axis)
+
+    def _get_support_conditions_at_node(self, node_id: str) -> dict:
+        """Retourne les conditions d'appui au nœud spécifié.
+
+        Args:
+            node_id (str): Identifiant du nœud.
+
+        Returns:
+            dict: Conditions d'appui avec clés DX, DY, DZ, RX, RY, RZ.
+                True = bloqué, False = libre.
+                Si aucun appui, retourne toutes les directions libres.
+        """
+        # Cherche un appui classique sur ce nœud
+        for support_id, support in self._data["supports"]["classic"].items():
+            if support["Noeud"] == node_id:
+                return {
+                    "DX": support["DX"],
+                    "DY": support["DY"],
+                    "DZ": support["DZ"],
+                    "RX": support["RX"],
+                    "RY": support["RY"],
+                    "RZ": support["RZ"],
+                }
+        # Pas d'appui = libre en translation et rotation
+        return {"DX": False, "DY": False, "DZ": False, "RX": False, "RY": False, "RZ": False}
+
+    def _has_rotation_release_at(self, member_id: str, end: str, axis: str) -> bool:
+        """Indique si la barre a un relâchement en rotation à l'extrémité.
+
+        Args:
+            member_id (str): Identifiant de la barre FEM.
+            end (str): Extrémité ("start" ou "end").
+            axis (str): Axe de rotation ("y" ou "z").
+
+        Returns:
+            bool: True si relâchement en rotation sur l'axe, False sinon.
+        """
+        rel = self._data["members"][member_id]["Relaxation"].get(end)
+        if not rel:
+            return False
+        rot_key = "teta_" + axis
+        return bool(rel.get(rot_key, False))
 
     def generate_model(self):
         """Génère et assemble le modèle MEF complet dans Pynite.
