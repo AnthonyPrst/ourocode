@@ -5,7 +5,7 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
-## [Unreleased]
+## [2.1.2]
 
 ### Fixed
 - **`detect_continuous_members`** : correction du bug qui empêchait la détection de la continuité d'un arbalétrier (ou de toute barre) lorsqu'une contrefiche (ou autre barre transversale) était fixée en nœud intermédiaire (jonction T/Y). La contrainte de degré 2 au nœud a été supprimée : la colinéarité seule suffit à distinguer les barres continues des branchements. La recherche du voisin parcourt désormais toutes les barres du nœud pour trouver celle qui passe le test de continuité, et non plus uniquement la première trouvée. Les tests de `TestDetectContinuousMembers` ont été mis à jour en conséquence (2 nouveaux cas de régression : jonction T perpendiculaire et jonction T avec relâchement).
