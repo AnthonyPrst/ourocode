@@ -5,7 +5,7 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
-## [2.1.3]
+## [2.1.4]
 
 ### Added
 - **`Verification_EC5`** : intégration de la vérification feu (EN 1995-1-2) dans le processus de vérification EC5.
