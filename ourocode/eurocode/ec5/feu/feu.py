@@ -9,15 +9,10 @@ import pandas as pd
 
 import forallpeople as si
 si.environment("structural")
-from ourocode.eurocode.core.renderer import handcalc
+from ourocode.eurocode.core._renderer import handcalc
+from ourocode.eurocode.mixins.math_utils import MathUtilsMixin
 
 from ourocode.eurocode.ec5.element_droit.barre import Barre
-
-def interpolation_lineaire(x, xa, xb, ya, yb):
-    """Fait une interpolation linéaire pour trouver un résultat y entre deux valeur xa et xb"""
-    y = ya + (x - xa) * ((yb - ya) / (xb - xa))
-    return y
-
 
 # ================================ GLOBAL ==================================
 
@@ -114,8 +109,8 @@ class Feu(Barre):
             beta_n = 0.7
         elif self.classe[0:1] == "D":
             if rho_k >= 290 and rho_k < 450:
-                beta_0 = interpolation_lineaire(rho_k, 290, 450, 0.65, 0.5)
-                beta_n = interpolation_lineaire(rho_k, 290, 450, 0.7, 0.55)
+                beta_0 = MathUtilsMixin.interpolation_lineaire(rho_k, 290, 450, 0.65, 0.5)
+                beta_n = MathUtilsMixin.interpolation_lineaire(rho_k, 290, 450, 0.7, 0.55)
             elif rho_k >= 450:
                 beta_0 = 0.5
                 beta_n = 0.55
@@ -297,7 +292,7 @@ class Feu(Barre):
             k2 = 1 - 0.018 * hp  # 3.7
         elif self.protection[orientation] == "Fibre de roche":
             if 45 > hp >= 20:
-                k2 = interpolation_lineaire(hp, 20, 45, 1, 0.6)
+                k2 = MathUtilsMixin.interpolation_lineaire(hp, 20, 45, 1, 0.6)
             elif hp >= 45:
                 k2 = 0.6
         return k2

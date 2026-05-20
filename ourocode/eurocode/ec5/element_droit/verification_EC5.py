@@ -63,6 +63,12 @@ from ourocode.eurocode.ec5.element_droit import (
     Compression,
     Cisaillement,
 )
+from ourocode.eurocode.ec5.feu import (
+    Flexion_feu,
+    Traction_feu,
+    Compression_feu,
+    Cisaillement_feu,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -137,6 +143,7 @@ class Verification_EC5(Projet):
         type_bat: str = Barre.TYPE_BAT,
         type_ele: str = Barre.TYPE_ELE,
         pos_charge: str = Flexion.LOAD_POS,
+        t_expo: int = 30,
         **kwargs,
     ):
         """Initialise une vérification EC5.
@@ -164,6 +171,8 @@ class Verification_EC5(Projet):
                 de la barre structurale. Defaults to ``Barre.TYPE_ELE``.
             pos_charge (str, optional): Position de la charge verticale par rapport
                 à la section (``Flexion.LOAD_POS``). Defaults to ``Flexion.LOAD_POS``.
+            t_expo (int, optional): Durée d'exposition au feu en minutes pour la
+                vérification incendie (aucune protection des faces). Defaults to 30.
             **kwargs: Transmis à :class:`~ourocode.eurocode.core.projet.Projet`
                 (``ingenieur``, ``name``, ``code_INSEE``, ``alt``…).
 
@@ -188,6 +197,7 @@ class Verification_EC5(Projet):
         self.Hf = Hf
         self.effet_systeme = effet_systeme
         self.classe_service = int(classe_service)
+        self.t_expo = t_expo
 
         # Cache des objets EC5 par (structural_member_name, combo_name)
         # Peuplé automatiquement lors de chaque appel à verify()
@@ -210,6 +220,7 @@ class Verification_EC5(Projet):
         coeflef_z: float = None,
         type_appuis_y: str = None,
         type_appuis_z: str = None,
+        t_expo: int = None,
     ) -> dict:
         """Vérifie une barre structurale en bouclant sur toutes les combos ELU.
 
@@ -251,6 +262,9 @@ class Verification_EC5(Projet):
                 (fallback ``"Rotule - Rotule"`` si absente).
             type_appuis_z (str, optional): Surcharge du type d'appui de flambement
                 selon z. Même logique que ``type_appuis_y``.
+            t_expo (int, optional): Surcharge de la durée d'exposition au feu en minutes
+                pour la vérification incendie (aucune protection des faces).
+                Si ``None`` (défaut), la valeur de l'initialisation est utilisée.
 
         Returns:
             dict: ``{"name", "taux", "dataframe"}`` où :
@@ -267,6 +281,9 @@ class Verification_EC5(Projet):
             KeyError: Si ``name`` n'existe pas dans le modèle.
         """
         self._check_state()
+
+        # Surcharge t_expo si fourni
+        t_expo = t_expo if t_expo is not None else self.t_expo
 
         w_inst_tag = self.DEFAULT_W_INST_TAG
         w_net_fin_tag = self.DEFAULT_W_NET_FIN_TAG
@@ -295,6 +312,10 @@ class Verification_EC5(Projet):
             "Cisaillement": {"taux": 0.0, "combinaison": None},
             "Traction": {"taux": 0.0, "combinaison": None},
             "Compression": {"taux": 0.0, "combinaison": None},
+            "Flexion_feu": {"taux": 0.0, "combinaison": None},
+            "Cisaillement_feu": {"taux": 0.0, "combinaison": None},
+            "Traction_feu": {"taux": 0.0, "combinaison": None},
+            "Compression_feu": {"taux": 0.0, "combinaison": None},
         }
 
         # --- Boucle sur les combinaisons ELU
@@ -310,6 +331,7 @@ class Verification_EC5(Projet):
                 pos_charge=pos_charge,
                 type_appuis_y=type_appuis_y,
                 type_appuis_z=type_appuis_z,
+                t_expo=t_expo,
                 return_objects=True,
             )
             # Stockage dans le cache pour get_combo_objects()
@@ -443,6 +465,7 @@ class Verification_EC5(Projet):
         pos_charge: str,
         type_appuis_y: str,
         type_appuis_z: str,
+        t_expo: int = 30,
         return_objects: bool = False,
     ) -> dict:
         """Retourne les taux ELU (Flexion, Cisaillement, Traction ou Compression)
@@ -475,12 +498,20 @@ class Verification_EC5(Projet):
             "Cisaillement": None,
             "Traction": None,
             "Compression": None,
+            "Flexion_feu": None,
+            "Cisaillement_feu": None,
+            "Traction_feu": None,
+            "Compression_feu": None,
         }
         objects: dict[str, object] = {
             "Flexion": None,
             "Cisaillement": None,
             "Traction": None,
             "Compression": None,
+            "Flexion_feu": None,
+            "Cisaillement_feu": None,
+            "Traction_feu": None,
+            "Compression_feu": None,
         }
 
         barre = Barre(**barre_kwargs)
@@ -490,53 +521,149 @@ class Verification_EC5(Projet):
         compression_obj = None
         N_pos = efforts["Nx"]["Max"][0].value  # N, > 0 si compresion
         N_neg = efforts["Nx"]["Min"][0].value   # N, < 0 si traction
-        if N_pos > 1e-9 and N_pos >= abs(N_neg):
-            compression_obj = Compression._from_parent_class(
-                barre,
-                lo_y=lo_flamb_y, lo_z=lo_flamb_z,
-                type_appuis_y=type_appuis_y, type_appuis_z=type_appuis_z,
-            )
-            compression_obj.f_c_0_d(loadtype=load_time, typecombi=typecombi)
-            compression_obj.sigma_c_0_d(Fc0d=abs(N_pos / 10**3))
-            compression_obj.taux_c_0_d()
-            taux_combo["Compression"] = max(compression_obj.taux_c_0_rd.values())
-            objects["Compression"] = compression_obj
-        elif abs(N_neg) > 1e-9:
-            traction_obj = Traction._from_parent_class(barre)
-            traction_obj.f_t_0_d(loadtype=load_time, typecombi=typecombi)
-            traction_obj.sigma_t_0_d(Ft0d=N_neg / 10**3)
-            traction_obj.taux_t_0_d()
-            taux_combo["Traction"] = max(traction_obj.taux_t_0_rd.values())
-            objects["Traction"] = traction_obj
 
-        # --- Flexion (incluant l'interaction)
-        flexion_obj = None
-        if Mz_abs > 1e-9 or My_abs > 1e-9:
-            flexion_obj = Flexion._from_parent_class(
-                barre,
-                lo_rel_y=lo_y, lo_rel_z=lo_z,
-                coeflef_y=coeflef_y, coeflef_z=coeflef_z,
-                pos=pos_charge,
-            )
-            flexion_obj.f_m_d(loadtype=load_time, typecombi=typecombi)
-            flexion_obj.sigma_m_d(
-                My=My_abs / 10**3, Mz=Mz_abs / 10**3,
-            )
-            flexion_obj.taux_m_d(
-                compression=compression_obj, traction=traction_obj,
-            )
-            taux_combo["Flexion"] = max(flexion_obj.taux_m_rd.values())
-            objects["Flexion"] = flexion_obj
+        if not "FIRE" in combo_name:
+            if N_pos > 1e-9 and N_pos >= abs(N_neg):
+                compression_obj = Compression._from_parent_class(
+                    barre,
+                    lo_y=lo_flamb_y, lo_z=lo_flamb_z,
+                    type_appuis_y=type_appuis_y, type_appuis_z=type_appuis_z,
+                )
+                compression_obj.f_c_0_d(loadtype=load_time, typecombi=typecombi)
+                compression_obj.sigma_c_0_d(Fc0d=abs(N_pos / 10**3))
+                compression_obj.taux_c_0_d()
+                taux_combo["Compression"] = max(compression_obj.taux_c_0_rd.values())
+                objects["Compression"] = compression_obj
+            elif abs(N_neg) > 1e-9:
+                traction_obj = Traction._from_parent_class(barre)
+                traction_obj.f_t_0_d(loadtype=load_time, typecombi=typecombi)
+                traction_obj.sigma_t_0_d(Ft0d=N_neg / 10**3)
+                traction_obj.taux_t_0_d()
+                taux_combo["Traction"] = max(traction_obj.taux_t_0_rd.values())
+                objects["Traction"] = traction_obj
 
-        # --- Cisaillement
-        cisaillement_obj = None
-        if Vy_abs > 1e-9:
-            cisaillement_obj = Cisaillement._from_parent_class(barre)
-            cisaillement_obj.f_v_d(loadtype=load_time, typecombi=typecombi)
-            cisaillement_obj.tau_d(Vd=Vy_abs / 10**3)
-            cisaillement_obj.taux_tau_d()
-            taux_combo["Cisaillement"] = max(cisaillement_obj.taux_tau_rd.values())
-            objects["Cisaillement"] = cisaillement_obj
+            # --- Flexion (incluant l'interaction)
+            flexion_obj = None
+            if Mz_abs > 1e-9 or My_abs > 1e-9:
+                flexion_obj = Flexion._from_parent_class(
+                    barre,
+                    lo_rel_y=lo_y, lo_rel_z=lo_z,
+                    coeflef_y=coeflef_y, coeflef_z=coeflef_z,
+                    pos=pos_charge,
+                )
+                flexion_obj.f_m_d(loadtype=load_time, typecombi=typecombi)
+                flexion_obj.sigma_m_d(
+                    My=My_abs / 10**3, Mz=Mz_abs / 10**3,
+                )
+                if compression_obj is not None:
+                    sigma_c_0_rd = compression_obj.sigma_c_0_rd
+                    sigma_m_rd_y = flexion_obj.sigma_m_rd["y"]
+                    sigma_m_rd_z = flexion_obj.sigma_m_rd["z"]
+                    max_sigma_m_rd = max(sigma_m_rd_y, sigma_m_rd_z)
+
+                    if sigma_c_0_rd > max_sigma_m_rd:
+                        flexion_obj.taux_m_d(traction=traction_obj)
+                        compression_obj.taux_c_0_d(flexion=flexion_obj)
+                        taux_combo["Compression"] = max(compression_obj.taux_c_0_rd.values())
+                        objects["Compression"] = compression_obj
+                    else:
+                        flexion_obj.taux_m_d(
+                            compression=compression_obj, traction=traction_obj,
+                        )
+                else:
+                    flexion_obj.taux_m_d(traction=traction_obj)
+                taux_combo["Flexion"] = max(flexion_obj.taux_m_rd.values())
+                objects["Flexion"] = flexion_obj
+
+            # --- Cisaillement
+            cisaillement_obj = None
+            if Vy_abs > 1e-9:
+                cisaillement_obj = Cisaillement._from_parent_class(barre)
+                cisaillement_obj.f_v_d(loadtype=load_time, typecombi=typecombi)
+                cisaillement_obj.tau_d(Vd=Vy_abs / 10**3)
+                cisaillement_obj.taux_tau_d()
+                taux_combo["Cisaillement"] = max(cisaillement_obj.taux_tau_rd.values())
+                objects["Cisaillement"] = cisaillement_obj
+
+        # --- Vérification feu (uniquement pour combinaisons FIRE)
+        if "FIRE" in combo_name or "ELU_STR_ACC G" == combo_name:
+            feu_kwargs = {
+                "t_expo": t_expo,
+                "haut": "Aucune protection",
+                "bas": "Aucune protection",
+                "gauche": "Aucune protection",
+                "droite": "Aucune protection",
+                **barre_kwargs,
+            }
+
+            # Compression feu
+            compression_feu_obj = None
+            if N_pos > 1e-9 and N_pos >= abs(N_neg):
+                compression_feu_obj = Compression_feu._from_parent_class(
+                    barre,
+                    lo_y=lo_flamb_y, lo_z=lo_flamb_z,
+                    type_appuis_y=type_appuis_y, type_appuis_z=type_appuis_z,
+                    **feu_kwargs,
+                )
+                sigma_c0d = compression_feu_obj.sigma_c_0_d(Fc0d=abs(N_pos / 10**3))
+                compression_feu_obj.f_c_0_d()
+                compression_feu_obj.taux_c_0_d()
+                taux_combo["Compression_feu"] = max(compression_feu_obj.taux_c_0_rd.values())
+                objects["Compression_feu"] = compression_feu_obj
+
+            # Traction feu
+            traction_feu_obj = None
+            if abs(N_neg) > 1e-9:
+                traction_feu_obj = Traction_feu._from_parent_class(barre, **feu_kwargs)
+                traction_feu_obj.sigma_t_0_d(Ft0d=N_neg / 10**3)
+                traction_feu_obj.f_t_0_d()
+                traction_feu_obj.taux_t_0_d()
+                taux_combo["Traction_feu"] = max(traction_feu_obj.taux_t_0_rd.values())
+                objects["Traction_feu"] = traction_feu_obj
+
+            # Flexion feu
+            flexion_feu_obj = None
+            if Mz_abs > 1e-9 or My_abs > 1e-9:
+                flexion_feu_obj = Flexion_feu._from_parent_class(
+                    barre,
+                    lo_rel_y=lo_y, lo_rel_z=lo_z,
+                    coeflef_y=coeflef_y, coeflef_z=coeflef_z,
+                    pos=pos_charge,
+                    **feu_kwargs,
+                )
+                flexion_feu_obj.sigma_m_d(
+                    My=My_abs / 10**3, Mz=Mz_abs / 10**3,
+                )
+                flexion_feu_obj.f_m_d()
+                if compression_feu_obj is not None:
+                    sigma_c_0_rd = compression_feu_obj.sigma_c_0_rd.value
+                    sigma_m_rd_y = flexion_feu_obj.sigma_m_rd["y"]
+                    sigma_m_rd_z = flexion_feu_obj.sigma_m_rd["z"]
+                    max_sigma_m_rd = max(sigma_m_rd_y, sigma_m_rd_z)
+
+                    if sigma_c_0_rd > max_sigma_m_rd:
+                        flexion_feu_obj.taux_m_d(traction=traction_feu_obj)
+                        compression_feu_obj.taux_c_0_d(flexion=flexion_feu_obj)
+                        taux_combo["Compression_feu"] = max(compression_feu_obj.taux_c_0_rd.values())
+                        objects["Compression_feu"] = compression_feu_obj
+                    else:
+                        flexion_feu_obj.taux_m_d(
+                            compression=compression_feu_obj, traction=traction_feu_obj,
+                        )
+                else:
+                    flexion_feu_obj.taux_m_d(traction=traction_feu_obj)
+                taux_combo["Flexion_feu"] = max(flexion_feu_obj.taux_m_rd.values())
+                objects["Flexion_feu"] = flexion_feu_obj
+
+            # Cisaillement feu
+            cisaillement_feu_obj = None
+            if Vy_abs > 1e-9:
+                cisaillement_feu_obj = Cisaillement_feu._from_parent_class(barre, **feu_kwargs)
+                cisaillement_feu_obj.tau_d(Vd=Vy_abs / 10**3)
+                cisaillement_feu_obj.f_v_d()
+                cisaillement_feu_obj.taux_tau_d()
+                taux_combo["Cisaillement_feu"] = max(cisaillement_feu_obj.taux_tau_rd.values())
+                objects["Cisaillement_feu"] = cisaillement_feu_obj
 
         if return_objects:
             return taux_combo, objects

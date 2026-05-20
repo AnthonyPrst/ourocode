@@ -9,29 +9,14 @@ from copy import copy
 
 import pandas as pd
 import forallpeople as si
-from ourocode.eurocode.core.renderer import handcalc
+from ourocode.eurocode.core._renderer import handcalc
+from ourocode.eurocode.mixins.math_utils import MathUtilsMixin
 
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 # from eurocode.A0_Projet import Batiment
 from ourocode.eurocode.core.batiment import Batiment
 
 si.environment("structural")
-
-
-def interpolation_lineaire(x, xa, xb, ya, yb):
-    """Fait une interpolation linéaire pour trouver un résultat y entre deux valeur xa et xb"""
-    y = ya + (x - xa) * ((yb - ya) / (xb - xa))
-    return y
-
-
-def interpolation_logarithmique(x, xa, xb, ya, yb):
-    """Fait une interpolation linéaire pour trouver un résultat y entre deux valeur xa et xb"""
-    y = (
-        (x > xb) * yb
-        + (x < xa) * ya
-        + (x <= xb) * (x >= 1) * (ya - (ya - yb) * mt.log10(x))
-    )
-    return y
 
 
 class Vent(Batiment):
@@ -581,7 +566,7 @@ class Murs_verticaux(Vent):
         if borne_inf:
             for i in range(self._df.shape[0]):
                 list_CPE_line.append(
-                    interpolation_lineaire(
+                    MathUtilsMixin.interpolation_lineaire(
                         h_d,
                         borne_inf,
                         borne_sup,
@@ -598,7 +583,7 @@ class Murs_verticaux(Vent):
                     self._df.loc[self._df.shape[0]] = [
                         self._df.iloc[i, 0],
                         "CPE " + str(round(self.load_area, 2)),
-                        interpolation_logarithmique(
+                        MathUtilsMixin.interpolation_logarithmique(
                             self.load_area,
                             1,
                             10,
@@ -734,7 +719,7 @@ class Toiture_terrasse_acrotere(Vent):
                 row = [round(self._hp_h, 3), cpe]
                 for j in range(2, num_columns):
                     row.append(
-                        interpolation_lineaire(
+                        MathUtilsMixin.interpolation_lineaire(
                             self._hp_h,
                             minimum,
                             maximum,
@@ -750,7 +735,7 @@ class Toiture_terrasse_acrotere(Vent):
                     row = [df.iloc[i, 0], "CPE " + str(round(self.load_area, 2))]
                     for j in range(2, num_columns):
                         row.append(
-                            interpolation_logarithmique(
+                            MathUtilsMixin.interpolation_logarithmique(
                                 self.load_area, 1, 10, df.iloc[i + 1, j], df.iloc[i, j]
                             )
                         )
@@ -941,7 +926,7 @@ class Toiture_1_pant(Vent):
                         row.append(df_max.iloc[i, j])
                     else:
                         row.append(
-                            interpolation_lineaire(
+                            MathUtilsMixin.interpolation_lineaire(
                                 self.alpha_toit,
                                 minimum,
                                 maximum,
@@ -957,7 +942,7 @@ class Toiture_1_pant(Vent):
                     row = [df.iloc[i, 0], "CPE " + str(round(self.load_area, 2))]
                     for j in range(2, num_columns):
                         row.append(
-                            interpolation_logarithmique(
+                            MathUtilsMixin.interpolation_logarithmique(
                                 self.load_area, 1, 10, df.iloc[i + 1, j], df.iloc[i, j]
                             )
                         )
@@ -1166,7 +1151,7 @@ class Toiture_2_pants(Vent):
                         row.append(df_max.iloc[i, j])
                     else:
                         row.append(
-                            interpolation_lineaire(
+                            MathUtilsMixin.interpolation_lineaire(
                                 self.alpha_toit,
                                 minimum,
                                 maximum,
@@ -1182,7 +1167,7 @@ class Toiture_2_pants(Vent):
                     row = [df.iloc[i, 0], "CPE " + str(round(self.load_area, 2))]
                     for j in range(2, num_columns):
                         row.append(
-                            interpolation_logarithmique(
+                            MathUtilsMixin.interpolation_logarithmique(
                                 self.load_area, 1, 10, df.iloc[i + 1, j], df.iloc[i, j]
                             )
                         )
@@ -1304,7 +1289,7 @@ class Toiture_isolee_1_pant(Vent):
                 row = [self._df.iloc[i, 0], self.phi]
                 for j in range(2, 6):
                     row.append(
-                        interpolation_lineaire(
+                        MathUtilsMixin.interpolation_lineaire(
                             self.phi,
                             0,
                             1,
@@ -1346,7 +1331,7 @@ class Toiture_isolee_1_pant(Vent):
                         row.append(df_max.iloc[i, j])
                     else:
                         row.append(
-                            interpolation_lineaire(
+                            MathUtilsMixin.interpolation_lineaire(
                                 self.alpha_toit,
                                 minimum,
                                 maximum,
@@ -1480,7 +1465,7 @@ class Toiture_isolee_2_pants(Vent):
                 row = [self._df.iloc[i, 0], self.phi]
                 for j in range(2, 7):
                     row.append(
-                        interpolation_lineaire(
+                        MathUtilsMixin.interpolation_lineaire(
                             self.phi,
                             0,
                             1,
@@ -1522,7 +1507,7 @@ class Toiture_isolee_2_pants(Vent):
                         row.append(df_max.iloc[i, j])
                     else:
                         row.append(
-                            interpolation_lineaire(
+                            MathUtilsMixin.interpolation_lineaire(
                                 self.alpha_toit,
                                 minimum,
                                 maximum,

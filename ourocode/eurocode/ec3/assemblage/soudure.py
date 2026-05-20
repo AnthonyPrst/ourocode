@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle, Circle
 import forallpeople as si
 si.environment("structural")
-from ourocode.eurocode.core.renderer import handcalc
+from ourocode.eurocode.core._renderer import handcalc
 
 from ourocode.eurocode.ec3.element_droit.plat import Plat
 

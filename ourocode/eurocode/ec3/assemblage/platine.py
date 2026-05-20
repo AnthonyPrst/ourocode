@@ -6,7 +6,7 @@ import pandas as pd
 
 import forallpeople as si
 si.environment("structural")
-from ourocode.eurocode.core.renderer import handcalc
+from ourocode.eurocode.core._renderer import handcalc
 
 from ourocode.eurocode.ec3.assemblage.tige import Tige
 from ourocode.eurocode.ec3.element_droit.plat import Plat

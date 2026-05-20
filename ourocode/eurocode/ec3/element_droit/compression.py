@@ -5,7 +5,7 @@ from math import sqrt
 
 import forallpeople as si
 si.environment("structural")
-from ourocode.eurocode.core.renderer import handcalc
+from ourocode.eurocode.core._renderer import handcalc
 
 from ourocode.eurocode.ec3.element_droit.plat import Plat
 
@@ -17,7 +17,7 @@ class Compression(Plat):
                 "Encastré - Rotule" : 0.7,
                 "Encastré - Encastré" : 0.5,
                 "Encastré - Rouleau" : 1}
-    def __init__(self, A: si.mm**2, Iy:si.mm**4, Iz:si.mm**4, lo_y: si.mm=0, lo_z: si.mm=0, courbe_flamb: dict="{'y':'c', 'z':'c'}", type_appuis: str=COEF_LF, *args, **kwargs):
+    def __init__(self, A: si.mm**2, Iy:si.mm**4, Iz:si.mm**4, lo_y: si.mm=0, lo_z: si.mm=0, courbe_flamb: dict="{'y':'c', 'z':'c'}", type_appuis_y: str=COEF_LF, type_appuis_z: str=COEF_LF, *args, **kwargs):
         """
         Classe intégrant les formules de compression et d'instabilité au flambement à l'EC3.
         Cette classe est hérité de la classe Plat du module EC3_Element_droit.py.
@@ -28,12 +28,18 @@ class Compression(Plat):
             Iz (float): Moment quadratique suivant l'axe de rotation z en mm4
             lo_y (float): Longueur de flambement suivant l'axe de rotation y en mm. Defaults to 0.
             lo_z (float): Longueur de flambement suivant l'axe de rotation z en mm. Defaults to 0.
-            type_appuis (str): Permet de déterminé la forme du flambement en fonction des types d'appui:
-                Encastré 1 côté : 2
-                Rotule - Rotule : 1
-                Encastré - Rotule : 0.7
-                Encastré - Encastré : 0.5
-                Encastré - Rouleau : 1
+            type_appuis_y (str): Conditions d'appui pour le flambement selon l'axe de rotation y.
+                Détermine β_y dans lf_y = β_y · lo_y.
+                Valeurs possibles (voir COEF_LF):
+                - "Encastré 1 côté" : β = 2.0 (console)
+                - "Rotule - Rotule" : β = 1.0 (articulé-articulé)
+                - "Encastré - Rotule" : β = 0.7
+                - "Encastré - Encastré" : β = 0.5
+                - "Encastré - Rouleau" : β = 1.0 (encastré-glissière)
+                Defaults to "Rotule - Rotule".
+            type_appuis_z (str, optional): Conditions d'appui pour le flambement
+                selon l'axe de rotation z.
+            
         """
         super().__init__(*args, **kwargs)
         self.A = A * si.mm**2
@@ -41,8 +47,10 @@ class Compression(Plat):
         self.Iz = Iz * si.mm**4
         self.lo ={'y': lo_y*si.mm, 'z': lo_z*si.mm}
         self.courbe_flamb = courbe_flamb
-        self.type_appuis = type_appuis
-        self.coef_lef = self.COEF_LF[type_appuis]
+        self.type_appuis_y = type_appuis_y
+        self.type_appuis_z = type_appuis_z
+        self.coef_lef_y = self.COEF_LF[type_appuis_y]
+        self.coef_lef_z = self.COEF_LF[type_appuis_z]
 
 
     
@@ -76,8 +84,8 @@ class Compression(Plat):
             dict: {"y": λ_y, "z": λ_z} (élancements sans unité).
         """
         lamb = {'y':0, 'z':0}
-        lamb['y'] = (self.lo['y'].value * 10**3 * self.coef_lef) / mt.sqrt(self.Iy / (self.A))
-        lamb['z'] = (self.lo['z'].value * 10**3 * self.coef_lef) / mt.sqrt(self.Iz / (self.A))
+        lamb['y'] = (self.lo['y'].value * 10**3 * self.coef_lef_y) / mt.sqrt(self.Iy / (self.A))
+        lamb['z'] = (self.lo['z'].value * 10**3 * self.coef_lef_z) / mt.sqrt(self.Iz / (self.A))
         return lamb
 
     @property

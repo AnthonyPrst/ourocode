@@ -9,7 +9,7 @@ import pandas as pd
 
 import forallpeople as si
 si.environment("structural")
-from ourocode.eurocode.core.renderer import handcalc
+from ourocode.eurocode.core._renderer import handcalc
 
 from ourocode.eurocode.ec5.feu.feu import Feu
 from ourocode.eurocode.ec5.element_droit.compression import Compression
@@ -17,7 +17,8 @@ from ourocode.eurocode.ec5.element_droit.compression import Compression
 
 
 class Compression_feu(Feu, Compression):
-    def __init__(self, lo_y: si.mm, lo_z: si.mm, type_appuis: str = Compression.COEF_LF, **kwargs):
+    def __init__(self, lo_y: si.mm, lo_z: si.mm,
+                 type_appuis_y: str = Compression.COEF_LF, type_appuis_z: str = Compression.COEF_LF, **kwargs):
         """Classe permettant le calcul de la Compression d'un élément bois selon l'EN 1995.
         Cette classe est hérité de la classe Feu, provenant du module EC5_Feu.py.
 
@@ -31,7 +32,7 @@ class Compression_feu(Feu, Compression):
                 - Encastré - Encastré : 0.5
                 - Encastré - Rouleau : 1
         """
-        super().__init__(lo_y=lo_y, lo_z=lo_z, type_appuis=type_appuis, **kwargs)
+        super().__init__(lo_y=lo_y, lo_z=lo_z, type_appuis_y=type_appuis_y, type_appuis_z=type_appuis_z, **kwargs)
 
     @property
     def lamb_rel_Axe(self) -> tuple:
