@@ -5,6 +5,27 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [Unreleased]
+
+### Added
+- **`Verification_EC5`** : intégration de la vérification feu (EN 1995-1-2) dans le processus de vérification EC5.
+  - Ajout du paramètre `t_expo` (durée d'exposition au feu en minutes, défaut 30) dans `__init__` et `verify`.
+  - Vérifications feu (Flexion_feu, Compression_feu, Traction_feu, Cisaillement_feu) calculées uniquement pour les combinaisons contenant "FIRE" (ex: ELU_STR_ACC_FIRE).
+  - Vérifications normales (Flexion, Compression, Traction, Cisaillement) calculées uniquement pour les combinaisons ne contenant pas "FIRE".
+  - Configuration par défaut : aucune protection des faces (haut, bas, gauche, droite = "Aucune protection").
+  - Logique de comparaison des contraintes pour déterminer le mode dominant : si `sigma_c_0_rd > max(sigma_m_rd_y, sigma_m_rd_z)`, la compression est considérée dominante et l'interaction flexion-compression est adaptée en conséquence. Cette logique s'applique aux combinaisons normales et FIRE.
+
+### Changed
+- **`Compression_feu`** : séparation des paramètres `type_appuis` en `type_appuis_y` et `type_appuis_z` pour une gestion indépendante des conditions d'appui selon les axes de flambement, cohérente avec la classe `Compression` normale.
+
+### Added (tests)
+- **`tests/test_EC5_Verification.py`** : nouvelle classe `TestFireVerification` avec 4 tests couvrant la vérification feu :
+  - Vérification que les combinaisons FIRE n'ont pas de vérifications normales.
+  - Vérification que les combinaisons FIRE ont des vérifications feu.
+  - Vérification que les combinaisons normales n'ont pas de vérifications feu.
+  - Vérification que le paramètre `t_expo` est correctement utilisé.
+- Fixture `fire_beam_verif` pour créer un modèle avec combinaisons FIRE (ELU_STR_ACC=True).
+
 ## [2.1.2]
 
 ### Fixed

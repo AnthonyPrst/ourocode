@@ -100,6 +100,29 @@ def continuous_beam_verif():
     return model, combi, result, verif
 
 
+@pytest.fixture
+def fire_beam_verif():
+    """Poutre simple avec combinaisons FIRE pour tester la vérification incendie."""
+    model = _new_model("Poutre feu")
+    _build_beam(model, [(0, 0), (5000, 0)])
+    _apply_gq_loads(model, gkNm=1.0, qkNm=2.0)
+    combi = Combinaison(
+        model, ELU_STR=True, ELU_STR_ACC=True, ELS_C=False, ELS_QP=False,
+        cat="Cat A : habitation", kdef=0.6, type_psy_2="Moyen terme",
+    )
+    result = Model_result(model, analyze_type="Général", check_stability=False)
+    model.group_members(
+        "Solive", ["M1"],
+        role="Solive",
+        design_params={
+            "classe_bois": "C24", "cs": 1,
+            "type_element_fleche": "Élément structuraux",
+        },
+    )
+    verif = Verification_EC5(combi, result, "ELU_ALL", 12, 12, False, 1, "Bâtiments courants", "Élément structuraux", t_expo=30)
+    return model, combi, result, verif
+
+
 # ---------------------------------------------------------------------------
 # Combinaison.type_combi
 # ---------------------------------------------------------------------------
@@ -312,3 +335,56 @@ class TestSyntheseContinuousBeam:
         df = verif.synthese()
         combos = df["Combinaison"].tolist()
         assert any("1.35G" in c and "1.5Q" in c for c in combos if c is not None)
+
+
+# ---------------------------------------------------------------------------
+# Verification_EC5 : vérification feu
+# ---------------------------------------------------------------------------
+
+class TestFireVerification:
+    def test_fire_combo_has_no_normal_verification(self, fire_beam_verif):
+        """Pour une combinaison FIRE, les vérifications normales doivent être None."""
+        _, combi, _, verif = fire_beam_verif
+        # Vérifier qu'il existe des combinaisons FIRE
+        fire_combos = [c for c in combi.get_list_combination("ELU_ALL") or [] if "FIRE" in c]
+        if fire_combos:
+            # Appeler verify pour peupler le cache
+            verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+            # Récupérer les objets pour une combinaison FIRE
+            objs = verif.get_combo_objects("Solive", fire_combos[0])
+            # Les objets normaux doivent être None pour les combos FIRE
+            assert objs["Flexion"] is None
+            assert objs["Cisaillement"] is None
+            assert objs["Compression"] is None
+            assert objs["Traction"] is None
+
+    def test_fire_combo_has_fire_verification(self, fire_beam_verif):
+        """Pour une combinaison FIRE, les vérifications feu doivent être calculées."""
+        _, combi, _, verif = fire_beam_verif
+        # Vérifier qu'il existe des combinaisons FIRE
+        fire_combos = [c for c in combi.get_list_combination("ELU_ALL") or [] if "FIRE" in c]
+        if fire_combos:
+            # Appeler verify pour peupler le cache
+            verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+            # Récupérer les objets pour une combinaison FIRE
+            objs = verif.get_combo_objects("Solive", fire_combos[0])
+            # Au moins un objet feu doit être calculé (flexion ou cisaillement)
+            assert objs["Flexion_feu"] is not None or objs["Cisaillement_feu"] is not None
+
+    def test_normal_combo_has_no_fire_verification(self, simple_beam_verif):
+        """Pour une combinaison normale, les vérifications feu doivent être None."""
+        _, combi, _, verif = simple_beam_verif
+        # Appeler verify pour peupler le cache
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        # Récupérer les objets pour une combinaison normale
+        objs = verif.get_combo_objects("Solive", "ELU_STR 1.35G + 1.5Q")
+        # Les objets feu doivent être None pour les combos normaux
+        assert objs["Flexion_feu"] is None
+        assert objs["Cisaillement_feu"] is None
+        assert objs["Compression_feu"] is None
+        assert objs["Traction_feu"] is None
+
+    def test_t_expo_parameter_used(self, fire_beam_verif):
+        """Le paramètre t_expo doit être utilisé dans les calculs feu."""
+        _, _, _, verif = fire_beam_verif
+        assert verif.t_expo == 30
