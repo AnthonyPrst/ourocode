@@ -8,7 +8,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import forallpeople as si
 si.environment("structural")
-from ourocode.eurocode.ec3.element_droit import Plat, Traction, Compression, Cisaillement, Flexion
+from ourocode.eurocode.ec3.element_droit import Plat, Profil, Traction, Compression, Cisaillement, Flexion
 
 class TestPlat:
     """Tests pour la classe de base Plat."""
@@ -223,6 +223,102 @@ class TestPlatValidations:
         p_mince = Plat(t=20, h=100, b=200, classe_acier="S355", classe_transv=1)
         p_epais = Plat(t=50, h=100, b=200, classe_acier="S355", classe_transv=1)
         assert p_epais.fy.value < p_mince.fy.value
+
+
+class TestProfil:
+    """Tests pour la classe Profil."""
+    
+    def test_initialisation_IPE(self):
+        """Test l'initialisation d'un profil IPE."""
+        profil = Profil(designation="IPE 300", classe_acier="S235", classe_transv=1)
+        assert profil.designation == "IPE 300"
+        assert profil.classe_acier == "S235"
+        assert profil.classe_transv == 1
+        assert profil.h == 300.0 * si.mm
+        assert profil.b == 150.0 * si.mm
+        assert profil.tw == 7.1 * si.mm
+        assert profil.tf == 10.7 * si.mm
+    
+    def test_initialisation_HEA(self):
+        """Test l'initialisation d'un profil HEA."""
+        profil = Profil(designation="HEA 200", classe_acier="S355", classe_transv=2)
+        assert profil.designation == "HEA 200"
+        assert profil.classe_acier == "S355"
+        assert profil.type_profil == "HEA"
+        assert profil.h == 200.0 * si.mm
+        assert profil.b == 200.0 * si.mm
+    
+    def test_initialisation_HEB(self):
+        """Test l'initialisation d'un profil HEB."""
+        profil = Profil(designation="HEB 300", classe_acier="S275", classe_transv=1)
+        assert profil.designation == "HEB 300"
+        assert profil.classe_acier == "S275"
+        assert profil.type_profil == "HEB"
+        assert profil.h == 300.0 * si.mm
+        assert profil.b == 300.0 * si.mm
+    
+    def test_caracteristiques_geometriques(self):
+        """Test le chargement des caractéristiques géométriques."""
+        profil = Profil(designation="IPE 300", classe_acier="S235")
+        assert profil.A == 53.81 * si.mm**2
+        assert profil.Av == 16.7 * si.mm**2
+        assert profil.Iy == 8356 * si.mm**4
+        assert profil.Iz == 435.5 * si.mm**4
+        assert profil.Wely == 557.1 * si.mm**3
+        assert profil.Welz == 58.0 * si.mm**3
+        assert profil.Wply == 628.4 * si.mm**3
+        assert profil.Wplz == 72.9 * si.mm**3
+        assert profil.iy == 12.46 * si.mm
+        assert profil.iz == 2.85 * si.mm
+        assert profil.masse == 42.2 * si.kg / si.m
+    
+    def test_fy_fu_S235(self):
+        """Test les valeurs de fy et fu pour un profil S235."""
+        profil = Profil(designation="IPE 300", classe_acier="S235")
+        assert profil.fy == 235000000.0  # 235 MPa en Pa
+        assert profil.fu == 360000000.0  # 360 MPa en Pa
+    
+    def test_fy_fu_S355(self):
+        """Test les valeurs de fy et fu pour un profil S355."""
+        profil = Profil(designation="HEA 200", classe_acier="S355")
+        assert profil.fy == 355000000.0  # 355 MPa en Pa
+        assert profil.fu == 490000000.0  # 490 MPa en Pa
+    
+    def test_designation_invalide(self):
+        """Test ValueError sur désignation invalide."""
+        with pytest.raises(ValueError, match="IPE 999"):
+            Profil(designation="IPE 999", classe_acier="S235")
+    
+    def test_classe_acier_invalide(self):
+        """Test ValueError sur classe d'acier invalide."""
+        with pytest.raises(ValueError, match="S999"):
+            Profil(designation="IPE 300", classe_acier="S999")
+    
+    def test_classe_transv_invalide(self):
+        """Test ValueError sur classe transversale invalide."""
+        with pytest.raises(ValueError, match="4"):
+            Profil(designation="IPE 300", classe_acier="S235", classe_transv=4)
+    
+    def test_compatibility_with_compression(self):
+        """Test que Profil est compatible avec Compression via _from_parent_class."""
+        profil = Profil(designation="IPE 300", classe_acier="S235")
+        compression = Compression._from_parent_class(
+            profil,
+            A=profil.A.value,
+            Iy=profil.Iy.value,
+            Iz=profil.Iz.value,
+            lo_y=3000,
+            lo_z=3000,
+            courbe_flamb={"y": "b", "z": "c"},
+            type_appuis="Rotule - Rotule"
+        )
+        # Vérification que les attributs de Profil sont hérités
+        assert compression.designation == "IPE 300"
+        assert compression.classe_acier == "S235"
+        assert compression.fy == profil.fy
+        # Vérification que la méthode Nc_Rd fonctionne
+        latex_nc, nc = compression.Nc_Rd
+        assert nc.value > 0
 
 
 if __name__ == "__main__":

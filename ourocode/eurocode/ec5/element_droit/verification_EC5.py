@@ -586,7 +586,7 @@ class Verification_EC5(Projet):
                 objects["Cisaillement"] = cisaillement_obj
 
         # --- Vérification feu (uniquement pour combinaisons FIRE)
-        if "FIRE" in combo_name:
+        if "FIRE" in combo_name or "ELU_STR_ACC G" == combo_name:
             feu_kwargs = {
                 "t_expo": t_expo,
                 "haut": "Aucune protection",

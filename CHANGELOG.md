@@ -5,7 +5,7 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
-## [Unreleased]
+## [2.1.3]
 
 ### Added
 - **`Verification_EC5`** : intégration de la vérification feu (EN 1995-1-2) dans le processus de vérification EC5.
@@ -14,6 +14,13 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
   - Vérifications normales (Flexion, Compression, Traction, Cisaillement) calculées uniquement pour les combinaisons ne contenant pas "FIRE".
   - Configuration par défaut : aucune protection des faces (haut, bas, gauche, droite = "Aucune protection").
   - Logique de comparaison des contraintes pour déterminer le mode dominant : si `sigma_c_0_rd > max(sigma_m_rd_y, sigma_m_rd_z)`, la compression est considérée dominante et l'interaction flexion-compression est adaptée en conséquence. Cette logique s'applique aux combinaisons normales et FIRE.
+- **`EC3` - Classe `Profil`** : nouvelle classe pour les profilés laminés acier selon EN 1993-1-1 en cours de développement.
+  - Permet de générer des poutres en I ou H (IPE, HEA, HEB) à partir de désignations normalisées selon EN 10365.
+  - Chargement automatique des caractéristiques géométriques depuis `data/profil_acier.csv` (h, b, tw, tf, r, A, Av, Iy, Iz, Wely, Welz, Wply, Wplz, iy, iz, masse).
+  - Détermination automatique des propriétés mécaniques (fy, fu) selon la classe d'acier et l'épaisseur maximale (max(tw, tf)).
+  - Hérite de `Plat` (au lieu de `Projet`) pour être compatible avec les classes de vérification (Compression, Traction, Cisaillement, Flexion) via `_from_parent_class`.
+- **`data/profil_acier.csv`** : nouveau fichier de données contenant les caractéristiques géométriques des profils standards IPE (80-600), HEA (100-600), HEB (100-600) et UPN (80-200) selon EN 10365.
+- **`tests/test_EC3_Element_droit.py`** : ajout de la classe `TestProfil` avec 10 tests couvrant l'initialisation (IPE, HEA, HEB), le chargement des caractéristiques géométriques, les propriétés mécaniques (fy, fu), les validations (désignation, classe acier, classe transversale) et la compatibilité avec Compression.
 
 ### Changed
 - **`Compression_feu`** : séparation des paramètres `type_appuis` en `type_appuis_y` et `type_appuis_z` pour une gestion indépendante des conditions d'appui selon les axes de flambement, cohérente avec la classe `Compression` normale.
