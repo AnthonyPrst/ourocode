@@ -522,7 +522,7 @@ class Verification_EC5(Projet):
         N_pos = efforts["Nx"]["Max"][0].value  # N, > 0 si compresion
         N_neg = efforts["Nx"]["Min"][0].value   # N, < 0 si traction
 
-        if not "FIRE" in combo_name:
+        if "FIRE" not in combo_name:
             if N_pos > 1e-9 and N_pos >= abs(N_neg):
                 compression_obj = Compression._from_parent_class(
                     barre,
