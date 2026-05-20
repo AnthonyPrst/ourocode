@@ -5,7 +5,7 @@ import pandas as pd
 import warnings
 
 import forallpeople as si
-from ourocode.eurocode.core.renderer import handcalc
+from ourocode.eurocode.core._renderer import handcalc
 
 from ourocode.eurocode.core.batiment import Batiment
 

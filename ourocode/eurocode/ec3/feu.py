@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 
 import forallpeople as si
 si.environment("structural")
-from ourocode.eurocode.core.renderer import handcalc
+from ourocode.eurocode.core._renderer import handcalc
 
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 # from eurocode.EC3_Element_droit import Plat

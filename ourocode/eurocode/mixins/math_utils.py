@@ -358,3 +358,41 @@ class MathUtilsMixin:
         """
         dictionnary = objet.__dict__
         return cls._reset_physical_dictionnary(objet, dictionnary)
+
+    @staticmethod
+    def interpolation_lineaire(x, xa, xb, ya, yb):
+        """Fait une interpolation linéaire pour trouver un résultat y entre deux valeurs xa et xb.
+
+        Args:
+            x: Valeur pour laquelle on cherche l'interpolation.
+            xa: Première borne inférieure.
+            xb: Première borne supérieure.
+            ya: Valeur correspondante à xa.
+            yb: Valeur correspondante à xb.
+
+        Returns:
+            float: Valeur interpolée y.
+        """
+        y = ya + (x - xa) * ((yb - ya) / (xb - xa))
+        return y
+
+    @staticmethod
+    def interpolation_logarithmique(x, xa, xb, ya, yb):
+        """Fait une interpolation logarithmique pour trouver un résultat y entre deux valeurs xa et xb.
+
+        Args:
+            x: Valeur pour laquelle on cherche l'interpolation.
+            xa: Première borne inférieure.
+            xb: Première borne supérieure.
+            ya: Valeur correspondante à xa.
+            yb: Valeur correspondante à xb.
+
+        Returns:
+            float: Valeur interpolée y.
+        """
+        y = (
+            (x > xb) * yb
+            + (x < xa) * ya
+            + (x <= xb) * (x >= 1) * (ya - (ya - yb) * mt.log10(x))
+        )
+        return y

@@ -115,7 +115,7 @@ class Objet(SerializationMixin, DataLoaderMixin, MathUtilsMixin, SyntheseMixin):
 
         return numeric * self._PHYSICAL_UNITS[unit]
 
-    def get_value(self, value: dict|list|str, index: int=None, key: str=None, get_keys: bool=("False", "True"),):
+    def get_value(self, value: dict|list|str, index: int|None=None, key: str=None, get_keys: bool=("False", "True"),):
         """Extrait et retourne une valeur depuis une structure de données complexe.
 
         Cette méthode utilitaire permet de naviguer dans les dictionnaires,
@@ -141,9 +141,9 @@ class Objet(SerializationMixin, DataLoaderMixin, MathUtilsMixin, SyntheseMixin):
             >>> obj.get_value({"x": 1, "y": 2}, get_keys=True)
             ["x", "y"]
         """
-        if index and isinstance(value, list):
+        if index is not None and isinstance(value, list):
             value = value[index]
-        elif index and isinstance(value, str):
+        elif index is not None and isinstance(value, str):
             value = list(value)[index]
         elif get_keys and isinstance(value, dict):
             value = list(value.keys())

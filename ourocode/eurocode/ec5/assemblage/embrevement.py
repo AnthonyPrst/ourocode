@@ -7,7 +7,7 @@ from math import sin, cos, radians, sqrt, pi
 
 import forallpeople as si
 si.environment("structural")
-from ourocode.eurocode.core.renderer import handcalc
+from ourocode.eurocode.core._renderer import handcalc
 
 from ourocode.eurocode.ec5.assemblage.assemblage import Assemblage
 from ourocode.eurocode.ec5.element_droit.barre import Barre
