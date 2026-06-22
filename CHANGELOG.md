@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.1.5]
+
+### Fixed
+- **`ec5/cvt.py` (`MOB._k_panel`, `MOB._get_Kser_panel`)** : sécurisation du calcul de raideur des panneaux contre les divisions par zéro.
+  - Validation explicite des dimensions de panneau (`b`, `h`) et de la raideur linéique de rive (`k_ser_r`) avant application de la formule de `K_p`.
+  - Remplacement des tests implicites de présence (`if wall.get('Kser ...')`) par des tests explicites `is not None` pour éviter les comportements ambigus avec les objets `forallpeople.Physical`.
+
 ## [2.1.4]
 
 ### Added

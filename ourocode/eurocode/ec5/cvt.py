@@ -379,11 +379,11 @@ class MOB(Batiment):
         if couturage_ext_rive:
             wall['Couturage ext. rive'] = couturage_ext_rive * si.mm
             wall['Couturage ext. intermédiaire'] = couturage_ext_inter * si.mm
-            if Ff_Rk_ext is None:
+            if Ff_Rk_ext is None or Ff_Rk_ext == 0 * si.N:
                 wall['Ff,Rk ext'] = self._data_connecteurs['Extérieur']['Ff,Rk']
             else:
                 wall['Ff,Rk ext'] = Ff_Rk_ext * si.N
-            if Kser_ext is None:
+            if Kser_ext is None or Kser_ext == 0 * si.N/si.mm:
                 wall['Kser ext'] = self._data_connecteurs['Extérieur']['Kser']
             else:
                 wall['Kser ext'] = Kser_ext * si.N / si.mm
@@ -391,11 +391,11 @@ class MOB(Batiment):
         if couturage_int_rive:
             wall['Couturage int. rive'] = couturage_int_rive * si.mm
             wall['Couturage int. intermédiaire'] = couturage_int_inter * si.mm
-            if Ff_Rk_int is None:
+            if Ff_Rk_int is None or Ff_Rk_int == 0 * si.N:
                 wall['Ff,Rk int'] = self._data_connecteurs['Intérieur']['Ff,Rk']
             else:
                 wall['Ff,Rk int'] = Ff_Rk_int * si.N
-            if Kser_int is None:
+            if Kser_int is None or Kser_int == 0 * si.N/si.mm:
                 wall['Kser int'] = self._data_connecteurs['Intérieur']['Kser']
             else:
                 wall['Kser int'] = Kser_int * si.N / si.mm
@@ -529,6 +529,10 @@ class MOB(Batiment):
             k_ser_r (float): raideur du panneau.
             k_ser_i (float): raideur du panneau.
         """ 
+        if b == 0 * si.mm or h == 0 * si.mm:
+            raise ValueError("Dimensions de panneau invalides: b et h doivent être non nulles.")
+        if k_ser_r == 0 * si.N / si.mm**2:
+            raise ValueError("Raideur linéique de rive nulle (k_ser_r): vérifier Kser et les couturages de rive.")
         K_p = (2 / (k_ser_r * (b + h/3) + k_ser_i * h/6) + 2*h**2 / (k_ser_r * b**2 * (h + b/3)))**-1
         return K_p
 
@@ -556,11 +560,11 @@ class MOB(Batiment):
             for sys_name, sys_wall in sys.items():
                 h_sys = sys_wall['Hauteur du système de mur']
                 for wall_name, wall in sys_wall['Murs'].items():
-                    if wall.get('Kser ext', None):
+                    if wall.get('Kser ext', None) is not None:
                         kser_ext = wall['Kser ext']
                         couturage_ext_rive = wall['Couturage ext. rive']
                         couturage_ext_inter = wall['Couturage ext. intermédiaire']
-                    if wall.get('Kser int', None):
+                    if wall.get('Kser int', None) is not None:
                         kser_int = wall['Kser int']
                         couturage_int_rive = wall['Couturage int. rive']
                         couturage_int_inter = wall['Couturage int. intermédiaire']
