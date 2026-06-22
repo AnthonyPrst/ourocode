@@ -834,9 +834,10 @@ class Model_result(Projet):
             Un glisseur retournera une force nulle dans la direction libre.
         """
         reaction = {}
-        supports = self._model_generator.get_all_supports()
-        for support_id, support in supports.items():
-            node_id = support["Noeud"]
-            reaction[support_id] = self._get_node_reaction(node_id, combination)
+        all_supports = self._model_generator.get_all_supports()
+        for support_type, supports in all_supports.items():
+            for support_id, support in supports.items():
+                node_id = support["Noeud"]
+                reaction[support_id] = self._get_node_reaction(node_id, combination)
         return reaction
 
