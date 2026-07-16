@@ -166,3 +166,31 @@ def test_fs():
     # F_s = S_n * entraxe * sin(alpha)
     expected = 1.0 * si.kN/si.m**2 * 1.5 * si.m * math.sin(math.radians(30))
     assert pytest.approx(out[1].value, rel=1e-6) == expected.value
+
+
+def test_poussee_hydrostatique():
+    n = Neige(
+        exposition="Normal",
+        type_toit="1 versant",
+        blocage=False,
+        h_bat=5, d_bat=10, b_bat=10,
+        alpha_toit=10,
+        code_INSEE=1001,
+        alt=100,
+    )
+    h = 1 * si.m
+    latex, res = n.poussee_hydrostatique(h=h)
+    gamma = 2 * si.kN/si.m**3
+    Sk_alt = n.Sk_alt[1]
+    mu_i = min(max(gamma * h / Sk_alt, 0.8), 2)
+    S_n = Sk_alt * mu_i * n.C_e * n.C_t
+    h_neige_expected = S_n / gamma
+    q_expected = gamma * h_neige_expected
+    F_expected = 0.5 * q_expected * h_neige_expected
+    h_equivalent_expected = h_neige_expected / 3
+
+    assert set(res.keys()) == {"q_h", "F_hl", "h_neige", "h_equivalent"}
+    assert pytest.approx(res["h_neige"].value, rel=1e-6) == h_neige_expected.value
+    assert pytest.approx(res["h_equivalent"].value, rel=1e-6) == h_equivalent_expected.value
+    assert pytest.approx(res["q_h"].value, rel=1e-6) == q_expected.value
+    assert pytest.approx(res["F_hl"].value, rel=1e-6) == F_expected.value

@@ -455,7 +455,7 @@ class Neige(Batiment):
 		"""Retourne la charge de neige en kN/m sur un obstacle ou une barre à neige
 
 		Args:
-			Sn (float): la charge de neige en kN/m²
+			Sn (float): la charge de neige normale au sol en kN/m²
 			entraxe (int): entraxe horizontal entre deux obstacle à la neige en m
 			alpha (float): angle du versant considéré.
 
@@ -470,6 +470,46 @@ class Neige(Batiment):
 			return F_s
 		return val()
 
+	def poussee_hydrostatique(self, h: si.m):
+		"""Retourne la poussée horizontale de neige "hydrostatique" selon l'EN 1991-1-3 §6.2.
+
+		Modélise l'action horizontale due à une accumulation de neige contre un obstacle
+		vertical (parapet, écran, mur...) par une charge triangulaire :
+		pression nulle au sommet de la couche de neige et maximale à la base.
+
+		Formules :
+
+			- hauteur de neige : h_n = S_n / γ
+			- pression maximale à la base : q_h = γ × h_n
+			- résultante horizontale par mètre linéaire : F_hl = 0.5 × q_h × h
+			- hauteur équivalente d'application de la résultante: h_eq = 1/3 * h_n
+
+		Args:
+			h (float): Hauteur de la paroi verticale en m.
+
+		Returns:
+			tuple: (latex_string, dict) avec :
+				- "q_h" : pression horizontale maximale à la base en kN/m².
+				- "F_hl" : résultante horizontale par unité de largeur en kN/m.
+				- "h_neige" : hauteur de neige en m.
+		"""
+		h = h * si.m
+		gamma = 2 * si.kN/si.m**3
+		Sk_alt = self.Sk_alt[1]
+		C_e = self.C_e
+		C_t = self.C_t
+
+		@handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+		def val():
+			mu_i = min(max(gamma * h / Sk_alt, 0.8), 2)
+			S_n = Sk_alt * mu_i * C_e * C_t
+			h_neige = S_n / gamma # hauteur de neige
+			h_eq = h_neige * 1/3 # hauteur équivalente d'application de la résultante
+			q_h = gamma * h_neige # pression maximale à la base
+			F_hl = 0.5 * q_h * h_neige # résultante horizontale par mètre linéaire
+			return q_h, F_hl, h_neige, h_eq
+		latex, (q_h, F_hl, h_neige, h_eq) = val()
+		return latex, {"q_h": q_h, "F_hl": F_hl, "h_neige": h_neige, "h_equivalent": h_eq}
 
 
 if __name__ == "__main__":

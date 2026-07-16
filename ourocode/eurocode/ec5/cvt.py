@@ -871,6 +871,16 @@ class MOB(Batiment):
             long_wall = self.data_walls[wall_name]['Longueur']
             nb_anc_lb = floor(long_wall / e_anc_lb)
             nb_anc_li = floor(long_wall / e_anc_li)
+            if nb_anc_lb == 0:
+                raise ValueError(
+                    f"Mur '{wall_name}' (L={long_wall}) : e_anc_lb={e_anc_lb} est supérieur "
+                    f"à la longueur du mur — aucun ancrage lisse basse possible (nb_anc_lb=0)."
+                )
+            if nb_anc_li == 0:
+                raise ValueError(
+                    f"Mur '{wall_name}' (L={long_wall}) : e_anc_li={e_anc_li} est supérieur "
+                    f"à la longueur du mur — aucun ancrage lisse d'implantation possible (nb_anc_li=0)."
+                )
             Ft_Rd_wood = (Ft_Rk_wood * K_mod_montant / Assemblage.GAMMA_M_ASS)
             Fv_Rd_anc_lb = (Fv_Rk_anc_lb * K_mod_lb / Assemblage.GAMMA_M_ASS) * nb_anc_lb
             Fv_Rd_anc_li = (Fv_Rk_anc_li * K_mod_li / Assemblage.GAMMA_M_ASS) * nb_anc_li

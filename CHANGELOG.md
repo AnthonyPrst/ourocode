@@ -5,12 +5,19 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.1.6]
+
+### Added
+- **`ec1/neige.py` (`Neige.poussee_hydrostatique`)** : ajout du calcul de la poussée horizontale de neige hydrostatique selon l'EN 1991-1-3, modélisée par une distribution triangulaire sur une paroi verticale.
+  - Calcul du coefficient de forme `mu_i`, de la hauteur de neige, de la pression maximale `q_h`, de la résultante linéaire `F_hl` et de sa hauteur équivalente d'application `h_eq`.
+
 ## [2.1.5]
 
 ### Fixed
 - **`ec5/cvt.py` (`MOB._k_panel`, `MOB._get_Kser_panel`)** : sécurisation du calcul de raideur des panneaux contre les divisions par zéro.
   - Validation explicite des dimensions de panneau (`b`, `h`) et de la raideur linéique de rive (`k_ser_r`) avant application de la formule de `K_p`.
   - Remplacement des tests implicites de présence (`if wall.get('Kser ...')`) par des tests explicites `is not None` pour éviter les comportements ambigus avec les objets `forallpeople.Physical`.
+- **`ec5/cvt.py` (`MOB.taux_ancrage`)** : sécurisation contre la division par zéro sur `Fv_Rd_anc_lb` et `Fv_Rd_anc_li` lorsque `e_anc_lb` ou `e_anc_li` dépasse la longueur du mur (`nb_anc = 0`). Levée d'un `ValueError` explicite indiquant le nom du mur, la longueur et l'entraxe fautif.
 
 ## [2.1.4]
 
