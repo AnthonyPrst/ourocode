@@ -5,6 +5,19 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [Unreleased]
+
+### Added
+- **`data/vis_bois.csv`** : catalogue de vis **ROTHOBLAAS** pour les assemblages bois.
+  - Colonnes : `reference`, `d`, `d1`, `ds`, `dh`, `l`, `rho_a`, `fhead`, `ftensk`, `MyRk`.
+  - Gammes couvertes : **VGZ**, **HBS**, **HBS EVO**, **TBS**, **TBS EVO**, **LBS**, **LBS EVO**.
+  - Les références sont préfixées par `ROTHOBLAAS_<gamme>_` (ex : `ROTHOBLAAS_VGZ_VGZ9200`, `ROTHOBLAAS_HBS_EVO_HBSEVO660`).
+  - Données issues des fiches techniques ROTHOBLAAS et de l'ETA-11/0030 : diamètres, longueurs commerciales, diamètres de filet/noyau/tige/tête, caractéristiques mécaniques (`ftens,k`, `My,k`) et paramètres de tête (`fhead,k`, `rho_a`).
+  - Prêt à l'emploi pour alimenter les arguments du constructeur `Tirefond` (`ourocode/eurocode/ec5/assemblage/tirefond.py`).
+- **`ourocode/eurocode/ec5/assemblage/tirefond.py` (`Vis_catalogue`)** : factory qui instancie automatiquement la bonne classe de tirefond (`Tirefond_inf_7` ou `Tirefond_sup_6`) à partir d'une référence du catalogue `vis_bois.csv`.
+  - Le choix s'effectue selon le diamètre efficace `d1 * 1.1` (`<= 6 mm` → `Tirefond_inf_7`, `> 6 mm` → `Tirefond_sup_6`).
+  - Les caractéristiques géométriques et mécaniques (`d`, `d1`, `ds`, `dh`, `l`, `rho_a`, `fhead`, `ftensk`, `MyRk`) sont lues directement dans le CSV.
+
 ## [2.1.6]
 
 ### Added

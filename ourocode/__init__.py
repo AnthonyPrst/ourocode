@@ -37,7 +37,7 @@ from ourocode.eurocode.ec5 import (
     Barre, Flexion, Traction, Compression, Compression_perpendiculaire,
     Compression_inclinees, Cisaillement,
     Assemblage, Embrevement, Pointe, Agrafe, Boulon, Broche,
-    Tirefond_inf_7, Tirefond_sup_6,
+    Tirefond_inf_7, Tirefond_sup_6, Vis_catalogue,
     Feu, Flexion_feu, Traction_feu, Compression_feu, Cisaillement_feu,
     Poutre_simple_decroissance, MOB,
 )
@@ -87,6 +87,7 @@ __all__ = [
     "Broche",
     "Tirefond_inf_7",
     "Tirefond_sup_6",
+    "Vis_catalogue",
     "Feu",
     "Flexion_feu",
     "Traction_feu",
