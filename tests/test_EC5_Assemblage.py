@@ -6,8 +6,10 @@ import pytest
 import forallpeople as si
 from copy import deepcopy
 
-si.environment("structural")
 sys.path.insert(1, "./")
+si.environment("structural")
+
+from ourocode.eurocode.ec5.assemblage.assemblage import Assemblage
 from ourocode.eurocode.ec5 import assemblage as EC5_Assem
 from ourocode.eurocode.ec5 import element_droit as EC5_Elem
 from ourocode.eurocode.ec3 import element_droit as EC3_Elem
@@ -463,4 +465,62 @@ class Test_Tirefond_sup_6:
         FtRk = tirefond.FtRk()
         assert FtRk[1].value == 18660.65983073615
 
-        
+
+class Test_Vis_catalogue:
+    def test_heritage_explicit_tirefond(self):
+        assert EC5_Assem.Vis_catalogue.__bases__ == (
+            EC5_Assem._Tirefond,
+            EC5_Assem.Pointe,
+            EC5_Assem.Boulon,
+            EC5_Assem.Assemblage,
+        )
+        assert issubclass(EC5_Assem.Vis_catalogue, EC5_Assem._Tirefond)
+        assert issubclass(EC5_Assem.Vis_catalogue, EC5_Assem.Pointe)
+        assert issubclass(EC5_Assem.Vis_catalogue, EC5_Assem.Boulon)
+
+    def test_reference_inf_7(self, barre_bois):
+        v = EC5_Assem.Vis_catalogue(
+            reference="ROTHOBLAAS_HBS_HBS8160",
+            n=2,
+            alpha1=0,
+            alpha2=90,
+            percage=False,
+            beam_1=barre_bois,
+            beam_2=barre_bois,
+            nfile=2,
+            nCis=1,
+        )
+        assert isinstance(v, EC5_Assem.Tirefond_inf_7)
+        assert isinstance(v, EC5_Assem.Pointe)
+        assert v.type_organe == "Tirefond"
+        assert v.d.value == pytest.approx(0.00594)
+        assert v.l.value == pytest.approx(0.160)
+        assert v.n == 2
+        assert v.nfile == 2
+        assert v.nCis == 1
+
+    def test_reference_sup_6(self, barre_bois):
+        v = EC5_Assem.Vis_catalogue(
+            reference="ROTHOBLAAS_HBS_HBS10100",
+            n=2,
+            alpha1=0,
+            alpha2=90,
+            beam_1=barre_bois,
+            beam_2=barre_bois,
+            nCis=1,
+        )
+        assert isinstance(v, EC5_Assem.Tirefond_sup_6)
+        assert isinstance(v, EC5_Assem.Boulon)
+        assert v.type_organe == "Tirefond"
+        assert v.d.value == pytest.approx(0.00704)
+        assert v.l.value == pytest.approx(0.100)
+        assert v.n == 2
+        assert v.nCis == 1
+
+    def test_reference_inconnue(self, barre_bois):
+        with pytest.raises(ValueError):
+            EC5_Assem.Vis_catalogue(
+                reference="INEXISTANT",
+                beam_1=barre_bois,
+                beam_2=barre_bois,
+            )

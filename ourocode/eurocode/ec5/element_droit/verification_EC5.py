@@ -130,6 +130,13 @@ class Verification_EC5(Projet):
     DEFAULT_W_NET_FIN_TAG = "W_net_fin"
     #: Valeurs acceptées pour ``elu_filter``.
     ELU_FILTERS = ("ELU_ALL", "ELU_STR", "ELU_STR_ACC")
+    #: Types de vérification ELU rattachés à une combinaison précise.
+    ELU_VERIF_TYPES = (
+        "Flexion", "Cisaillement", "Traction", "Compression",
+        "Flexion_feu", "Cisaillement_feu", "Traction_feu", "Compression_feu",
+    )
+    #: Types de vérification de flèche (ELS, combo-indépendants).
+    FLECHE_VERIF_TYPES = ("Flèche W_inst(Q)", "Flèche W_net,fin")
 
     def __init__(
         self,
@@ -202,6 +209,12 @@ class Verification_EC5(Projet):
         # Cache des objets EC5 par (structural_member_name, combo_name)
         # Peuplé automatiquement lors de chaque appel à verify()
         self._objects_cache: dict[tuple[str, str], dict] = {}
+        # Cache du LaTeX (résistance + contrainte + taux) par (structural_member_name, combo_name)
+        # Peuplé automatiquement lors de chaque appel à verify()
+        self._latex_cache: dict[tuple[str, str], dict] = {}
+        # Cache du LaTeX de flèche (combo-indépendant) par structural_member_name
+        # Peuplé automatiquement lors de chaque appel à verify()
+        self._fleche_latex_cache: dict[str, dict] = {}
 
 
     # ------------------------------------------------------------------ #
@@ -321,7 +334,7 @@ class Verification_EC5(Projet):
         # --- Boucle sur les combinaisons ELU
         combos = self._combinaison.get_list_combination(self.elu_filter) or []
         for combo_name in combos:
-            taux_combo, objects = self._verify_combo_elu(
+            taux_combo, objects, latex = self._verify_combo_elu(
                 combo_name=combo_name,
                 member_ids=member_ids,
                 barre_kwargs=barre_kwargs,
@@ -334,8 +347,9 @@ class Verification_EC5(Projet):
                 t_expo=t_expo,
                 return_objects=True,
             )
-            # Stockage dans le cache pour get_combo_objects()
+            # Stockage dans le cache pour get_combo_objects() / get_verification_latex()
             self._objects_cache[(name, combo_name)] = objects
+            self._latex_cache[(name, combo_name)] = latex
             for verif, taux in taux_combo.items():
                 if taux is not None and taux > max_taux[verif]["taux"]:
                     max_taux[verif] = {"taux": float(taux), "combinaison": combo_name}
@@ -350,6 +364,14 @@ class Verification_EC5(Projet):
             w_inst_tag=w_inst_tag,
             w_net_fin_tag=w_net_fin_tag,
         )
+        # Stockage du LaTeX de flèche pour get_verification_latex()
+        self._fleche_latex_cache[name] = {
+            verif: (data["latex"] if data else None)
+            for verif, data in fleche_results.items()
+        }
+        for data in fleche_results.values():
+            if data is not None:
+                data.pop("latex", None)
 
         taux_final: dict = {}
         for verif, data in max_taux.items():
@@ -401,6 +423,96 @@ class Verification_EC5(Projet):
                 f"Appelez d'abord verify('{name}') pour peupler le cache."
             )
         return self._objects_cache[key]
+
+    def get_verification_latex(
+        self,
+        name: str,
+        verif_type: str = ("Flexion", "Cisaillement", "Traction", "Compression",
+                "Flexion_feu", "Cisaillement_feu", "Traction_feu",
+                "Compression_feu", "Flèche W_inst(Q)", "Flèche W_net,fin"),
+        combo_name: str = None,
+    ) -> str:
+        """Retourne le LaTeX complet (résistance + contrainte + taux) d'une vérification.
+
+        Concatène le LaTeX généré par les méthodes ``f_*_d`` (résistance de calcul),
+        ``sigma_*_d``/``tau_d`` (contrainte de calcul) et ``taux_*_d`` (taux de travail,
+        interaction flexo-compression/flexo-traction incluse) telles qu'appelées par
+        :meth:`verify` pour la barre, la combinaison et le type de vérification demandés.
+        Lit directement depuis le cache interne peuplé par :meth:`verify`. Aucun
+        recalcul n'est effectué.
+
+        Args:
+            name (str): Nom de la barre structurale.
+            verif_type (str): Type de vérification. Un des :
+                ``"Flexion"``, ``"Cisaillement"``, ``"Traction"``, ``"Compression"``,
+                ``"Flexion_feu"``, ``"Cisaillement_feu"``, ``"Traction_feu"``,
+                ``"Compression_feu"``, ``"Flèche W_inst(Q)"`` ou ``"Flèche W_net,fin"``.
+            combo_name (str, optional): Nom de la combinaison ELU
+                (ex: ``"ELU_STR 1.35G + 1.5Q"``). Requis pour tous les types sauf
+                les vérifications de flèche, où il est ignoré (la flèche est
+                calculée indépendamment des combinaisons ELU, à partir des tags
+                ``W_inst_Q``/``W_net_fin``).
+
+        Returns:
+            str: Code LaTeX prêt à être affiché (ex: via ``IPython.display.Latex``).
+
+        Raises:
+            KeyError: Si ``verify(name)`` n'a pas été appelé au préalable, si
+                ``combo_name`` n'appartient pas au filtre ELU utilisé, ou si
+                ``verif_type`` est inconnu.
+            ValueError: Si ``combo_name`` est manquant pour un type ELU, ou si
+                la vérification demandée n'est pas applicable pour cette
+                combinaison (ex: pas d'effort axial, pas de moment, combinaison
+                hors situation d'incendie…).
+
+        Exemple:
+            >>> verif.verify("SM1")
+            >>> latex = verif.get_verification_latex("SM1", "Flexion", "ELU_STR 1.35G + 1.5Q")
+            >>> display(Latex(latex))
+            >>> latex_fleche = verif.get_verification_latex("SM1", "Flèche W_inst(Q)")
+            >>> display(Latex(latex_fleche))
+        """
+        self._check_state()
+
+        if verif_type in self.FLECHE_VERIF_TYPES:
+            if name not in self._fleche_latex_cache:
+                raise KeyError(
+                    f"Aucun résultat en cache pour '{name}'. "
+                    f"Appelez d'abord verify('{name}') pour peupler le cache."
+                )
+            latex = self._fleche_latex_cache[name].get(verif_type)
+            if latex is None:
+                raise ValueError(
+                    f"La vérification '{verif_type}' n'est pas applicable pour "
+                    f"la barre '{name}' (flèche non calculée ou type d'élément absent)."
+                )
+            return (latex, latex)
+
+        if verif_type not in self.ELU_VERIF_TYPES:
+            raise KeyError(
+                f"Type de vérification '{verif_type}' inconnu. Valeurs acceptées : "
+                f"{self.ELU_VERIF_TYPES + self.FLECHE_VERIF_TYPES}."
+            )
+        if combo_name is None:
+            raise ValueError(
+                f"'combo_name' est requis pour la vérification '{verif_type}'."
+            )
+
+        key = (name, combo_name)
+        if key not in self._latex_cache:
+            raise KeyError(
+                f"Aucun résultat en cache pour '{name}' / '{combo_name}'. "
+                f"Appelez d'abord verify('{name}') pour peupler le cache."
+            )
+        latex = self._latex_cache[key].get(verif_type)
+        if latex is None:
+            raise ValueError(
+                f"La vérification '{verif_type}' n'est pas applicable pour la "
+                f"combinaison '{combo_name}' (ex: pas d'effort axial, pas de "
+                f"moment, pas d'effort tranchant, ou combinaison hors situation "
+                f"d'incendie)."
+            )
+        return (latex, latex)
 
     def synthese(self) -> pd.DataFrame:
         """Agrège les vérifications EC5 de toutes les barres structurales.
@@ -480,7 +592,9 @@ class Verification_EC5(Projet):
 
         Args:
             return_objects (bool): Si True, retourne aussi les objets EC5
-                instanciés sous la clé ``"objects"`` du dictionnaire.
+                instanciés sous la clé ``"objects"`` du dictionnaire, ainsi
+                que le LaTeX complet (résistance + contrainte + taux) de
+                chaque vérification sous la clé ``"latex"``.
                 Defaults to False.
         """
         load_time = self._combinaison.min_type_load(combo_name)
@@ -489,6 +603,7 @@ class Verification_EC5(Projet):
         efforts = self._result.get_min_max_internal_force(member_ids, combo_name)
         Vy_abs = self._result.get_absolute_internal_force(member_ids, combo_name, "Vy", get_combo_name=False).value
         Vz_abs = self._result.get_absolute_internal_force(member_ids, combo_name, "Vz", get_combo_name=False).value
+        V_abs = max(Vy_abs, Vz_abs)
         My_abs = self._result.get_absolute_internal_force(member_ids, combo_name, "My", get_combo_name=False).value
         Mz_abs = self._result.get_absolute_internal_force(member_ids, combo_name, "Mz", get_combo_name=False).value
         # efforts = self._efforts_for_combo(member_ids, combo_name, n_points)
@@ -513,12 +628,23 @@ class Verification_EC5(Projet):
             "Traction_feu": None,
             "Compression_feu": None,
         }
+        latex: dict[str, str] = {
+            "Flexion": None,
+            "Cisaillement": None,
+            "Traction": None,
+            "Compression": None,
+            "Flexion_feu": None,
+            "Cisaillement_feu": None,
+            "Traction_feu": None,
+            "Compression_feu": None,
+        }
 
         barre = Barre(**barre_kwargs)
 
         # --- Traction / Compression (exclusif, signe-dépendant)
         traction_obj = None
         compression_obj = None
+        compression_base_latex = ""
         N_pos = efforts["Nx"]["Max"][0].value  # N, > 0 si compresion
         N_neg = efforts["Nx"]["Min"][0].value   # N, < 0 si traction
 
@@ -529,18 +655,21 @@ class Verification_EC5(Projet):
                     lo_y=lo_flamb_y, lo_z=lo_flamb_z,
                     type_appuis_y=type_appuis_y, type_appuis_z=type_appuis_z,
                 )
-                compression_obj.f_c_0_d(loadtype=load_time, typecombi=typecombi)
-                compression_obj.sigma_c_0_d(Fc0d=abs(N_pos / 10**3))
-                compression_obj.taux_c_0_d()
+                latex_fc0d, _ = compression_obj.f_c_0_d(loadtype=load_time, typecombi=typecombi)
+                latex_sigma_c, _ = compression_obj.sigma_c_0_d(Fc0d=abs(N_pos / 10**3))
+                compression_base_latex = latex_fc0d + latex_sigma_c
+                latex_taux_c, _ = compression_obj.taux_c_0_d()
                 taux_combo["Compression"] = max(compression_obj.taux_c_0_rd.values())
                 objects["Compression"] = compression_obj
+                latex["Compression"] = compression_base_latex + latex_taux_c
             elif abs(N_neg) > 1e-9:
                 traction_obj = Traction._from_parent_class(barre)
-                traction_obj.f_t_0_d(loadtype=load_time, typecombi=typecombi)
-                traction_obj.sigma_t_0_d(Ft0d=N_neg / 10**3)
-                traction_obj.taux_t_0_d()
+                latex_ft0d, _ = traction_obj.f_t_0_d(loadtype=load_time, typecombi=typecombi)
+                latex_sigma_t, _ = traction_obj.sigma_t_0_d(Ft0d=abs(N_neg) / 10**3)
+                latex_taux_t, _ = traction_obj.taux_t_0_d()
                 taux_combo["Traction"] = max(traction_obj.taux_t_0_rd.values())
                 objects["Traction"] = traction_obj
+                latex["Traction"] = latex_ft0d + latex_sigma_t + latex_taux_t
 
             # --- Flexion (incluant l'interaction)
             flexion_obj = None
@@ -551,10 +680,11 @@ class Verification_EC5(Projet):
                     coeflef_y=coeflef_y, coeflef_z=coeflef_z,
                     pos=pos_charge,
                 )
-                flexion_obj.f_m_d(loadtype=load_time, typecombi=typecombi)
-                flexion_obj.sigma_m_d(
-                    My=My_abs / 10**3, Mz=Mz_abs / 10**3,
+                latex_fmd, _ = flexion_obj.f_m_d(loadtype=load_time, typecombi=typecombi)
+                latex_sigma_m, _ = flexion_obj.sigma_m_d(
+                    My=Mz_abs / 10**3, Mz=My_abs / 10**3,
                 )
+                flexion_base_latex = latex_fmd + latex_sigma_m
                 if compression_obj is not None:
                     sigma_c_0_rd = compression_obj.sigma_c_0_rd
                     sigma_m_rd_y = flexion_obj.sigma_m_rd["y"]
@@ -562,28 +692,31 @@ class Verification_EC5(Projet):
                     max_sigma_m_rd = max(sigma_m_rd_y, sigma_m_rd_z)
 
                     if sigma_c_0_rd > max_sigma_m_rd:
-                        flexion_obj.taux_m_d(traction=traction_obj)
-                        compression_obj.taux_c_0_d(flexion=flexion_obj)
+                        latex_taux_m, _ = flexion_obj.taux_m_d(traction=traction_obj)
+                        latex_taux_c, _ = compression_obj.taux_c_0_d(flexion=flexion_obj)
                         taux_combo["Compression"] = max(compression_obj.taux_c_0_rd.values())
                         objects["Compression"] = compression_obj
+                        latex["Compression"] = compression_base_latex + latex_taux_c
                     else:
-                        flexion_obj.taux_m_d(
+                        latex_taux_m, _ = flexion_obj.taux_m_d(
                             compression=compression_obj, traction=traction_obj,
                         )
                 else:
-                    flexion_obj.taux_m_d(traction=traction_obj)
+                    latex_taux_m, _ = flexion_obj.taux_m_d(traction=traction_obj)
                 taux_combo["Flexion"] = max(flexion_obj.taux_m_rd.values())
                 objects["Flexion"] = flexion_obj
+                latex["Flexion"] = flexion_base_latex + latex_taux_m
 
             # --- Cisaillement
             cisaillement_obj = None
-            if Vy_abs > 1e-9:
+            if V_abs > 1e-9:
                 cisaillement_obj = Cisaillement._from_parent_class(barre)
-                cisaillement_obj.f_v_d(loadtype=load_time, typecombi=typecombi)
-                cisaillement_obj.tau_d(Vd=Vy_abs / 10**3)
-                cisaillement_obj.taux_tau_d()
+                latex_fvd, _ = cisaillement_obj.f_v_d(loadtype=load_time, typecombi=typecombi)
+                latex_tau, _ = cisaillement_obj.tau_d(Vd=V_abs / 10**3)
+                latex_taux_v, _ = cisaillement_obj.taux_tau_d()
                 taux_combo["Cisaillement"] = max(cisaillement_obj.taux_tau_rd.values())
                 objects["Cisaillement"] = cisaillement_obj
+                latex["Cisaillement"] = latex_fvd + latex_tau + latex_taux_v
 
         # --- Vérification feu (uniquement pour combinaisons FIRE)
         if "FIRE" in combo_name or "ELU_STR_ACC G" == combo_name:
@@ -598,6 +731,7 @@ class Verification_EC5(Projet):
 
             # Compression feu
             compression_feu_obj = None
+            compression_feu_base_latex = ""
             if N_pos > 1e-9 and N_pos >= abs(N_neg):
                 compression_feu_obj = Compression_feu._from_parent_class(
                     barre,
@@ -605,21 +739,24 @@ class Verification_EC5(Projet):
                     type_appuis_y=type_appuis_y, type_appuis_z=type_appuis_z,
                     **feu_kwargs,
                 )
-                sigma_c0d = compression_feu_obj.sigma_c_0_d(Fc0d=abs(N_pos / 10**3))
-                compression_feu_obj.f_c_0_d()
-                compression_feu_obj.taux_c_0_d()
+                latex_sigma_c_fi, _ = compression_feu_obj.sigma_c_0_d(Fc0d=abs(N_pos / 10**3))
+                latex_fc0d_fi, _ = compression_feu_obj.f_c_0_d()
+                compression_feu_base_latex = latex_sigma_c_fi + latex_fc0d_fi
+                latex_taux_c_fi, _ = compression_feu_obj.taux_c_0_d()
                 taux_combo["Compression_feu"] = max(compression_feu_obj.taux_c_0_rd.values())
                 objects["Compression_feu"] = compression_feu_obj
+                latex["Compression_feu"] = compression_feu_base_latex + latex_taux_c_fi
 
             # Traction feu
             traction_feu_obj = None
             if abs(N_neg) > 1e-9:
                 traction_feu_obj = Traction_feu._from_parent_class(barre, **feu_kwargs)
-                traction_feu_obj.sigma_t_0_d(Ft0d=N_neg / 10**3)
-                traction_feu_obj.f_t_0_d()
-                traction_feu_obj.taux_t_0_d()
+                latex_sigma_t_fi, _ = traction_feu_obj.sigma_t_0_d(Ft0d=abs(N_neg) / 10**3)
+                latex_ft0d_fi, _ = traction_feu_obj.f_t_0_d()
+                latex_taux_t_fi, _ = traction_feu_obj.taux_t_0_d()
                 taux_combo["Traction_feu"] = max(traction_feu_obj.taux_t_0_rd.values())
                 objects["Traction_feu"] = traction_feu_obj
+                latex["Traction_feu"] = latex_sigma_t_fi + latex_ft0d_fi + latex_taux_t_fi
 
             # Flexion feu
             flexion_feu_obj = None
@@ -631,10 +768,11 @@ class Verification_EC5(Projet):
                     pos=pos_charge,
                     **feu_kwargs,
                 )
-                flexion_feu_obj.sigma_m_d(
-                    My=My_abs / 10**3, Mz=Mz_abs / 10**3,
+                latex_sigma_m_fi, _ = flexion_feu_obj.sigma_m_d(
+                    My=Mz_abs / 10**3, Mz=My_abs / 10**3,
                 )
-                flexion_feu_obj.f_m_d()
+                latex_fmd_fi, _ = flexion_feu_obj.f_m_d()
+                flexion_feu_base_latex = latex_sigma_m_fi + latex_fmd_fi
                 if compression_feu_obj is not None:
                     sigma_c_0_rd = compression_feu_obj.sigma_c_0_rd.value
                     sigma_m_rd_y = flexion_feu_obj.sigma_m_rd["y"]
@@ -642,31 +780,34 @@ class Verification_EC5(Projet):
                     max_sigma_m_rd = max(sigma_m_rd_y, sigma_m_rd_z)
 
                     if sigma_c_0_rd > max_sigma_m_rd:
-                        flexion_feu_obj.taux_m_d(traction=traction_feu_obj)
-                        compression_feu_obj.taux_c_0_d(flexion=flexion_feu_obj)
+                        latex_taux_m_fi, _ = flexion_feu_obj.taux_m_d(traction=traction_feu_obj)
+                        latex_taux_c_fi, _ = compression_feu_obj.taux_c_0_d(flexion=flexion_feu_obj)
                         taux_combo["Compression_feu"] = max(compression_feu_obj.taux_c_0_rd.values())
                         objects["Compression_feu"] = compression_feu_obj
+                        latex["Compression_feu"] = compression_feu_base_latex + latex_taux_c_fi
                     else:
-                        flexion_feu_obj.taux_m_d(
+                        latex_taux_m_fi, _ = flexion_feu_obj.taux_m_d(
                             compression=compression_feu_obj, traction=traction_feu_obj,
                         )
                 else:
-                    flexion_feu_obj.taux_m_d(traction=traction_feu_obj)
+                    latex_taux_m_fi, _ = flexion_feu_obj.taux_m_d(traction=traction_feu_obj)
                 taux_combo["Flexion_feu"] = max(flexion_feu_obj.taux_m_rd.values())
                 objects["Flexion_feu"] = flexion_feu_obj
+                latex["Flexion_feu"] = flexion_feu_base_latex + latex_taux_m_fi
 
             # Cisaillement feu
             cisaillement_feu_obj = None
-            if Vy_abs > 1e-9:
+            if V_abs > 1e-9:
                 cisaillement_feu_obj = Cisaillement_feu._from_parent_class(barre, **feu_kwargs)
-                cisaillement_feu_obj.tau_d(Vd=Vy_abs / 10**3)
-                cisaillement_feu_obj.f_v_d()
-                cisaillement_feu_obj.taux_tau_d()
+                latex_tau_fi, _ = cisaillement_feu_obj.tau_d(Vd=V_abs / 10**3)
+                latex_fvd_fi, _ = cisaillement_feu_obj.f_v_d()
+                latex_taux_v_fi, _ = cisaillement_feu_obj.taux_tau_d()
                 taux_combo["Cisaillement_feu"] = max(cisaillement_feu_obj.taux_tau_rd.values())
                 objects["Cisaillement_feu"] = cisaillement_feu_obj
+                latex["Cisaillement_feu"] = latex_tau_fi + latex_fvd_fi + latex_taux_v_fi
 
         if return_objects:
-            return taux_combo, objects
+            return taux_combo, objects, latex
         return taux_combo
 
     # ------------------------------------------------------------------ #
@@ -757,7 +898,7 @@ class Verification_EC5(Projet):
         if Ed_WinstQ == 0 and Ed_Wnetfin == 0:
             return out
         barre_fleche = Barre(**barre_kwargs)
-        barre_fleche.fleche(
+        latex_fleche, _ = barre_fleche.fleche(
             long=L_mm,
             Ed_WinstQ=_length_to_mm(Ed_WinstQ["Flèche"]),
             Ed_Wnetfin=_length_to_mm(Ed_Wnetfin["Flèche"]),
@@ -770,11 +911,13 @@ class Verification_EC5(Projet):
             out["Flèche W_inst(Q)"] = {
                 "taux": float(els["Winst(Q)"]),
                 "combinaison": Ed_WinstQ["Combinaison"],
+                "latex": latex_fleche,
             }
         if "Wnet,fin" in els:
             out["Flèche W_net,fin"] = {
                 "taux": float(els["Wnet,fin"]),
                 "combinaison": Ed_Wnetfin["Combinaison"],
+                "latex": latex_fleche,
             }
         return out
 

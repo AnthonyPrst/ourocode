@@ -9,6 +9,7 @@ import forallpeople as si
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
+from ourocode.eurocode.ec5.assemblage.assemblage import Assemblage
 from ourocode.eurocode.ec5.assemblage.pointe import Pointe
 from ourocode.eurocode.ec5.assemblage.boulon import Boulon
 
@@ -329,6 +330,62 @@ class Tirefond_sup_6(_Tirefond, Boulon):
             return val()
         else:
             return super().MyRk
+
+
+class Vis_catalogue(Tirefond_sup_6, Tirefond_inf_7, Assemblage):
+    """Factory qui crée un objet :class:`Tirefond_inf_7` ou :class:`Tirefond_sup_6`
+    à partir d'une référence du catalogue ``ourocode/data/vis_bois.csv``.
+
+    Le choix entre les deux classes se fait sur le diamètre efficace ``d1 * 1.1`` :
+
+    - ``d1 * 1.1 <= 6 mm`` : :class:`Tirefond_inf_7` (comportement de pointe)
+    - ``d1 * 1.1 > 6 mm`` : :class:`Tirefond_sup_6` (comportement de boulon)
+    """
+    REFERENCES = list(Assemblage._data_from_csv(Assemblage, "vis_bois.csv").index)
+
+    def __new__(cls, reference: str=REFERENCES, n: int = 1, alpha1: float = 0, alpha2: float = 0,
+                percage: bool = ("False", "True"), **kwargs):
+        """Instancie la bonne sous-classe de tirefond à partir d'une référence catalogue.
+
+        Args:
+            reference (str): Référence exacte présente dans ``vis_bois.csv``.
+            n (int): Nombre de vis dans une file.
+            alpha1 (float, optional): Angle effort/fil bois 1 en °. Defaults to 0.
+            alpha2 (float, optional): Angle effort/fil bois 2 en °. Defaults to 0.
+            percage (bool, optional): Préperçage pour ``Tirefond_inf_7``. Defaults to False.
+        """
+        df = Assemblage._data_from_csv(Assemblage, "vis_bois.csv")
+        try:
+            row = df.loc[reference]
+        except KeyError as exc:
+            raise ValueError(
+                f"La référence '{reference}' n'existe pas dans le catalogue vis_bois.csv"
+            ) from exc
+
+        d = float(row["d"])
+        d1 = float(row["d1"])
+        d_eff = d1 * 1.1
+        params = {
+            "d": d,
+            "d1": d1,
+            "ds": float(row["ds"]),
+            "dh": float(row["dh"]),
+            "l": float(row["l"]),
+            "n": int(n),
+            "rho_a": float(row["rho_a"]),
+            "fhead": float(row["fhead"]),
+            "ftensk": float(row["ftensk"]),
+            "MyRk": float(row["MyRk"]),
+            "alpha1": alpha1,
+            "alpha2": alpha2,
+        }
+
+        if d_eff <= 6:
+            params["percage"] = percage
+            return Tirefond_inf_7(**params, **kwargs)
+        return Tirefond_sup_6(**params, **kwargs)
+
+
 # ======================================================= ANNEAU =========================================================
 # 8.9 Assemblage par anneaux
 

@@ -9,6 +9,7 @@ Scénarios :
 import sys
 from pathlib import Path
 
+import forallpeople as si
 import pandas as pd
 import pytest
 
@@ -269,6 +270,68 @@ class TestGetComboObjects:
 
 
 # ---------------------------------------------------------------------------
+# Verification_EC5.get_verification_latex
+# ---------------------------------------------------------------------------
+
+class TestGetVerificationLatex:
+    COMBO = "ELU_STR 1.35G + 1.5Q"
+
+    def test_flexion_latex_is_non_empty_string(self, simple_beam_verif):
+        _, _, _, verif = simple_beam_verif
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        latex = verif.get_verification_latex("Solive", "Flexion", self.COMBO)
+        assert isinstance(latex, str)
+        assert len(latex) > 0
+
+    def test_cisaillement_latex_is_non_empty_string(self, simple_beam_verif):
+        _, _, _, verif = simple_beam_verif
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        latex = verif.get_verification_latex("Solive", "Cisaillement", self.COMBO)
+        assert isinstance(latex, str)
+        assert len(latex) > 0
+
+    def test_fleche_latex_does_not_require_combo_name(self, simple_beam_verif):
+        _, _, _, verif = simple_beam_verif
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        latex = verif.get_verification_latex("Solive", "Flèche W_inst(Q)")
+        assert isinstance(latex, str)
+        assert len(latex) > 0
+
+    def test_traction_not_applicable_raises_value_error(self, simple_beam_verif):
+        """Poutre sans effort axial : la traction n'est pas applicable sur cette combo."""
+        _, _, _, verif = simple_beam_verif
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        with pytest.raises(ValueError):
+            verif.get_verification_latex("Solive", "Traction", self.COMBO)
+
+    def test_missing_combo_name_for_elu_type_raises_value_error(self, simple_beam_verif):
+        _, _, _, verif = simple_beam_verif
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        with pytest.raises(ValueError):
+            verif.get_verification_latex("Solive", "Flexion")
+
+    def test_unknown_verif_type_raises_key_error(self, simple_beam_verif):
+        _, _, _, verif = simple_beam_verif
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        with pytest.raises(KeyError):
+            verif.get_verification_latex("Solive", "Torsion", self.COMBO)
+
+    def test_raises_if_verify_not_called(self, simple_beam_verif):
+        _, _, _, verif = simple_beam_verif
+        with pytest.raises(KeyError, match="verify"):
+            verif.get_verification_latex("Solive", "Flexion", self.COMBO)
+
+    def test_fire_flexion_latex_is_non_empty_string(self, fire_beam_verif):
+        _, combi, _, verif = fire_beam_verif
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        fire_combos = [c for c in combi.get_list_combination("ELU_ALL") or [] if "FIRE" in c]
+        if fire_combos:
+            latex = verif.get_verification_latex("Solive", "Flexion_feu", fire_combos[0])
+            assert isinstance(latex, str)
+            assert len(latex) > 0
+
+
+# ---------------------------------------------------------------------------
 # Boucle par combinaison : kmod dépend de la combo
 # ---------------------------------------------------------------------------
 
@@ -388,3 +451,51 @@ class TestFireVerification:
         """Le paramètre t_expo doit être utilisé dans les calculs feu."""
         _, _, _, verif = fire_beam_verif
         assert verif.t_expo == 30
+
+
+class TestVerifyComboDirections:
+    @staticmethod
+    def _zero_efforts():
+        force = {"Min": (0 * si.N, None), "Max": (0 * si.N, None)}
+        moment = {"Min": (0 * si.N * si.mm, None), "Max": (0 * si.N * si.mm, None)}
+        return {
+            "Nx": force.copy(),
+            "Vy": force.copy(),
+            "Vz": force.copy(),
+            "Mx": moment.copy(),
+            "My": moment.copy(),
+            "Mz": moment.copy(),
+        }
+
+    def test_negative_nx_is_verified_as_positive_traction(self, simple_beam_verif, monkeypatch):
+        _, _, result, verif = simple_beam_verif
+        efforts = self._zero_efforts()
+        efforts["Nx"]["Min"] = (-10 * si.kN, "ELU_STR 1.35G")
+        monkeypatch.setattr(result, "get_min_max_internal_force", lambda *args: efforts)
+        monkeypatch.setattr(
+            result,
+            "get_absolute_internal_force",
+            lambda *args, **kwargs: 0 * si.N,
+        )
+
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        obj = verif.get_combo_objects("Solive", "ELU_STR 1.35G")
+
+        assert obj["Traction"] is not None
+        assert max(obj["Traction"].taux_t_0_rd.values()) > 0
+
+    def test_vz_is_verified_when_more_unfavorable_than_vy(self, simple_beam_verif, monkeypatch):
+        _, _, result, verif = simple_beam_verif
+        efforts = self._zero_efforts()
+        monkeypatch.setattr(result, "get_min_max_internal_force", lambda *args: efforts)
+
+        def absolute_force(*args, **kwargs):
+            return 10 * si.kN if args[2] == "Vz" else 0 * si.N
+
+        monkeypatch.setattr(result, "get_absolute_internal_force", absolute_force)
+
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        obj = verif.get_combo_objects("Solive", "ELU_STR 1.35G")
+
+        assert obj["Cisaillement"] is not None
+        assert max(obj["Cisaillement"].taux_tau_rd.values()) > 0
