@@ -6,6 +6,12 @@ Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/)
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
+TESTMARKER
+
+### Fixed
+- **`Verification_EC5._verify_combo_elu`** : correction du signe transmis à la vérification de traction, afin que les efforts normaux négatifs soient évalués comme des efforts positifs de traction, y compris en situation d'incendie.
+- **`Verification_EC5._verify_combo_elu`** : prise en compte de l'effort tranchant selon `Vz` lorsque celui-ci est plus défavorable que `Vy`, pour les vérifications normales et incendie.
+- **`Verification_EC5._verify_combo_elu`** : Correction du moment transmis à la vérification, ce dernier était inversé suite à un changement d'axe entre pynite et l'EC5.
 
 ### Added
 - **`data/vis_bois.csv`** : catalogue de vis **ROTHOBLAAS** pour les assemblages bois.
