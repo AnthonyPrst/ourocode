@@ -5,10 +5,10 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
-## [Unreleased]
-TESTMARKER
+## [2.1.8] - 2026-10-28
 
 ### Fixed
+- **`ec5/feu/feu.py` (`Feu._get_section_reduction`)** : correction d'un `KeyError` (ex. `'Gauche'`) lorsqu'une face protégée a un temps de rupture de protection `tf` supérieur ou égal à la durée d'exposition `t_expo`. L'entrée `self._def[orientation]` n'était jamais assignée dans ce cas. Désormais, lorsque `t_expo <= tf`, la carbonisation est calculée à vitesse réduite `k2 * beta_n` entre `tch` et `t_expo` (EN 1995-1-2 §3.4.3.2), et `d_ef` est correctement renseigné.
 - **`Verification_EC5._verify_combo_elu`** : correction du signe transmis à la vérification de traction, afin que les efforts normaux négatifs soient évalués comme des efforts positifs de traction, y compris en situation d'incendie.
 - **`Verification_EC5._verify_combo_elu`** : prise en compte de l'effort tranchant selon `Vz` lorsque celui-ci est plus défavorable que `Vy`, pour les vérifications normales et incendie.
 - **`Verification_EC5._verify_combo_elu`** : Correction du moment transmis à la vérification, ce dernier était inversé suite à un changement d'axe entre pynite et l'EC5.
