@@ -5,7 +5,7 @@ Cat C : lieu de réunion;0.7;0.7;0.6
 Cat D : zones commerciales;0.7;0.7;0.6
 Cat E : stockage;1;0.9;0.8
 Cat F : véhicule <= 30kN;0.7;0.7;0.6
-Cat G : véhicule <= 160kN";0.7;0.5;3
+Cat G : véhicule <= 160kN;0.7;0.5;0.3
 Cat H : toits;0;0;0
 Neige > 1000m;0.7;0.5;0.2
 Neige <= 1000m;0.5;0.2;0

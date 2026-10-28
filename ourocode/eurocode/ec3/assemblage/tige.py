@@ -446,6 +446,7 @@ class Tige(Plat):
         f_u = self.fu
         k_ex = 1
         gamma_M_2 = self.GAMMA_M["gamma_M2"]
+        gamma_M_0 = self.GAMMA_M["gamma_M0"]
 
         if effort == "Excentré":
             k_ex = 0.5
@@ -453,7 +454,7 @@ class Tige(Plat):
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             V_eff_nt_Rd = (A_nt * f_u) / gamma_M_2
-            V_eff_nv_Rd = 1/sqrt(3) * (A_vt * f_y) / gamma_M_2
+            V_eff_nv_Rd = 1/sqrt(3) * (A_vt * f_y) / gamma_M_0
             V_eff_Rd = k_ex * V_eff_nt_Rd + V_eff_nv_Rd
             return V_eff_Rd
         return val()

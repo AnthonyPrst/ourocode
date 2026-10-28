@@ -384,16 +384,22 @@ class Feu(Barre):
                         d3 = self._d_char_n(self.t_expo - tf, beta_n * k3)
                         d_char_n = d_char_n + d3
                     d_char_n_values["t_expo"] = d_char_n
+                else:
+                    # Protection encore en place à t_expo : carbonisation à vitesse
+                    # réduite k2*beta_n entre tch et t_expo (EN 1995-1-2 §3.4.3.2)
+                    if self.t_expo > tch:
+                        d_char_n = self._d_char_n(self.t_expo - tch, beta_n * k2)
+                    d_char_n_values["t_expo"] = d_char_n
 
-                    # Stockage dans le DataFrame des d_char_n
-                    for key, dcharn in d_char_n_values.items():
-                        self.d_ef.loc[key, (orientation, "d_char_n(mm)")] = dcharn
+                # Stockage dans le DataFrame des d_char_n
+                for key, dcharn in d_char_n_values.items():
+                    self.d_ef.loc[key, (orientation, "d_char_n(mm)")] = dcharn
 
-                    # Calcul de d_ef final
-                    d_ef = self._d_ef(d_char_n, self.t_expo)
-                    self.d_ef.loc["d_ef", (orientation, "Temps(min)")] = self.t_expo
-                    self.d_ef.loc["d_ef", (orientation, "d_char_n(mm)")] = d_ef[1]
-                    self._def[orientation] = (latex_tch_tf + latex_ta + d_ef[0], d_ef[1])
+                # Calcul de d_ef final
+                d_ef = self._d_ef(d_char_n, self.t_expo)
+                self.d_ef.loc["d_ef", (orientation, "Temps(min)")] = self.t_expo
+                self.d_ef.loc["d_ef", (orientation, "d_char_n(mm)")] = d_ef[1]
+                self._def[orientation] = (latex_tch_tf + latex_ta + d_ef[0], d_ef[1])
             else:
                 self._def[orientation] = ("\\[\text{Pas d'exposition}\\]", 0 * si.mm)
             

@@ -76,14 +76,18 @@ class Flexion(Plat):
         cis = Cisaillement._from_parent_class(self, Av=Av)
         Vpl_Rd = cis.Vpl_Rd[1]
         Mc_Rd = self.Mc_Rd[1]
-        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-        def val():
-            if V_Ed/Vpl_Rd > 0.5:
+        
+        if V_Ed/Vpl_Rd > 0.5:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
                 rho = (2*(V_Ed/Vpl_Rd)-1)**2
                 My_V_Rd = (1-rho) * Mc_Rd
-            elif V_Ed/Vpl_Rd <= 0.5:
+                return My_V_Rd
+        else:
+            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
                 My_V_Rd = Mc_Rd
-            return My_V_Rd 
+                return My_V_Rd
         return val()
 
 
