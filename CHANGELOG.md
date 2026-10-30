@@ -7,6 +7,8 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-30
+
 ### Added
 - **`mixins/serialization.py` (`_CompatUnpickler`)** : unpickler de compatibilité qui redirige les classes des fichiers `.oco` créés avec l'arborescence v1.x (`ourocode.eurocode.EC5_Element_droit`, `A0_Projet`, `EC1_Vent`, …) vers les nouveaux sous-packages (`ec5.element_droit`, `core`, `ec1`, …). Les anciens fichiers redeviennent ouvrables via `_open_object` / `_open_multiple_objects`. Limitation : la redirection s'opère par nom de classe ; des attributs renommés entre versions peuvent produire des objets incomplets.
 - **`save_object(path)` / `_save_muliple_objects(object, path)` / `_open_multiple_objects(path)`** : paramètre `path` optionnel sur toutes les méthodes de persistance `.oco`, comme déjà le cas pour `save_data` / `_open_object`. Permet un usage headless (sans Qt).
@@ -19,6 +21,10 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
   - `Neige` : `exposition`, `type_toit` validés ; `blocage` normalisé.
   - `Vent` : `cat_terrain`, `cat_oro` validés ; `z` positif ; `CsCd` normalisé.
 - **Tests de référence normative** (`tests/test_references_normatives.py`, 29 tests) : golden values calculées à la main pour le cas C24 b=100×h=300 (flexion §6.1.6, traction équa. 6.1, cisaillement avec K_cr), plus tests unitaires des helpers `_flag`, `_check_choice`, `_check_dimension` et du filtrage `_from_parent_class`.
+- **Format `.oco` JSON versionné (`oco/1`)** : `save_object` et `_save_muliple_objects` écrivent désormais un JSON `{"_format", "_class", "data"}` — les `Physical` sont sérialisés en valeur/unité et les objets ourocode imbriqués par référence de classe. Les attributs non sérialisables en JSON (DataFrames, figures…) sont ignorés avec un avertissement. La lecture détecte automatiquement JSON vs pickle : les fichiers pickle hérités restent lisibles via `_CompatUnpickler` (lecture seule). La résolution de classe refuse tout module hors du package `ourocode`.
+- **Extra `[mef]`** : `PyNiteFEA` et `pyvista[all,trame]` sont déplacés des dépendances principales vers l'extra `mef`. Les imports restent paresseux avec un message d'installation explicite. `full` inclut désormais `gui` + `mef` ; `test` référence `ourocode[mef]`.
+- **CI `typecheck`** : nouveau job `pyright` (mode `basic`, ciblé sur `core/` et `mixins/`) en mode advisory (`continue-on-error`) — la base comporte encore des erreurs héritées, notamment les attributs dynamiques de `forallpeople` (`si.m`, `si.mm`…), le temps de les résorber.
+- **Traçabilité des synthèses** : `SyntheseMixin._add_synthese_taux_travail` accepte les colonnes optionnelles « Clause normative » et « Combinaison » (dict ou tuple à 5 éléments). La ligne « Max » de `synthese_taux_travail` reporte la clause et la combinaison de la ligne gouvernante. Les principales vérifications EC5 (flexion, traction, compression, cisaillement) renseignent leur clause EN 1995-1-1.
 
 ### Changed
 - **`mixins/serialization.py`** : factorisation des dialogues Qt (`_file_dialog_open` / `_file_dialog_save`) ; avertissement de sécurité documenté sur les méthodes `pickle` (un fichier `.oco` non fiable peut exécuter du code arbitraire).

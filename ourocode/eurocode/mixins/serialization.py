@@ -5,6 +5,7 @@ import json
 import csv
 import pickle
 import logging
+import importlib
 
 import forallpeople as si
 
@@ -120,11 +121,20 @@ class SerializationMixin:
     - _physical_to_dict / _dict_to_physical : conversion Physical ↔ dict
     - _resolve_unit_expr : parsing sécurisé d'expressions d'unité
     - save_data / load_data : sauvegarde/chargement JSON/CSV
-    - save_object / _save_muliple_objects : pickle .oco
-    - _open_object / _open_multiple_objects : lecture pickle .oco
+    - save_object / _save_muliple_objects : sauvegarde .oco (JSON versionné)
+    - _open_object / _open_multiple_objects : lecture .oco (JSON ou pickle legacy)
+
+    Format .oco :
+        L'écriture produit un JSON versionné ``{"_format": "oco/1", "_class": ..., "data": {...}}``.
+        La lecture accepte ce format JSON ainsi que les anciens fichiers pickle
+        (détection automatique au premier octet). Le pickle n'est plus écrit :
+        il reste supporté en lecture seule pour la compatibilité ascendante.
     """
 
-    def _physical_to_dict(self, obj):
+    _OCO_FORMAT = "oco/1"
+
+    @staticmethod
+    def _physical_to_dict(obj):
         """Convertit un objet Physical (forallpeople) en dictionnaire sérialisable.
 
         Cette méthode permet de sérialiser les objets contenant des unités physiques
@@ -139,9 +149,9 @@ class SerializationMixin:
             contenant '_physical_value' et '_physical_unit'.
         """
         if isinstance(obj, dict):
-            return {k: self._physical_to_dict(v) for k, v in obj.items()}
+            return {k: SerializationMixin._physical_to_dict(v) for k, v in obj.items()}
         elif isinstance(obj, (list, tuple)):
-            return [self._physical_to_dict(x) for x in obj]
+            return [SerializationMixin._physical_to_dict(x) for x in obj]
         elif isinstance(obj, si.Physical):
             split_vals = obj.split(base_value=True)
             return {"_physical_value": float(split_vals[0]), "_physical_unit": str(split_vals[1])}
@@ -184,7 +194,8 @@ class SerializationMixin:
             raise ValueError(f"Unité inconnue: {unit_expr}")
         return unit_obj
 
-    def _dict_to_physical(self, data):
+    @staticmethod
+    def _dict_to_physical(data):
         """Reconstruit un objet Physical (forallpeople) à partir d'un dictionnaire.
 
         Cette méthode est l'inverse de _physical_to_dict. Elle restaure les
@@ -213,13 +224,13 @@ class SerializationMixin:
                 if "/" in unit_expr:
                     unit_expr = unit_expr.replace("/", "_")
                 try:
-                    unit_obj = self._resolve_unit_expr(unit_expr)
+                    unit_obj = SerializationMixin._resolve_unit_expr(unit_expr)
                 except ValueError as e:
                     raise ValueError(f"Unité inconnue ou non prise en charge: {unit_str}") from e
                 return value * unit_obj
-            return {k: self._dict_to_physical(v) for k, v in data.items()}
+            return {k: SerializationMixin._dict_to_physical(v) for k, v in data.items()}
         elif isinstance(data, (list, tuple)):
-            return [self._dict_to_physical(x) for x in data]
+            return [SerializationMixin._dict_to_physical(x) for x in data]
         return data
 
     def save_data(self, data: dict, type_data: str = ("JSON", "CSV"), path: str = None):
@@ -308,8 +319,104 @@ class SerializationMixin:
                 reader = csv.DictReader(f)
                 return self._dict_to_physical({row["key"]: row["value"] for row in reader})
 
+    # ------------------------------------------------------------------
+    # Persistance .oco — format JSON versionné "oco/1"
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _oco_serialize(obj):
+        """Sérialise récursivement un objet pour le format .oco JSON.
+
+        Gère les ``Physical``, les conteneurs et les objets ourocode imbriqués
+        (sérialisés par référence de classe + données)."""
+        if isinstance(obj, dict):
+            return {k: SerializationMixin._oco_serialize(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [SerializationMixin._oco_serialize(x) for x in obj]
+        if isinstance(obj, si.Physical):
+            return SerializationMixin._physical_to_dict(obj)
+        if isinstance(obj, SerializationMixin):
+            return {
+                "_oco_object": True,
+                "_class": f"{type(obj).__module__}.{type(obj).__qualname__}",
+                "data": SerializationMixin._oco_serialize(obj.__dict__),
+            }
+        return obj
+
+    @staticmethod
+    def _oco_deserialize(data):
+        """Reconstruit les objets ``Physical`` et ourocode imbriqués d'un .oco JSON."""
+        if isinstance(data, dict):
+            if data.get("_oco_object"):
+                cls = SerializationMixin._resolve_oco_class(data["_class"])
+                obj = cls.__new__(cls)
+                obj.__dict__.update(SerializationMixin._oco_deserialize(data["data"]))
+                return obj
+            if "_physical_value" in data:
+                return SerializationMixin._dict_to_physical(data)
+            return {k: SerializationMixin._oco_deserialize(v) for k, v in data.items()}
+        if isinstance(data, list):
+            return [SerializationMixin._oco_deserialize(x) for x in data]
+        return SerializationMixin._dict_to_physical(data)
+
+    @staticmethod
+    def _resolve_oco_class(class_path: str):
+        """Résout une classe depuis son chemin ``module.QualName``.
+
+        Seules les classes du package ``ourocode`` sont acceptées — un fichier
+        .oco ne peut pas instancier de classe arbitraire."""
+        module_name, _, class_name = class_path.rpartition(".")
+        if not module_name.startswith("ourocode"):
+            raise ValueError(f"Classe .oco refusée (hors package ourocode) : {class_path}")
+        target = importlib.import_module(module_name)
+        for part in class_name.split("."):
+            target = getattr(target, part)
+        return target
+
+    @classmethod
+    def _oco_payload(cls, obj) -> dict:
+        """Construit le payload JSON d'un objet ourocode.
+
+        Les attributs non sérialisables en JSON (DataFrames, figures, handles
+        Qt…) sont ignorés avec un avertissement plutôt que de faire échouer
+        toute la sauvegarde."""
+        data = {}
+        for key, value in obj.__dict__.items():
+            try:
+                serialized = cls._oco_serialize(value)
+                json.dumps(serialized)
+            except (TypeError, ValueError):
+                logger.warning(
+                    "Attribut %r de %s non sérialisable en JSON : ignoré à la sauvegarde .oco.",
+                    key,
+                    type(obj).__name__,
+                )
+                continue
+            data[key] = serialized
+        return {
+            "_format": cls._OCO_FORMAT,
+            "_class": f"{type(obj).__module__}.{type(obj).__qualname__}",
+            "data": data,
+        }
+
+    @classmethod
+    def _oco_load(cls, payload: dict):
+        """Instancie un objet depuis un payload .oco JSON (sans appeler __init__)."""
+        if payload.get("_format") != cls._OCO_FORMAT:
+            raise ValueError(f"Format .oco non supporté : {payload.get('_format')!r}")
+        cls_obj = cls._resolve_oco_class(payload["_class"])
+        obj = cls_obj.__new__(cls_obj)
+        obj.__dict__.update(cls._oco_deserialize(payload["data"]))
+        return obj
+
+    @staticmethod
+    def _oco_is_json(file_path: str) -> bool:
+        """Détecte le format du fichier : JSON (``{``) ou pickle legacy."""
+        with open(file_path, "rb") as f:
+            return f.read(64).lstrip()[:1] == b"{"
+
     def _save_muliple_objects(self, object: list, path: str = None):
-        """Sauvegarde une liste d'objets dans un fichier .oco (pickle).
+        """Sauvegarde une liste d'objets dans un fichier .oco (JSON versionné).
 
         Args:
             object (list): Liste des objets ourocode à sérialiser.
@@ -326,12 +433,20 @@ class SerializationMixin:
         )
         if not save_file_path:
             return
-        with open(save_file_path, "wb") as f:
-            for ligne in object:
-                pickle.dump(ligne, f)
+        payload = {
+            "_format": self._OCO_FORMAT,
+            "_objects": [self._oco_payload(obj) for obj in object],
+        }
+        with open(save_file_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2)
 
     def save_object(self, path: str = None):
-        """Sauvegarde l'objet courant dans un fichier .oco (pickle).
+        """Sauvegarde l'objet courant dans un fichier .oco (JSON versionné).
+
+        Format ``oco/1`` : ``{"_format", "_class", "data"}`` où ``data`` est
+        l'état ``__dict__`` sérialisé (Physical → dict valeur/unité, objets
+        ourocode imbriqués → référence de classe). Les attributs non
+        sérialisables en JSON sont ignorés avec un avertissement.
 
         Args:
             path (str, optional): Chemin du fichier .oco à créer. Si None,
@@ -347,15 +462,16 @@ class SerializationMixin:
         )
         if not save_file_path:
             return
-        with open(save_file_path, "wb") as f:
-            pickle.dump(self, f)
+        with open(save_file_path, "w", encoding="utf-8") as f:
+            json.dump(self._oco_payload(self), f, indent=2)
 
     @classmethod
     def _open_multiple_objects(cls, path: str = None):
-        """Charge une liste d'objets depuis un fichier .oco (pickle).
+        """Charge une liste d'objets depuis un fichier .oco.
 
-        Les objets créés avec l'arborescence v1.x sont automatiquement
-        redirigés vers les nouveaux modules via ``_CompatUnpickler``.
+        Le format JSON ``oco/1`` est lu nativement ; les fichiers pickle
+        (v1.x et pickles .oco) sont automatiquement détectés et chargés via
+        ``_CompatUnpickler``.
 
         Args:
             path (str, optional): Chemin du fichier .oco à charger. Si None,
@@ -365,8 +481,9 @@ class SerializationMixin:
             list: Liste des objets désérialisés.
 
         Warning:
-            ``pickle.load`` peut exécuter du code arbitraire. N'ouvrez que
-            des fichiers .oco dont vous maîtrisez la provenance.
+            Les fichiers pickle hérités sont chargés avec ``pickle.load`` qui
+            peut exécuter du code arbitraire. N'ouvrez que des fichiers .oco
+            dont vous maîtrisez la provenance.
         """
         file_path = (
             path
@@ -376,6 +493,12 @@ class SerializationMixin:
                 ".oco",
             )
         )
+        if cls._oco_is_json(file_path):
+            with open(file_path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            if "_objects" in payload:
+                return [cls._oco_load(p) for p in payload["_objects"]]
+            return [cls._oco_load(payload)]
         data = []
         with open(file_path, "rb") as f:
             while True:
@@ -387,10 +510,11 @@ class SerializationMixin:
 
     @classmethod
     def _open_object(cls, path: str = None):
-        """Charge un objet depuis un fichier .oco (pickle).
+        """Charge un objet depuis un fichier .oco.
 
-        Les objets créés avec l'arborescence v1.x sont automatiquement
-        redirigés vers les nouveaux modules via ``_CompatUnpickler``.
+        Le format JSON ``oco/1`` est lu nativement ; les fichiers pickle
+        (v1.x et pickles .oco) sont automatiquement détectés et chargés via
+        ``_CompatUnpickler``.
 
         Args:
             path (str, optional): Chemin du fichier .oco à charger. Si None,
@@ -400,8 +524,9 @@ class SerializationMixin:
             object: L'objet désérialisé.
 
         Warning:
-            ``pickle.load`` peut exécuter du code arbitraire. N'ouvrez que
-            des fichiers .oco dont vous maîtrisez la provenance.
+            Les fichiers pickle hérités sont chargés avec ``pickle.load`` qui
+            peut exécuter du code arbitraire. N'ouvrez que des fichiers .oco
+            dont vous maîtrisez la provenance.
         """
         file_path = (
             path
@@ -411,5 +536,8 @@ class SerializationMixin:
                 ".oco",
             )
         )
+        if cls._oco_is_json(file_path):
+            with open(file_path, "r", encoding="utf-8") as f:
+                return cls._oco_load(json.load(f))
         with open(file_path, "rb") as f:
             return _CompatUnpickler(f).load()

@@ -392,7 +392,7 @@ class Flexion(Barre):
 
         max_taux = max([v for v in self.taux_m_rd.values()])
         synthese = [
-            ["Flexion bois", max_taux, None],
+            ["Flexion bois", max_taux, None, "EN 1995-1-1 §6.1.6"],
         ]
         self._add_synthese_taux_travail(synthese)
         return (latex, self.taux_m_rd)

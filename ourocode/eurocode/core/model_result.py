@@ -675,7 +675,14 @@ class Model_result(Projet):
         show_loads = self._flag(show_loads)
         screenshot = self._flag(screenshot)
         from PySide6.QtWidgets import QFileDialog, QMessageBox
-        from Pynite.Rendering import Renderer
+
+        try:
+            from Pynite.Rendering import Renderer
+        except ImportError as exc:
+            raise ImportError(
+                "PyNiteFEA et pyvista sont requis pour la visualisation du modèle. "
+                "Installez-les via : pip install 'ourocode[mef]'"
+            ) from exc
 
         renderer = Renderer(self._model_generator._model)
         renderer.combo_name = combination

@@ -8,7 +8,7 @@ include = ["ourocode*"]
 
 [project]
 name = "ourocode"
-version = "2.1.8"
+version = "2.2.0"
 description = "Ceci est un catalogue de fonction permettant une utilisation rapide pour la réalisation de note de calcul personnalisée."
 readme = "README.md"
 authors = [{name = "Anthony PARISOT", email = "contact@ourea-structure.fr"}]
@@ -19,8 +19,6 @@ dependencies = [
     "pandas",
     "Pillow",
     "matplotlib",
-    "pyvista[all,trame]",
-    "PyNiteFEA",
 ]
 requires-python = ">=3.12"
 classifiers = [
@@ -37,8 +35,12 @@ Homepage = "https://github.com/AnthonyPrst/ourocode"
 gui = [
     "PySide6",
 ]
+mef = [
+    "PyNiteFEA",
+    "pyvista[all,trame]",
+]
 full = [
-    "ourocode[gui]",
+    "ourocode[gui,mef]",
 ]
 dev = [
     "ruff",
@@ -47,6 +49,7 @@ test = [
     "pytest",
     "pytest-cov",
     "coverage",
+    "ourocode[mef]",
 ]
 docs = [
     "mkdocs-material>=9.5",
@@ -72,3 +75,10 @@ ignore = [
 # F841 : les assignations "inutilisées" dans les fonctions @handcalc sont des
 # labels LaTeX rendus par le renderer interne — ce ne sont pas des variables mortes.
 "ourocode/**/*.py" = ["F841"]
+
+[tool.pyright]
+# Ciblé sur les modules d'infrastructure ; mode basic tant que les erreurs
+# héritées ne sont pas résorbées (job CI advisory, continue-on-error).
+include = ["ourocode/eurocode/core", "ourocode/eurocode/mixins"]
+typeCheckingMode = "basic"
+reportMissingImports = true

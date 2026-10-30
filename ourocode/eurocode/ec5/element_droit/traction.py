@@ -130,7 +130,7 @@ class Traction(Barre):
 
         self.taux_t_0_rd["equ6.1"] = value[1]
         synthese = [
-            ["Traction bois", self.taux_t_0_rd["equ6.1"], None],
+            ["Traction bois", self.taux_t_0_rd["equ6.1"], None, "EN 1995-1-1 §6.1.3"],
         ]
         self._add_synthese_taux_travail(synthese)
         return value

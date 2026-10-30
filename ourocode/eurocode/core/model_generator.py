@@ -2112,7 +2112,12 @@ class Model_generator(Projet):
             classe Combinaison. Elle n'a pas besoin d'être invoquée manuellement
             dans un flux de travail standard.
         """
-        from Pynite import FEModel3D
+        try:
+            from Pynite import FEModel3D
+        except ImportError as exc:
+            raise ImportError(
+                "PyNiteFEA est requis pour la génération du modèle MEF. Installez-le via : pip install 'ourocode[mef]'"
+            ) from exc
 
         self._model = FEModel3D()
         self._add_nodes_to_model()

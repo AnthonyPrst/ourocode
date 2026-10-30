@@ -260,6 +260,59 @@ class Test_SerializationMixin:
         assert type(loaded) is Barre
         assert loaded.classe == "C24"
 
+    def test_save_object_writes_json_format(self, tmp_path):
+        """save_object écrit le format JSON versionné oco/1 (pas du pickle)."""
+        from ourocode.eurocode.ec5.element_droit.barre import Barre
+
+        barre = Barre(b=100, h=300, section="Rectangulaire", classe="C24", cs=1)
+        path = str(tmp_path / "json.oco")
+        barre.save_object(path=path)
+        with open(path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        assert payload["_format"] == "oco/1"
+        assert payload["_class"].endswith("Barre")
+        assert payload["data"]["classe"] == "C24"
+
+    def test_open_object_json_restores_physical(self, tmp_path):
+        """Le roundtrip JSON restaure les Physical et l'état complet de l'objet."""
+        from ourocode.eurocode.ec5.element_droit.barre import Barre
+
+        barre = Barre(b=100, h=300, section="Rectangulaire", classe="C24", cs=2)
+        path = str(tmp_path / "phys.oco")
+        barre.save_object(path=path)
+        loaded = Barre._open_object(path=path)
+        assert loaded.b.value == barre.b.value
+        assert loaded.h.value == barre.h.value
+        assert loaded.cs == 2
+        assert loaded.effet_systeme is False
+
+    def test_open_object_detects_legacy_pickle(self, tmp_path):
+        """_open_object charge toujours un fichier pickle legacy (détection auto)."""
+        import pickle
+        from ourocode.eurocode.ec5.element_droit.barre import Barre
+
+        barre = Barre(b=100, h=300, section="Rectangulaire", classe="C24", cs=1)
+        path = str(tmp_path / "legacy.oco")
+        with open(path, "wb") as f:
+            pickle.dump(barre, f)
+        loaded = Barre._open_object(path=path)
+        assert type(loaded) is Barre
+        assert loaded.classe == "C24"
+
+    def test_resolve_oco_class_rejects_foreign_module(self):
+        """Un fichier .oco ne peut pas instancier de classe hors du package."""
+        from ourocode.eurocode.mixins.serialization import SerializationMixin
+
+        with pytest.raises(ValueError):
+            SerializationMixin._resolve_oco_class("os.PathLike")
+
+    def test_oco_unknown_format_raises(self):
+        """Un payload sans version oco/1 est refusé."""
+        from ourocode.eurocode.mixins.serialization import SerializationMixin
+
+        with pytest.raises(ValueError, match="Format .oco"):
+            SerializationMixin._oco_load({"_format": "oco/999", "_class": "x", "data": {}})
+
 
 # ---------------------------------------------------------------------------
 # Test_MathUtilsMixin
@@ -378,6 +431,38 @@ class Test_SyntheseMixin:
     def test_synthese_type_invalide_raises(self, obj):
         with pytest.raises(TypeError):
             obj._add_synthese_taux_travail(["invalide"])
+
+    def test_synthese_clause_combinaison_columns(self, obj):
+        """Les colonnes de traçabilité clause/combinaison sont supportées."""
+        df = obj._add_synthese_taux_travail(
+            [
+                ("Flexion", 0.9, None, "EN 1995-1-1 §6.1.6", "ELU_STR 1.35G + 1.5Q"),
+                {"effort": "Traction", "SN": 0.4, "clause": "EN 1995-1-1 §6.1.3", "combinaison": "ELU_STR 1.35G"},
+            ]
+        )
+        assert "Clause normative" in df.columns
+        assert "Combinaison" in df.columns
+        assert df.iloc[0]["Clause normative"] == "EN 1995-1-1 §6.1.6"
+        assert df.iloc[1]["Combinaison"] == "ELU_STR 1.35G"
+
+    def test_synthese_max_reports_governing_combinaison(self, obj):
+        """La ligne Max reporte la combinaison de la ligne gouvernante."""
+        obj._add_synthese_taux_travail(
+            [
+                ("Flexion", 0.9, None, "EN 1995-1-1 §6.1.6", "ELU_STR 1.35G + 1.5Q"),
+                ("Traction", 0.4, None, "EN 1995-1-1 §6.1.3", "ELU_STR 1.35G"),
+            ]
+        )
+        df = obj.synthese_taux_travail()
+        max_row = df[df.iloc[:, 0] == "Max"].iloc[0]
+        assert max_row["Combinaison"] == "ELU_STR 1.35G + 1.5Q"
+        assert max_row["Clause normative"] == "EN 1995-1-1 §6.1.6"
+
+    def test_synthese_compat_sans_tracabilite(self, obj):
+        """Les lignes sans clause/combinaison restent compatibles (None)."""
+        df = obj._add_synthese_taux_travail([("Cisaillement", 0.7, None)])
+        assert df.iloc[0]["Clause normative"] is None
+        assert df.iloc[0]["Combinaison"] is None
 
 
 # ---------------------------------------------------------------------------

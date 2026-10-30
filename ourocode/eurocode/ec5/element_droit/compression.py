@@ -275,7 +275,7 @@ class Compression(Barre):
         self.taux_c_0_rd["equ6.2"] = value[1][0]
         max_taux = max([v for v in self.taux_c_0_rd.values()])
         synthese = [
-            ["Compression bois", max_taux, None],
+            ["Compression bois", max_taux, None, "EN 1995-1-1 §6.1.4/§6.3.2"],
         ]
         self._add_synthese_taux_travail(synthese)
         return value
@@ -491,7 +491,7 @@ class Compression_perpendiculaire(Barre):
         value = val()
         self.taux_c_90_rd["equ6.3"] = value[1]
         synthese = [
-            ["Compression perpendiculaire bois", self.taux_c_90_rd["equ6.3"], None],
+            ["Compression perpendiculaire bois", self.taux_c_90_rd["equ6.3"], None, "EN 1995-1-1 §6.1.5"],
         ]
         self._add_synthese_taux_travail(synthese)
         return value
@@ -592,7 +592,7 @@ class Compression_inclinees(Compression_perpendiculaire):
         value = val()
         self.taux_c_alpha_rd["equ6.16"] = value[1]
         synthese = [
-            ["Compression inclinée bois", self.taux_c_alpha_rd["equ6.16"], None],
+            ["Compression inclinée bois", self.taux_c_alpha_rd["equ6.16"], None, "EN 1995-1-1 §6.2.2"],
         ]
         self._add_synthese_taux_travail(synthese)
         return value

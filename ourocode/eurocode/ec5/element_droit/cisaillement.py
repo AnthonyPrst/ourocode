@@ -205,7 +205,7 @@ class Cisaillement(Barre):
         self.taux_tau_rd["equ6.13"] = value[1][0]
         self.taux_tau_rd["equ6.60"] = value[1][1]
         synthese = [
-            ["Cisaillement bois", max(value[1][0], value[1][1]), None],
+            ["Cisaillement bois", max(value[1][0], value[1][1]), None, "EN 1995-1-1 §6.1.7"],
         ]
         self._add_synthese_taux_travail(synthese)
         return value
