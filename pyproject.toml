@@ -38,10 +38,10 @@ gui = [
     "PySide6",
 ]
 full = [
-    "ourocode[gui,mef]",
+    "ourocode[gui]",
 ]
 dev = [
-    "black",
+    "ruff",
 ]
 test = [
     "pytest",
@@ -66,5 +66,9 @@ ignore = [
     "F403",   # from module import * — utilisé intentionnellement
     "F405",   # May be undefined from star import — conséquence de F403
     "E741",   # Ambiguous variable name (l, O, I) — noms de variables physiques courants
-    "F841",   # Local variable assigned but never used
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# F841 : les assignations "inutilisées" dans les fonctions @handcalc sont des
+# labels LaTeX rendus par le renderer interne — ce ne sont pas des variables mortes.
+"ourocode/**/*.py" = ["F841"]

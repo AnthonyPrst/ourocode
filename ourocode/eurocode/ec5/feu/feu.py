@@ -1,4 +1,4 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 import sys
 import os
@@ -8,6 +8,7 @@ from math import sqrt, pi
 import pandas as pd
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 from ourocode.eurocode.mixins.math_utils import MathUtilsMixin
@@ -79,7 +80,7 @@ class Feu(Barre):
             "Gauche": gauche,
             "Droite": droite,
         }
-        self.double_couches = double_couches
+        self.double_couches = self._flag(double_couches)
         self.hp = hp * si.mm
         self.rho_k_protect = rho_k_protect
         self.tf = tf
@@ -194,6 +195,7 @@ class Feu(Barre):
         def val():
             d_ef = d_char_n + k_0 * d_0
             return d_ef
+
         return val()
 
     def _get_tch_and_tf(self, orientation: str, beta_0: float):
@@ -225,10 +227,7 @@ class Feu(Barre):
                 else:
                     h_p = (h_p / 2) * 1.5
 
-            if (
-                "type A" in self.protection[orientation]
-                or "type H" in self.protection[orientation]
-            ):
+            if "type A" in self.protection[orientation] or "type H" in self.protection[orientation]:
 
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
@@ -237,18 +236,17 @@ class Feu(Barre):
                     return t_ch, t_f
 
             else:
+
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     t_ch = 2.8 * h_p - 14  # en min/equa3.11
-                    t_f # Temps de rupture de la plaque de platre type F
+                    t_f  # Temps de rupture de la plaque de platre type F
                     return t_ch, t_f
 
         # platre à joint comblé A,H,F
         elif "joints vides" in self.protection[orientation]:
-            if (
-                "type A" in self.protection[orientation]
-                or "type H" in self.protection[orientation]
-            ):
+            if "type A" in self.protection[orientation] or "type H" in self.protection[orientation]:
+
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     t_ch = 2.8 * h_p - 23  # en min/equa3.12
@@ -256,6 +254,7 @@ class Feu(Barre):
                     return t_ch, t_f
 
             else:
+
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     t_ch = 2.8 * h_p - 23  # en min/equa3.12
@@ -313,6 +312,7 @@ class Feu(Barre):
                     return t_a
 
             else:
+
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     t_a = min(2 * t_f, 12.5 / beta_n + t_f)  # en min/equa3.8
@@ -342,12 +342,8 @@ class Feu(Barre):
                 d_char_n_values = {"0": 0, "tch": 0, "tf": 0, "ta": 0, "t_expo": 0}
 
                 beta_0, beta_n = self._get_bar_beta0_and_betan()
-                beta_0_protect, beta_n_protect = self._get_wood_protect_beta0_and_betan(
-                    protection
-                )
-                latex_tch_tf, res_tch_tf = self._get_tch_and_tf(
-                    orientation, beta_0_protect
-                )
+                beta_0_protect, beta_n_protect = self._get_wood_protect_beta0_and_betan(protection)
+                latex_tch_tf, res_tch_tf = self._get_tch_and_tf(orientation, beta_0_protect)
                 tch = res_tch_tf[0]
                 tf = res_tch_tf[1]
                 k2 = self._get_k2(orientation)
@@ -402,9 +398,9 @@ class Feu(Barre):
                 self._def[orientation] = (latex_tch_tf + latex_ta + d_ef[0], d_ef[1])
             else:
                 self._def[orientation] = ("\\[\text{Pas d'exposition}\\]", 0 * si.mm)
-            
-        self.b_calcul = self.b_calcul - self._def["Gauche"][1] - self._def["Droite"][1] # Réduction de la section
-        self.h_calcul = self.h_calcul - self._def["Haut"][1] - self._def["Bas"][1] # Réduction de la section
+
+        self.b_calcul = self.b_calcul - self._def["Gauche"][1] - self._def["Droite"][1]  # Réduction de la section
+        self.h_calcul = self.h_calcul - self._def["Haut"][1] - self._def["Bas"][1]  # Réduction de la section
 
     def get_def(self, orientation: str = ORIENTATION) -> tuple:
         """Retourne la profondeur de carbonisation effective en mm suivant l'orientation donnée"""

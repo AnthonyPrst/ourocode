@@ -6,6 +6,7 @@ Scénarios :
 - Poutre continue sur trois appuis (M1-M2 groupés) : auto-group + verify.
 - Boucle par combinaison : kmod et typecombi corrects selon la combo gouvernante.
 """
+
 import sys
 from pathlib import Path
 
@@ -25,6 +26,7 @@ from ourocode.eurocode.ec5.element_droit.verification_EC5 import Verification_EC
 # Fixtures : poutre simple (1 travée) et poutre continue (2 travées)
 # ---------------------------------------------------------------------------
 
+
 def _new_model(name: str = "test") -> Model_generator:
     return Model_generator(ingenieur="Testeur", name=name, code_INSEE=75056, alt=100)
 
@@ -38,21 +40,31 @@ def _build_beam(model: Model_generator, nodes_xy, b=100, h=220, classe="C24"):
         model.add_member(f"N{i + 1}", f"N{i + 2}", mat, sec, poids_propre=False)
     model.add_support("N1", DX=True, DY=True, DZ=True, RX=True, RY=False, RZ=False)
     for i in range(1, len(nodes_xy)):
-        model.add_support(
-            f"N{i + 1}", DX=False, DY=True, DZ=True, RX=True, RY=False, RZ=False
-        )
+        model.add_support(f"N{i + 1}", DX=False, DY=True, DZ=True, RX=True, RY=False, RZ=False)
     return mat, sec
 
 
 def _apply_gq_loads(model: Model_generator, gkNm: float, qkNm: float):
     for mid in model.get_all_members().keys():
         model.create_dist_load(
-            member_id=mid, name=f"G_{mid}", start_load=-gkNm, end_load=-gkNm,
-            start_pos="start", end_pos="end", action="Permanente G", direction="FY",
+            member_id=mid,
+            name=f"G_{mid}",
+            start_load=-gkNm,
+            end_load=-gkNm,
+            start_pos="start",
+            end_pos="end",
+            action="Permanente G",
+            direction="FY",
         )
         model.create_dist_load(
-            member_id=mid, name=f"Q_{mid}", start_load=-qkNm, end_load=-qkNm,
-            start_pos="start", end_pos="end", action="Exploitation Q", direction="FY",
+            member_id=mid,
+            name=f"Q_{mid}",
+            start_load=-qkNm,
+            end_load=-qkNm,
+            start_pos="start",
+            end_pos="end",
+            action="Exploitation Q",
+            direction="FY",
         )
 
 
@@ -63,15 +75,23 @@ def simple_beam_verif():
     _build_beam(model, [(0, 0), (5000, 0)])
     _apply_gq_loads(model, gkNm=1.0, qkNm=2.0)
     combi = Combinaison(
-        model, ELU_STR=True, ELU_STR_ACC=False, ELS_C=True, ELS_QP=True,
-        cat="Cat A : habitation", kdef=0.6, type_psy_2="Moyen terme",
+        model,
+        ELU_STR=True,
+        ELU_STR_ACC=False,
+        ELS_C=True,
+        ELS_QP=True,
+        cat="Cat A : habitation",
+        kdef=0.6,
+        type_psy_2="Moyen terme",
     )
     result = Model_result(model, analyze_type="Général", check_stability=False)
     model.group_members(
-        "Solive", ["M1"],
+        "Solive",
+        ["M1"],
         role="Solive",
         design_params={
-            "classe_bois": "C24", "cs": 1,
+            "classe_bois": "C24",
+            "cs": 1,
             "type_element_fleche": "Élément structuraux",
         },
     )
@@ -86,14 +106,21 @@ def continuous_beam_verif():
     _build_beam(model, [(0, 0), (3000, 0), (6000, 0)], b=100, h=200)
     _apply_gq_loads(model, gkNm=1.0, qkNm=2.0)
     combi = Combinaison(
-        model, ELU_STR=True, ELU_STR_ACC=False, ELS_C=True, ELS_QP=True,
-        cat="Cat A : habitation", kdef=0.6, type_psy_2="Moyen terme",
+        model,
+        ELU_STR=True,
+        ELU_STR_ACC=False,
+        ELS_C=True,
+        ELS_QP=True,
+        cat="Cat A : habitation",
+        kdef=0.6,
+        type_psy_2="Moyen terme",
     )
     result = Model_result(model, analyze_type="Général", check_stability=False)
     model.auto_group_continuous_members(
         role="Solive",
         design_params={
-            "classe_bois": "C24", "cs": 1,
+            "classe_bois": "C24",
+            "cs": 1,
             "type_element_fleche": "Élément structuraux",
         },
     )
@@ -108,25 +135,36 @@ def fire_beam_verif():
     _build_beam(model, [(0, 0), (5000, 0)])
     _apply_gq_loads(model, gkNm=1.0, qkNm=2.0)
     combi = Combinaison(
-        model, ELU_STR=True, ELU_STR_ACC=True, ELS_C=False, ELS_QP=False,
-        cat="Cat A : habitation", kdef=0.6, type_psy_2="Moyen terme",
+        model,
+        ELU_STR=True,
+        ELU_STR_ACC=True,
+        ELS_C=False,
+        ELS_QP=False,
+        cat="Cat A : habitation",
+        kdef=0.6,
+        type_psy_2="Moyen terme",
     )
     result = Model_result(model, analyze_type="Général", check_stability=False)
     model.group_members(
-        "Solive", ["M1"],
+        "Solive",
+        ["M1"],
         role="Solive",
         design_params={
-            "classe_bois": "C24", "cs": 1,
+            "classe_bois": "C24",
+            "cs": 1,
             "type_element_fleche": "Élément structuraux",
         },
     )
-    verif = Verification_EC5(combi, result, "ELU_ALL", 12, 12, False, 1, "Bâtiments courants", "Élément structuraux", t_expo=30)
+    verif = Verification_EC5(
+        combi, result, "ELU_ALL", 12, 12, False, 1, "Bâtiments courants", "Élément structuraux", t_expo=30
+    )
     return model, combi, result, verif
 
 
 # ---------------------------------------------------------------------------
 # Combinaison.type_combi
 # ---------------------------------------------------------------------------
+
 
 class TestTypeCombi:
     def test_elu_str_is_fondamental(self, simple_beam_verif):
@@ -148,6 +186,7 @@ class TestTypeCombi:
 # Verification_EC5 : factory et état
 # ---------------------------------------------------------------------------
 
+
 class TestFactory:
     def test_from_combinaison_instantiable(self, simple_beam_verif):
         _, _, _, verif = simple_beam_verif
@@ -168,6 +207,7 @@ class TestFactory:
 # ---------------------------------------------------------------------------
 # Verification_EC5.verify — poutre simple
 # ---------------------------------------------------------------------------
+
 
 class TestVerifySimpleBeam:
     def test_returns_dataframe(self, simple_beam_verif):
@@ -191,7 +231,7 @@ class TestVerifySimpleBeam:
 
     def test_taux_values_reasonable(self, simple_beam_verif):
         _, _, _, verif = simple_beam_verif
-        res = verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)   
+        res = verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
         tflex = res["taux"]["Flexion"]["taux"]
         tcis = res["taux"]["Cisaillement"]["taux"]
         assert 0.3 < tflex < 3.0
@@ -214,12 +254,13 @@ class TestVerifySimpleBeam:
 # Verification_EC5.get_combo_objects
 # ---------------------------------------------------------------------------
 
+
 class TestGetComboObjects:
     COMBO = "ELU_STR 1.35G + 1.5Q"
 
     def test_returns_flexion_and_cisaillement(self, simple_beam_verif):
         _, _, _, verif = simple_beam_verif
-        res = verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
         objs = verif.get_combo_objects("Solive", self.COMBO)
         assert objs["Flexion"] is not None
         assert objs["Cisaillement"] is not None
@@ -227,7 +268,7 @@ class TestGetComboObjects:
     def test_compression_and_traction_none(self, simple_beam_verif):
         """Poutre sans effort axial : Compression et Traction doivent être None."""
         _, _, _, verif = simple_beam_verif
-        res = verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
         objs = verif.get_combo_objects("Solive", self.COMBO)
         assert objs["Compression"] is None
         assert objs["Traction"] is None
@@ -235,7 +276,7 @@ class TestGetComboObjects:
     def test_flexion_object_has_taux_attribute(self, simple_beam_verif):
         """L'objet Flexion retourné doit posséder taux_m_rd calculé."""
         _, _, _, verif = simple_beam_verif
-        res = verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
         objs = verif.get_combo_objects("Solive", self.COMBO)
         flexion = objs["Flexion"]
         assert hasattr(flexion, "taux_m_rd")
@@ -244,7 +285,7 @@ class TestGetComboObjects:
     def test_cisaillement_object_has_taux_attribute(self, simple_beam_verif):
         """L'objet Cisaillement retourné doit posséder taux_tau_rd calculé."""
         _, _, _, verif = simple_beam_verif
-        res = verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
         objs = verif.get_combo_objects("Solive", self.COMBO)
         cis = objs["Cisaillement"]
         assert hasattr(cis, "taux_tau_rd")
@@ -259,7 +300,7 @@ class TestGetComboObjects:
     def test_taux_matches_combo_elu(self, simple_beam_verif):
         """Le taux Flexion de get_combo_objects (combo gouvernante) doit être > 0."""
         _, combi, _, verif = simple_beam_verif
-        res = verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
+        verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
         objs = verif.get_combo_objects("Solive", self.COMBO)
         taux_flexion = max(objs["Flexion"].taux_m_rd.values())
         assert taux_flexion > 0.0
@@ -272,6 +313,7 @@ class TestGetComboObjects:
 # ---------------------------------------------------------------------------
 # Verification_EC5.get_verification_latex
 # ---------------------------------------------------------------------------
+
 
 class TestGetVerificationLatex:
     COMBO = "ELU_STR 1.35G + 1.5Q"
@@ -335,6 +377,7 @@ class TestGetVerificationLatex:
 # Boucle par combinaison : kmod dépend de la combo
 # ---------------------------------------------------------------------------
 
+
 class TestKmodPerCombo:
     def test_kmod_permanente_stricter_than_moyen_terme(self, simple_beam_verif):
         """Vérifie que la vérification utilise effectivement le bon kmod
@@ -361,14 +404,13 @@ class TestKmodPerCombo:
         # résultat que ELU_ALL puisqu'il n'y a pas d'accidentelle.
         res_all = verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
         res_str = verif.verify("Solive", "Élément structuraux", "Charge sur fibre comprimée", 12, 12, False, 1)
-        assert res_all["taux"]["Flexion"]["taux"] == pytest.approx(
-            res_str["taux"]["Flexion"]["taux"], rel=1e-6
-        )
+        assert res_all["taux"]["Flexion"]["taux"] == pytest.approx(res_str["taux"]["Flexion"]["taux"], rel=1e-6)
 
 
 # ---------------------------------------------------------------------------
 # Verification_EC5.synthese — poutre continue
 # ---------------------------------------------------------------------------
+
 
 class TestSyntheseContinuousBeam:
     def test_auto_group_one_sm(self, continuous_beam_verif):
@@ -403,6 +445,7 @@ class TestSyntheseContinuousBeam:
 # ---------------------------------------------------------------------------
 # Verification_EC5 : vérification feu
 # ---------------------------------------------------------------------------
+
 
 class TestFireVerification:
     def test_fire_combo_has_no_normal_verification(self, fire_beam_verif):

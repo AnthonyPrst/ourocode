@@ -26,7 +26,9 @@ def neige_1v_normal_bas_alt():
         type_toit="1 versant",
         blocage=False,
         # Paramètres Batiment
-        h_bat=5, d_bat=10, b_bat=10,
+        h_bat=5,
+        d_bat=10,
+        b_bat=10,
         alpha_toit=10,  # deg
         code_INSEE=1001,
         alt=100,  # m
@@ -41,8 +43,10 @@ def neige_2v_protege_alt_moy():
         type_toit="2 versants",
         blocage=False,
         # Paramètres Batiment
-        h_bat=6, d_bat=12, b_bat=18,
-        alpha_toit=10,   # versant 1
+        h_bat=6,
+        d_bat=12,
+        b_bat=18,
+        alpha_toit=10,  # versant 1
         alpha_toit2=40,  # versant 2
         code_INSEE=1002,
         alt=400,  # m
@@ -123,7 +127,9 @@ def test_Se_alt_threshold(neige_1v_normal_bas_alt):
         exposition="Normal",
         type_toit="1 versant",
         blocage=False,
-        h_bat=5, d_bat=10, b_bat=10,
+        h_bat=5,
+        d_bat=10,
+        b_bat=10,
         alpha_toit=10,
         code_INSEE=1001,
         alt=950,
@@ -136,14 +142,16 @@ def test_mu2_construction_attenante():
         exposition="Normal",
         type_toit="2 versants",
         blocage=False,
-        h_bat=5, d_bat=10, b_bat=10,
+        h_bat=5,
+        d_bat=10,
+        b_bat=10,
         alpha_toit=15,
         alpha_toit2=15,
         code_INSEE=1001,
         alt=600,
     )
 
-    res = n.mu2_construction_attenante(b1=10*si.m, b2=8*si.m, h=2*si.m, alpha_toit_attenant=10)
+    res = n.mu2_construction_attenante(b1=10 * si.m, b2=8 * si.m, h=2 * si.m, alpha_toit_attenant=10)
     assert set(res.keys()) == {"mu_W", "mu_S", "mu2", "ls"}
     assert res["mu_S"] == 0
     # ls borné par 5 m si 2h < 5 m
@@ -157,14 +165,16 @@ def test_fs():
         exposition="Normal",
         type_toit="1 versant",
         blocage=False,
-        h_bat=5, d_bat=10, b_bat=10,
+        h_bat=5,
+        d_bat=10,
+        b_bat=10,
         alpha_toit=10,
         code_INSEE=1001,
         alt=100,
     )
     out = n.fs(Sn=1.0, entraxe=1.5, alpha=30)
     # F_s = S_n * entraxe * sin(alpha)
-    expected = 1.0 * si.kN/si.m**2 * 1.5 * si.m * math.sin(math.radians(30))
+    expected = 1.0 * si.kN / si.m**2 * 1.5 * si.m * math.sin(math.radians(30))
     assert pytest.approx(out[1].value, rel=1e-6) == expected.value
 
 
@@ -173,14 +183,16 @@ def test_poussee_hydrostatique():
         exposition="Normal",
         type_toit="1 versant",
         blocage=False,
-        h_bat=5, d_bat=10, b_bat=10,
+        h_bat=5,
+        d_bat=10,
+        b_bat=10,
         alpha_toit=10,
         code_INSEE=1001,
         alt=100,
     )
     h = 1 * si.m
     latex, res = n.poussee_hydrostatique(h=h)
-    gamma = 2 * si.kN/si.m**3
+    gamma = 2 * si.kN / si.m**3
     Sk_alt = n.Sk_alt[1]
     mu_i = min(max(gamma * h / Sk_alt, 0.8), 2)
     S_n = Sk_alt * mu_i * n.C_e * n.C_t

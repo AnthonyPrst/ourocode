@@ -5,9 +5,15 @@ API courte : from ourocode import Barre, Projet, Flexion, ...
 """
 
 # Initialisation de l'environnement de calcul structuré (forallpeople)
+import logging
+
 import forallpeople as si
 
 si.environment("structural")
+
+# Logger du package : silencieux par défaut, l'utilisateur configure
+# logging.getLogger("ourocode") pour activer les traces.
+logging.getLogger("ourocode").addHandler(logging.NullHandler())
 
 # Core classes
 from ourocode.eurocode.core import (
@@ -25,21 +31,45 @@ from ourocode.eurocode.ec1 import Neige, Vent, Exploitation
 
 # EC3 - Acier
 from ourocode.eurocode.ec3 import (
-    Plat, Traction as Traction_EC3, Compression as Compression_EC3,
-    Cisaillement as Cisaillement_EC3, Flexion as Flexion_EC3,
-    Tige, Tige_scellement_plaque_ancrage, Tige_scellement_crochet,
+    Plat,
+    Traction as Traction_EC3,
+    Compression as Compression_EC3,
+    Cisaillement as Cisaillement_EC3,
+    Flexion as Flexion_EC3,
+    Tige,
+    Tige_scellement_plaque_ancrage,
+    Tige_scellement_crochet,
     Soudure,
-    Platine_assise_compression_beton, Platine_assise_compression_bois, Platine_assise_traction,
+    Platine_assise_compression_beton,
+    Platine_assise_compression_bois,
+    Platine_assise_traction,
 )
 
 # EC5 - Bois
 from ourocode.eurocode.ec5 import (
-    Barre, Flexion, Traction, Compression, Compression_perpendiculaire,
-    Compression_inclinees, Cisaillement,
-    Assemblage, Embrevement, Pointe, Agrafe, Boulon, Broche,
-    Tirefond_inf_7, Tirefond_sup_6, Vis_catalogue,
-    Feu, Flexion_feu, Traction_feu, Compression_feu, Cisaillement_feu,
-    Poutre_simple_decroissance, MOB,
+    Barre,
+    Flexion,
+    Traction,
+    Compression,
+    Compression_perpendiculaire,
+    Compression_inclinees,
+    Cisaillement,
+    Assemblage,
+    Embrevement,
+    Pointe,
+    Agrafe,
+    Boulon,
+    Broche,
+    Tirefond_inf_7,
+    Tirefond_sup_6,
+    Vis_catalogue,
+    Feu,
+    Flexion_feu,
+    Traction_feu,
+    Compression_feu,
+    Cisaillement_feu,
+    Poutre_simple_decroissance,
+    MOB,
 )
 
 # EC8 - Sismique

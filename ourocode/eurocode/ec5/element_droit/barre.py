@@ -1,4 +1,4 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 from copy import deepcopy
 import warnings
@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
@@ -27,20 +28,31 @@ class Barre(Projet):
     mécaniques normatives du matériau.
     """
 
-    LIST_SECTION = ["Rectangulaire","Circulaire"]
+    LIST_SECTION = ["Rectangulaire", "Circulaire"]
     LIST_TYPE_B = ["Massif", "BLC", "LVL", "OSB 2", "OSB 3/4", "CP"]
     CLASSE_WOOD = list(Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").index)[2:]
     CLASSE_PANEL = list(Projet._data_from_csv(Projet, "caracteristique_meca_panel.csv").index)[2:]
     CLASSE = CLASSE_WOOD + CLASSE_PANEL
-    CS = ["1","2","3"]
+    CS = ["1", "2", "3"]
     CARACTERISTIQUE = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").columns)
     LOAD_TIME = tuple(Projet._data_from_csv(Projet, "kmod.csv").columns)[1:]
-    TYPE_ACTION = ("Fondamentales" ,"Accidentelles")
+    TYPE_ACTION = ("Fondamentales", "Accidentelles")
     TYPE_BAT = ("Bâtiments courants", "Bâtiments agricoles et similaires")
     TYPE_ELE = tuple(Projet._data_from_csv(Projet, "limite_fleche.csv").index.unique())
     B90 = 0.25
 
-    def __init__(self, b:si.mm, h:si.mm, section: str=LIST_SECTION, Hi: int=12, Hf: int=12, classe: str=CLASSE, cs: int=CS, effet_systeme: bool=("False", "True"), **kwargs):
+    def __init__(
+        self,
+        b: si.mm,
+        h: si.mm,
+        section: str = LIST_SECTION,
+        Hi: int = 12,
+        Hf: int = 12,
+        classe: str = CLASSE,
+        cs: int = CS,
+        effet_systeme: bool = ("False", "True"),
+        **kwargs,
+    ):
         """Initialise un élément droit en bois avec ses caractéristiques.
 
         Args:
@@ -70,18 +82,11 @@ class Barre(Projet):
             ValueError: Si la section, la classe ou la classe de service est invalide.
         """
         super().__init__(**kwargs)
-        if section not in self.LIST_SECTION:
-            raise ValueError(
-                f"Section '{section}' invalide. Valeurs acceptées : {self.LIST_SECTION}"
-            )
-        if classe not in self.CLASSE:
-            raise ValueError(
-                f"Classe '{classe}' invalide. Valeurs acceptées : {self.CLASSE}"
-            )
-        if int(cs) not in (1, 2, 3):
-            raise ValueError(
-                f"Classe de service '{cs}' invalide. Valeurs acceptées : 1, 2, 3"
-            )
+        self._check_dimension(b, "b")
+        self._check_dimension(h, "h")
+        section = self._check_choice(section, self.LIST_SECTION, "section")
+        classe = self._check_choice(classe, self.CLASSE, "classe")
+        cs = self._check_choice(str(cs) if not isinstance(cs, (list, tuple)) else str(cs[0]), self.CS, "cs")
         self.b = b * si.mm
         self.h = h * si.mm
         self.section = section
@@ -89,9 +94,8 @@ class Barre(Projet):
         self.Hf = Hf
         self.classe = classe
         self.cs = int(cs)
-        self.effet_systeme = effet_systeme
+        self.effet_systeme = self._flag(effet_systeme)
         self._sectionCalcul()
-
 
     def _sectionCalcul(self):
         """Calcule les dimensions de section de calcul avec correction humidité.
@@ -113,57 +117,50 @@ class Barre(Projet):
         self.b_calcul = self.b * (1 - self.B90 / 100 * (self.Hi - self.Hf))
         self.h_calcul = self.h * (1 - self.B90 / 100 * (self.Hi - self.Hf))
 
-    
     @property
     def aire(self) -> float:
         if self.section == self.LIST_SECTION[0]:
             return self.b_calcul * self.h_calcul
         else:
-            return mt.pi * (self.b_calcul/2)**2
-        
+            return mt.pi * (self.b_calcul / 2) ** 2
 
     @property
     def inertie(self) -> list:
-        """ Retourne le moment quadratique d'une section rectangulaire en mm4 avec pour argument :
-            b ou d : Largeur ou diamètre de la poutre en mm
-            h : Hauteur de la poutre en mm """
+        """Retourne le moment quadratique d'une section rectangulaire en mm4 avec pour argument :
+        b ou d : Largeur ou diamètre de la poutre en mm
+        h : Hauteur de la poutre en mm"""
         if self.section == "Rectangulaire":
-            self.I_y = (self.b_calcul * self.h_calcul**3)/12
-            self.I_z = (self.h_calcul * self.b_calcul**3)/12
+            self.I_y = (self.b_calcul * self.h_calcul**3) / 12
+            self.I_z = (self.h_calcul * self.b_calcul**3) / 12
             return [self.I_y, self.I_z]
 
         elif hasattr(self, "Iy") and hasattr(self, "Iz"):
             return [self.I_y * si.mm**4, self.I_z * si.mm**4]
 
         else:
-            self.I_y = (mt.pi * self.b_calcul ** 4) / 64
+            self.I_y = (mt.pi * self.b_calcul**4) / 64
             self.I_z = self.I_y
             return [self.I_y, self.I_z]
-        
-    
+
     @property
-    def caract_meca(self) -> 'pd.Series':  # noqa: F821
-        """ Retourne les caractéristiques méca du bois sous forme de dataframe pandas """
+    def caract_meca(self) -> "pd.Series":  # noqa: F821
+        """Retourne les caractéristiques méca du bois sous forme de dataframe pandas"""
         if self.classe in self.CLASSE_WOOD:
             data_csv_meca = self._data_from_csv("caracteristique_meca_bois.csv")
             return data_csv_meca.loc[self.classe]
         elif self.classe in self.CLASSE_PANEL:
             data_csv_meca = self._data_from_csv("caracteristique_meca_panel.csv")
             return data_csv_meca.loc[self.classe]
-    
 
     @property
-    def gamma_M_table(self) -> 'pd.Series':  # noqa: F821
-        """Retourne le tableau des gamma M pour le type de bois sélectionné
-        """
+    def gamma_M_table(self) -> "pd.Series":  # noqa: F821
+        """Retourne le tableau des gamma M pour le type de bois sélectionné"""
         data_csv_gammaM = self._data_from_csv("gammaM.csv")
         return data_csv_gammaM.loc[self.type_bois]
-    
-    
+
     def _get_gamma_M(self, typecombi=TYPE_ACTION):
         self.gamma_M = self.gamma_M_table.loc[typecombi]
         return self.gamma_M
-    
 
     @property
     def K_def(self):
@@ -172,32 +169,26 @@ class Barre(Projet):
         if self.Hi > 20:
             kdef += 1
         return kdef
-    
-    
+
     @property
     def K_mod_table(self):
-        """ Retourne le tableau des Kmod du bois
-        """
+        """Retourne le tableau des Kmod du bois"""
         data_csv_kmod = self._data_from_csv("kmod.csv")
         data_kmod = data_csv_kmod.loc[self.type_bois]
-        return data_kmod.loc[data_kmod["CS"]==self.cs]
-    
+        return data_kmod.loc[data_kmod["CS"] == self.cs]
 
     def _get_k_mod(self, loadtype=LOAD_TIME):
         self.K_mod = self.K_mod_table[loadtype].iloc[0]
         return self.K_mod
-    
-    
+
     @property
     def k_sys(self):
-        """Détermine le Ksys d'un élément si celui-ci permet une redistribution des charges continues.
-        """
+        """Détermine le Ksys d'un élément si celui-ci permet une redistribution des charges continues."""
         if self.effet_systeme:
             return 1.1
         else:
             return 1
 
-    
     @property
     def type_bois(self) -> str:
         if self.classe[0:1] == "C" or self.classe[0:1] == "D":
@@ -212,18 +203,16 @@ class Barre(Projet):
             type_b = self.LIST_TYPE_B[4]
         else:
             type_b = self.LIST_TYPE_B[5]
-        
-        return type_b
 
+        return type_b
 
     def __convert_latex_ftyped(self, latex: str, type_caract: str):
         end_index_rk = type_caract.find("k")
         type_caract = type_caract[1:end_index_rk]
-        latex = latex.replace("f_{type_{Rd}", "f_{"+type_caract+"_{"+"d}")
-        latex = latex.replace("f_{type_{k}", "f_{"+type_caract+"_{"+"k}")
+        latex = latex.replace("f_{type_{Rd}", "f_{" + type_caract + "_{" + "d}")
+        latex = latex.replace("f_{type_{k}", "f_{" + type_caract + "_{" + "k}")
         return latex
-    
-    
+
     def _f_type_d(self, typeCarac=CARACTERISTIQUE[0:6], loadtype=LOAD_TIME, typecombi=TYPE_ACTION):
         """Calcule la résistance de calcul f_d selon l'EC5 §2.4.1.
 
@@ -255,20 +244,22 @@ class Barre(Projet):
 
         if typeCarac == "fm0k" and self.k_sys > 1:
             k_sys = self.k_sys
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 f_type_Rd = k_sys * f_type_k * K_mod / gamma_M
                 return f_type_Rd
         else:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 f_type_Rd = f_type_k * K_mod / gamma_M
                 return f_type_Rd
+
         value = val()
         latex = self.__convert_latex_ftyped(value[0], typeCarac)
         self.f_type_rd = value[1]
         return (latex, value[1])
-    
 
     def _K_h(self):
         """Calcule le coefficient de taille K_h selon l'EC5 §3.2 et §3.3.
@@ -291,25 +282,24 @@ class Barre(Projet):
             Ce coefficient ne s'applique qu'à fm,k et ft,k selon l'EC5.
         """
         kh = {}
-        dim = {'y': self.h_calcul.value *10**3, 'z': self.b_calcul.value *10**3}
+        dim = {"y": self.h_calcul.value * 10**3, "z": self.b_calcul.value * 10**3}
 
         for cle, valeur in dim.items():
             if self.type_bois == "Massif":
                 if valeur < 150:
                     kh[cle] = min((150 / valeur) ** 0.2, 1.3)
-                else :
+                else:
                     kh[cle] = 1
             elif self.type_bois == "BLC":
                 if valeur < 600:
                     kh[cle] = min((600 / valeur) ** 0.1, 1.1)
-                else :
+                else:
                     kh[cle] = 1
             else:
                 warnings.warn("LVL non pris en compte dans cette fonction")
                 kh[cle] = 1
-        return kh       
-    
-    
+        return kh
+
     def Emean_fin(self, psy_2: float) -> tuple:
         """Calcule le module de Young final E_mean,fin selon l'EC5 §2.3.2.2.
 
@@ -338,13 +328,22 @@ class Barre(Projet):
         def val():
             E_mean_fin = E0_mean / (1 + psy_2 * K_def)
             return E_mean_fin
-            
+
         value = val()
         self.E_mean_fin = value[1]
-        return value   
-    
+        return value
 
-    def fleche(self, long:si.mm, Ed_WinstQ:si.mm=0, Ed_Wnetfin:si.mm=0, Ed_Wfin:si.mm=0, Ed_W2:si.mm=0, limit_W2:int=500, type_ele=TYPE_ELE, type_bat=TYPE_BAT) -> tuple:
+    def fleche(
+        self,
+        long: si.mm,
+        Ed_WinstQ: si.mm = 0,
+        Ed_Wnetfin: si.mm = 0,
+        Ed_Wfin: si.mm = 0,
+        Ed_W2: si.mm = 0,
+        limit_W2: int = 500,
+        type_ele=TYPE_ELE,
+        type_bat=TYPE_BAT,
+    ) -> tuple:
         """Vérifie les taux de travail des flèches selon l'EC5 §7.2.
 
         Compare les flèches calculées aux limites normatives pour différents
@@ -374,8 +373,8 @@ class Barre(Projet):
             selon les recommandations de l'Annexe Nationale française.
         """
         data_csv_fleche = self._data_from_csv("limite_fleche.csv")
-        self.data_fleche= data_csv_fleche.loc[type_ele]
-        self.data_fleche = self.data_fleche.loc[self.data_fleche["Type bâtiment"]==type_bat]
+        self.data_fleche = data_csv_fleche.loc[type_ele]
+        self.data_fleche = self.data_fleche.loc[self.data_fleche["Type bâtiment"] == type_bat]
         self.taux_ELS = {}
 
         long = long * si.mm
@@ -385,11 +384,11 @@ class Barre(Projet):
         Ed_W2 = Ed_W2 * si.mm
         limit_W2 = int(limit_W2)
 
-        limit_W_inst_Q = self.data_fleche['Winst(Q)'].iloc[0]
-        limit_W_net_fin = int(self.data_fleche['Wnet,fin'].iloc[0])
-        limit_W_fin = int(self.data_fleche['Wfin'].iloc[0])
-        limit_U_fin_max = self.data_fleche['Ufin,max'].iloc[0]
-        
+        limit_W_inst_Q = self.data_fleche["Winst(Q)"].iloc[0]
+        limit_W_net_fin = int(self.data_fleche["Wnet,fin"].iloc[0])
+        limit_W_fin = int(self.data_fleche["Wfin"].iloc[0])
+        limit_U_fin_max = self.data_fleche["Ufin,max"].iloc[0]
+
         if np.isnan(limit_U_fin_max):
             limit_U_fin_max = long / limit_W_fin
         else:
@@ -397,6 +396,7 @@ class Barre(Projet):
 
         if not np.isnan(limit_W_inst_Q):
             limit_W_inst_Q = int(limit_W_inst_Q)
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 Rd_W_inst_Q = long / limit_W_inst_Q
@@ -409,7 +409,7 @@ class Barre(Projet):
                 taux_W_fin = Ed_W_fin / Rd_W_fin
                 taux_W2 = Ed_W2 / Rd_W2
                 return taux_W_inst_Q, taux_W_net_fin, taux_W_fin, taux_W2
-            
+
             value = val()
             self.taux_ELS["Winst(Q)"] = value[1][0]
             self.taux_ELS["Wnet,fin"] = value[1][1]
@@ -424,6 +424,7 @@ class Barre(Projet):
             self._add_synthese_taux_travail(synthese)
 
         else:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 Rd_W_net_fin = long / limit_W_net_fin
@@ -434,7 +435,7 @@ class Barre(Projet):
                 taux_W_fin = Ed_W_fin / Rd_W_fin
                 taux_W2 = Ed_W2 / Rd_W2
                 return taux_W_net_fin, taux_W_fin, taux_W2
-            
+
             value = val()
             self.taux_ELS["Wnet,fin"] = value[1][0]
             self.taux_ELS["Wfin"] = value[1][1]
@@ -445,6 +446,4 @@ class Barre(Projet):
                 ["Flèche W2", self.taux_ELS["W2"], None],
             ]
             self._add_synthese_taux_travail(synthese)
-        return value 
-
-
+        return value

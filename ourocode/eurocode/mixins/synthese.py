@@ -17,9 +17,9 @@ class SyntheseMixin:
     def _add_synthese_taux_travail(
         self,
         lignes: Iterable,
-        col_normale: str="Situation normale",
-        col_incendie: str="Situation d'incendie",
-        arrondi: int|None=3
+        col_normale: str = "Situation normale",
+        col_incendie: str = "Situation d'incendie",
+        arrondi: int | None = 3,
     ) -> pd.DataFrame:
         """Construit un tableau pandas de synthèse des taux de travail.
 
@@ -59,12 +59,7 @@ class SyntheseMixin:
         for ligne in lignes:
             if isinstance(ligne, Mapping):
                 effort = ligne.get("effort") or ligne.get("Effort")
-                sn = (
-                    ligne.get("SN")
-                    or ligne.get("situation_normale")
-                    or ligne.get(col_normale)
-                    or ligne.get("normale")
-                )
+                sn = ligne.get("SN") or ligne.get("situation_normale") or ligne.get(col_normale) or ligne.get("normale")
                 si_val = (
                     ligne.get("SI")
                     or ligne.get("situation_incendie")
@@ -76,11 +71,13 @@ class SyntheseMixin:
             else:
                 raise TypeError("Chaque ligne doit être un dict, une liste ou un tuple.")
 
-            lignes_preparees.append({
-                "Effort agissant dimensionnant": effort,
-                col_normale: _arrondi(sn),
-                col_incendie: _arrondi(si_val),
-            })
+            lignes_preparees.append(
+                {
+                    "Effort agissant dimensionnant": effort,
+                    col_normale: _arrondi(sn),
+                    col_incendie: _arrondi(si_val),
+                }
+            )
 
         df_nouveau = pd.DataFrame(lignes_preparees, columns=colonnes)
 
@@ -93,7 +90,7 @@ class SyntheseMixin:
         # On mémorise le tableau commun sur l'instance pour les appels suivants
         self._synthese_taux_df = df_final
         return df_final
-    
+
     def synthese_taux_travail(self):
         """Construit un tableau pandas de synthèse des taux de travail.
 

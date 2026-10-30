@@ -1,4 +1,4 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 import sys
 import os
@@ -8,6 +8,7 @@ from math import sqrt, pi
 import pandas as pd
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
@@ -15,10 +16,15 @@ from ourocode.eurocode.ec5.feu.feu import Feu
 from ourocode.eurocode.ec5.element_droit.compression import Compression
 
 
-
 class Compression_feu(Feu, Compression):
-    def __init__(self, lo_y: si.mm, lo_z: si.mm,
-                 type_appuis_y: str = Compression.COEF_LF, type_appuis_z: str = Compression.COEF_LF, **kwargs):
+    def __init__(
+        self,
+        lo_y: si.mm,
+        lo_z: si.mm,
+        type_appuis_y: str = Compression.COEF_LF,
+        type_appuis_z: str = Compression.COEF_LF,
+        **kwargs,
+    ):
         """Classe permettant le calcul de la Compression d'un élément bois selon l'EN 1995.
         Cette classe est hérité de la classe Feu, provenant du module EC5_Feu.py.
 
@@ -81,10 +87,9 @@ class Compression_feu(Feu, Compression):
             return {"y": min(k_c_y, 1), "z": min(k_c_z, 1)}
 
         return val()
-    
+
     def f_c_0_d(self) -> tuple:
-        """Retourne la résistance f,c,0,d au feu de l'élément en MPa
-        """
+        """Retourne la résistance f,c,0,d au feu de l'élément en MPa"""
         return super()._f_type_d("fc0k")
 
     def taux_c_0_d(self, flexion: object = None) -> tuple:
@@ -107,6 +112,7 @@ class Compression_feu(Feu, Compression):
         K_c_z_fi = self.kc_Axe[1]["z"]
 
         from ourocode.eurocode.ec5.feu.flexion_feu import Flexion_feu as _Flexion_feu
+
         if flexion and isinstance(flexion, _Flexion_feu):
             taux_6_11 = flexion.taux_m_rd["equ6.11"]
             taux_6_12 = flexion.taux_m_rd["equ6.12"]
@@ -131,8 +137,8 @@ class Compression_feu(Feu, Compression):
             @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 taux_6_2 = sigma_c_0_d_fi / f_c_0_d_fi  # equ6.2
-                taux_6_23 = (sigma_c_0_d_fi / (f_c_0_d_fi * K_c_y_fi) + taux_6_11)  # equ6.23
-                taux_6_24 = (sigma_c_0_d_fi / (f_c_0_d_fi * K_c_z_fi) + taux_6_12)  # equ6.24
+                taux_6_23 = sigma_c_0_d_fi / (f_c_0_d_fi * K_c_y_fi) + taux_6_11  # equ6.23
+                taux_6_24 = sigma_c_0_d_fi / (f_c_0_d_fi * K_c_z_fi) + taux_6_12  # equ6.24
                 return taux_6_2, taux_6_23, taux_6_24
 
             value = val()

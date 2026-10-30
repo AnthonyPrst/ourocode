@@ -1,4 +1,4 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 from copy import deepcopy
 import warnings
@@ -6,6 +6,7 @@ import math as mt
 from math import sin, cos, radians, sqrt, pi
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
@@ -13,10 +14,23 @@ from ourocode.eurocode.ec5.assemblage.pointe import Pointe
 
 # 8.4 Assemblage par Agrafe
 
+
 class Agrafe(Pointe):
     TYPE_ASSEMBLAGE = ("Bois/Bois", ("CP", "Panneau dur", "PP/OSB"), "Bois/Métal")
-    QUALITE_ACIER = ('8.8', '9.8', '10.9', '12.9')
-    def __init__(self, d:si.mm, b_agrafe:si.mm, l:si.mm, qualite: str=QUALITE_ACIER, n: int=1, angle_sup_30: bool=["True", "False"], alpha1: float=0, alpha2: float=0, **kwargs):
+    QUALITE_ACIER = ("8.8", "9.8", "10.9", "12.9")
+
+    def __init__(
+        self,
+        d: si.mm,
+        b_agrafe: si.mm,
+        l: si.mm,
+        qualite: str = QUALITE_ACIER,
+        n: int = 1,
+        angle_sup_30: bool = ["True", "False"],
+        alpha1: float = 0,
+        alpha2: float = 0,
+        **kwargs,
+    ):
         """Initialise une agrafe selon EN 1995-1-1 §8.4.
 
         Hérite de Pointe. Vérifie automatiquement les dimensions minimales (dos ≥ 6d,
@@ -36,18 +50,33 @@ class Agrafe(Pointe):
             alpha2 (float, optional): Angle entre l'effort et le fil du bois 2 en °. Defaults to 0.
             **kwargs: Arguments transmis à la classe parent Pointe / Assemblage.
         """
-        super().__init__(d=d, dh=0, l=l, qualite=qualite, n=n, alpha1=alpha1, alpha2=alpha2, type_organe="Agrafe", percage=False, **kwargs)
+        super().__init__(
+            d=d,
+            dh=0,
+            l=l,
+            qualite=qualite,
+            n=n,
+            alpha1=alpha1,
+            alpha2=alpha2,
+            type_organe="Agrafe",
+            percage=False,
+            **kwargs,
+        )
         self.b_agrafe = b_agrafe * si.mm
-        self.angle_sup_30 = angle_sup_30
+        self.angle_sup_30 = self._flag(angle_sup_30)
         self._dimension_min()
 
     def _dimension_min(self):
-        """ Vérifie si les dimensions minimales sont respectées """
-        if self.b_agrafe < self.d*6:
-            raise ValueError(f"Erreur, la dimension du dos de l'agrafe est inférieur à 6 fois le diamètre de l'agrafe, le dos de l'agrafe minimal est de {self.d*6}")
-        if self.t2 < self.d*14:
-            raise ValueError(f"Erreur, la longueur de pénétration t2 est inférieur à 14 fois le diamètre de l'agrafe. La longueur d'agrafe minimal est de {self.t1 + self.d*14}")
-        
+        """Vérifie si les dimensions minimales sont respectées"""
+        if self.b_agrafe < self.d * 6:
+            raise ValueError(
+                f"Erreur, la dimension du dos de l'agrafe est inférieur à 6 fois le diamètre de l'agrafe, le dos de l'agrafe minimal est de {self.d * 6}"
+            )
+        if self.t2 < self.d * 14:
+            raise ValueError(
+                f"Erreur, la longueur de pénétration t2 est inférieur à 14 fois le diamètre de l'agrafe. La longueur d'agrafe minimal est de {self.t1 + self.d * 14}"
+            )
+
     @property
     def MyRk(self) -> tuple:
         """Calcule le moment d'écoulement plastique d'une agrafe M_y,Rk selon EN 1995-1-1 §8.4(3).
@@ -58,10 +87,12 @@ class Agrafe(Pointe):
             tuple: (latex_string, M_y_Rk) où M_y_Rk est le moment plastique en N.mm (avec unité si.N×si.mm).
         """
         d = self.d.value * 10**3
+
         @handcalc(override="short", precision=2, left="\\[", right="\\]")
         def val():
-            M_y_Rk = 150 * d**3 # N.mm
-            return M_y_Rk * si.N*si.mm
+            M_y_Rk = 150 * d**3  # N.mm
+            return M_y_Rk * si.N * si.mm
+
         return val()
 
     def nef(self) -> int:
@@ -100,5 +131,5 @@ class Agrafe(Pointe):
             a3c = round(15 * self.d, 1)
             a4t = round((15 + 5 * mt.sin(mt.radians(alpha))) * self.d, 1)
             a4c = round(10 * self.d, 1)
-            dict_pince["barre "+str(i+1)] = {"a1": a1, "a2":a2, "a3t": a3t, "a3c": a3c, "a4t": a4t, "a4c": a4c}
+            dict_pince["barre " + str(i + 1)] = {"a1": a1, "a2": a2, "a3t": a3t, "a3c": a3c, "a4t": a4t, "a4c": a4c}
         return dict_pince

@@ -1,50 +1,80 @@
 # coding in UTF-8
 # by Anthony PARISOT
 """Remplacement de handcalcs.decorator.handcalc compatible Python 3.13+.
- 
+
 Ce module implémente un décorateur @handcalc qui génère du LaTeX à partir
 du code source Python via l'AST (ast module), sans dépendance à innerscope.
 Il reproduit le comportement utilisé dans ourocode : rendu des assignations
 d'une fonction interne avec substitution symbolique et numérique.
- 
+
 Retour du décorateur : tuple (latex_str, valeur_retournée)
   - latex_str  : chaîne LaTeX prête à injecter dans IPython.display.Latex
   - valeur     : résultat numérique de la fonction (scalaire, tuple, dict…)
 """
- 
+
 import ast
 import inspect
 import re
 import textwrap
 from math import sqrt, pi, sin, cos, tan, radians, log, log10, exp, floor, ceil, fabs
 from typing import Any
- 
- 
+
+
 # ---------------------------------------------------------------------------
 # Helpers de conversion AST → LaTeX
 # ---------------------------------------------------------------------------
- 
+
 _GREEK = {
-    "alpha": r"\alpha", "beta": r"\beta", "gamma": r"\gamma", "delta": r"\delta",
-    "epsilon": r"\epsilon", "zeta": r"\zeta", "eta": r"\eta", "theta": r"\theta",
-    "lambda": r"\lambda", "mu": r"\mu", "nu": r"\nu", "xi": r"\xi",
-    "pi": r"\pi", "rho": r"\rho", "sigma": r"\sigma", "tau": r"\tau",
-    "phi": r"\phi", "chi": r"\chi", "psi": r"\psi", "omega": r"\omega",
-    "Gamma": r"\Gamma", "Delta": r"\Delta", "Theta": r"\Theta",
-    "Lambda": r"\Lambda", "Xi": r"\Xi", "Pi": r"\Pi", "Sigma": r"\Sigma",
-    "Phi": r"\Phi", "Psi": r"\Psi", "Omega": r"\Omega",
+    "alpha": r"\alpha",
+    "beta": r"\beta",
+    "gamma": r"\gamma",
+    "delta": r"\delta",
+    "epsilon": r"\epsilon",
+    "zeta": r"\zeta",
+    "eta": r"\eta",
+    "theta": r"\theta",
+    "lambda": r"\lambda",
+    "mu": r"\mu",
+    "nu": r"\nu",
+    "xi": r"\xi",
+    "pi": r"\pi",
+    "rho": r"\rho",
+    "sigma": r"\sigma",
+    "tau": r"\tau",
+    "phi": r"\phi",
+    "chi": r"\chi",
+    "psi": r"\psi",
+    "omega": r"\omega",
+    "Gamma": r"\Gamma",
+    "Delta": r"\Delta",
+    "Theta": r"\Theta",
+    "Lambda": r"\Lambda",
+    "Xi": r"\Xi",
+    "Pi": r"\Pi",
+    "Sigma": r"\Sigma",
+    "Phi": r"\Phi",
+    "Psi": r"\Psi",
+    "Omega": r"\Omega",
 }
- 
+
 _FUNC_MAP = {
-    "sqrt": r"\sqrt", "sin": r"\sin", "cos": r"\cos", "tan": r"\tan",
-    "log": r"\log", "log10": r"\log_{10}", "exp": r"\exp",
-    "abs": r"\left|", "fabs": r"\left|",
-    "floor": r"\lfloor", "ceil": r"\lceil",
+    "sqrt": r"\sqrt",
+    "sin": r"\sin",
+    "cos": r"\cos",
+    "tan": r"\tan",
+    "log": r"\log",
+    "log10": r"\log_{10}",
+    "exp": r"\exp",
+    "abs": r"\left|",
+    "fabs": r"\left|",
+    "floor": r"\lfloor",
+    "ceil": r"\lceil",
     "radians": r"\frac{\pi}{180}",
-    "min": r"\min", "max": r"\max",
+    "min": r"\min",
+    "max": r"\max",
 }
- 
- 
+
+
 def _name_to_latex(name: str) -> str:
     """Convertit un nom Python en symbole LaTeX (grecs, indices)."""
     if name in _GREEK:
@@ -58,8 +88,8 @@ def _name_to_latex(name: str) -> str:
     base_latex = _GREEK.get(base, base)
     sub_str = ",".join(subs)
     return f"{base_latex}_{{{sub_str}}}"
- 
- 
+
+
 def _is_physical(value: Any) -> bool:
     """Retourne True si la valeur est un objet forallpeople.Physical."""
     return hasattr(value, "latex") and hasattr(value, "dimensions")
@@ -90,8 +120,8 @@ def _num_to_latex(value: Any, precision: int) -> str:
         return str(round(float(v), precision))
     except Exception:
         return str(value)
- 
- 
+
+
 class _ASTNumRenderer(ast.NodeVisitor):
     """Visite l'AST d'une expression et substitue les Name par leurs valeurs numériques.
 
@@ -175,8 +205,7 @@ class _ASTNumRenderer(ast.NodeVisitor):
 
     def visit_Compare(self, node: ast.Compare) -> str:
         parts = [self.visit(node.left)]
-        ops_map = {ast.Lt: "<", ast.LtE: "\\leq", ast.Gt: ">", ast.GtE: "\\geq",
-                   ast.Eq: "=", ast.NotEq: "\\neq"}
+        ops_map = {ast.Lt: "<", ast.LtE: "\\leq", ast.Gt: ">", ast.GtE: "\\geq", ast.Eq: "=", ast.NotEq: "\\neq"}
         for op, comp in zip(node.ops, node.comparators):
             parts.append(ops_map.get(type(op), "?"))
             parts.append(self.visit(comp))
@@ -287,8 +316,12 @@ class _ASTRenderer(ast.NodeVisitor):
     def visit_Compare(self, node: ast.Compare) -> str:
         parts = [self.visit(node.left)]
         ops_map = {
-            ast.Lt: "<", ast.LtE: "\\leq", ast.Gt: ">", ast.GtE: "\\geq",
-            ast.Eq: "=", ast.NotEq: "\\neq",
+            ast.Lt: "<",
+            ast.LtE: "\\leq",
+            ast.Gt: ">",
+            ast.GtE: "\\geq",
+            ast.Eq: "=",
+            ast.NotEq: "\\neq",
         }
         for op, comp in zip(node.ops, node.comparators):
             parts.append(ops_map.get(type(op), "?"))
@@ -330,6 +363,7 @@ def _is_simple(node: ast.AST) -> bool:
 # Extraction des lignes d'assignation depuis l'AST de la fonction
 # ---------------------------------------------------------------------------
 
+
 def _extract_assignments(func_source: str) -> list[ast.Assign]:
     """Extrait les nœuds Assign et AugAssign du corps de la fonction."""
     tree = ast.parse(func_source)
@@ -345,11 +379,12 @@ def _extract_assignments(func_source: str) -> list[ast.Assign]:
                 # sont ignorés — c'était des "labels" handcalcs, inutiles en LaTeX
     return assignments
 
+
 # Rendu LaTeX d'une assignation
 # ---------------------------------------------------------------------------
 
-def _render_assignment(assign: ast.Assign, local_vars: dict, precision: int,
-                        long: bool = False) -> str:
+
+def _render_assignment(assign: ast.Assign, local_vars: dict, precision: int, long: bool = False) -> str:
     """Génère une ligne LaTeX 'lhs &= rhs_sym = rhs_num = valeur_unité'.
 
     Si long=True, chaque étape (sym / num / résultat) est sur sa propre ligne alignée.
@@ -383,26 +418,16 @@ def _render_assignment(assign: ast.Assign, local_vars: dict, precision: int,
         if unit_str:
             val_str = f"{val_str}{unit_str}"
         if long and has_num_sub:
-            return (
-                f"{lhs} &= {rhs_sym} \\\\\n"
-                f"    &= {rhs_num} \\\\\n"
-                f"    &= {val_str} \\\\\n"
-            )
+            return f"{lhs} &= {rhs_sym} \\\\\n    &= {rhs_num} \\\\\n    &= {val_str} \\\\\n"
         elif long:
-            return (
-                f"{lhs} &= {rhs_sym} \\\\\n"
-                f"    &= {val_str} \\\\\n"
-            )
+            return f"{lhs} &= {rhs_sym} \\\\\n    &= {val_str} \\\\\n"
         elif has_num_sub:
             return f"{lhs} &= {rhs_sym} = {rhs_num} = {val_str} \\\\\n"
         else:
             return f"{lhs} &= {rhs_sym} = {val_str} \\\\\n"
     else:
         if long and has_num_sub:
-            return (
-                f"{lhs} &= {rhs_sym} \\\\\n"
-                f"    &= {rhs_num} \\\\\n"
-            )
+            return f"{lhs} &= {rhs_sym} \\\\\n    &= {rhs_num} \\\\\n"
         elif has_num_sub:
             return f"{lhs} &= {rhs_sym} = {rhs_num} \\\\\n"
         return f"{lhs} &= {rhs_sym} \\\\\n"
@@ -427,7 +452,7 @@ def _get_unit_str(value: Any) -> str:
 # Décorateur principal
 # ---------------------------------------------------------------------------
 
- 
+
 def handcalc(
     override: str = "short",
     precision: int = 2,
@@ -436,32 +461,33 @@ def handcalc(
     right: str = "\\]",
 ):
     """Remplace handcalcs.decorator.handcalc — compatible Python 3.13+.
- 
+
     Usage identique à l'original :
- 
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY,
                   left="\\\\[", right="\\\\]")
         def val():
             x = a + b
             return x
- 
+
         latex_str, result = val()
- 
+
     Args:
         override:        "short" (défaut) ou "long".
         precision:       Nombre de décimales pour les valeurs numériques.
         jupyter_display: Si True, affiche le LaTeX dans Jupyter via IPython.display.
         left / right:    Délimiteurs LaTeX du bloc (ex. "$$", "\\\\[").
- 
+
     Returns:
         Décorateur qui transforme la fonction en un appelable retournant
         ``(latex_str, résultat_numérique)``.
     """
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             # 1. Exécuter la fonction pour obtenir les valeurs numériques
             result = func(*args, **kwargs)
- 
+
             # 2. Récupérer le code source de la fonction
             try:
                 raw_source = inspect.getsource(func)
@@ -469,17 +495,16 @@ def handcalc(
             except (OSError, TypeError):
                 # Impossible de récupérer le source → retour sans LaTeX
                 return ("", result)
- 
+
             # 3. Construire le dict des variables locales disponibles
             #    = globals du scope + fermeture (closure) + arguments
             local_vars: dict = {}
 
             # Variables du scope module (globals) — permet la substitution numérique
             if func.__globals__:
-                local_vars.update({
-                    k: v for k, v in func.__globals__.items()
-                    if not k.startswith("__") and not callable(v)
-                })
+                local_vars.update(
+                    {k: v for k, v in func.__globals__.items() if not k.startswith("__") and not callable(v)}
+                )
 
             # Variables de fermeture (closures)
             if func.__code__.co_freevars and func.__closure__:
@@ -489,13 +514,12 @@ def handcalc(
                     except ValueError:
                         pass
 
- 
             # Arguments positionnels (cas `def comp(arg1, arg2, ...)`)
             arg_names = func.__code__.co_varnames[: func.__code__.co_argcount]
             for name, val in zip(arg_names, args):
                 local_vars[name] = val
             local_vars.update(kwargs)
- 
+
             # Résultats de la fonction — injecte les valeurs calculées
             # On récupère les noms des variables locales via co_varnames
             # En exécutant la fonction une seconde fois dans un namespace capturé
@@ -505,20 +529,20 @@ def handcalc(
             except Exception:
                 pass
             local_vars.update(local_capture)
- 
+
             # 4. Extraire les assignations de l'AST
             try:
                 assignments = _extract_assignments(func_source)
             except SyntaxError:
                 return ("", result)
- 
+
             # 5. Construire le LaTeX
             is_long = override == "long"
             lines = []
             for assign in assignments:
                 line = _render_assignment(assign, local_vars, precision, long=is_long)
                 lines.append(line)
- 
+
             if not lines:
                 latex_body = ""
             elif override == "long" or len(lines) > 1:
@@ -527,31 +551,34 @@ def handcalc(
             else:
                 # short : une seule ligne, format compact
                 latex_body = "".join(lines).replace(" &=", " =").replace("\\\\\n", "")
- 
+
             latex_str = f"{left}\n{latex_body}\n{right}"
- 
+
             # 6. Affichage Jupyter si demandé
             if jupyter_display:
                 try:
                     from IPython.display import display, Latex as IPyLatex
+
                     if display and IPyLatex:
                         display(IPyLatex(latex_str))
                 except ImportError:
                     pass
- 
+
             return (latex_str, result)
- 
+
         return wrapper
+
     return decorator
- 
- 
+
+
 # ---------------------------------------------------------------------------
 # Capture des variables locales sans innerscope
 # ---------------------------------------------------------------------------
- 
+
+
 def _exec_and_capture(func, args, kwargs, capture: dict) -> None:
     """Exécute func dans un namespace étendu et capture les variables locales.
- 
+
     Utilise exec() sur le corps de la fonction avec les variables de fermeture
     et arguments déjà présents dans `capture`. Met à jour `capture` in-place.
     """
@@ -560,9 +587,9 @@ def _exec_and_capture(func, args, kwargs, capture: dict) -> None:
         source = textwrap.dedent(raw)
     except (OSError, TypeError):
         return
- 
+
     tree = ast.parse(source)
- 
+
     # On cherche le premier FunctionDef
     func_def = None
     for node in ast.walk(tree):
@@ -571,27 +598,39 @@ def _exec_and_capture(func, args, kwargs, capture: dict) -> None:
             break
     if func_def is None:
         return
- 
+
     # Reconstruire le corps sans le 'return' final comme module exécutable
     body_stmts = [s for s in func_def.body if not isinstance(s, ast.Return)]
     if not body_stmts:
         return
- 
+
     # Créer un nouveau module AST avec ces instructions
     new_module = ast.Module(body=body_stmts, type_ignores=[])
     ast.fix_missing_locations(new_module)
- 
+
     # Injecter les fonctions math disponibles + globals de la fonction (scope module)
     exec_globals = {
-        "sqrt": sqrt, "pi": pi, "sin": sin, "cos": cos, "tan": tan,
-        "radians": radians, "log": log, "log10": log10, "exp": exp,
-        "floor": floor, "ceil": ceil, "fabs": fabs, "abs": abs,
-        "min": min, "max": max, "round": round,
+        "sqrt": sqrt,
+        "pi": pi,
+        "sin": sin,
+        "cos": cos,
+        "tan": tan,
+        "radians": radians,
+        "log": log,
+        "log10": log10,
+        "exp": exp,
+        "floor": floor,
+        "ceil": ceil,
+        "fabs": fabs,
+        "abs": abs,
+        "min": min,
+        "max": max,
+        "round": round,
     }
     if func.__globals__:
         exec_globals.update(func.__globals__)
     exec_globals.update(capture)
- 
+
     try:
         exec(compile(new_module, "<handcalc>", "exec"), exec_globals, capture)
     except Exception:

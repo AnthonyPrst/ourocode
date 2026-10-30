@@ -1,4 +1,4 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 from copy import deepcopy
 import warnings
@@ -9,6 +9,7 @@ from math import sqrt, pi, cos, sin, radians
 import numpy as np
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
@@ -38,12 +39,10 @@ class Traction(Barre):
         """
         super().__init__(*args, **kwargs)
 
-
     @property
     def K_h(self):
-        """ Retourne le coef. Kh qui peut augmenter la resistance caractéristique fm,k et ft,k """
+        """Retourne le coef. Kh qui peut augmenter la resistance caractéristique fm,k et ft,k"""
         return self._K_h()
-
 
     def f_t_0_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
         """Calcule la résistance de calcul en traction axiale f_t,0,d selon l'EC5 §6.1.2.
@@ -62,8 +61,7 @@ class Traction(Barre):
         """
         return super()._f_type_d("ft0k", loadtype, typecombi)
 
-
-    def sigma_t_0_d(self, Ft0d: si.kN, Anet: si.mm**2=None) -> tuple:
+    def sigma_t_0_d(self, Ft0d: si.kN, Anet: si.mm**2 = None) -> tuple:
         """Calcule la contrainte de traction axiale sigma_t,0,d selon l'EC5 §6.1.2.
 
         Détermine la contrainte normale due à l'effort de traction axial.
@@ -86,7 +84,7 @@ class Traction(Barre):
         """
         self.Ft_0_d = Ft0d * si.kN
         Ft_0_d = self.Ft_0_d
-        if Anet and Anet * si.mm**2<= self.aire:
+        if Anet and Anet * si.mm**2 <= self.aire:
             A = Anet * si.mm**2
         else:
             A = self.aire
@@ -95,10 +93,10 @@ class Traction(Barre):
         def val():
             sigma_t_0_d = Ft_0_d / A
             return sigma_t_0_d
+
         value = val()
         self.sigma_t_0_rd = value[1]
         return value
-
 
     def taux_t_0_d(self) -> tuple:
         """Calcule le taux de travail en traction axiale selon l'EC5 §6.1.2 (Eq. 6.1).
@@ -117,23 +115,22 @@ class Traction(Barre):
             de travail via _add_synthese_taux_travail.
         """
         self.taux_t_0_rd = {}
-        K_h_y = self.K_h['y']
-        K_h_z = self.K_h['z']
+        K_h_y = self.K_h["y"]
+        K_h_z = self.K_h["z"]
         sigma_t_0_d = self.sigma_t_0_rd
         f_t_0_d = self.f_type_rd
 
         @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             K_h = min(K_h_y, K_h_z)
-            taux_6_1 = sigma_t_0_d / (K_h * f_t_0_d) # equ6.1
+            taux_6_1 = sigma_t_0_d / (K_h * f_t_0_d)  # equ6.1
             return taux_6_1
+
         value = val()
 
-        self.taux_t_0_rd['equ6.1'] = value[1]
+        self.taux_t_0_rd["equ6.1"] = value[1]
         synthese = [
-            ["Traction bois", self.taux_t_0_rd['equ6.1'], None],
+            ["Traction bois", self.taux_t_0_rd["equ6.1"], None],
         ]
         self._add_synthese_taux_travail(synthese)
         return value
-
-

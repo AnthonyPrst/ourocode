@@ -5,6 +5,31 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [Unreleased]
+
+### Added
+- **`mixins/serialization.py` (`_CompatUnpickler`)** : unpickler de compatibilité qui redirige les classes des fichiers `.oco` créés avec l'arborescence v1.x (`ourocode.eurocode.EC5_Element_droit`, `A0_Projet`, `EC1_Vent`, …) vers les nouveaux sous-packages (`ec5.element_droit`, `core`, `ec1`, …). Les anciens fichiers redeviennent ouvrables via `_open_object` / `_open_multiple_objects`. Limitation : la redirection s'opère par nom de classe ; des attributs renommés entre versions peuvent produire des objets incomplets.
+- **`save_object(path)` / `_save_muliple_objects(object, path)` / `_open_multiple_objects(path)`** : paramètre `path` optionnel sur toutes les méthodes de persistance `.oco`, comme déjà le cas pour `save_data` / `_open_object`. Permet un usage headless (sans Qt).
+- **Tests sérialisation** (`tests/test_A0_Projet.py`) : roundtrip `save_object`/`_open_object` et `_save_muliple_objects`/`_open_multiple_objects` par chemin, redirection `_CompatUnpickler` et rechargement d'un pickle écrit sous l'ancien chemin de module.
+- **CI `test`** : matrice Python 3.12 / 3.13 / 3.14 et seuil de couverture `--cov-fail-under=60`.
+- **Validation des entrées** dans les constructeurs clés via les nouveaux helpers `Objet._check_choice`, `Objet._check_dimension` et `Objet._flag` :
+  - `Barre` : `b`, `h` strictement positifs ; `section`, `classe`, `cs` validés ; `effet_systeme` normalisé en booléen.
+  - `Plat` : géométrie validée ; `classe_acier` dans le catalogue ; `classe_transv` limitée à 1–3 (classe 4 toujours non implémentée).
+  - `Assemblage` : objets `beam_1`/`beam_2` validés ; `nfile`, `nCis` normalisés.
+  - `Neige` : `exposition`, `type_toit` validés ; `blocage` normalisé.
+  - `Vent` : `cat_terrain`, `cat_oro` validés ; `z` positif ; `CsCd` normalisé.
+- **Tests de référence normative** (`tests/test_references_normatives.py`, 29 tests) : golden values calculées à la main pour le cas C24 b=100×h=300 (flexion §6.1.6, traction équa. 6.1, cisaillement avec K_cr), plus tests unitaires des helpers `_flag`, `_check_choice`, `_check_dimension` et du filtrage `_from_parent_class`.
+
+### Changed
+- **`mixins/serialization.py`** : factorisation des dialogues Qt (`_file_dialog_open` / `_file_dialog_save`) ; avertissement de sécurité documenté sur les méthodes `pickle` (un fichier `.oco` non fiable peut exécuter du code arbitraire).
+- **Logging** : introduction de `logging.getLogger(__name__)` (`ourocode/__init__.py` pose un `NullHandler` sur le logger `"ourocode"`). Les `print()` de debug actifs dans `core/model_generator.py` et `ec1/exploitation.py` sont remplacés par des logs (`debug`/`info`).
+- **`AGENTS.md`** : réécriture complète pour l'arborescence v2.x (`core`, `ec1`, `ec3`, `ec5`, `ec8`, `mixins`), hiérarchie de classes et conventions à jour.
+- **`.gitignore`** : ajout de `coverage.json` ; le fichier précédemment suivi est retiré de l'index git.
+- **`Objet._from_parent_class`** : les attributs hérités du parent sont désormais filtrés par les paramètres explicitement déclarés dans les signatures `__init__` de la classe cible et de ses parents (MRO). Les attributs privés, les états calculés (taux, dataframes, objets modèle) et les attributs ajoutés dynamiquement ne sont plus injectés dans le constructeur fils. La normalisation des `Physical` (pas de double unité) est conservée.
+- **Pseudo-enums booléens** : normalisation via le nouveau helper `Objet._flag`. Les signatures conservent les tuples de choix (`effet_systeme: bool = ("False", "True")`) qui sont interprétés comme « premier élément = défaut » au lieu d'être truthy. Les `bool` natifs et les chaînes `"True"`/`"False"` restent acceptés ; toute autre chaîne lève un `ValueError`.
+- **Ruff** : unification du lint et du formatage sur `ruff` (extra `dev` remplace `black` par `ruff`, formatage `ruff format` appliqué sur tout le dépôt). `F841` reste ignoré dans `ourocode/` (les assignations dans les fonctions `@handcalc` sont des labels LaTeX rendus) mais est actif dans `tests/`.
+- **`pyproject.toml`** : correction de l'extra `full` qui référençait un extra `mef` inexistant.
+
 ## [2.1.8] - 2026-10-28
 
 ### Fixed

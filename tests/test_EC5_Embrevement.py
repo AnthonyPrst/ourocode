@@ -1,11 +1,13 @@
 """Tests unitaires pour ec5/assemblage/embrevement.py : Embrevement."""
+
 import pytest
 import sys
 import os
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import forallpeople as si
+
 si.environment("structural")
 
 from ourocode.eurocode.ec5.element_droit.barre import Barre
@@ -16,11 +18,13 @@ from ourocode.eurocode.ec5.assemblage.embrevement import Embrevement
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def barre_1():
     """Pièce 1 : barre GL24h 100x200 (avec embrèvement en bout)."""
     return Barre(
-        b=100, h=200,
+        b=100,
+        h=200,
         section="Rectangulaire",
         classe="GL24h",
         cs=2,
@@ -32,7 +36,8 @@ def barre_1():
 def barre_2():
     """Pièce 2 : barre GL24h 120x220 (pièce entaillée)."""
     return Barre(
-        b=120, h=220,
+        b=120,
+        h=220,
         section="Rectangulaire",
         classe="GL24h",
         cs=2,
@@ -72,8 +77,8 @@ def embrevement_manuel(barre_1, barre_2):
 # Test_Embrevement_init
 # ---------------------------------------------------------------------------
 
-class Test_Embrevement_init:
 
+class Test_Embrevement_init:
     def test_alpha_stocke(self, embrevement_auto):
         assert embrevement_auto.alpha == 45
 
@@ -87,6 +92,7 @@ class Test_Embrevement_init:
     def test_profondeur_auto_valeur(self, embrevement_auto, barre_2):
         """Pour alpha=45°, profondeur = h2/4 = 220/4 = 55mm."""
         import forallpeople as si
+
         expected = barre_2.h * si.mm / 4
         assert abs(float(embrevement_auto.prof_embrevement) - float(expected)) < 1e-3
 
@@ -107,6 +113,7 @@ class Test_Embrevement_init:
 # ---------------------------------------------------------------------------
 # Test_Embrevement_geometrie
 # ---------------------------------------------------------------------------
+
 
 class Test_Embrevement_geometrie:
     """Tests des méthodes géométriques d'Embrevement."""
@@ -161,18 +168,26 @@ class Test_Embrevement_geometrie:
     def test_alpha_15(self, barre_1, barre_2):
         """Alpha=15° s'instancie correctement."""
         emb = Embrevement(
-            beam_1=barre_1, beam_2=barre_2, alpha=15,
-            type_embrevement="Bissectrice", prof_embrevement=20,
-            l_talon=400, l1=8000,
+            beam_1=barre_1,
+            beam_2=barre_2,
+            alpha=15,
+            type_embrevement="Bissectrice",
+            prof_embrevement=20,
+            l_talon=400,
+            l1=8000,
         )
         assert emb.alpha == 15
 
     def test_alpha_30(self, barre_1, barre_2):
         """Alpha=30° s'instancie correctement."""
         emb = Embrevement(
-            beam_1=barre_1, beam_2=barre_2, alpha=30,
-            type_embrevement="Bissectrice", prof_embrevement=25,
-            l_talon=400, l1=8000,
+            beam_1=barre_1,
+            beam_2=barre_2,
+            alpha=30,
+            type_embrevement="Bissectrice",
+            prof_embrevement=25,
+            l_talon=400,
+            l1=8000,
         )
         assert emb.alpha == 30
 

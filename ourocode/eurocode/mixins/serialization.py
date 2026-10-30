@@ -4,9 +4,113 @@ import os
 import json
 import csv
 import pickle
+import logging
 
 import forallpeople as si
+
 si.environment("structural")
+
+logger = logging.getLogger(__name__)
+
+
+# Correspondance (ancien_module, classe) -> nouveau sous-module ourocode.eurocode.
+# Permet d'ouvrir les fichiers .oco créés avec l'arborescence v1.x
+# (ex : ourocode.eurocode.EC5_Element_droit.Barre).
+_RELOCATED_CLASSES = {
+    ("objet", "Objet"): "core.objet",
+    ("A0_Projet", "Projet"): "core.projet",
+    ("A0_Projet", "Batiment"): "core.batiment",
+    ("A0_Projet", "Model_generator"): "core.model_generator",
+    ("A0_Projet", "Wood_beam_model"): "core.model_generator",
+    ("A0_Projet", "Model_result"): "core.model_result",
+    ("EC0_Combinaison", "Combinaison"): "core.combinaison",
+    ("EC1_Exploitation", "Exploitation"): "ec1.exploitation",
+    ("EC1_Neige", "Neige"): "ec1.neige",
+    ("EC1_Vent", "Vent"): "ec1.vent",
+    ("EC1_Vent", "Murs_verticaux"): "ec1.vent",
+    ("EC1_Vent", "Toiture_terrasse_acrotere"): "ec1.vent",
+    ("EC1_Vent", "Toiture_1_pant"): "ec1.vent",
+    ("EC1_Vent", "Toiture_2_pants"): "ec1.vent",
+    ("EC1_Vent", "Toiture_isolee_1_pant"): "ec1.vent",
+    ("EC1_Vent", "Toiture_isolee_2_pants"): "ec1.vent",
+    ("EC3_Element_droit", "Plat"): "ec3.element_droit.plat",
+    ("EC3_Element_droit", "Traction"): "ec3.element_droit.traction",
+    ("EC3_Element_droit", "Compression"): "ec3.element_droit.compression",
+    ("EC3_Element_droit", "Cisaillement"): "ec3.element_droit.cisaillement",
+    ("EC3_Element_droit", "Flexion"): "ec3.element_droit.flexion",
+    ("EC3_Feu", "_TemperatureGaz"): "ec3.feu",
+    ("EC3_Feu", "_CoeffFeu"): "ec3.feu",
+    ("EC3_Feu", "Feu_acier"): "ec3.feu",
+    ("EC3_Assemblage", "Tige"): "ec3.assemblage.tige",
+    ("EC3_Assemblage", "_Tige_scellement"): "ec3.assemblage.tige",
+    ("EC3_Assemblage", "Tige_scellement_plaque_ancrage"): "ec3.assemblage.tige",
+    ("EC3_Assemblage", "Tige_scellement_crochet"): "ec3.assemblage.tige",
+    ("EC3_Assemblage", "Soudure"): "ec3.assemblage.soudure",
+    ("EC3_Assemblage", "Platine_assise_compression_beton"): "ec3.assemblage.platine",
+    ("EC3_Assemblage", "Platine_assise_compression_bois"): "ec3.assemblage.platine",
+    ("EC3_Assemblage", "Platine_assise_traction"): "ec3.assemblage.platine",
+    ("EC5_Element_droit", "Barre"): "ec5.element_droit.barre",
+    ("EC5_Element_droit", "Flexion"): "ec5.element_droit.flexion",
+    ("EC5_Element_droit", "Traction"): "ec5.element_droit.traction",
+    ("EC5_Element_droit", "Compression"): "ec5.element_droit.compression",
+    ("EC5_Element_droit", "Compression_perpendiculaire"): "ec5.element_droit.compression",
+    ("EC5_Element_droit", "Compression_inclinees"): "ec5.element_droit.compression",
+    ("EC5_Element_droit", "Cisaillement"): "ec5.element_droit.cisaillement",
+    ("EC5_Assemblage", "Assemblage"): "ec5.assemblage.assemblage",
+    ("EC5_Assemblage", "Embrevement"): "ec5.assemblage.embrevement",
+    ("EC5_Assemblage", "Pointe"): "ec5.assemblage.pointe",
+    ("EC5_Assemblage", "Agrafe"): "ec5.assemblage.agrafe",
+    ("EC5_Assemblage", "Boulon"): "ec5.assemblage.boulon",
+    ("EC5_Assemblage", "Broche"): "ec5.assemblage.broche",
+    ("EC5_Assemblage", "_Tirefond"): "ec5.assemblage.tirefond",
+    ("EC5_Assemblage", "Tirefond_inf_7"): "ec5.assemblage.tirefond",
+    ("EC5_Assemblage", "Tirefond_sup_6"): "ec5.assemblage.tirefond",
+    ("EC5_BLC", "Poutre_simple_decroissance"): "ec5.blc",
+    ("EC5_CVT", "MOB"): "ec5.cvt",
+    ("EC5_Feu", "Feu"): "ec5.feu.feu",
+    ("EC5_Feu", "Flexion_feu"): "ec5.feu.flexion_feu",
+    ("EC5_Feu", "Traction_feu"): "ec5.feu.traction_feu",
+    ("EC5_Feu", "Compression_feu"): "ec5.feu.compression_feu",
+    ("EC5_Feu", "Cisaillement_feu"): "ec5.feu.cisaillement_feu",
+    ("EC8_Sismique", "Sismique"): "ec8.sismique",
+}
+
+
+class _CompatUnpickler(pickle.Unpickler):
+    """Unpickler redirigeant les classes de l'ancienne arborescence v1.x.
+
+    Les fichiers ``.oco`` créés avant la restructuration en sous-packages
+    (``core``, ``ec1``, ``ec3``, ``ec5``, ``ec8``) référencent d'anciens
+    modules comme ``ourocode.eurocode.EC5_Element_droit.Barre``. Cette
+    classe redirige ces références vers leur nouvel emplacement.
+
+    Note :
+        La redirection est faite par nom de classe ; si des attributs ont
+        été renommés entre versions, l'objet restauré peut être incomplet.
+    """
+
+    def find_class(self, module, name):
+        old_module = module.split(".")[-1]
+        new_sub = _RELOCATED_CLASSES.get((old_module, name))
+        if new_sub:
+            new_module = f"ourocode.eurocode.{new_sub}"
+            logger.debug("Redirection pickle : %s.%s -> %s.%s", module, name, new_module, name)
+            module = new_module
+        return super().find_class(module, name)
+
+
+def _file_dialog_save(filter_str: str, selected: str) -> str:
+    """Ouvre un QFileDialog de sauvegarde et retourne le chemin choisi."""
+    from PySide6.QtWidgets import QFileDialog
+
+    return QFileDialog.getSaveFileName(filter=filter_str, selectedFilter=selected)[0]
+
+
+def _file_dialog_open(filter_str: str, selected: str) -> str:
+    """Ouvre un QFileDialog d'ouverture et retourne le chemin choisi."""
+    from PySide6.QtWidgets import QFileDialog
+
+    return QFileDialog.getOpenFileName(filter=filter_str, selectedFilter=selected)[0]
 
 
 class SerializationMixin:
@@ -40,10 +144,7 @@ class SerializationMixin:
             return [self._physical_to_dict(x) for x in obj]
         elif isinstance(obj, si.Physical):
             split_vals = obj.split(base_value=True)
-            return {
-                '_physical_value': float(split_vals[0]),
-                '_physical_unit': str(split_vals[1])
-            }
+            return {"_physical_value": float(split_vals[0]), "_physical_unit": str(split_vals[1])}
         return obj
 
     @staticmethod
@@ -97,18 +198,17 @@ class SerializationMixin:
             Objet avec les valeurs physiques restaurées.
         """
         if isinstance(data, dict):
-            if '_physical_value' in data:
+            if "_physical_value" in data:
                 # Reconstruire l'objet Physical
-                value = data['_physical_value']
-                unit_str = str(data['_physical_unit'].split()[-1])
+                value = data["_physical_value"]
+                unit_str = str(data["_physical_unit"].split()[-1])
                 # Normaliser quelques notations possibles
                 unit_expr = (
-                    unit_str
-                    .replace('^', '**')
-                    .replace('²', '**2')
-                    .replace('³', '**3')
-                    .replace('⁴', '**4')
-                    .replace('·', '*')
+                    unit_str.replace("^", "**")
+                    .replace("²", "**2")
+                    .replace("³", "**3")
+                    .replace("⁴", "**4")
+                    .replace("·", "*")
                 )
                 if "/" in unit_expr:
                     unit_expr = unit_expr.replace("/", "_")
@@ -122,7 +222,7 @@ class SerializationMixin:
             return [self._dict_to_physical(x) for x in data]
         return data
 
-    def save_data(self, data: dict, type_data: str=("JSON", "CSV"), path: str=None):
+    def save_data(self, data: dict, type_data: str = ("JSON", "CSV"), path: str = None):
         """Sauvegarde les données dans un fichier JSON ou CSV via boîte de dialogue.
 
         Convertit automatiquement les unités physiques (Physical) en valeurs
@@ -140,25 +240,34 @@ class SerializationMixin:
             Pour CSV : format simple avec une ligne d'en-tête.
         """
         from PySide6.QtWidgets import QFileDialog
+
         data = self._physical_to_dict(data)
         if type_data == "JSON":
-            save_file_path = path if path else QFileDialog.getSaveFileName(
-                filter="JSON (*.json)",
-                selectedFilter=".json",
-            )[0]
+            save_file_path = (
+                path
+                if path
+                else QFileDialog.getSaveFileName(
+                    filter="JSON (*.json)",
+                    selectedFilter=".json",
+                )[0]
+            )
             with open(save_file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4)
         elif type_data == "CSV":
-            save_file_path = path if path else QFileDialog.getSaveFileName(
-                filter="CSV (*.csv)",
-                selectedFilter=".csv",
-            )[0]
+            save_file_path = (
+                path
+                if path
+                else QFileDialog.getSaveFileName(
+                    filter="CSV (*.csv)",
+                    selectedFilter=".csv",
+                )[0]
+            )
             with open(save_file_path, "w", newline="") as f:
                 w = csv.DictWriter(f, data.keys())
                 w.writeheader()
                 w.writerow(data)
 
-    def load_data(self, type_data: str=("JSON", "CSV"), path: str=None):
+    def load_data(self, type_data: str = ("JSON", "CSV"), path: str = None):
         """Charge les données depuis un fichier JSON ou CSV via boîte de dialogue.
 
         Reconstruit automatiquement les unités physiques (Physical) à partir
@@ -174,69 +283,133 @@ class SerializationMixin:
                 physiques restaurées.
         """
         from PySide6.QtWidgets import QFileDialog
+
         if type_data == "JSON":
-            file_path = path if path else QFileDialog.getOpenFileName(
-                filter="JSON (*.json)",
-                selectedFilter=".json",
-            )[0]
+            file_path = (
+                path
+                if path
+                else QFileDialog.getOpenFileName(
+                    filter="JSON (*.json)",
+                    selectedFilter=".json",
+                )[0]
+            )
             with open(file_path, "r", encoding="utf-8") as f:
                 return self._dict_to_physical(json.load(f))
         elif type_data == "CSV":
-            file_path = path if path else QFileDialog.getOpenFileName(
-                filter="CSV (*.csv)",
-                selectedFilter=".csv",
-            )[0]
+            file_path = (
+                path
+                if path
+                else QFileDialog.getOpenFileName(
+                    filter="CSV (*.csv)",
+                    selectedFilter=".csv",
+                )[0]
+            )
             with open(file_path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
-                return self._dict_to_physical({row['key']: row['value'] for row in reader})
+                return self._dict_to_physical({row["key"]: row["value"] for row in reader})
 
-    def _save_muliple_objects(self, object: list):
-        from PySide6.QtWidgets import QFileDialog
-        save_file_path = QFileDialog.getSaveFileName(
-                filter="Ourea catalog object (*.oco);;'Text Document' (*.txt)",
-                selectedFilter=".oco",
-            )[0]
-        # with filedialog.asksaveasfile('wb', filetypes=(("Ourea catalog object", "*.oco"), ('Text Document', '*.txt')), defaultextension='.oco') as f:
+    def _save_muliple_objects(self, object: list, path: str = None):
+        """Sauvegarde une liste d'objets dans un fichier .oco (pickle).
+
+        Args:
+            object (list): Liste des objets ourocode à sérialiser.
+            path (str, optional): Chemin du fichier .oco à créer. Si None,
+                une boîte de dialogue Qt s'ouvre pour choisir l'emplacement.
+        """
+        save_file_path = (
+            path
+            if path
+            else _file_dialog_save(
+                "Ourea catalog object (*.oco);;'Text Document' (*.txt)",
+                ".oco",
+            )
+        )
+        if not save_file_path:
+            return
         with open(save_file_path, "wb") as f:
             for ligne in object:
                 pickle.dump(ligne, f)
-    
-    
-    def save_object(self):
-        from PySide6.QtWidgets import QFileDialog
-        save_file_path = QFileDialog.getSaveFileName(
-                filter="Ourea catalog object (*.oco);;'Text Document' (*.txt)",
-                selectedFilter=".oco",
-            )[0]
+
+    def save_object(self, path: str = None):
+        """Sauvegarde l'objet courant dans un fichier .oco (pickle).
+
+        Args:
+            path (str, optional): Chemin du fichier .oco à créer. Si None,
+                une boîte de dialogue Qt s'ouvre pour choisir l'emplacement.
+        """
+        save_file_path = (
+            path
+            if path
+            else _file_dialog_save(
+                "Ourea catalog object (*.oco);;'Text Document' (*.txt)",
+                ".oco",
+            )
+        )
+        if not save_file_path:
+            return
         with open(save_file_path, "wb") as f:
             pickle.dump(self, f)
 
-            
     @classmethod
-    def _open_multiple_objects(cls):
-        from PySide6.QtWidgets import QFileDialog
+    def _open_multiple_objects(cls, path: str = None):
+        """Charge une liste d'objets depuis un fichier .oco (pickle).
+
+        Les objets créés avec l'arborescence v1.x sont automatiquement
+        redirigés vers les nouveaux modules via ``_CompatUnpickler``.
+
+        Args:
+            path (str, optional): Chemin du fichier .oco à charger. Si None,
+                une boîte de dialogue Qt s'ouvre pour sélectionner le fichier.
+
+        Returns:
+            list: Liste des objets désérialisés.
+
+        Warning:
+            ``pickle.load`` peut exécuter du code arbitraire. N'ouvrez que
+            des fichiers .oco dont vous maîtrisez la provenance.
+        """
+        file_path = (
+            path
+            if path
+            else _file_dialog_open(
+                "Ourea catalog object (*.oco);;'Text Document' (*.txt)",
+                ".oco",
+            )
+        )
         data = []
-        # with filedialog.askopenfile('rb', filetypes=(("Ourea catalog object", "*.oco"), ('Text Document', '*.txt')), defaultextension='.oco') as f:
-        file_path = QFileDialog.getOpenFileName(
-                    filter="Ourea catalog object (*.oco);;'Text Document' (*.txt)", selectedFilter=".oco"
-                )[0]
         with open(file_path, "rb") as f:
             while True:
                 try:
-                    data.append(pickle.load(f))
+                    data.append(_CompatUnpickler(f).load())
                 except EOFError:
                     break
-            return data
-    
+        return data
+
     @classmethod
-    def _open_object(cls, path: str=None):
-        from PySide6.QtWidgets import QFileDialog
-        if not path:
-            file_path = QFileDialog.getOpenFileName(
-                    filter="Ourea catalog object (*.oco);;'Text Document' (*.txt)", selectedFilter=".oco"
-                )[0]
-            with open(file_path, "rb") as f:
-                return pickle.load(f)
-        else:
-            with open(path, mode="rb") as f:
-                return pickle.load(f)
+    def _open_object(cls, path: str = None):
+        """Charge un objet depuis un fichier .oco (pickle).
+
+        Les objets créés avec l'arborescence v1.x sont automatiquement
+        redirigés vers les nouveaux modules via ``_CompatUnpickler``.
+
+        Args:
+            path (str, optional): Chemin du fichier .oco à charger. Si None,
+                une boîte de dialogue Qt s'ouvre pour sélectionner le fichier.
+
+        Returns:
+            object: L'objet désérialisé.
+
+        Warning:
+            ``pickle.load`` peut exécuter du code arbitraire. N'ouvrez que
+            des fichiers .oco dont vous maîtrisez la provenance.
+        """
+        file_path = (
+            path
+            if path
+            else _file_dialog_open(
+                "Ourea catalog object (*.oco);;'Text Document' (*.txt)",
+                ".oco",
+            )
+        )
+        with open(file_path, "rb") as f:
+            return _CompatUnpickler(f).load()

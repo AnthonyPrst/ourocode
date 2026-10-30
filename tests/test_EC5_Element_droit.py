@@ -4,6 +4,7 @@
 import sys
 import pytest
 import forallpeople as si
+
 si.environment("structural")
 sys.path.insert(1, "./")
 from ourocode.eurocode.ec5 import element_droit as EC5
@@ -33,7 +34,11 @@ def traction(barre, load_and_combi_data):
 @pytest.fixture
 def compression(barre, load_and_combi_data):
     compression = EC5.Compression._from_parent_class(
-        barre, lo_y=7000, lo_z=7000, type_appuis_y="Rotule - Rotule", type_appuis_z="Rotule - Rotule",
+        barre,
+        lo_y=7000,
+        lo_z=7000,
+        type_appuis_y="Rotule - Rotule",
+        type_appuis_z="Rotule - Rotule",
     )
     compression.sigma_c_0_d(50)
     compression.f_c_0_d(**load_and_combi_data)
@@ -68,7 +73,7 @@ class Test_Barre(object):
         assert self.barre.section == "Rectangulaire"
         assert self.barre.classe == "GL24h"
         assert self.barre.cs == 2
-        assert self.barre.effet_systeme == "True"
+        assert self.barre.effet_systeme is True
 
     def test_Kdef(self):
         assert self.barre.K_def == 0.8
@@ -115,12 +120,12 @@ class Test_Flexion(object):
         assert self.flexion.K_m == 0.7
 
     def test_sig_m_crit(self):
-        assert self.flexion.sigma_m_crit[1]['y'].value == 36173913.04347827
-        assert self.flexion.sigma_m_crit[1]['z'].value == 1982117647.058823
+        assert self.flexion.sigma_m_crit[1]["y"].value == 36173913.04347827
+        assert self.flexion.sigma_m_crit[1]["z"].value == 1982117647.058823
 
     def test_lamb_rel_m(self):
-        assert self.flexion.lamb_rel_m[1]['y'] == 0.8145314840210526
-        assert self.flexion.lamb_rel_m[1]['z'] == 0.1100375486289208
+        assert self.flexion.lamb_rel_m[1]["y"] == 0.8145314840210526
+        assert self.flexion.lamb_rel_m[1]["z"] == 0.1100375486289208
 
     def test_sigma_m_d(self):
         assert self.flexion.sigma_m_rd["y"].value == 66666666.66666668
@@ -183,17 +188,15 @@ class Test_Compression:
 class Test_Compression_Perpendiculaire:
     @pytest.fixture(autouse=True)
     def setup_method(self, barre, load_and_combi_data):
-        self.compression_perpendiculaire = (
-            EC5.Compression_perpendiculaire._from_parent_class(
-                barre,
-                b_appuis=100,
-                l_appuis=50,
-                l1d=7000,
-                l1g=7000,
-                ad=50,
-                ag=0,
-                type_appuis_90="Appuis discret",
-            )
+        self.compression_perpendiculaire = EC5.Compression_perpendiculaire._from_parent_class(
+            barre,
+            b_appuis=100,
+            l_appuis=50,
+            l1d=7000,
+            l1g=7000,
+            ad=50,
+            ag=0,
+            type_appuis_90="Appuis discret",
         )
         self.compression_perpendiculaire.sigma_c_90_d(30)
         self.compression_perpendiculaire.f_c_90_d(**load_and_combi_data)
@@ -206,9 +209,7 @@ class Test_Compression_Perpendiculaire:
         assert self.compression_perpendiculaire.sigma_c_90_rd.value == 3750000.0
 
     def test_taux_c_90_d(self):
-        assert self.compression_perpendiculaire.taux_c_90_rd == {
-            "equ6.3": 1.3392857142857142
-        }
+        assert self.compression_perpendiculaire.taux_c_90_rd == {"equ6.3": 1.3392857142857142}
 
     @pytest.mark.parametrize(
         "type_appuis_90, classe, h_calcul, expected_output",
@@ -249,7 +250,7 @@ class Test_Cisaillement:
             (1, "GL24h", 200, 1),
             (2, "C24", 200, 0.67),
             (2, "GL24h", 200, 0.67),
-            (3, "GL24h", 200, 0.67)
+            (3, "GL24h", 200, 0.67),
         ],
     )
     def test_K_cr(self, cs, classe, h_calcul, expected_output):
@@ -274,20 +275,19 @@ class Test_Cisaillement:
 class Test_Compression_Inclinees:
     @pytest.fixture(autouse=True)
     def setup_method(self, compression, load_and_combi_data):
-        compression_perpendiculaire = (
-            EC5.Compression_perpendiculaire._from_parent_class(
-                compression,
-                b_appuis=100,
-                l_appuis=50,
-                l1d=7000,
-                l1g=7000,
-                ad=0,
-                ag=50,
-                type_appuis_90="Appuis discret",
-            )
+        compression_perpendiculaire = EC5.Compression_perpendiculaire._from_parent_class(
+            compression,
+            b_appuis=100,
+            l_appuis=50,
+            l1d=7000,
+            l1g=7000,
+            ad=0,
+            ag=50,
+            type_appuis_90="Appuis discret",
         )
         self.compression_inclinees = EC5.Compression_inclinees._from_parent_class(
-            compression_perpendiculaire, alpha=45  # Angle d'inclinaison en degrés
+            compression_perpendiculaire,
+            alpha=45,  # Angle d'inclinaison en degrés
         )
         self.compression_inclinees.sigma_c_alpha_d(50)
         self.compression_inclinees.taux_c_alpha_d(**load_and_combi_data)
@@ -296,9 +296,7 @@ class Test_Compression_Inclinees:
         assert self.compression_inclinees.sigma_c_alpha_rd.value == 9999999.999999998
 
     def test_taux_c_alpha_d(self):
-        assert self.compression_inclinees.taux_c_alpha_rd == {
-            "equ6.16": 2.111235119047619
-        }
+        assert self.compression_inclinees.taux_c_alpha_rd == {"equ6.16": 2.111235119047619}
 
     def test_alpha(self):
         assert self.compression_inclinees.alpha == 45
