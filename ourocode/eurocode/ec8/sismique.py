@@ -1,4 +1,4 @@
-﻿#! env\Scripts\python.exe
+#! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
 import os
 import matplotlib.pyplot as plt
@@ -6,54 +6,83 @@ from math import sqrt
 import numpy as np
 import pandas as pd
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 from ourocode.eurocode.core.batiment import Batiment
 
+
 class Sismique(Batiment):
-    ACTION = (
-        "Permanente G",
-        "Exploitation Q",
-        "Neige normale Sn"
+    ACTION = ("Permanente G", "Exploitation Q", "Neige normale Sn")
+    OCCUPATION = {
+        "Étages à occupations corrélées": 0.8,
+        "Étages à occupations indépendantes": 0.5,
+        "Toiture": 1,
+        "Autres": 1,
+    }
+    CAT_IMPORTANCE = tuple(
+        Batiment._data_from_csv(Batiment, os.path.join("sismique", "categorie_importance.csv")).index
     )
-    OCCUPATION = {"Étages à occupations corrélées": 0.8, "Étages à occupations indépendantes": 0.5, "Toiture": 1, "Autres": 1}
-    CAT_IMPORTANCE = tuple(Batiment._data_from_csv(Batiment, os.path.join("sismique", "categorie_importance.csv")).index)
-    CAT_IMPORTANCE_NS = tuple(Batiment._data_from_csv(Batiment, os.path.join("sismique", "categorie_importance_ns.csv")).index)
+    CAT_IMPORTANCE_NS = tuple(
+        Batiment._data_from_csv(Batiment, os.path.join("sismique", "categorie_importance_ns.csv")).index
+    )
     CLASSE_SOL = tuple(Batiment._data_from_csv(Batiment, os.path.join("sismique", "classe_sol.csv")).index)
     TYPE_SPECTRE = ("Type 2", "Type 1")
     AGR = {"Zone 1": 0.4, "Zone 2": 0.7, "Zone 3": 1.1, "Zone 4": 1.6, "Zone 5": 3}
     CLASSE_DUCTILITE = {
-        "Consoles, poutres, arcs avec 2 ou 3 assemblages brochés": {"q":1.5, "Classe de ductilité": "DCL"},
-        "Panneaux de Murs avec diaphragmes collés, assemblés par clous et boulons": {"q":2, "Classe de ductilité": "DCM"},
-        "Treillis assemblés par broches ou boulons": {"q":2, "Classe de ductilité": "DCM"},
-        "Structures mixtes Ossature bois (contreventement) + remplissage non porteur": {"q":2, "Classe de ductilité": "DCM"},
-        "Portiques hyperstatiques assemblés par broches ou boulons": {"q":2.5, "Classe de ductilité": "DCM"},
-        "Panneaux de murs avec diaphragmes cloués, assemblés par clous et boulons": {"q":3, "Classe de ductilité": "DCH"},
+        "Consoles, poutres, arcs avec 2 ou 3 assemblages brochés": {"q": 1.5, "Classe de ductilité": "DCL"},
+        "Panneaux de Murs avec diaphragmes collés, assemblés par clous et boulons": {
+            "q": 2,
+            "Classe de ductilité": "DCM",
+        },
+        "Treillis assemblés par broches ou boulons": {"q": 2, "Classe de ductilité": "DCM"},
+        "Structures mixtes Ossature bois (contreventement) + remplissage non porteur": {
+            "q": 2,
+            "Classe de ductilité": "DCM",
+        },
+        "Portiques hyperstatiques assemblés par broches ou boulons": {"q": 2.5, "Classe de ductilité": "DCM"},
+        "Panneaux de murs avec diaphragmes cloués, assemblés par clous et boulons": {
+            "q": 3,
+            "Classe de ductilité": "DCH",
+        },
     }
     CLASSE_DUCTILITE_NS = {
-        "Garde-corps ou ornements": {"q":1, "Classe de ductilité": "DCL"},
-        "Signalisations et panneaux d'affichage": {"q":1, "Classe de ductilité": "DCL"},
-        "Cheminées, mâts et réservoirs sur poteaux consoles non cvt sur plus de la moitié de leur h totale": {"q":1, "Classe de ductilité": "DCL"},
-        "Cheminées, mâts et réservoirs sur poteaux consoles non cvt sur moins de la moitié de leur h totale": {"q":2, "Classe de ductilité": "DCM"},
-        "Murs de façade et intermédiaires": {"q":2, "Classe de ductilité": "DCM"},
-        "Cloisons et façades": {"q":2, "Classe de ductilité": "DCM"},
-        "Éléments de fixations des meubles lourds et des biblio. supportés par les planchers": {"q":2, "Classe de ductilité": "DCM"},
-        "Éléments de fixations des faux-plafonds et autres dispositifs légers de fixation": {"q":2, "Classe de ductilité": "DCM"},
+        "Garde-corps ou ornements": {"q": 1, "Classe de ductilité": "DCL"},
+        "Signalisations et panneaux d'affichage": {"q": 1, "Classe de ductilité": "DCL"},
+        "Cheminées, mâts et réservoirs sur poteaux consoles non cvt sur plus de la moitié de leur h totale": {
+            "q": 1,
+            "Classe de ductilité": "DCL",
+        },
+        "Cheminées, mâts et réservoirs sur poteaux consoles non cvt sur moins de la moitié de leur h totale": {
+            "q": 2,
+            "Classe de ductilité": "DCM",
+        },
+        "Murs de façade et intermédiaires": {"q": 2, "Classe de ductilité": "DCM"},
+        "Cloisons et façades": {"q": 2, "Classe de ductilité": "DCM"},
+        "Éléments de fixations des meubles lourds et des biblio. supportés par les planchers": {
+            "q": 2,
+            "Classe de ductilité": "DCM",
+        },
+        "Éléments de fixations des faux-plafonds et autres dispositifs légers de fixation": {
+            "q": 2,
+            "Classe de ductilité": "DCM",
+        },
     }
     TYPE_DOMMAGES = ("Fragiles", "Ductiles", "Désolidarisé/Pas de risque")
+
     def __init__(
-        self, 
+        self,
         Kbx: float,
         Kby: float,
-        type_constructif_x: str=CLASSE_DUCTILITE,
-        type_constructif_y: str=CLASSE_DUCTILITE,
-        regulier_plan: bool=("True", "False"), 
-        regulier_elevation: bool=("True", "False"), 
-        cat_importance: str=CAT_IMPORTANCE, 
-        classe_sol: str=CLASSE_SOL, 
-        type_spectre: str=TYPE_SPECTRE,
-        **kwargs
-        ):
+        type_constructif_x: str = CLASSE_DUCTILITE,
+        type_constructif_y: str = CLASSE_DUCTILITE,
+        regulier_plan: bool = ("True", "False"),
+        regulier_elevation: bool = ("True", "False"),
+        cat_importance: str = CAT_IMPORTANCE,
+        classe_sol: str = CLASSE_SOL,
+        type_spectre: str = TYPE_SPECTRE,
+        **kwargs,
+    ):
         """Initialise le calcul sismique d'un bâtiment bois selon la méthode des forces latérales (EN 1998-1 §4.3.3.2).
 
         Attention : tous les bâtiments ne se prêtent pas à cette méthode (voir EN 1998-1 §4.3.3.2.1).
@@ -91,19 +120,25 @@ class Sismique(Batiment):
         """
         super().__init__(**kwargs)
         self.gravity_loads = {}
-        self._loads = {"default": {"Zi": 0*si.m, "load": 0*si.kN}}
+        self._loads = {"default": {"Zi": 0 * si.m, "load": 0 * si.kN}}
         self.cat_importance = cat_importance
         self.classe_sol = classe_sol
         self.type_spectre = type_spectre
         self.type_constructif_x = type_constructif_x
         self.type_constructif_y = type_constructif_y
         self.type_constructif = {"x": type_constructif_x, "y": type_constructif_y}
-        self.coeff_comportement = {"x": self.CLASSE_DUCTILITE[type_constructif_x], "y": self.CLASSE_DUCTILITE[type_constructif_y]}
+        self.coeff_comportement = {
+            "x": self.CLASSE_DUCTILITE[type_constructif_x],
+            "y": self.CLASSE_DUCTILITE[type_constructif_y],
+        }
         self.Kbx = Kbx * si.kN / si.m
         self.Kby = Kby * si.kN / si.m
-        self.K_b = {"Raideur du bâtiment dans la direction x": self.Kbx, "Raideur du bâtiment dans la direction y": self.Kby}
-        self.regulier_plan = regulier_plan
-        self.regulier_elevation = regulier_elevation
+        self.K_b = {
+            "Raideur du bâtiment dans la direction x": self.Kbx,
+            "Raideur du bâtiment dans la direction y": self.Kby,
+        }
+        self.regulier_plan = self._flag(regulier_plan)
+        self.regulier_elevation = self._flag(regulier_elevation)
         self._has_to_be_analyzed()
         self._is_ok_for_lateral_force_method()
 
@@ -115,23 +150,29 @@ class Sismique(Batiment):
             raise ValueError("Le bâtiment n'est pas à analyser au niveau sismique")
         elif self.cat_importance == "II" and self.region_sismique == "Zone 2":
             raise ValueError("Le bâtiment n'est pas à analyser au niveau sismique")
-        else: 
+        else:
             return True
-    
+
     def _is_ok_for_lateral_force_method(self):
         T1 = self.T1[1]
         TC = float(self.type_spectre_table["TC"])
         if self.cat_importance == "IV":
-            raise ValueError("Le bâtiment ne peut pas être analysé avec la méthode des forces latérales car le bâtiment est de catégorie IV")
+            raise ValueError(
+                "Le bâtiment ne peut pas être analysé avec la méthode des forces latérales car le bâtiment est de catégorie IV"
+            )
         elif not self.regulier_elevation:
-            raise ValueError("Le bâtiment ne peut pas être analysé avec la méthode des forces latérales car le bâtiment n'est pas régulier en élévation")
-        elif T1["x"] > 4 * TC or T1["x"] > 2  or T1["y"] > 4 * TC or T1["y"] > 2:
-            raise ValueError("Le bâtiment ne peut pas être analysé avec la méthode des forces latérales car le bâtiment est soumis à des modes de vibrations\
-                de rang plus élevé que le mode fondamentale dans chaque direction principale (EN 1998-1 §4.3.3.2.1)")
+            raise ValueError(
+                "Le bâtiment ne peut pas être analysé avec la méthode des forces latérales car le bâtiment n'est pas régulier en élévation"
+            )
+        elif T1["x"] > 4 * TC or T1["x"] > 2 or T1["y"] > 4 * TC or T1["y"] > 2:
+            raise ValueError(
+                "Le bâtiment ne peut pas être analysé avec la méthode des forces latérales car le bâtiment est soumis à des modes de vibrations\
+                de rang plus élevé que le mode fondamentale dans chaque direction principale (EN 1998-1 §4.3.3.2.1)"
+            )
         else:
-            return True 
-    
-    def save_gravity_load_data(self, path: str=None) -> None:
+            return True
+
+    def save_gravity_load_data(self, path: str = None) -> None:
         """Sauvegarde les données des charges gravitaires dans un fichier JSON.
 
         Args:
@@ -140,8 +181,8 @@ class Sismique(Batiment):
                 Defaults to None.
         """
         super().save_data(self.gravity_loads, type_data="JSON", path=path)
-    
-    def load_gravity_load_data(self, path: str=None) -> dict:
+
+    def load_gravity_load_data(self, path: str = None) -> dict:
         """Charge les données des charges gravitaires depuis un fichier JSON et reconstruit l'état interne.
 
         Relit le fichier produit par save_gravity_load_data et appelle _set_loads pour
@@ -160,17 +201,19 @@ class Sismique(Batiment):
         for etage, loads in data.items():
             for load_name, load in loads.items():
                 self._set_loads(
-                    load["Charge gravitaire"], 
-                    load["Surface"], 
-                    etage, 
-                    load["Zi"], 
-                    load["Action"], 
-                    load["Catégorie"], 
-                    load["Occupations"]
-                    )
+                    load["Charge gravitaire"],
+                    load["Surface"],
+                    etage,
+                    load["Zi"],
+                    load["Action"],
+                    load["Catégorie"],
+                    load["Occupations"],
+                )
         return self.gravity_loads
 
-    def _set_loads(self, load: float, surface: float, etage: str, z_i: float, action: str, categorie_Q: str, occupations: str):
+    def _set_loads(
+        self, load: float, surface: float, etage: str, z_i: float, action: str, categorie_Q: str, occupations: str
+    ):
         def coef_psy(cat=None):
             """Retourne les caractéristiques psy sous forme de dictionnaire"""
             dict_psy = {"Vent": {}, "Température": {}}
@@ -199,12 +242,12 @@ class Sismique(Batiment):
                 else:
                     index = "Neige <= 1000m"
             return index
-            
+
         coeff_occupation = 1
         psy2 = 1
         if self._loads.get("default"):
             self._loads.pop("default")
-            
+
         if action != "Permanente G":
             if action == "Exploitation Q":
                 psy2 = coef_psy(categorie_Q)[_key_action_psy(action)]["psy2"]
@@ -216,20 +259,19 @@ class Sismique(Batiment):
             self._loads[etage]["load"] = self._loads[etage]["load"] + load_f
         else:
             self._loads[etage] = {"load": load_f, "Zi": z_i}
-        
 
     def add_gravity_load(
         self,
-        name: str, 
-        load: si.kN / si.m**2, 
-        surface: si.m**2, 
-        etage: str=Batiment.ETAGE, 
-        z_i: float=0, 
-        action: str=ACTION, 
-        categorie_Q: str=Batiment.CAT_TYPE, 
-        occupations: str=OCCUPATION, 
-        comment: str=""
-        ) -> dict:
+        name: str,
+        load: si.kN / si.m**2,
+        surface: si.m**2,
+        etage: str = Batiment.ETAGE,
+        z_i: float = 0,
+        action: str = ACTION,
+        categorie_Q: str = Batiment.CAT_TYPE,
+        occupations: str = OCCUPATION,
+        comment: str = "",
+    ) -> dict:
         """Ajoute une charge gravitaire à un étage pour le calcul de la masse sismique.
 
         La charge est convertie en masse sismique selon la combinaison quasi-permanente
@@ -259,7 +301,7 @@ class Sismique(Batiment):
                 "Zi", "Charge gravitaire", "Surface", "Action", "Catégorie",
                 "Occupations", "Commentaire".
         """
-            
+
         load = abs(load) * si.kN / si.m**2
         surface = surface * si.m**2
         z_i = z_i * si.m
@@ -270,18 +312,10 @@ class Sismique(Batiment):
             "Action": action,
             "Catégorie": categorie_Q,
             "Occupations": occupations,
-            "Commentaire": comment
+            "Commentaire": comment,
         }
 
-        self._set_loads(
-            load, 
-            surface, 
-            etage, 
-            z_i, 
-            action, 
-            categorie_Q, 
-            occupations
-            )
+        self._set_loads(load, surface, etage, z_i, action, categorie_Q, occupations)
 
         if self.gravity_loads.get(etage):
             self.gravity_loads[etage][name] = value
@@ -299,9 +333,9 @@ class Sismique(Batiment):
         file = "carte_action_region.csv"
         df = self._data_from_csv(file, index_col=1)
         return df.loc[str(self.code_INSEE)]["Alea_sismique"]
-    
+
     @property
-    def cat_importance_table(self) -> 'pd.Series':
+    def cat_importance_table(self) -> "pd.Series":
         """Retourne les données normatives de la catégorie d'importance sélectionnée.
 
         Returns:
@@ -313,7 +347,7 @@ class Sismique(Batiment):
         return data_cat_imp.loc[self.cat_importance]
 
     @property
-    def classe_sol_table(self) -> 'pd.Series':
+    def classe_sol_table(self) -> "pd.Series":
         """Retourne les paramètres de sol de la classe sélectionnée selon EN 1998-1 §3.1.2.
 
         Returns:
@@ -325,7 +359,7 @@ class Sismique(Batiment):
         return data_classe_sol.loc[self.classe_sol]
 
     @property
-    def type_spectre_table(self) -> 'pd.Series':
+    def type_spectre_table(self) -> "pd.Series":
         """Retourne les paramètres du spectre élastique horizontal selon EN 1998-1 §3.2.2.
 
         Sélectionne le fichier de spectre type 1 ou type 2 selon type_spectre,
@@ -358,7 +392,7 @@ class Sismique(Batiment):
             float: Accélération de référence en m/s² avec unité (si.m/si.s²),
                 issue du dictionnaire AGR pour la zone sismique du projet.
         """
-        return self.AGR[self.region_sismique] *si.m / si.s**2
+        return self.AGR[self.region_sismique] * si.m / si.s**2
 
     @property
     def a_g(self) -> tuple:
@@ -369,10 +403,12 @@ class Sismique(Batiment):
         """
         a_gr = self.a_gr
         gamma_I = self.gamma_I
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             a_g = a_gr * gamma_I
             return a_g
+
         return val()
 
     @property
@@ -383,7 +419,6 @@ class Sismique(Batiment):
             float: Coefficient gamma_I (ex. : 0.8, 1.0, 1.2, 1.4 pour cat. I à IV).
         """
         return self.cat_importance_table["gamma_I"]
-    
 
     def _spectre_elastique_calcul(self, T1: float, q: float, dir: str) -> tuple[str, dict[str, float]]:
         """
@@ -404,44 +439,46 @@ class Sismique(Batiment):
         TC = float(self.type_spectre_table["TC"])
         TD = float(self.type_spectre_table["TD"])
         if 0 <= T1 <= TB:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 direction = dir
-                S_d_t1 = a_g * S * (2/3 + T1/TB *(2.5/q - 2/3))
+                S_d_t1 = a_g * S * (2 / 3 + T1 / TB * (2.5 / q - 2 / 3))
                 return S_d_t1
-            
+
         elif TB <= T1 <= TC:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 direction = dir
-                S_d_t1 = a_g * S * 2.5/q
+                S_d_t1 = a_g * S * 2.5 / q
                 return S_d_t1
 
         elif TC <= T1 <= TD:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 direction = dir
-                res1 = a_g * S * 2.5/q * (TC/T1)
+                res1 = a_g * S * 2.5 / q * (TC / T1)
                 res2 = a_g * beta
                 S_d_t1 = max(res1, res2)
                 return S_d_t1
 
         elif TD <= T1:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 direction = dir
-                res1 = a_g * S * 2.5/q * ((TC*TD)/T1**2)
+                res1 = a_g * S * 2.5 / q * ((TC * TD) / T1**2)
                 res2 = a_g * beta
                 S_d_t1 = max(res1, res2)
                 return S_d_t1
+
         return val()
-    
+
     def show_spectre_elastique_calcul(
-        self, 
-        direction: str=("x", "y"), 
-        screenshot: bool = ("False", "True"),
-        filepath: str=None
-        ) -> None:
+        self, direction: str = ("x", "y"), screenshot: bool = ("False", "True"), filepath: str = None
+    ) -> None:
         """Affiche le spectre élastique de calcul S_d(T) selon EN 1998-1 §3.2.2.5.
 
         Trace la courbe S_d(T) sur [0, 4 s] pour la direction choisie avec matplotlib.
@@ -454,6 +491,7 @@ class Sismique(Batiment):
                 Si None et screenshot=True, une boîte de dialogue s'ouvre.
                 Defaults to None.
         """
+        screenshot = self._flag(screenshot)
         q = self.coeff_comportement[direction]["q"]
         array = np.array([])
         a_g = self.a_g[1]
@@ -464,15 +502,15 @@ class Sismique(Batiment):
         beta = 0.2
         for T1 in np.arange(0, 4, 0.01):
             if 0 <= T1 <= TB:
-                S_d_t1 = a_g * S * (2/3 + T1/TB * (2.5/q - 2/3))
+                S_d_t1 = a_g * S * (2 / 3 + T1 / TB * (2.5 / q - 2 / 3))
             elif TB <= T1 <= TC:
-                S_d_t1 = a_g * S * 2.5/q
+                S_d_t1 = a_g * S * 2.5 / q
             elif TC <= T1 <= TD:
-                res1 = a_g * S * 2.5/q * (TC/T1)
+                res1 = a_g * S * 2.5 / q * (TC / T1)
                 res2 = a_g * beta
                 S_d_t1 = max(res1, res2)
             elif TD <= T1:
-                res1 = a_g * S * 2.5/q * ((TC*TD)/T1**2)
+                res1 = a_g * S * 2.5 / q * ((TC * TD) / T1**2)
                 res2 = a_g * beta
                 S_d_t1 = max(res1, res2)
             array = np.append(array, S_d_t1.value)
@@ -489,6 +527,7 @@ class Sismique(Batiment):
         if screenshot:
             if not filepath:
                 from PySide6.QtWidgets import QFileDialog
+
                 filepath = QFileDialog.getSaveFileName(
                     filter="PNG (*.png)",
                     selectedFilter=".png",
@@ -511,12 +550,14 @@ class Sismique(Batiment):
         """
         K_b_x = self.Kbx.value
         K_b_y = self.Kby.value
-        m_total = sum(load["load"].value/10 for load in self._loads.values())
+        m_total = sum(load["load"].value / 10 for load in self._loads.values())
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            T_1_x = 2 * sqrt(m_total/K_b_x) # en s
-            T_1_y = 2 * sqrt(m_total/K_b_y) # en s
+            T_1_x = 2 * sqrt(m_total / K_b_x)  # en s
+            T_1_y = 2 * sqrt(m_total / K_b_y)  # en s
             return {"x": T_1_x, "y": T_1_y}
+
         return val()
 
     @property
@@ -549,7 +590,7 @@ class Sismique(Batiment):
             tuple: (latex_string, valeurs) où valeurs est un dict {"x": F_b_x, "y": F_b_y}
                 avec les efforts de base en kN (avec unité si.kN).
         """
-        m_total = sum(load["load"].value/9.81 for load in self._loads.values()) * si.kg
+        m_total = sum(load["load"].value / 9.81 for load in self._loads.values()) * si.kg
         Sd_t = self.Sd_t[1]
         S_d_T1_x = Sd_t["x"]
         S_d_T1_y = Sd_t["y"]
@@ -557,13 +598,15 @@ class Sismique(Batiment):
         TC = float(self.type_spectre_table["TC"])
         lamb_x = 0.85 if T1["x"] <= 2 * TC and len(self._loads.keys()) > 2 else 1
         lamb_y = 0.85 if T1["y"] <= 2 * TC and len(self._loads.keys()) > 2 else 1
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            F_b_x = S_d_T1_x * m_total * lamb_x # form4.5
-            F_b_y = S_d_T1_y * m_total * lamb_y # form4.5
+            F_b_x = S_d_T1_x * m_total * lamb_x  # form4.5
+            F_b_y = S_d_T1_y * m_total * lamb_y  # form4.5
             return {"x": F_b_x, "y": F_b_y}
+
         return val()
-            
+
     def coeff_torsion_accidentelle(self, x: si.m, Le: si.m) -> tuple:
         """Calcule le coefficient de torsion accidentelle delta selon EN 1998-1 §4.3.3.2.4 (éq. 4.12).
 
@@ -579,13 +622,15 @@ class Sismique(Batiment):
         Returns:
             tuple: (latex_string, delta) où delta est le coefficient de torsion accidentelle (sans unité).
         """
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            delta = 1 + 1.2 * (x/Le) # form4.12
+            delta = 1 + 1.2 * (x / Le)  # form4.12
             return delta
+
         return val()
 
-    def Fi(self, etage: str=Batiment.ETAGE) -> tuple:
+    def Fi(self, etage: str = Batiment.ETAGE) -> tuple:
         """Calcule l'effort horizontal équivalent F_i à l'étage i selon EN 1998-1 §4.3.3.2.3 (éq. 4.11).
 
         Formule : F_i = F_b × (z_i × m_i) / sum(z_j × m_j).
@@ -602,21 +647,23 @@ class Sismique(Batiment):
         sum_zj_mj = 0
         for level, load in self._loads.items():
             z_i = load["Zi"]
-            sum_zj_mj = sum_zj_mj + z_i * load["load"].value/9.81*si.kg
-        m_i = self._loads.get(etage)["load"].value/9.81*si.kg
+            sum_zj_mj = sum_zj_mj + z_i * load["load"].value / 9.81 * si.kg
+        m_i = self._loads.get(etage)["load"].value / 9.81 * si.kg
         z_i = self._loads.get(etage)["Zi"]
         F_b_x = self.Fb[1]["x"]
         F_b_y = self.Fb[1]["y"]
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             niveau = etage
-            F_i_x = F_b_x * (z_i*m_i)/sum_zj_mj  # form4.13
-            F_i_y = F_b_y * (z_i*m_i)/sum_zj_mj # form4.13
+            F_i_x = F_b_x * (z_i * m_i) / sum_zj_mj  # form4.13
+            F_i_y = F_b_y * (z_i * m_i) / sum_zj_mj  # form4.13
             return {"x": F_i_x, "y": F_i_y}
+
         return val()
-    
+
     @property
-    def Fi_table(self) -> 'pd.DataFrame':
+    def Fi_table(self) -> "pd.DataFrame":
         """Retourne le tableau des efforts horizontaux équivalents à chaque étage selon EN 1998-1 §4.3.3.2.3.
 
         Valable uniquement si les déplacements horizontaux croissent linéairement avec la hauteur.
@@ -632,17 +679,17 @@ class Sismique(Batiment):
         sum_zj_mj = 0
         for level, load in self._loads.items():
             z_j = load["Zi"]
-            sum_zj_mj = sum_zj_mj + z_j * load["load"].value/9.81*si.kg
+            sum_zj_mj = sum_zj_mj + z_j * load["load"].value / 9.81 * si.kg
         for level, load in self._loads.items():
             if level != "default":
-                m_i = load["load"].value/9.81*si.kg
+                m_i = load["load"].value / 9.81 * si.kg
                 z_i = load["Zi"]
-                F_i_x = F_b_x * (z_i*m_i)/sum_zj_mj  # form4.13
-                F_i_y = F_b_y * (z_i*m_i)/sum_zj_mj # form4.13
+                F_i_x = F_b_x * (z_i * m_i) / sum_zj_mj  # form4.13
+                F_i_y = F_b_y * (z_i * m_i) / sum_zj_mj  # form4.13
                 dict_Fi.loc[level] = [F_i_x, F_i_y]
         return dict_Fi
 
-    def ds(self, de: float, direction: str=("x", "y")) -> tuple:
+    def ds(self, de: float, direction: str = ("x", "y")) -> tuple:
         """Calcule le déplacement de calcul d_s selon EN 1998-1 §4.3.4 (éq. 4.23).
 
         Formule : d_s = q_d × d_e, avec q_d = q (coefficient de comportement de la direction).
@@ -657,13 +704,15 @@ class Sismique(Batiment):
         """
         d_e = de * si.mm
         q_d = self.coeff_comportement[direction]["q"]
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            d_s = d_e * q_d # form4.23
+            d_s = d_e * q_d  # form4.23
             return d_s
+
         return val()
 
-    def coeff_second_ordre(self, dr: float, V_tot: si.kN, etage: str=Batiment.ETAGE) -> tuple:
+    def coeff_second_ordre(self, dr: float, V_tot: si.kN, etage: str = Batiment.ETAGE) -> tuple:
         """Calcule le coefficient d'effet P-delta theta_r selon EN 1998-1 §4.3.5.2.2 (éq. 4.28).
 
         Formule : theta_r = (P_tot × d_r) / (V_tot × h_lvl).
@@ -694,18 +743,21 @@ class Sismique(Batiment):
                     P_tot = P_tot + load["load"]
                 if h_lvl < abs(z_j - z_i) and level != etage:
                     h_lvl = abs(z_j - z_i)
-        
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            theta_r = (P_tot * d_r) / (V_tot * h_lvl) # form4.28
+            theta_r = (P_tot * d_r) / (V_tot * h_lvl)  # form4.28
             if theta_r <= 0.1:
                 coeff_P_delta = 1
             elif 0.1 < theta_r <= 0.2:
-                coeff_P_delta = 1 /( 1 - theta_r)
+                coeff_P_delta = 1 / (1 - theta_r)
             return coeff_P_delta
+
         return val()
-    
-    def taux_limitations_dommages(self, dr: float, etage: str=Batiment.ETAGE, type_dommages: str=TYPE_DOMMAGES) -> tuple:
+
+    def taux_limitations_dommages(
+        self, dr: float, etage: str = Batiment.ETAGE, type_dommages: str = TYPE_DOMMAGES
+    ) -> tuple:
         """Calcule le taux de limitation des dommages selon EN 1998-1 §4.4.3.2.
 
         Vérifie que le déplacement inter-étages d_r × nu reste dans la limite normative
@@ -734,31 +786,35 @@ class Sismique(Batiment):
                 if h_lvl < abs(z_j - z_i) and level != etage:
                     h_lvl = abs(z_j - z_i)
         if type_dommages == "Fragiles":
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                taux_4_31 = (d_r * nu) / (h_lvl / 200) # equ4.31
+                taux_4_31 = (d_r * nu) / (h_lvl / 200)  # equ4.31
                 return taux_4_31
         elif type_dommages == "Ductiles":
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                taux_4_32 = (d_r * nu) / (h_lvl / 133) # equ4.32
+                taux_4_32 = (d_r * nu) / (h_lvl / 133)  # equ4.32
                 return taux_4_32
         elif type_dommages == "Désolidarisé/Pas de risque":
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                taux_4_33 = (d_r * nu) / (h_lvl / 100) # equ4.33
+                taux_4_33 = (d_r * nu) / (h_lvl / 100)  # equ4.33
                 return taux_4_33
+
         return val()
 
     def Fa(
-        self, 
-        ma: float, 
-        Ta_x: float, 
-        Ta_y: float, 
-        z: float, 
-        type_element_ns: str=CLASSE_DUCTILITE_NS, 
-        cat_importance_ns: str=CAT_IMPORTANCE_NS
-        ) -> tuple:
+        self,
+        ma: float,
+        Ta_x: float,
+        Ta_y: float,
+        z: float,
+        type_element_ns: str = CLASSE_DUCTILITE_NS,
+        cat_importance_ns: str = CAT_IMPORTANCE_NS,
+    ) -> tuple:
         """Calcule l'effort sismique horizontal F_a sur un élément non structural selon EN 1998-1 §4.3.5.2 (éq. 4.24).
 
         Formule : F_a = (S_a × m_a × gamma_a) / q_a, avec S_a basé sur le spectre de plancher.
@@ -784,38 +840,40 @@ class Sismique(Batiment):
         T_a_y = Ta_y * si.s
         m_a = ma * si.kg
         a_g = self.a_g[1]
-        g = 9.81 * si.m/si.s**2
-        S = float(self.type_spectre_table["S"]) * si.m*si.s**-2
+        g = 9.81 * si.m / si.s**2
+        S = float(self.type_spectre_table["S"]) * si.m * si.s**-2
         T_1_x = self.T1[1]["x"] * si.s
         T_1_y = self.T1[1]["y"] * si.s
 
         file = os.path.join("sismique", "categorie_importance_ns.csv")
         gamma_a = self._data_from_csv(file).loc[cat_importance_ns]["gamma_a"]
         q_a = self.CLASSE_DUCTILITE_NS[type_element_ns]["q"]
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             alpha = a_g / g
-            S_a_x = alpha * S *(3*(1 + z/h_bat)/(1 + (1-T_a_x/T_1_x)**2)-0.5)
+            S_a_x = alpha * S * (3 * (1 + z / h_bat) / (1 + (1 - T_a_x / T_1_x) ** 2) - 0.5)
             S_a_x = max(S_a_x, alpha * S)
-            F_a_x = (S_a_x * m_a * gamma_a) / q_a # form4.24 dans le sens x
-            S_a_y = alpha * S *(3*(1 + z/h_bat)/(1 + (1-T_a_y/T_1_y)**2)-0.5)
+            F_a_x = (S_a_x * m_a * gamma_a) / q_a  # form4.24 dans le sens x
+            S_a_y = alpha * S * (3 * (1 + z / h_bat) / (1 + (1 - T_a_y / T_1_y) ** 2) - 0.5)
             S_a_y = max(S_a_y, alpha * S)
-            F_a_y = (S_a_y * m_a * gamma_a) / q_a # form4.24 dans le sens y
+            F_a_y = (S_a_y * m_a * gamma_a) / q_a  # form4.24 dans le sens y
             return {"x": F_a_x, "y": F_a_y}
+
         return val()
 
     def F_sismique_final_capacite(
         self,
-        etage: str=Batiment.ETAGE, 
-        gamma_d_x: str=("Rupture fragile", "Rupture ductile"), 
-        gamma_d_y: str=("Rupture fragile", "Rupture ductile"), 
-        Omega_x: float=1, 
-        Omega_y: float=1, 
-        eta_torsion_x: float=1, 
-        eta_torsion_y: float=1, 
-        P_delta_x: float=1, 
-        P_delta_y: float=1
-        ) -> tuple:
+        etage: str = Batiment.ETAGE,
+        gamma_d_x: str = ("Rupture fragile", "Rupture ductile"),
+        gamma_d_y: str = ("Rupture fragile", "Rupture ductile"),
+        Omega_x: float = 1,
+        Omega_y: float = 1,
+        eta_torsion_x: float = 1,
+        eta_torsion_y: float = 1,
+        P_delta_x: float = 1,
+        P_delta_y: float = 1,
+    ) -> tuple:
         """Calcule l'effort sismique de dimensionnement des éléments non dissipatifs par capacité.
 
         Formule : F_s = F_i × gamma_d × Omega × eta_torsion × P_delta,
@@ -853,21 +911,23 @@ class Sismique(Batiment):
             gamma_d_y = 1.3
         elif gamma_d_y == "Rupture ductile":
             gamma_d_y = 1.1
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             F_s_fin_x = F_i_x * gamma_d_x * Omega_x * eta_torsion_x * P_delta_x
             F_s_fin_y = F_i_y * gamma_d_y * Omega_y * eta_torsion_y * P_delta_y
             return {"x": F_s_fin_x, "y": F_s_fin_y}
+
         return val()
 
     def F_sismique_final_dissipatif(
         self,
-        etage: str=Batiment.ETAGE, 
-        eta_torsion_x: float=1, 
-        eta_torsion_y: float=1, 
-        P_delta_x: float=1, 
-        P_delta_y: float=1
-        ) -> tuple:
+        etage: str = Batiment.ETAGE,
+        eta_torsion_x: float = 1,
+        eta_torsion_y: float = 1,
+        P_delta_x: float = 1,
+        P_delta_y: float = 1,
+    ) -> tuple:
         """Calcule l'effort sismique de dimensionnement des éléments dissipatifs.
 
         Formule : F_s = F_i × eta_torsion × P_delta (sans amplification par capacité).
@@ -889,10 +949,11 @@ class Sismique(Batiment):
         """
         F_i_x = self.Fi_table.loc[etage]["Fi,x"]
         F_i_y = self.Fi_table.loc[etage]["Fi,y"]
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             F_s_fin_x = F_i_x * eta_torsion_x * P_delta_x
             F_s_fin_y = F_i_y * eta_torsion_y * P_delta_y
             return {"x": F_s_fin_x, "y": F_s_fin_y}
+
         return val()
-        

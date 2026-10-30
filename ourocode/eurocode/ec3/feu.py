@@ -1,10 +1,11 @@
-﻿#! env\Scripts\python.exe
+#! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
 import math as mt
 import pandas as pd
 from matplotlib import pyplot as plt
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
@@ -37,7 +38,7 @@ class _TemperatureGaz(object):
     @staticmethod
     def courbe_iso(times_min: float) -> list[float]:
         """Calcule θ_g pour une liste de temps (min) sur ISO 834 avec intervalle de 5 secondes"""
-        times_secondes = [dt for dt in range(0, times_min*60+5, 5)]
+        times_secondes = [dt for dt in range(0, times_min * 60 + 5, 5)]
         return [_TemperatureGaz.iso_834(t) for t in times_secondes]
 
 
@@ -114,7 +115,7 @@ class _CoeffFeu(object):
         700: 0.100,
         800: 0.067,
         900: 0.033,
-        1000: 0.0
+        1000: 0.0,
     }
 
     KW_THETA = {
@@ -129,9 +130,8 @@ class _CoeffFeu(object):
         700: 0.130,
         800: 0.074,
         900: 0.018,
-        1000: 0.0
+        1000: 0.0,
     }
-
 
     def __init__(self, theta: float, **kwargs):
         """
@@ -182,7 +182,6 @@ class _CoeffFeu(object):
     def kw_theta(self) -> float:
         """Coefficient k_w,θ (boulons) à la température theta."""
         return self._interp(self.KW_THETA, self.theta)
-    
 
     def synthese(self) -> dict:
         """Renvoie un récapitulatif pratique sous forme de dict."""
@@ -210,7 +209,7 @@ class Feu_acier(Plat):
     """
 
     SIGMA = 5.67e-8  # Constante de Stefan-Boltzmann (W/m²K⁴)
-    ALPHA_C = 25 # W/m²K coefficient de transfert thermique par convection selon EN 1991-1-2 §3.2.1(2)
+    ALPHA_C = 25  # W/m²K coefficient de transfert thermique par convection selon EN 1991-1-2 §3.2.1(2)
 
     def __init__(
         self,
@@ -250,22 +249,16 @@ class Feu_acier(Plat):
     def _hdot_net_d(self, theta_g: float, theta_a: float) -> float:
         """Flux thermique net (conv + rad) en W/m²."""
         # Convection
-        hdot_net_c = self.ALPHA_C * (theta_g - theta_a) #Flux thermique net par convection en W/m²
+        hdot_net_c = self.ALPHA_C * (theta_g - theta_a)  # Flux thermique net par convection en W/m²
 
-        #Flux thermique net par radiation en W/m²
+        # Flux thermique net par radiation en W/m²
 
-        # Dans le cas d'éléments complètement immergés dans le feu, la température de rayonnement Θr(t) peut 
-        # être représentée par la température des gaz Θg(t) les entourant.  
+        # Dans le cas d'éléments complètement immergés dans le feu, la température de rayonnement Θr(t) peut
+        # être représentée par la température des gaz Θg(t) les entourant.
         theta_r = theta_g
-        epsilon_f = 1 # Emissivité du feu
-        phi = 1 # facteur de forme
-        hdot_net_r = (
-            phi
-            * self.epsilon_m
-            * epsilon_f
-            * self.SIGMA
-            * ((theta_r + 273) ** 4 - (theta_a + 273) ** 4)
-        )
+        epsilon_f = 1  # Emissivité du feu
+        phi = 1  # facteur de forme
+        hdot_net_r = phi * self.epsilon_m * epsilon_f * self.SIGMA * ((theta_r + 273) ** 4 - (theta_a + 273) ** 4)
         return hdot_net_c + hdot_net_r
 
     @staticmethod
@@ -282,12 +275,7 @@ class Feu_acier(Plat):
         if theta_a < 20:
             raise ValueError("La température initiale de l'acier θ_a doit être supérieure ou égale à 20°C.")
         if theta_a < 600:
-            return (
-                425
-                + 7.73e-1 * theta_a
-                - 1.69e-3 * theta_a**2
-                + 2.22e-6 * theta_a**3
-            )
+            return 425 + 7.73e-1 * theta_a - 1.69e-3 * theta_a**2 + 2.22e-6 * theta_a**3
         elif theta_a < 735:
             return 666 + 13002 / (738 - theta_a)
         elif theta_a < 900:
@@ -296,7 +284,7 @@ class Feu_acier(Plat):
             return 650
         else:
             raise ValueError("La température initiale de l'acier θ_a doit être inférieure ou égale à 1200°C.")
-            
+
     def _step(self, theta_g: float, dt: float) -> float:
         """
         Avance d'un pas de temps et met à jour θ_a.
@@ -312,13 +300,7 @@ class Feu_acier(Plat):
             raise ValueError("dt doit être inférieur ou égal à 5s.")
         c_a = self._c_a(self.theta_a)
         hdot_net = self._hdot_net_d(theta_g, self.theta_a)
-        dtheta = (
-            self.k_sh
-            * self.am_v
-            / (self.rho_a * c_a)
-            * hdot_net
-            * dt
-        )
+        dtheta = self.k_sh * self.am_v / (self.rho_a * c_a) * hdot_net * dt
         self.theta_a += dtheta
         return dtheta
 
@@ -332,9 +314,12 @@ class Feu_acier(Plat):
         Returns:
             list[float]: températures acier θ_a pour chaque pas de 5 s.
         """
-        times_secondes = [dt for dt in range(0, self.time*60+5, 5)]
+        times_secondes = [dt for dt in range(0, self.time * 60 + 5, 5)]
         theta_g = _TemperatureGaz.courbe_iso(self.time)
-        self.fire_data = pd.DataFrame(index=times_secondes, columns=["t (s)", "θg (°C)","Δθa,t (C°)", "θa (°C)", "ky,θ", "kp,θ", "kE,θ", "kb,θ", "kw,θ"])
+        self.fire_data = pd.DataFrame(
+            index=times_secondes,
+            columns=["t (s)", "θg (°C)", "Δθa,t (C°)", "θa (°C)", "ky,θ", "kp,θ", "kE,θ", "kb,θ", "kw,θ"],
+        )
         t_prev = 0
         d_theta = 0
         for index, t_curr in enumerate(times_secondes):
@@ -381,9 +366,9 @@ class Feu_acier(Plat):
         """
         if time < 0 or time > self.time:
             raise ValueError(f"Le temps doit être compris entre 0 et la durée totale du feu, soit {self.time} minutes.")
-        return self.fire_data.loc[time*60]
+        return self.fire_data.loc[time * 60]
 
-    def show_temperatures(self, screenshot: bool = ("False", "True"), filepath: str=None):
+    def show_temperatures(self, screenshot: bool = ("False", "True"), filepath: str = None):
         """Affiche ou enregistre le graphique de l'évolution des températures θ_g(t) et θ_a(t).
 
         Args:
@@ -395,9 +380,10 @@ class Feu_acier(Plat):
         Returns:
             str | None: Chemin du fichier enregistré si screenshot=True, None sinon.
         """
+        screenshot = self._flag(screenshot)
         plt.figure(figsize=(10, 5))
-        plt.plot(self.fire_data["t (s)"]/60, self.fire_data["θg (°C)"], label="Température des gaz θg(t) (°C)")
-        plt.plot(self.fire_data["t (s)"]/60, self.fire_data["θa (°C)"], label="Température de l'acier θa(t) (°C)")
+        plt.plot(self.fire_data["t (s)"] / 60, self.fire_data["θg (°C)"], label="Température des gaz θg(t) (°C)")
+        plt.plot(self.fire_data["t (s)"] / 60, self.fire_data["θa (°C)"], label="Température de l'acier θa(t) (°C)")
         plt.xlabel("Temps (min)")
         plt.ylabel("Température (°C)")
         plt.grid(True, which="both", linestyle="--", alpha=0.4)
@@ -406,6 +392,7 @@ class Feu_acier(Plat):
         if screenshot:
             if not filepath:
                 from PySide6.QtWidgets import QFileDialog
+
                 filepath = QFileDialog.getSaveFileName(
                     filter="PNG (*.png)",
                     selectedFilter=".png",
@@ -415,7 +402,7 @@ class Feu_acier(Plat):
         else:
             plt.show()
 
-    def show_reductions_factors(self, screenshot: bool = ("False", "True"), filepath: str=None):
+    def show_reductions_factors(self, screenshot: bool = ("False", "True"), filepath: str = None):
         """Affiche ou enregistre le graphique des facteurs de réduction au feu k_y,θ, k_p,θ, k_E,θ, k_b,θ, k_w,θ.
 
         Args:
@@ -427,12 +414,17 @@ class Feu_acier(Plat):
         Returns:
             str | None: Chemin du fichier enregistré si screenshot=True, None sinon.
         """
+        screenshot = self._flag(screenshot)
         plt.figure(figsize=(10, 5))
-        plt.plot(self.fire_data["t (s)"]/60, self.fire_data["ky,θ"], label="Facteur de réduction ky,θ")
-        plt.plot(self.fire_data["t (s)"]/60, self.fire_data["kp,θ"], label="Facteur de réduction kp,θ")
-        plt.plot(self.fire_data["t (s)"]/60, self.fire_data["kE,θ"], label="Facteur de réduction kE,θ")
-        plt.plot(self.fire_data["t (s)"]/60, self.fire_data["kb,θ"], label="Facteur de réduction pour les boulons kb,θ")
-        plt.plot(self.fire_data["t (s)"]/60, self.fire_data["kw,θ"], label="Facteur de réduction pour les soudures kw,θ")
+        plt.plot(self.fire_data["t (s)"] / 60, self.fire_data["ky,θ"], label="Facteur de réduction ky,θ")
+        plt.plot(self.fire_data["t (s)"] / 60, self.fire_data["kp,θ"], label="Facteur de réduction kp,θ")
+        plt.plot(self.fire_data["t (s)"] / 60, self.fire_data["kE,θ"], label="Facteur de réduction kE,θ")
+        plt.plot(
+            self.fire_data["t (s)"] / 60, self.fire_data["kb,θ"], label="Facteur de réduction pour les boulons kb,θ"
+        )
+        plt.plot(
+            self.fire_data["t (s)"] / 60, self.fire_data["kw,θ"], label="Facteur de réduction pour les soudures kw,θ"
+        )
         plt.xlabel("Temps (min)")
         plt.ylabel("Facteur de réduction")
         plt.grid(True, which="both", linestyle="--", alpha=0.4)
@@ -441,6 +433,7 @@ class Feu_acier(Plat):
         if screenshot:
             if not filepath:
                 from PySide6.QtWidgets import QFileDialog
+
                 filepath = QFileDialog.getSaveFileName(
                     filter="PNG (*.png)",
                     selectedFilter=".png",

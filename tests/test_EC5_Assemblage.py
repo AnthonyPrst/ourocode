@@ -14,6 +14,7 @@ from ourocode.eurocode.ec5 import assemblage as EC5_Assem
 from ourocode.eurocode.ec5 import element_droit as EC5_Elem
 from ourocode.eurocode.ec3 import element_droit as EC3_Elem
 
+
 # Fixtures pour les barres de test
 @pytest.fixture
 def barre_bois():
@@ -26,6 +27,7 @@ def barre_bois():
         effet_systeme=True,
     )
 
+
 @pytest.fixture
 def panneau_bois():
     return EC5_Elem.Barre(
@@ -37,9 +39,11 @@ def panneau_bois():
         effet_systeme=True,
     )
 
+
 @pytest.fixture
 def barre_metal():
     return EC3_Elem.Plat(6, 200, 300, "S275", classe_transv="2")
+
 
 # Fixture pour un assemblage bois/bois
 @pytest.fixture
@@ -48,10 +52,12 @@ def assemblage_bois_bois(barre_bois):
     barre2 = deepcopy(barre_bois)
     return EC5_Assem.Assemblage(beam_1=barre1, beam_2=barre2, nfile=2, nCis=1)
 
+
 # Fixture pour un assemblage bois/métal
 @pytest.fixture
 def assemblage_bois_metal(barre_bois, barre_metal):
     return EC5_Assem.Assemblage(beam_1=barre_bois, beam_2=barre_metal, nfile=2, nCis=1)
+
 
 @pytest.fixture
 def pointe(barre_bois, panneau_bois):
@@ -68,9 +74,10 @@ def pointe(barre_bois, panneau_bois):
         beam_1=panneau_bois,
         beam_2=barre_bois,
         nfile=1,
-        nCis=1
+        nCis=1,
     )
-        
+
+
 class Test_Assemblage:
     def test_init_bois_bois(self, assemblage_bois_bois):
         assert assemblage_bois_bois.type_assemblage == "Bois/Bois"
@@ -89,11 +96,12 @@ class Test_Assemblage:
         # Pour un assemblage bois/métal, rho_mean_ass est le rhomean du bois
         assert assemblage_bois_metal.rho_mean_ass == int(barre_bois.caract_meca.loc["rhomean"])
 
+
 class Test_Pointe:
     def test_init(self, pointe):
         print(pointe._type_beam)
         assert pointe.type_assemblage == "Bois/Bois"
-        assert pointe._type_beam == ["PP/OSB","Bois"]
+        assert pointe._type_beam == ["PP/OSB", "Bois"]
         assert pointe.d == 2.5 * si.mm
         assert pointe.dh == 5 * si.mm
         assert pointe.l == 55 * si.mm
@@ -105,7 +113,7 @@ class Test_Pointe:
 
     def test_MyRk(self, pointe):
         assert pointe.MyRk[1].value == 1.9494698713738494
-    
+
     def test_nef(self, pointe):
         pointe.nef(a1_beam1=150, a1_beam2=150)
         assert pointe._nef == 9
@@ -115,10 +123,10 @@ class Test_Pointe:
 
     def test_Ku_ass(self, pointe):
         assert pointe.Ku_ass()[1].value == 4798579.977241778
-    
+
     def test_prepercage(self, pointe):
         assert pointe.prepercage(beam="1", sensible=True)[1] == 35 * si.mm
-    
+
     def test_FvRk(self, pointe):
         pointe.nef(a1_beam1=150, a1_beam2=150)
         pointe.Fax_Rk()
@@ -141,12 +149,12 @@ class Test_Agrafe:
             beam_1=panneau_bois,
             beam_2=barre_bois,
             nfile=1,
-            nCis=1
+            nCis=1,
         )
 
     def test_init(self, agrafe):
         assert agrafe.type_assemblage == "Bois/Bois"
-        assert agrafe._type_beam == ["PP/OSB","Bois"]
+        assert agrafe._type_beam == ["PP/OSB", "Bois"]
         assert agrafe.d == 1.5 * si.mm
         assert agrafe.b_agrafe == 13.5 * si.mm
         assert agrafe.l == 50 * si.mm
@@ -159,7 +167,7 @@ class Test_Agrafe:
 
     def test_MyRk(self, agrafe):
         assert agrafe.MyRk[1].value == 0.50625
-    
+
     def test_nef(self, agrafe):
         # Test du calcul du nombre efficace d'agrafes
         agrafe.nef()
@@ -199,15 +207,7 @@ class Test_Boulon:
     @pytest.fixture
     def boulon(self, barre_bois):
         return EC5_Assem.Boulon(
-            d=12,
-            qualite="4.6",
-            n=2,
-            alpha1=45,
-            alpha2=0,
-            beam_1=barre_bois,
-            beam_2=barre_bois,
-            nfile=2,
-            nCis=2
+            d=12, qualite="4.6", n=2, alpha1=45, alpha2=0, beam_1=barre_bois, beam_2=barre_bois, nfile=2, nCis=2
         )
 
     def test_init(self, boulon):
@@ -220,7 +220,7 @@ class Test_Boulon:
 
     def test_MyRk(self, boulon):
         assert boulon.MyRk[1].value == 76.74542328693614
-    
+
     def test_nef(self, boulon):
         boulon.nef(a1_beam1=100, a1_beam2=100)
         assert boulon._nef == 1.6697284479494683
@@ -262,7 +262,7 @@ class Test_Boulon:
 
     def test_F90Rk(self, boulon):
         F90Rk = boulon.F90Rk(b=100, h=200, he=150)
-        F90Rd = boulon.F_Rd(F90Rk[1].value*10**-3, loadtype="Moyen terme")
+        F90Rd = boulon.F_Rd(F90Rk[1].value * 10**-3, loadtype="Moyen terme")
         assert F90Rk[1].value == 34292.85639896449
         assert F90Rd[1].value == 21103.29624551661
 
@@ -271,15 +271,7 @@ class Test_Broche:
     @pytest.fixture
     def broche(self, barre_bois, barre_metal):
         return EC5_Assem.Broche(
-            d=16,
-            qualite="4.6",
-            n=2,
-            alpha1=0,
-            alpha2=90,
-            beam_1=barre_bois,
-            beam_2=barre_metal,
-            nfile=2,
-            nCis=2
+            d=16, qualite="4.6", n=2, alpha1=0, alpha2=90, beam_1=barre_bois, beam_2=barre_metal, nfile=2, nCis=2
         )
 
     def test_init(self, broche):
@@ -293,13 +285,13 @@ class Test_Broche:
 
     def test_pince(self, broche):
         pinces = broche.pince
-        assert pinces["barre 1"]["a1"] == 80 * si.mm    
+        assert pinces["barre 1"]["a1"] == 80 * si.mm
         assert pinces["barre 1"]["a2"] == 48 * si.mm
         assert pinces["barre 1"]["a3t"] == 112 * si.mm
         assert pinces["barre 1"]["a3c"] == 56 * si.mm
         assert pinces["barre 1"]["a4t"] == 48 * si.mm
         assert pinces["barre 1"]["a4c"] == 48 * si.mm
-    
+
     def test_Kser_ass(self, broche):
         kser = broche.Kser_ass()
         assert kser[1].value == 95804534.46573706
@@ -338,7 +330,7 @@ class Test_Tirefond_inf_7:
             beam_1=barre_bois,
             beam_2=barre_bois,
             nfile=2,
-            nCis=1
+            nCis=1,
         )
 
     def test_init(self, tirefond):
@@ -352,7 +344,7 @@ class Test_Tirefond_inf_7:
 
     def test_MyRk(self, tirefond):
         assert tirefond.MyRk[1].value == 11.514524874935903
-    
+
     def test_nef(self, tirefond):
         tirefond.nef(a1_beam1=60, a1_beam2=60)
         assert tirefond._nef == 1.8025009252216604
@@ -396,6 +388,7 @@ class Test_Tirefond_inf_7:
         FbsRk = tirefond.FbsRk(dp=6, a1=60, a2=60, a3t=100, num_beam=1)
         assert FbsRk[1].value == 155520.0
 
+
 class Test_Tirefond_sup_6:
     @pytest.fixture
     def tirefond(self, barre_bois):
@@ -415,7 +408,7 @@ class Test_Tirefond_sup_6:
             beam_1=barre_bois,
             beam_2=barre_bois,
             nfile=1,
-            nCis=1
+            nCis=1,
         )
 
     def test_init(self, tirefond):
@@ -428,7 +421,7 @@ class Test_Tirefond_sup_6:
 
     def test_MyRk(self, tirefond):
         assert tirefond.MyRk[1].value == 80.0
-    
+
     def test_nef(self, tirefond):
         tirefond.nef(a1_beam1=100, a1_beam2=100)
         assert tirefond._nef == 1.7064477171757193

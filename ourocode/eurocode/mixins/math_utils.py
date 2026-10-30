@@ -4,6 +4,7 @@ import math as mt
 import inspect
 
 import forallpeople as si
+
 si.environment("structural")
 from forallpeople import Physical
 
@@ -25,30 +26,40 @@ class MathUtilsMixin:
     # Les cles sont en ASCII (pas d'exposants) pour la saisie utilisateur.
     _PHYSICAL_UNITS = {
         # Longueurs
-        "m": si.m, "mm": si.mm,
+        "m": si.m,
+        "mm": si.mm,
         # Surfaces
-        "m2": si.m**2, "mm2": si.mm**2,
+        "m2": si.m**2,
+        "mm2": si.mm**2,
         # Volumes
-        "m3": si.m**3, "mm3": si.mm**3,
+        "m3": si.m**3,
+        "mm3": si.mm**3,
         # Inerties
-        "m4": si.m**4, "mm4": si.mm**4,
+        "m4": si.m**4,
+        "mm4": si.mm**4,
         # Forces
-        "N": si.N, "kN": si.kN,
+        "N": si.N,
+        "kN": si.kN,
         # Moments
-        "N.m": si.N * si.m, "kN.m": si.kN * si.m,
+        "N.m": si.N * si.m,
+        "kN.m": si.kN * si.m,
         "N.mm": si.N * si.mm,
         # Forces lineiques
-        "N/m": si.N / si.m, "kN/m": si.kN / si.m,
+        "N/m": si.N / si.m,
+        "kN/m": si.kN / si.m,
         "N/mm": si.N / si.mm,
         # Pressions / contraintes
-        "Pa": si.Pa, "kPa": si.kPa, "MPa": si.MPa,
-        "N/m2": si.N / si.m**2, "kN/m2": si.kN / si.m**2,
+        "Pa": si.Pa,
+        "kPa": si.kPa,
+        "MPa": si.MPa,
+        "N/m2": si.N / si.m**2,
+        "kN/m2": si.kN / si.m**2,
         "N/mm2": si.N / si.mm**2,
     }
     # Tuple d'unites propose a l'utilisateur (sert de widget combobox).
     # "none" = valeur brute retournee telle quelle (int/float/str).
     _SET_VALUE_UNITS = ("Aucune",) + tuple(_PHYSICAL_UNITS.keys())
-    
+
     def abs_value(self, value: float):
         """Retourne la valeur absolue (module) d'un nombre.
 
@@ -60,7 +71,6 @@ class MathUtilsMixin:
         """
         return abs(float(value))
 
-    
     def max(self, value1: float, value2: float):
         """Retourne la valeur maximale entre deux nombres.
 
@@ -84,8 +94,8 @@ class MathUtilsMixin:
             float: La plus petite des deux valeurs.
         """
         return min(float(value1), float(value2))
-    
-    def _extract_numbers(self, value, absolute: bool=True):
+
+    def _extract_numbers(self, value, absolute: bool = True):
         """Extrait récursivement tous les nombres d'une structure de données imbriquée.
 
         Parcourt les dictionnaires, listes et tuples pour extraire toutes les
@@ -114,7 +124,7 @@ class MathUtilsMixin:
                 numbers.extend(self._extract_numbers(item, absolute))
         return numbers
 
-    def max_list(self, iterable: dict|list|tuple, absolute: bool=("False", "True")):
+    def max_list(self, iterable: dict | list | tuple, absolute: bool = ("False", "True")):
         """Retourne la valeur maximale d'une liste ou d'un dictionnaire.
 
         Cette méthode parcourt récursivement la structure pour extraire
@@ -134,12 +144,12 @@ class MathUtilsMixin:
             >>> obj.max_list({"a": 10, "b": [20, 5]})
             20
         """
+        absolute = self._flag(absolute)
         result = self.get_value(iterable, get_keys=False)
-        result = self._extract_numbers(result, absolute)  
+        result = self._extract_numbers(result, absolute)
         return max(result)
-    
 
-    def min_list(self, iterable: dict|list|tuple|str, absolute: bool=("False", "True")):
+    def min_list(self, iterable: dict | list | tuple | str, absolute: bool = ("False", "True")):
         """Retourne la valeur minimale d'une liste ou d'un dictionnaire.
 
         Cette méthode parcourt récursivement la structure pour extraire
@@ -159,11 +169,12 @@ class MathUtilsMixin:
             >>> obj.min_list({"a": 10, "b": [20, 5]})
             5
         """
+        absolute = self._flag(absolute)
         result = self.get_value(iterable, get_keys=False)
-        result = self._extract_numbers(result, absolute)  
+        result = self._extract_numbers(result, absolute)
         return min(result)
 
-    def operation_between_values(self, value1: float, value2: float, operator: str=OPERATOR):
+    def operation_between_values(self, value1: float, value2: float, operator: str = OPERATOR):
         """Effectue une opération arithmétique entre deux valeurs.
         Opérateurs supportés : "+" (addition), "-" (soustraction),
         "x" (multiplication), "/" (division).
@@ -189,7 +200,7 @@ class MathUtilsMixin:
                 result = value1 / value2
         return result
 
-    def get_trigonometric_value(self, value: float, operator: str=("COS", "SIN", "TAN", "ACOS", "ASIN", "ATAN")):
+    def get_trigonometric_value(self, value: float, operator: str = ("COS", "SIN", "TAN", "ACOS", "ASIN", "ATAN")):
         """Calcule une fonction trigonométrique avec un angle exprimé en degrés.
 
         Convertit automatiquement l'angle de degrés en radians avant le calcul.
@@ -229,85 +240,85 @@ class MathUtilsMixin:
         return result
 
     @classmethod
-    def _convert_unit_physical(cls, value: int|float, si_unit: si.Physical, unit_to_convert: si.Physical):
-            """Convertit une valeur d'une unité SI vers une autre unité.
+    def _convert_unit_physical(cls, value: int | float, si_unit: si.Physical, unit_to_convert: si.Physical):
+        """Convertit une valeur d'une unité SI vers une autre unité.
 
-            Cette méthode gère les conversions entre les unités courantes en
-            calcul de structure : m/mm, N/kN/daN, Pa/MPa, et les unités
-            combinées (moments, pressions, etc.).
+        Cette méthode gère les conversions entre les unités courantes en
+        calcul de structure : m/mm, N/kN/daN, Pa/MPa, et les unités
+        combinées (moments, pressions, etc.).
 
-            Args:
-                value (int|float): Valeur numérique à convertir.
-                si_unit (si.Physical): Unité source (ex: si.m, si.N).
-                unit_to_convert (si.Physical): Unité cible (ex: si.mm, si.kN).
+        Args:
+            value (int|float): Valeur numérique à convertir.
+            si_unit (si.Physical): Unité source (ex: si.m, si.N).
+            unit_to_convert (si.Physical): Unité cible (ex: si.mm, si.kN).
 
-            Returns:
-                float: Valeur convertie dans l'unité cible.
+        Returns:
+            float: Valeur convertie dans l'unité cible.
 
-            Exemple:
-                >>> Objet._convert_unit_physical(1.5, si.m, si.mm)
-                1500.0
-                >>> Objet._convert_unit_physical(5000, si.N, si.kN)
-                5.0
-            """
-            si_unit, unit_to_convert = str(si_unit), str(unit_to_convert)
-            if si_unit != unit_to_convert:
-                if si_unit == str(si.m):
-                    if unit_to_convert == str(si.mm):
-                        return value * 10**3
-                    elif unit_to_convert == str(si.cm):
-                        return value * 10**2
-                    elif unit_to_convert == str(si.km):
-                        return value * 10**-3
-                elif si_unit == str(si.m**2):
-                    if unit_to_convert == str(si.mm**2):
-                        return value * 10**6
-                    elif unit_to_convert == str(si.cm**2):
-                        return value * 10**4
-                elif si_unit == str(si.m**3):
-                    if unit_to_convert == str(si.mm**3):
-                        return value * 10**9
-                    elif unit_to_convert == str(si.cm**3):
-                        return value * 10**6
-                elif si_unit == str(si.m**4):
-                    if unit_to_convert == str(si.mm**4):
-                        return value * 10**12
-                    elif unit_to_convert == str(si.cm**4):
-                        return value * 10**8
-                elif si_unit == str(si.N):
-                    if unit_to_convert == str(si.kN):
-                        return value * 10**-3
-                    elif unit_to_convert == str(si.daN):
-                        return value * 10**-1
-                elif si_unit == str(si.N*si.m):
-                    if unit_to_convert == str(si.kN*si.m):
-                        return value * 10**-3
-                    elif unit_to_convert == str(si.daN*si.m):
-                        return value * 10**-1
-                    elif unit_to_convert == str(si.N*si.mm):
-                        return value * 10**3
-                elif si_unit == str(si.N/si.m):
-                    if unit_to_convert == str(si.kN/si.m):
-                        return value * 10**-3
-                    elif unit_to_convert == str(si.daN/si.m):
-                        return value * 10**-1
-                    elif unit_to_convert == str(si.N/si.mm):
-                        return value * 10**-3
-                elif si_unit == str(si.N/si.m**2):
-                    if unit_to_convert == str(si.kN/si.m**2):
-                        return value * 10**-3
-                    elif unit_to_convert == str(si.daN/si.m**2):
-                        return value * 10**-1
-                    elif unit_to_convert == str(si.N/si.mm**2):
-                        return value * 10**-6
-                elif si_unit == str(si.Pa):
-                    if unit_to_convert == str(si.kPa):
-                        return value * 10**-3
-                    elif unit_to_convert == str(si.MPa):
-                        return value * 10**-6
-            return value
-    
-    @classmethod           
+        Exemple:
+            >>> Objet._convert_unit_physical(1.5, si.m, si.mm)
+            1500.0
+            >>> Objet._convert_unit_physical(5000, si.N, si.kN)
+            5.0
+        """
+        si_unit, unit_to_convert = str(si_unit), str(unit_to_convert)
+        if si_unit != unit_to_convert:
+            if si_unit == str(si.m):
+                if unit_to_convert == str(si.mm):
+                    return value * 10**3
+                elif unit_to_convert == str(si.cm):
+                    return value * 10**2
+                elif unit_to_convert == str(si.km):
+                    return value * 10**-3
+            elif si_unit == str(si.m**2):
+                if unit_to_convert == str(si.mm**2):
+                    return value * 10**6
+                elif unit_to_convert == str(si.cm**2):
+                    return value * 10**4
+            elif si_unit == str(si.m**3):
+                if unit_to_convert == str(si.mm**3):
+                    return value * 10**9
+                elif unit_to_convert == str(si.cm**3):
+                    return value * 10**6
+            elif si_unit == str(si.m**4):
+                if unit_to_convert == str(si.mm**4):
+                    return value * 10**12
+                elif unit_to_convert == str(si.cm**4):
+                    return value * 10**8
+            elif si_unit == str(si.N):
+                if unit_to_convert == str(si.kN):
+                    return value * 10**-3
+                elif unit_to_convert == str(si.daN):
+                    return value * 10**-1
+            elif si_unit == str(si.N * si.m):
+                if unit_to_convert == str(si.kN * si.m):
+                    return value * 10**-3
+                elif unit_to_convert == str(si.daN * si.m):
+                    return value * 10**-1
+                elif unit_to_convert == str(si.N * si.mm):
+                    return value * 10**3
+            elif si_unit == str(si.N / si.m):
+                if unit_to_convert == str(si.kN / si.m):
+                    return value * 10**-3
+                elif unit_to_convert == str(si.daN / si.m):
+                    return value * 10**-1
+                elif unit_to_convert == str(si.N / si.mm):
+                    return value * 10**-3
+            elif si_unit == str(si.N / si.m**2):
+                if unit_to_convert == str(si.kN / si.m**2):
+                    return value * 10**-3
+                elif unit_to_convert == str(si.daN / si.m**2):
+                    return value * 10**-1
+                elif unit_to_convert == str(si.N / si.mm**2):
+                    return value * 10**-6
+            elif si_unit == str(si.Pa):
+                if unit_to_convert == str(si.kPa):
+                    return value * 10**-3
+                elif unit_to_convert == str(si.MPa):
+                    return value * 10**-6
+        return value
+
+    @classmethod
     def _reset_physical_dictionnary(cls, objet: object, dictionnary: dict) -> dict:
         """Réinitialise les valeurs physiques d'un dictionnaire d'arguments.
 
@@ -342,8 +353,8 @@ class MathUtilsMixin:
                         dict_physical[key] = value
                         break
         return dict_physical
-    
-    @classmethod           
+
+    @classmethod
     def _reset_physical_object(cls, objet: object):
         """Réinitialise les valeurs physiques d'un objet en utilisant son __dict__.
 
@@ -390,9 +401,5 @@ class MathUtilsMixin:
         Returns:
             float: Valeur interpolée y.
         """
-        y = (
-            (x > xb) * yb
-            + (x < xa) * ya
-            + (x <= xb) * (x >= 1) * (ya - (ya - yb) * mt.log10(x))
-        )
+        y = (x > xb) * yb + (x < xa) * ya + (x <= xb) * (x >= 1) * (ya - (ya - yb) * mt.log10(x))
         return y

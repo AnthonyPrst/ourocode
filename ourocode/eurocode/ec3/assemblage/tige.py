@@ -1,4 +1,4 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 import os
 import sys
 from PIL import Image
@@ -6,6 +6,7 @@ from math import *
 import pandas as pd
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
@@ -16,18 +17,18 @@ class Tige(Plat):
     QUALITE_ACIER = tuple(str(key) for key in Plat._data_from_csv(Plat, "qualite_acier.csv").index)
 
     def __init__(
-        self, 
-        d:si.mm, 
-        d0:si.mm, 
-        trou_oblong: bool=("False", "True"),
-        qualite: str=QUALITE_ACIER, 
-        tete_fraisee: bool=("False", "True"),
-        prof_tete_fraisee: si.mm=0,
-        verif_filetage: bool=("False", "True"), 
-        filetage_EN1090: bool=("True", "False"),
-        **kwargs
-        ):
-        """Configure un objet Tige permettant les vérification suivant l'EN 1993-1-8. 
+        self,
+        d: si.mm,
+        d0: si.mm,
+        trou_oblong: bool = ("False", "True"),
+        qualite: str = QUALITE_ACIER,
+        tete_fraisee: bool = ("False", "True"),
+        prof_tete_fraisee: si.mm = 0,
+        verif_filetage: bool = ("False", "True"),
+        filetage_EN1090: bool = ("True", "False"),
+        **kwargs,
+    ):
+        """Configure un objet Tige permettant les vérification suivant l'EN 1993-1-8.
         Cette classe est hérité de la classe Plat du fichier EC3_Element_droit.py.
 
         Args:
@@ -43,70 +44,80 @@ class Tige(Plat):
         super().__init__(**kwargs)
         self.d = d * si.mm
         self.d0 = d0 * si.mm
-        self.trou_oblong = trou_oblong
+        self.trou_oblong = self._flag(trou_oblong)
         self.qualite = qualite
-        self.tete_fraisee = tete_fraisee
+        self.tete_fraisee = self._flag(tete_fraisee)
         self.prof_tete_fraisee = prof_tete_fraisee * si.mm
-        self.verif_filetage = verif_filetage
+        self.verif_filetage = self._flag(verif_filetage)
         self._verif_trou_surdimensionne()
 
-        if filetage_EN1090:
+        if self._flag(filetage_EN1090):
             self.filetage_EN1090 = 1
         else:
             self.filetage_EN1090 = 0.85
 
         self.fyb = self.__qualite_acier.loc["fyb"] * si.MPa
         self.fub = self.__qualite_acier.loc["fub"] * si.MPa
-        
+
         if type(self.__section_boulon) is pd.core.series.Series:
             self.As = self.__section_boulon.loc["As"] * si.mm**2
             self.An = self.__section_boulon.loc["An"] * si.mm**2
         else:
             self.As = 0 * si.mm**2
-            self.An = pi * (self.d.value*10**3/2)**2 * si.mm**2
-            
+            self.An = pi * (self.d.value * 10**3 / 2) ** 2 * si.mm**2
 
     @property
     def __qualite_acier(self):
         df = self._data_from_csv("qualite_acier.csv")
         df = df.loc[self.qualite]
         return df
-    
 
     @property
     def __section_boulon(self):
         try:
             df = self._data_from_csv("section_boulon.csv")
-            df = df.loc[self.d.value*10**3]
+            df = df.loc[self.d.value * 10**3]
             return df
         except KeyError:
-            raise KeyError("Le diamètre ne correspond pas à celui d'un boulon standard, vérifier As = 0, An = aire de d")
-        
-        
+            raise KeyError(
+                "Le diamètre ne correspond pas à celui d'un boulon standard, vérifier As = 0, An = aire de d"
+            )
+
     def _verif_trou_surdimensionne(self):
         self.percage_surdimensionne = False
-        if self.d.value*10**3 in [12, 14]:
-            if self.d0.value*10**3 >= self.d.value*10**3+3:
+        if self.d.value * 10**3 in [12, 14]:
+            if self.d0.value * 10**3 >= self.d.value * 10**3 + 3:
                 self.percage_surdimensionne = True
-                raise ValueError((f"Le percage est surdimensionné, pour revenir à un perçage normal, "
-                               f"réduire le diamètre de perçage à {self.d.value*10**3 + 1} mm "
-                               "selon CNC2M §2.1(1) et NF EN 1090-2.\nIl est toutefois possible de réaliser un trou d+2mm si Fb,Rd <= Fv,Rd"))
-        elif self.d.value*10**3 < 27:
-            if self.d0.value*10**3 >= self.d.value*10**3+4:
+                raise ValueError(
+                    (
+                        f"Le percage est surdimensionné, pour revenir à un perçage normal, "
+                        f"réduire le diamètre de perçage à {self.d.value * 10**3 + 1} mm "
+                        "selon CNC2M §2.1(1) et NF EN 1090-2.\nIl est toutefois possible de réaliser un trou d+2mm si Fb,Rd <= Fv,Rd"
+                    )
+                )
+        elif self.d.value * 10**3 < 27:
+            if self.d0.value * 10**3 >= self.d.value * 10**3 + 4:
                 self.percage_surdimensionne = True
-                raise ValueError((f"Le percage est surdimensionné, pour revenir à un perçage normal, "
-                               f"réduire le diamètre de perçage à {self.d.value*10**3 + 2} mm "
-                               "selon CNC2M §2.1(1) et NF EN 1090-2"))
-        elif self.d.value*10**3 >= 27:
-            if self.d0.value*10**3 >= self.d.value*10**3+8:
+                raise ValueError(
+                    (
+                        f"Le percage est surdimensionné, pour revenir à un perçage normal, "
+                        f"réduire le diamètre de perçage à {self.d.value * 10**3 + 2} mm "
+                        "selon CNC2M §2.1(1) et NF EN 1090-2"
+                    )
+                )
+        elif self.d.value * 10**3 >= 27:
+            if self.d0.value * 10**3 >= self.d.value * 10**3 + 8:
                 self.percage_surdimensionne = True
-                raise ValueError((f"Le percage est surdimensionné, pour revenir à un perçage normal, "
-                               f"réduire le diamètre de perçage à {self.d.value*10**3 + 3} mm "
-                               "selon CNC2M §2.1(1) et NF EN 1090-2"))  
+                raise ValueError(
+                    (
+                        f"Le percage est surdimensionné, pour revenir à un perçage normal, "
+                        f"réduire le diamètre de perçage à {self.d.value * 10**3 + 3} mm "
+                        "selon CNC2M §2.1(1) et NF EN 1090-2"
+                    )
+                )
         return self.percage_surdimensionne
-            
 
-    def pince_metal_boulon(self, trous_oblongs: bool=("False", "True"), corrosion: bool=("False", "True")):
+    def pince_metal_boulon(self, trous_oblongs: bool = ("False", "True"), corrosion: bool = ("False", "True")):
         """Retourne les pinces et entraxes minimum/maximum du métal selon EN 1993-1-8 §3.5.
 
         Note : Ne prend pas en compte P1,0, P1,i ou P2 diminué en cas de boulons en quinconce (§3.5-5).
@@ -120,43 +131,44 @@ class Tige(Plat):
                 - {"e1": {"e1_min": ..., ["e1_max_corro": ...]}, "e2": ..., "p1": {"p1_min": ..., "p1_max": ...}, "p2": ...}
                 - ou {"e3": ..., "e4": ..., "p1": ..., "p2": ...} si trous_oblongs=True.
         """
+        corrosion = self._flag(corrosion)
+        trous_oblongs = self._flag(trous_oblongs)
         en_10025_5 = False
-        if self._Plat__classe_acier.loc["norme"] == "EN 10025-5": 
+        if self._Plat__classe_acier.loc["norme"] == "EN 10025-5":
             en_10025_5 = True
 
         pince = {}
-        e1 = {"e1_min": round(1.2 * self.d0.value*10**3, 1)}
+        e1 = {"e1_min": round(1.2 * self.d0.value * 10**3, 1)}
         e2 = {"e2_min": e1["e1_min"]}
-        e3 = round(1.5 * self.d0.value*10**3, 1)
+        e3 = round(1.5 * self.d0.value * 10**3, 1)
         e4 = e3
-        p1 = {"p1_min": round(2.2 * self.d0.value*10**3 , 1)}
-        p2 = {"p2_min": round(2.4 * self.d0.value*10**3, 1)}
-        
+        p1 = {"p1_min": round(2.2 * self.d0.value * 10**3, 1)}
+        p2 = {"p2_min": round(2.4 * self.d0.value * 10**3, 1)}
+
         if not en_10025_5:
-            p1["p1_max"] = round(min(14 * self.t.value*10**3, 200))
+            p1["p1_max"] = round(min(14 * self.t.value * 10**3, 200))
             p2["p2_max"] = p1["p1_max"]
 
             if corrosion:
-                e1["e1_max_corro"] = round(4 * self.t.value*10**3 + 40)
+                e1["e1_max_corro"] = round(4 * self.t.value * 10**3 + 40)
                 e2["e2_max_corro"] = e1["e1_max_corro"]
 
         else:
-            e1["e1_max"] = round(max(8 * self.t.value*10**3, 125))
+            e1["e1_max"] = round(max(8 * self.t.value * 10**3, 125))
             e2["e2_max"] = e1["e1_max"]
-            p1["p1_max"] = round(min(14 * self.t.value*10**3, 175))
+            p1["p1_max"] = round(min(14 * self.t.value * 10**3, 175))
             p2["p2_max"] = p1["p1_max"]
-                
-        if trous_oblongs :
+
+        if trous_oblongs:
             pince["e3"] = e3
-            pince["e4"] = e4  
+            pince["e4"] = e4
         else:
             pince["e1"] = e1
             pince["e2"] = e2
-            
-        pince["p1"] = p1      
-        pince["p2"] = p2      
+
+        pince["p1"] = p1
+        pince["p2"] = p2
         return pince
-    
 
     @property
     def FvRd(self) -> float:
@@ -177,18 +189,24 @@ class Tige(Plat):
         gamma_M2 = self.GAMMA_M["gamma_M2"]
 
         # On vérifie la clause §3.6.1(5) si les boulons M12 et M14 sont à d+2mm
-        if self.d.value*10**3 in [12, 14] and self.qualite in ["4.8", "5.8", "6.8", "8.8", "10.9"] and self.d0.value*10**3 == self.d.value*10**3+2:
+        if (
+            self.d.value * 10**3 in [12, 14]
+            and self.qualite in ["4.8", "5.8", "6.8", "8.8", "10.9"]
+            and self.d0.value * 10**3 == self.d.value * 10**3 + 2
+        ):
             k_d0 = 0.85
         else:
             k_d0 = 1
-            
+
         if self.qualite in ["4.6", "5.6", "8.8"]:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def filetage():
                 alpha_v = 0.6
                 F_v_Rd_filete = k_d0 * alpha_v * k_filetage_EN1090 * (f_ub * A_s) / gamma_M2
                 return F_v_Rd_filete
         else:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def filetage():
                 alpha_v = 0.5
@@ -200,9 +218,9 @@ class Tige(Plat):
             alpha_v = 0.6
             F_v_Rd_lisse = k_d0 * alpha_v * (f_ub * A_n) / gamma_M2
             return F_v_Rd_lisse
+
         return {"filetage": filetage(), "lisse": lisse()}
-    
-    
+
     @property
     def FtRd(self) -> float:
         """Retourne la résistance en traction de la tige F_t,Rd en N selon EN 1993-1-8 Tableau 3.4.
@@ -215,21 +233,22 @@ class Tige(Plat):
         """
         f_ub = self.fub
         A_s = self.As
-        gamma_M2 =  self.GAMMA_M["gamma_M2"]
+        gamma_M2 = self.GAMMA_M["gamma_M2"]
         k_filetage_EN1090 = self.filetage_EN1090
         if self.tete_fraisee:
             k_2 = 0.63
         else:
             k_2 = 0.9
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            F_t_Rd = k_filetage_EN1090 * (k_2 * f_ub * A_s) /  gamma_M2
+            F_t_Rd = k_filetage_EN1090 * (k_2 * f_ub * A_s) / gamma_M2
             return F_t_Rd
+
         return val()
 
-    
-    #Combinaison des efforts
-    def taux_FvEd_FtEd(self, FvEd: si.kN=0, FtEd: si.kN=0):
+    # Combinaison des efforts
+    def taux_FvEd_FtEd(self, FvEd: si.kN = 0, FtEd: si.kN = 0):
         """Retourne les taux de travail en cisaillement, traction et combinaison selon EN 1993-1-8 Tableau 3.4.
 
         Calcule les taux selon les cas :
@@ -264,29 +283,33 @@ class Tige(Plat):
         self.taux_bl["taux_v_d_lisse"] = value1[1][1]
         synthese = [
             ["Traction de la tige", self.taux_bl["taux_t_d"], None],
-            ["Cisaillement sur la partie lisse de la tige", self.taux_bl["taux_v_d_lisse"], None]
+            ["Cisaillement sur la partie lisse de la tige", self.taux_bl["taux_v_d_lisse"], None],
         ]
         self._add_synthese_taux_travail(synthese)
 
         if self.verif_filetage:
             if FvEd and FtEd:
+
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val2():
                     taux_v_d_filetage = F_v_Ed / F_v_Rd_filetage
                     taux_v_t_d = F_v_Ed / min(F_v_Rd_lisse, F_v_Rd_filetage) + F_t_Ed / (1.4 * F_t_Rd)
                     return taux_v_d_filetage, taux_v_t_d
+
                 value2 = val2()
                 self.taux_bl["taux_v_d_filetage"] = value2[1][0]
                 self.taux_bl["taux_v_t_d"] = value2[1][1]
                 synthese2 = [
                     ["Cisaillement au droit du filetage de la tige", self.taux_bl["taux_v_d_filetage"], None],
-                    ["Cisaillement et traction combiné sur la tige", self.taux_bl["taux_v_t_d"], None]
+                    ["Cisaillement et traction combiné sur la tige", self.taux_bl["taux_v_t_d"], None],
                 ]
             else:
+
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val2():
                     taux_v_d_filetage = F_v_Ed / F_v_Rd_filetage
                     return taux_v_d_filetage
+
                 value2 = val2()
                 self.taux_bl["taux_v_d_filetage"] = value2[1]
                 synthese2 = [
@@ -294,10 +317,12 @@ class Tige(Plat):
                 ]
 
         elif not self.verif_filetage and FvEd and FtEd:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
                 taux_v_t_d = F_v_Ed / F_v_Rd_lisse + F_t_Ed / (1.4 * F_t_Rd)
                 return taux_v_t_d
+
             value2 = val2()
             self.taux_bl["taux_v_t_d"] = value2[1]
             synthese2 = [
@@ -307,8 +332,7 @@ class Tige(Plat):
         self._add_synthese_taux_travail(synthese2)
         latex = value1[0] + value2[0]
         return (latex, self.taux_bl)
-    
-    
+
     def Bp_Rd(self, d_ecrou: si.mm, d_head_bl: si.mm):
         """Retourne la résistance au poinçonnement de la tête de boulon B_p,Rd en N selon EN 1993-1-8 Tableau 3.4.
 
@@ -328,10 +352,12 @@ class Tige(Plat):
         t_p = self.t
         gamma_M2 = self.GAMMA_M["gamma_M2"]
         f_u = self.fu
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             B_p_Rd = (0.6 * pi * d_m * t_p * f_u) / gamma_M2
             return B_p_Rd
+
         return val()
 
     def _Kb(self):
@@ -342,9 +368,9 @@ class Tige(Plat):
         elif self.percage_surdimensionne:
             kb = 0.8
         return kb
-    
-    def Fb_Rd(self, e1: si.mm ,e2: si.mm , p1: si.mm, p2: si.mm):
-        """Retourne la pression diamétrale en N. 
+
+    def Fb_Rd(self, e1: si.mm, e2: si.mm, p1: si.mm, p2: si.mm):
+        """Retourne la pression diamétrale en N.
            ATTENTION: ne prends pas en compte les réductions de résistance lié au critère de l'assemblage (voir §3.6.1(10))
                 - Assemblage à une seule rangée de boulon en simple cisaillement -> rondelles + limitation de Fb,Rd <= 1.5*fu*d*t/gamma_M2
 
@@ -355,7 +381,7 @@ class Tige(Plat):
             p2 (float): pince p2 en mm perpendiculaire à l'effort si alpha = 0°
 
         Returns:
-            float: résistance de calcul en N 
+            float: résistance de calcul en N
         """
         e_1 = e1 * si.mm
         e_2 = e2 * si.mm
@@ -370,6 +396,7 @@ class Tige(Plat):
         k_b = self._Kb()
         if self.tete_fraisee:
             e_tete_fraisee = self.prof_tete_fraisee
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 t_eff = t - e_tete_fraisee / 2
@@ -382,6 +409,7 @@ class Tige(Plat):
                 F_by_Rd = k_b * k_1y * alpha_by * f_u_b * d * t_eff / gamma_M_2
                 return {"F_bx_Rd": F_bx_Rd, "F_by_Rd": F_by_Rd}
         else:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 alpha_bx = min(e_1 / (3 * d_0), (p_1 / (3 * d_0)) - 0.25, f_u_b / f_u, 1)
@@ -392,11 +420,11 @@ class Tige(Plat):
                 k_1y = min(2.8 * e_1 / d_0 - 1.7, 1.4 * p_1 / d_0 - 1.7, 2.5)
                 F_by_Rd = k_b * k_1y * alpha_by * f_u_b * d * t / gamma_M_2
                 return {"F_bx_Rd": F_bx_Rd, "F_by_Rd": F_by_Rd}
-        return val()
-    
 
-    def taux_Fb_d(self, FvEd: si.kN=0, alpha: float=0, FbxRd: si.kN=0, FbyRd: si.kN=0):
-        """Retourne le taux de travail de la pression diamétrale avec un effort combiné ou non selon l'EN 1993 §3.6.1 tab3.4 et le CNC2M-N0175-REC §2.1(5).    
+        return val()
+
+    def taux_Fb_d(self, FvEd: si.kN = 0, alpha: float = 0, FbxRd: si.kN = 0, FbyRd: si.kN = 0):
+        """Retourne le taux de travail de la pression diamétrale avec un effort combiné ou non selon l'EN 1993 §3.6.1 tab3.4 et le CNC2M-N0175-REC §2.1(5).
 
         Args:
             FvEd (float, optional): effort de cisaillement sur la tige en kN.
@@ -410,26 +438,26 @@ class Tige(Plat):
         F_v_Ed = FvEd * si.kN
         F_bx_Rd = FbxRd * si.kN
         F_by_Rd = FbyRd * si.kN
-        
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             F_vx_Ed = F_v_Ed * cos(radians(alpha))
             F_vy_Ed = F_v_Ed * sin(radians(alpha))
             taux_Fbx_d = F_vx_Ed / F_bx_Rd
             taux_Fby_d = F_vy_Ed / F_by_Rd
-            taux_Fb_d = (F_vx_Ed / F_bx_Rd)**2 + (F_vy_Ed / F_by_Rd)**2
+            taux_Fb_d = (F_vx_Ed / F_bx_Rd) ** 2 + (F_vy_Ed / F_by_Rd) ** 2
             return taux_Fbx_d, taux_Fby_d, taux_Fb_d
 
         result = val()
         synthese = [
             ["Pression diamétrale dans la direction x", result[1][0], None],
             ["Pression diamétrale dans la direction y", result[1][1], None],
-            ["Pression diamétrale combinée", result[1][2], None]
+            ["Pression diamétrale combinée", result[1][2], None],
         ]
         self._add_synthese_taux_travail(synthese)
         return result
 
-    def Veff_Rd(self, Lnt: si.mm, Lvt: si.mm, effort: str=("Centré", "Excentré")):
+    def Veff_Rd(self, Lnt: si.mm, Lvt: si.mm, effort: str = ("Centré", "Excentré")):
         """Retourne la résistance en cisaillement bloc de l'assemblage selon §3.10.2.
 
         Args:
@@ -438,7 +466,7 @@ class Tige(Plat):
             effort (str, optional): définit si l'effort est centré ou excentré par rapport au cisaillement de bloc. Defaults to ("Centré", "Excentré").
 
         Returns:
-            float: résistance de calcul en N 
+            float: résistance de calcul en N
         """
         A_nt = Lnt * si.mm * self.t
         A_vt = Lvt * si.mm * self.t
@@ -454,14 +482,14 @@ class Tige(Plat):
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             V_eff_nt_Rd = (A_nt * f_u) / gamma_M_2
-            V_eff_nv_Rd = 1/sqrt(3) * (A_vt * f_y) / gamma_M_0
+            V_eff_nv_Rd = 1 / sqrt(3) * (A_vt * f_y) / gamma_M_0
             V_eff_Rd = k_ex * V_eff_nt_Rd + V_eff_nv_Rd
             return V_eff_Rd
+
         return val()
-    
-    
-    def taux_Veff_d(self, N_Ed: si.kN=0, N_Veff_Rd: si.kN=0, V_Ed: si.kN=0, V_Veff_Rd: si.kN=0):
-        """Retourne le taux de travail du cisaillement bloc avec un effort combiné ou non selon l'EN 1993 §3.10.2 et le CNC2M-N0175-REC §2.1(10).    
+
+    def taux_Veff_d(self, N_Ed: si.kN = 0, N_Veff_Rd: si.kN = 0, V_Ed: si.kN = 0, V_Veff_Rd: si.kN = 0):
+        """Retourne le taux de travail du cisaillement bloc avec un effort combiné ou non selon l'EN 1993 §3.10.2 et le CNC2M-N0175-REC §2.1(10).
 
         Args:
             N_Ed (float, optional): effort normal en kN.
@@ -477,28 +505,30 @@ class Tige(Plat):
 
         # selon CNC2M §2.1(10)
         if N_Ed.value and V_Ed.value:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 taux = N_Ed / N_Veff_Rd + V_Ed / V_Veff_Rd
                 return taux
         elif N_Ed.value:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 taux_N_eff = N_Ed / N_Veff_Rd
                 return taux_N_eff
         else:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 taux_V_eff = V_Ed / V_Veff_Rd
                 return taux_V_eff
+
         result = val()
-        synthese = [
-            ["Cisaillement bloc du plat", result[1], None]
-        ]
+        synthese = [["Cisaillement bloc du plat", result[1], None]]
         self._add_synthese_taux_travail(synthese)
         return result
 
-    def axe_articulation(self, FvEd:si.kN=0, jeu:si.mm=0, t_flasque:si.mm=0, t_ame:si.mm=0):
+    def axe_articulation(self, FvEd: si.kN = 0, jeu: si.mm = 0, t_flasque: si.mm = 0, t_ame: si.mm = 0):
         """Retourne le taux de travail en double cisaillement et en flexion d'un axe d'articulation selon EN 1993-1-8 §3.13
 
         Args:
@@ -534,7 +564,7 @@ class Tige(Plat):
             M_Ed = F_v_Ed * (t_ame + 4 * jeu + 2 * t_flasque)
             M_Rd = 1.5 * pi * d**3 * f_y_b / (32 * gamma_M0)
             taux_m_d = M_Ed / M_Rd
-            taux_m_v_d = (M_Ed / M_Rd)**2 + (F_v_Ed / F_v_Rd)**2
+            taux_m_v_d = (M_Ed / M_Rd) ** 2 + (F_v_Ed / F_v_Rd) ** 2
 
             F_b_flasque_Rd = 1.5 * t_flasque * d * f_y / gamma_M0
             taux_f_b_flasque_d = 0.5 * F_v_Ed / F_b_flasque_Rd
@@ -543,6 +573,7 @@ class Tige(Plat):
             taux_f_b_ame_d = F_v_Ed / F_b_ame_Rd
 
             return taux_v_d, taux_m_d, taux_m_v_d, taux_f_b_flasque_d, taux_f_b_ame_d
+
         result = val()
         self.taux_axe_articulation["taux_v_d"] = result[1][0]
         self.taux_axe_articulation["taux_m_d"] = result[1][1]
@@ -553,9 +584,21 @@ class Tige(Plat):
         synthese = [
             ["Cisaillement de l'axe d'articulation", self.taux_axe_articulation["taux_v_d"], None],
             ["Flexion de l'axe d'articulation", self.taux_axe_articulation["taux_m_d"], None],
-            ["Cisaillement et flexion combinée de l'axe d'articulation", self.taux_axe_articulation["taux_m_v_d"], None],
-            ["Pression diamétrale des flasques de l'axe d'articulation", self.taux_axe_articulation["taux_f_b_flasque_d"], None],
-            ["Pression diamétrale de l'ame de l'axe d'articulation", self.taux_axe_articulation["taux_f_b_ame_d"], None],
+            [
+                "Cisaillement et flexion combinée de l'axe d'articulation",
+                self.taux_axe_articulation["taux_m_v_d"],
+                None,
+            ],
+            [
+                "Pression diamétrale des flasques de l'axe d'articulation",
+                self.taux_axe_articulation["taux_f_b_flasque_d"],
+                None,
+            ],
+            [
+                "Pression diamétrale de l'ame de l'axe d'articulation",
+                self.taux_axe_articulation["taux_f_b_ame_d"],
+                None,
+            ],
         ]
         self._add_synthese_taux_travail(synthese)
         return result
@@ -564,7 +607,8 @@ class Tige(Plat):
 class _Tige_scellement(Tige):
     GAMMA_C = {"Fondamentale": 1.5, "Accidentelle": 1.2}
     CLASSE_CONCRETE = list(Tige._data_from_csv(Tige, "caracteristique_meca_beton.csv").index)[2:]
-    def __init__(self, n:int=2, n_traction:int=2, classe_beton: str=CLASSE_CONCRETE, **kwargs):
+
+    def __init__(self, n: int = 2, n_traction: int = 2, classe_beton: str = CLASSE_CONCRETE, **kwargs):
         """Initialise une tige de prescellement avec plaque circulaire d'après l'EN1993-1-8 et le guide du CNC2M.
         Cette classe est hérité de la classe Tige du module EC3_Assemblage.py.
 
@@ -590,7 +634,7 @@ class _Tige_scellement(Tige):
 
     @property
     def FvRd(self) -> float:
-        """Retourne la résistance en cisaillement de la partie fileté et lisse d'une tige par plan en N dans le cas 
+        """Retourne la résistance en cisaillement de la partie fileté et lisse d'une tige par plan en N dans le cas
         d'une reprise du cisaillement par les tiges d'ancrage selon l'EN1993-1-8 §6.2.2(7)
         """
         k_filetage_EN1090 = self.filetage_EN1090
@@ -598,22 +642,26 @@ class _Tige_scellement(Tige):
         f_yb = self.fyb.value * 10**-6
         f_ub = self.fub
         gamma_M2 = self.GAMMA_M["gamma_M2"]
-        if 235*si.MPa <= self.fyb <= 640*si.MPa:
+        if 235 * si.MPa <= self.fyb <= 640 * si.MPa:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 alpha_bc = 0.44 - 0.0003 * f_yb
                 F_v_Rd_filete = alpha_bc * k_filetage_EN1090 * f_ub * A_s / gamma_M2
                 return F_v_Rd_filete
+
             return val()
         else:
-            raise ValueError("La limite elastique fyb doit être comprise entre 235 MPa et 640 MPa pour être considéré en cisaillement")
+            raise ValueError(
+                "La limite elastique fyb doit être comprise entre 235 MPa et 640 MPa pour être considéré en cisaillement"
+            )
 
-    def taux_ancrage(self, FtEd: si.kN=0, FvEd: si.kN=0):
+    def taux_ancrage(self, FtEd: si.kN = 0, FvEd: si.kN = 0):
         """Calcul le taux de travail d'une tige d'ancrage d'après l'EN1993-1-8 et le guide du CNC2M.
 
         Args:
             FtEd (float): effort de traction sur la platine de scellement en kN.
-            FvEd (float): effort de cisaillement sur la platine de scellement en kN. 
+            FvEd (float): effort de cisaillement sur la platine de scellement en kN.
                 Il est en général déconseillé de faire passer de grand effort de cisaillement par les tiges, privilégier une bèche.
 
         Returns:
@@ -626,11 +674,13 @@ class _Tige_scellement(Tige):
         n = self.n
         n_traction = self.n_traction
         if not F_v_Ed or F_v_Ed.value == 0:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 F_t_ancr_Rd = min(F_tc_Rd, F_tb_Rd)
-                taux_ancrage = F_t_Ed / (F_t_ancr_Rd * n_traction) #CNC2M §6(8)
+                taux_ancrage = F_t_Ed / (F_t_ancr_Rd * n_traction)  # CNC2M §6(8)
                 return taux_ancrage
+
             result = val()
             synthese = [
                 ["Traction de la tige d'ancrage", result[1], None],
@@ -640,12 +690,14 @@ class _Tige_scellement(Tige):
 
         elif not self.percage_surdimensionne:
             latex_F_v_Rd, F_v_Rd = self.FvRd
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 F_t_ancr_Rd = min(F_tc_Rd, F_tb_Rd)
-                taux_t = F_t_Ed / (F_t_ancr_Rd * n_traction) #CNC2M §6(8)
+                taux_t = F_t_Ed / (F_t_ancr_Rd * n_traction)  # CNC2M §6(8)
                 taux_t_v = F_v_Ed / (F_v_Rd * n) + F_t_Ed / (1.4 * F_t_ancr_Rd * n_traction)
                 return taux_t, taux_t_v
+
             result = val()
             synthese = [
                 ["Traction de la tige d'ancrage", result[1][0], None],
@@ -658,14 +710,16 @@ class _Tige_scellement(Tige):
             t_p = self.t
             d = self.d
             latex_F_v_Rd, F_v_Rd = self.FvRd
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 e = t_p + d / 2
-                F_t_Ed_eq = F_v_Ed * (e / d) * (5 * pi)/6 #CNC2M §6(9)
+                F_t_Ed_eq = F_v_Ed * (e / d) * (5 * pi) / 6  # CNC2M §6(9)
                 F_t_ancr_Rd = min(F_tc_Rd, F_tb_Rd)
-                taux_t = (F_t_Ed + F_t_Ed_eq) / (F_t_ancr_Rd * n_traction) #CNC2M §6(9)
+                taux_t = (F_t_Ed + F_t_Ed_eq) / (F_t_ancr_Rd * n_traction)  # CNC2M §6(9)
                 taux_t_v = F_v_Ed / (F_v_Rd * n) + (F_t_Ed + F_t_Ed_eq) / (1.4 * F_t_ancr_Rd * n_traction)
                 return taux_t, taux_t_v
+
             result = val()
             synthese = [
                 ["Traction de la tige d'ancrage", result[1][0], None],
@@ -676,7 +730,18 @@ class _Tige_scellement(Tige):
 
 
 class Tige_scellement_plaque_ancrage(_Tige_scellement):
-    def __init__(self, tr: si.mm, dr: si.mm, l_ancr: si.mm, d1: si.mm, e_tiges: si.mm, n:int=2, n_traction:int=2, classe_beton: str=_Tige_scellement.CLASSE_CONCRETE, **kwargs):
+    def __init__(
+        self,
+        tr: si.mm,
+        dr: si.mm,
+        l_ancr: si.mm,
+        d1: si.mm,
+        e_tiges: si.mm,
+        n: int = 2,
+        n_traction: int = 2,
+        classe_beton: str = _Tige_scellement.CLASSE_CONCRETE,
+        **kwargs,
+    ):
         """Initialise une tige de scellement avec plaque circulaire d'après l'EN1993-1-8 et le guide du CNC2M.
         Cette classe est hérité de la classe Tige du module EC3_Assemblage.py.
 
@@ -691,7 +756,7 @@ class Tige_scellement_plaque_ancrage(_Tige_scellement):
                 d'une reprise de moment en pieds par exemple sinon égale à n. Defaults to 2.
             classe_beton (str): classe du béton.
         """
-        super().__init__(n=n, n_traction=n_traction, classe_beton=classe_beton,**kwargs)
+        super().__init__(n=n, n_traction=n_traction, classe_beton=classe_beton, **kwargs)
         self.tr = tr * si.mm
         self.dr = dr * si.mm
         self.l_ancr = l_ancr * si.mm
@@ -699,8 +764,10 @@ class Tige_scellement_plaque_ancrage(_Tige_scellement):
         self.e_tiges = e_tiges * si.mm
         self.type_ancrage = "Plaque d'ancrage circulaire"
 
-        if self.tr.value < 0.3*self.dr.value/2:
-            raise ValueError("L'épaisseur tr doit être supérieur ou égal à {} mm".format(ceil(0.3*self.dr.value*10**3/2)))
+        if self.tr.value < 0.3 * self.dr.value / 2:
+            raise ValueError(
+                "L'épaisseur tr doit être supérieur ou égal à {} mm".format(ceil(0.3 * self.dr.value * 10**3 / 2))
+            )
 
     @property
     def FtcRd(self):
@@ -711,17 +778,29 @@ class Tige_scellement_plaque_ancrage(_Tige_scellement):
         e_tiges = self.e_tiges
         gamma_c = self.GAMMA_C["Fondamentale"]
         f_ck = self.fck
+
         @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             r_r = d_r / 2
             v = min(l_ancr, d_1, e_tiges)
-            A_ancr = 2.55 * pi * (r_r**2 - d**2/4) * (1-r_r/v)
-            F_tc_Rd = A_ancr * f_ck / gamma_c #CNC2M §6(6) tab19
+            A_ancr = 2.55 * pi * (r_r**2 - d**2 / 4) * (1 - r_r / v)
+            F_tc_Rd = A_ancr * f_ck / gamma_c  # CNC2M §6(6) tab19
             return F_tc_Rd
+
         return val()
 
+
 class Tige_scellement_crochet(_Tige_scellement):
-    def __init__(self, l1: si.mm, l2: si.mm, rayon_crochet: si.mm, n:int=2, n_traction:int=2, classe_beton: str=_Tige_scellement.CLASSE_CONCRETE, **kwargs):
+    def __init__(
+        self,
+        l1: si.mm,
+        l2: si.mm,
+        rayon_crochet: si.mm,
+        n: int = 2,
+        n_traction: int = 2,
+        classe_beton: str = _Tige_scellement.CLASSE_CONCRETE,
+        **kwargs,
+    ):
         """Initialise une tige de scellement avec crochet d'après l'EN1993-1-8 et le guide du CNC2M.
         Cette classe est hérité de la classe Tige du module EC3_Assemblage.py.
 
@@ -734,16 +813,22 @@ class Tige_scellement_crochet(_Tige_scellement):
                 d'une reprise de moment en pieds par exemple sinon égale à n. Defaults to 2.
             classe_beton (str): classe du béton.
         """
-        super().__init__(n=n, n_traction=n_traction, classe_beton=classe_beton,**kwargs)
+        super().__init__(n=n, n_traction=n_traction, classe_beton=classe_beton, **kwargs)
         self.l1 = l1 * si.mm
         self.l2 = l2 * si.mm
         self.rayon_crochet = rayon_crochet * si.mm
         self.type_ancrage = "Crochet"
 
-        if self.rayon_crochet.value*10**3 < 3*self.d.value*10**3:
-            raise ValueError("Le rayon du crochet doit être supérieur ou égal à {} mm".format(ceil(3*self.d.value*10**3)))
-        if self.l2.value*10**3 < 1.5*self.d.value*10**3 or self.l2.value*10**3 > 2*self.d.value*10**3:
-            raise ValueError("La longueur l2 doit être comprise entre {} mm <= l2 <= {} mm".format(ceil(1.5*self.d.value*10**3), floor(2*self.d.value*10**3)))
+        if self.rayon_crochet.value * 10**3 < 3 * self.d.value * 10**3:
+            raise ValueError(
+                "Le rayon du crochet doit être supérieur ou égal à {} mm".format(ceil(3 * self.d.value * 10**3))
+            )
+        if self.l2.value * 10**3 < 1.5 * self.d.value * 10**3 or self.l2.value * 10**3 > 2 * self.d.value * 10**3:
+            raise ValueError(
+                "La longueur l2 doit être comprise entre {} mm <= l2 <= {} mm".format(
+                    ceil(1.5 * self.d.value * 10**3), floor(2 * self.d.value * 10**3)
+                )
+            )
 
     @property
     def FtcRd(self):
@@ -753,11 +838,12 @@ class Tige_scellement_crochet(_Tige_scellement):
         rayon = self.rayon_crochet
         gamma_c = self.GAMMA_C["Fondamentale"]
         f_c_k = self.fck
+
         @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             A_ancr = pi * d * (l_1 + 6.4 * rayon + 3.5 * l_2)
             f_b_d = 0.36 * sqrt(f_c_k) / gamma_c * si.MPa
-            F_tc_Rd = A_ancr * f_b_d #CNC2M §6(6) tab19
+            F_tc_Rd = A_ancr * f_b_d  # CNC2M §6(6) tab19
             return F_tc_Rd
-        return val()
 
+        return val()

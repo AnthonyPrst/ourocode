@@ -1,4 +1,4 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 import os
 import sys
@@ -65,7 +65,7 @@ class Model_result(Projet):
         super().__init__(*args, **kwargs)
         self._model_generator = model_generator
         self.analyze_type = analyze_type
-        self.check_stability = check_stability
+        self.check_stability = self._flag(check_stability)
         self._analyze()
 
     def _base_graph(
@@ -79,7 +79,7 @@ class Model_result(Projet):
         color: str,
         fill_between: bool = True,
         savefig: bool = False,
-        filepath: str=None
+        filepath: str = None,
     ):
         """Génère un graphique matplotlib de base pour les résultats.
 
@@ -110,9 +110,7 @@ class Model_result(Projet):
         """
         # plt.clf()  # Effacer le graphique précédent
         plt.figure(self.name, figsize=(11, 4))
-        plt.gcf().subplots_adjust(
-            left=0.1, bottom=0.25, right=0.9, top=0.75, wspace=0, hspace=0.95
-        )
+        plt.gcf().subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.75, wspace=0, hspace=0.95)
 
         # manager = plt.get_current_fig_manager()
         # manager.resize(*manager.window.maxsize())
@@ -128,6 +126,7 @@ class Model_result(Projet):
         if savefig:
             if not filepath:
                 from PySide6.QtWidgets import QFileDialog
+
                 filepath = QFileDialog.getSaveFileName(
                     filter="PNG (*.png)",
                     selectedFilter=".png",
@@ -136,7 +135,6 @@ class Model_result(Projet):
             return filepath
         else:
             plt.show()
-        
 
     def _analyze(self):
         """Lance l'analyse du modèle aux éléments finis.
@@ -152,17 +150,11 @@ class Model_result(Projet):
             return f"Les noeuds suivants ne sont pas connectés: {orphaned_nodes}"
         else:
             if self.analyze_type == self.ANALYZE_TYPE[0]:
-                self._model_generator._model.analyze(
-                    check_stability=self.check_stability
-                )
+                self._model_generator._model.analyze(check_stability=self.check_stability)
             elif self.analyze_type == self.ANALYZE_TYPE[1]:
-                self._model_generator._model.analyze_linear(
-                    check_stability=self.check_stability
-                )
+                self._model_generator._model.analyze_linear(check_stability=self.check_stability)
             else:
-                self._model_generator._model.analyze_PDelta(
-                    check_stability=self.check_stability
-                )
+                self._model_generator._model.analyze_PDelta(check_stability=self.check_stability)
 
     def get_member_length(self, member_id: str) -> float:
         """Retourne la longueur d'une barre par son identifiant.
@@ -233,7 +225,7 @@ class Model_result(Projet):
                     "Mz", n_points=n_points, combo_name=combination
                 )
 
-    def get_min_max_internal_force(self, member_id: str|list, combination: str|list) -> dict:
+    def get_min_max_internal_force(self, member_id: str | list, combination: str | list) -> dict:
         """Retourne les valeurs minimales et maximales des efforts internes.
 
         Analyse tous les types d'efforts (Nx, Vy, Vz, Mx, My, Mz) et retourne
@@ -264,7 +256,8 @@ class Model_result(Projet):
         for type in ("Nx", "Vy", "Vz", "Mx", "My", "Mz"):
             if "[" in member_id:
                 import json
-                member_id = json.loads(member_id.replace("'", "\""))
+
+                member_id = json.loads(member_id.replace("'", '"'))
             elif isinstance(member_id, str):
                 member_id = [member_id]
             max_value = 0
@@ -274,49 +267,25 @@ class Model_result(Projet):
             for member in member_id:
                 if member not in self._model_generator._model.members:
                     raise ValueError(f"La membrure {member} n'est pas dans le model MEF")
-                
+
                 if type == "Nx":
-                    max = self._model_generator._model.members[member].max_axial(
-                        combo_tags=combination
-                    )
-                    min = self._model_generator._model.members[member].min_axial(
-                        combo_tags=combination
-                    )
+                    max = self._model_generator._model.members[member].max_axial(combo_tags=combination)
+                    min = self._model_generator._model.members[member].min_axial(combo_tags=combination)
                 elif type == "Vy":
-                    max = self._model_generator._model.members[member].max_shear(
-                        "Fy", combo_tags=combination
-                    )
-                    min = self._model_generator._model.members[member].min_shear(
-                        "Fy", combo_tags=combination
-                    )
+                    max = self._model_generator._model.members[member].max_shear("Fy", combo_tags=combination)
+                    min = self._model_generator._model.members[member].min_shear("Fy", combo_tags=combination)
                 elif type == "Vz":
-                    max = self._model_generator._model.members[member].max_shear(
-                        "Fz", combo_tags=combination
-                    )
-                    min = self._model_generator._model.members[member].min_shear(
-                        "Fz", combo_tags=combination
-                    )
+                    max = self._model_generator._model.members[member].max_shear("Fz", combo_tags=combination)
+                    min = self._model_generator._model.members[member].min_shear("Fz", combo_tags=combination)
                 elif type == "Mx":
-                    max = self._model_generator._model.members[member].max_torque(
-                        combo_tags=combination
-                    )
-                    min = self._model_generator._model.members[member].min_torque(
-                        combo_tags=combination
-                    )
+                    max = self._model_generator._model.members[member].max_torque(combo_tags=combination)
+                    min = self._model_generator._model.members[member].min_torque(combo_tags=combination)
                 elif type == "My":
-                    max = self._model_generator._model.members[member].max_moment(
-                        "My", combo_tags=combination
-                    )
-                    min = self._model_generator._model.members[member].min_moment(
-                        "My", combo_tags=combination
-                    )
+                    max = self._model_generator._model.members[member].max_moment("My", combo_tags=combination)
+                    min = self._model_generator._model.members[member].min_moment("My", combo_tags=combination)
                 elif type == "Mz":
-                    max = self._model_generator._model.members[member].max_moment(
-                        "Mz", combo_tags=combination
-                    )
-                    min = self._model_generator._model.members[member].min_moment(
-                        "Mz", combo_tags=combination
-                    )
+                    max = self._model_generator._model.members[member].max_moment("Mz", combo_tags=combination)
+                    min = self._model_generator._model.members[member].min_moment("Mz", combo_tags=combination)
                 if isinstance(max, tuple):
                     if max[0] > max_value:
                         max_value = max[0]
@@ -331,15 +300,24 @@ class Model_result(Projet):
                     if min < min_value:
                         min_value = min
                         combi_min = combination
-            
+
             if "M" in type:
                 si_unit = si.N * si.mm
             else:
                 si_unit = si.N
-            dict_internal_forces[type] = {"Min": (min_value * si_unit, combi_min), "Max": (max_value * si_unit, combi_max)}
+            dict_internal_forces[type] = {
+                "Min": (min_value * si_unit, combi_min),
+                "Max": (max_value * si_unit, combi_max),
+            }
         return dict_internal_forces
-    
-    def get_absolute_internal_force(self, member_id: str|list, combination: str|list, type: str = ("Nx", "Vy", "Vz", "Mx", "My", "Mz"), get_combo_name: bool = ("False", "True")):
+
+    def get_absolute_internal_force(
+        self,
+        member_id: str | list,
+        combination: str | list,
+        type: str = ("Nx", "Vy", "Vz", "Mx", "My", "Mz"),
+        get_combo_name: bool = ("False", "True"),
+    ):
         """Retourne la valeur absolue maximale d'un type d'effort spécifique.
 
         Détermine automatiquement si le maximum absolu est la valeur minimale
@@ -359,6 +337,7 @@ class Model_result(Projet):
                 Si get_combo_name=True, retourne un dict :
                 {"Effort": valeur, "Combinaison": nom_combinaison}
         """
+        get_combo_name = self._flag(get_combo_name)
         ei = self.get_min_max_internal_force(member_id, combination)
         max = "Max"
         if abs(ei[type]["Min"][0]) > ei[type]["Max"][0]:
@@ -367,16 +346,15 @@ class Model_result(Projet):
             return {"Effort": abs(ei[type][max][0]), "Combinaison": ei[type][max][1]}
         else:
             return abs(ei[type][max][0])
-    
 
     def show_internal_force_of_member(
         self,
-        member_id: str|list,
+        member_id: str | list,
         combination: str,
         type: str = ("Nx", "Vy", "Vz", "Mx", "My", "Mz"),
         n_points: int = 20,
         screenshot: bool = ("False", "True"),
-        filepath: str=None,
+        filepath: str = None,
     ):
         """Affiche le diagramme des efforts internes d'une barre.
 
@@ -408,10 +386,12 @@ class Model_result(Projet):
             Les barres sont concaténées pour former un diagramme continu
             dans le cas d'une barre continue (ex: ["M1", "M2", "M3"]).
         """
+        screenshot = self._flag(screenshot)
         x_label = "Longueur (mm)"
         if "[" in member_id:
             import json
-            member_id = json.loads(member_id.replace("'", "\""))
+
+            member_id = json.loads(member_id.replace("'", '"'))
         elif isinstance(member_id, str):
             member_id = [member_id]
         x_value = []
@@ -419,9 +399,7 @@ class Model_result(Projet):
         for member in member_id:
             if member not in self._model_generator._model.members:
                 raise ValueError(f"La membrure {member} n'est pas dans le model MEF")
-            x_local, y_local = self.get_internal_force(
-                member, combination, type, n_points
-            )
+            x_local, y_local = self.get_internal_force(member, combination, type, n_points)
             if len(x_value) == 0:
                 x_value = x_local
                 y_value = y_local
@@ -429,7 +407,7 @@ class Model_result(Projet):
                 x_local = x_local + x_value[-1]
                 x_value = np.concatenate((x_value, x_local))
                 y_value = np.concatenate((y_value, y_local))
-            
+
         if type.startswith("N"):
             title = f"Barre {member_id}: Effort normal {type}"
             color = "orange"
@@ -446,15 +424,7 @@ class Model_result(Projet):
             y_label = "Effort (kN.m)"
             y_value = y_value * 10**-6
         return self._base_graph(
-            title,
-            combination,
-            x_value,
-            y_value,
-            x_label,
-            y_label,
-            color=color,
-            savefig=screenshot,
-            filepath=filepath
+            title, combination, x_value, y_value, x_label, y_label, color=color, savefig=screenshot, filepath=filepath
         )
 
     def get_deflection(
@@ -494,7 +464,7 @@ class Model_result(Projet):
             direction, n_points=n_points, combo_name=combination
         )
 
-    def get_min_max_deflection(self, member_id: str|list, combination: str|list) -> dict:
+    def get_min_max_deflection(self, member_id: str | list, combination: str | list) -> dict:
         """Retourne les déplacements minimaux et maximaux d'une barre.
 
         Analyse les trois directions de déplacement (dx, dy, dz) et retourne
@@ -525,7 +495,8 @@ class Model_result(Projet):
         for type in ("dx", "dy", "dz"):
             if "[" in member_id:
                 import json
-                member_id = json.loads(member_id.replace("'", "\""))
+
+                member_id = json.loads(member_id.replace("'", '"'))
             elif isinstance(member_id, str):
                 member_id = [member_id]
             max_value = 0
@@ -535,13 +506,9 @@ class Model_result(Projet):
             for member in member_id:
                 if member not in self._model_generator._model.members:
                     raise ValueError(f"La membrure {member} n'est pas dans le model MEF")
-                max = self._model_generator._model.members[member].max_deflection(
-                    type, combo_tags=combination
-                )
+                max = self._model_generator._model.members[member].max_deflection(type, combo_tags=combination)
 
-                min = self._model_generator._model.members[member].min_deflection(
-                    type, combo_tags=combination
-                )
+                min = self._model_generator._model.members[member].min_deflection(type, combo_tags=combination)
                 if isinstance(max, tuple):
                     if max[0] > max_value:
                         max_value = max[0]
@@ -559,8 +526,14 @@ class Model_result(Projet):
 
             dict_deflection[type] = {"Min": (min_value * si.mm, combi_min), "Max": (max_value * si.mm, combi_max)}
         return dict_deflection
-    
-    def get_absolute_max_deflection(self, member_id: str|list, combination: str|list, direction: str = ("dx", "dy", "dz"), get_combo_name: bool=("False", "True")):
+
+    def get_absolute_max_deflection(
+        self,
+        member_id: str | list,
+        combination: str | list,
+        direction: str = ("dx", "dy", "dz"),
+        get_combo_name: bool = ("False", "True"),
+    ):
         """Retourne la valeur absolue maximale de déplacement pour une direction donnée.
 
         Détermine automatiquement si le maximum absolu est la valeur minimale
@@ -581,6 +554,7 @@ class Model_result(Projet):
                 Si get_combo_name=True, retourne un dict :
                 {"Flèche": valeur, "Combinaison": nom_combinaison}
         """
+        get_combo_name = self._flag(get_combo_name)
         deflection = self.get_min_max_deflection(member_id, combination)
         max = "Max"
         if abs(deflection[direction]["Min"][0]) > deflection[direction]["Max"][0]:
@@ -589,16 +563,15 @@ class Model_result(Projet):
             return {"Flèche": abs(deflection[direction][max][0]), "Combinaison": deflection[direction][max][1]}
         else:
             return abs(deflection[direction][max][0])
-        
 
     def show_deflection_of_member(
         self,
-        member_id: str|list,
+        member_id: str | list,
         combination: str,
         direction: str = ("dx", "dy", "dz"),
         n_points: int = 20,
         screenshot: bool = ("False", "True"),
-        filepath: str=None,
+        filepath: str = None,
     ):
         """Affiche le diagramme de déformée (flèche) d'une barre.
 
@@ -627,13 +600,15 @@ class Model_result(Projet):
             La déformée est tracée en vert avec remplissage pour visualiser
             l'amplitude des déplacements.
         """
-        title = f'Barre {member_id}: Flèche {direction}'
+        screenshot = self._flag(screenshot)
+        title = f"Barre {member_id}: Flèche {direction}"
         x_label = "Longueur (mm)"
         y_label = "Déplacement\n(mm)"
         color = "g"
         if "[" in member_id:
             import json
-            member_id = json.loads(member_id.replace("'", "\""))
+
+            member_id = json.loads(member_id.replace("'", '"'))
         elif isinstance(member_id, str):
             member_id = [member_id]
         x_value = []
@@ -641,9 +616,7 @@ class Model_result(Projet):
         for member in member_id:
             if member not in self._model_generator._model.members:
                 raise ValueError(f"La membrure {member} n'est pas dans le model MEF")
-            x_local, y_local = self.get_deflection(
-                member, combination, direction, n_points
-            )
+            x_local, y_local = self.get_deflection(member, combination, direction, n_points)
             if len(x_value) == 0:
                 x_value = x_local
                 y_value = y_local
@@ -653,17 +626,8 @@ class Model_result(Projet):
                 y_value = np.concatenate((y_value, y_local))
 
         return self._base_graph(
-            title,
-            combination,
-            x_value,
-            y_value,
-            x_label,
-            y_label,
-            color=color,
-            savefig=screenshot,
-            filepath=filepath
+            title, combination, x_value, y_value, x_label, y_label, color=color, savefig=screenshot, filepath=filepath
         )
-
 
     def show_model(
         self,
@@ -673,7 +637,7 @@ class Model_result(Projet):
         diagrams: str = ("Aucun", "Fx", "Fy", "Fz", "My", "Mz", "Tx", "Flèche"),
         scale: int = 1000,
         screenshot: bool = ("False", "True"),
-        filepath: str=None,
+        filepath: str = None,
     ):
         """Affiche une visualisation 3D interactive du modèle MEF.
 
@@ -708,8 +672,18 @@ class Model_result(Projet):
             tourner le modèle (clic gauche), zoomer (molette), paner (clic droit).
             Appuyez sur Q pour fermer.
         """
+        show_loads = self._flag(show_loads)
+        screenshot = self._flag(screenshot)
         from PySide6.QtWidgets import QFileDialog, QMessageBox
-        from Pynite.Rendering import Renderer
+
+        try:
+            from Pynite.Rendering import Renderer
+        except ImportError as exc:
+            raise ImportError(
+                "PyNiteFEA et pyvista sont requis pour la visualisation du modèle. "
+                "Installez-les via : pip install 'ourocode[mef]'"
+            ) from exc
+
         renderer = Renderer(self._model_generator._model)
         renderer.combo_name = combination
         renderer.annotation_size = annotation_size
@@ -720,7 +694,7 @@ class Model_result(Projet):
         elif diagrams != "Aucun":
             renderer.member_diagrams = diagrams
             renderer.diagram_scale = scale
-            
+
         if screenshot:
             if not filepath:
                 interaction = True
@@ -794,21 +768,9 @@ class Model_result(Projet):
         FX = self._model_generator._model.nodes[node_id].RxnFX[combination] * si.N
         FY = self._model_generator._model.nodes[node_id].RxnFY[combination] * si.N
         FZ = self._model_generator._model.nodes[node_id].RxnFZ[combination] * si.N
-        MX = (
-            self._model_generator._model.nodes[node_id].RxnMX[combination]
-            * si.N
-            * si.mm
-        )
-        MY = (
-            self._model_generator._model.nodes[node_id].RxnMY[combination]
-            * si.N
-            * si.mm
-        )
-        MZ = (
-            self._model_generator._model.nodes[node_id].RxnMZ[combination]
-            * si.N
-            * si.mm
-        )
+        MX = self._model_generator._model.nodes[node_id].RxnMX[combination] * si.N * si.mm
+        MY = self._model_generator._model.nodes[node_id].RxnMY[combination] * si.N * si.mm
+        MZ = self._model_generator._model.nodes[node_id].RxnMZ[combination] * si.N * si.mm
         return {"FX": FX, "FY": FY, "FZ": FZ, "MX": MX, "MY": MY, "MZ": MZ}
 
     def get_supports_reactions(self, combination: str) -> dict:
@@ -840,4 +802,3 @@ class Model_result(Projet):
                 node_id = support["Noeud"]
                 reaction[support_id] = self._get_node_reaction(node_id, combination)
         return reaction
-

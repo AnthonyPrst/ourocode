@@ -1,4 +1,4 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 import sys
 import os
@@ -8,12 +8,12 @@ from math import sqrt, pi
 import pandas as pd
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
 from ourocode.eurocode.ec5.feu.feu import Feu
 from ourocode.eurocode.ec5.element_droit.traction import Traction
-
 
 
 class Traction_feu(Feu, Traction):
@@ -22,10 +22,9 @@ class Traction_feu(Feu, Traction):
         Cette classe est hérité de la classe Feu, provenant du module EC5_Feu.py.
         """
         super().__init__(**kwargs)
-    
+
     def f_t_0_d(self) -> tuple:
-        """Retourne la résistance f,t,0,d au feu de l'élément en MPa
-        """
+        """Retourne la résistance f,t,0,d au feu de l'élément en MPa"""
         return super()._f_type_d("ft0k")
 
     def taux_t_0_d(self) -> tuple:
@@ -49,7 +48,7 @@ class Traction_feu(Feu, Traction):
         value = val()
         self.taux_t_0_rd["equ6.1"] = value[1]
         synthese = [
-            ["Traction bois", None, self.taux_t_0_rd['equ6.1']],
+            ["Traction bois", None, self.taux_t_0_rd["equ6.1"]],
         ]
         self._add_synthese_taux_travail(synthese)
         return value

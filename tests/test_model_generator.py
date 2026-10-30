@@ -12,9 +12,7 @@ from ourocode.eurocode.core.model_generator import Model_generator
 
 
 def _make_model() -> Model_generator:
-    return Model_generator(
-        ingenieur="Testeur", name="Projet Test", code_INSEE=75056, alt=100
-    )
+    return Model_generator(ingenieur="Testeur", name="Projet Test", code_INSEE=75056, alt=100)
 
 
 def _make_colinear_chain(nb_members: int, material: str = "C24", section=None):
@@ -31,9 +29,7 @@ def _make_colinear_chain(nb_members: int, material: str = "C24", section=None):
         model.add_node(X=1000 * i, Y=0, Z=0)
     member_ids = []
     for i in range(nb_members):
-        mid = model.add_member(
-            f"N{i + 1}", f"N{i + 2}", mat, sec, poids_propre=False
-        )
+        mid = model.add_member(f"N{i + 1}", f"N{i + 2}", mat, sec, poids_propre=False)
         member_ids.append(mid)
     return model, mat, member_ids
 
@@ -41,6 +37,7 @@ def _make_colinear_chain(nb_members: int, material: str = "C24", section=None):
 # ---------------------------------------------------------------------------
 # detect_continuous_members
 # ---------------------------------------------------------------------------
+
 
 class TestDetectContinuousMembers:
     def test_single_member(self):
@@ -84,9 +81,14 @@ class TestDetectContinuousMembers:
         model, _, ids = _make_colinear_chain(3)
         # Rotule en rotation z à la fin de M1 → rompt la continuité M1/M2
         model.add_release(
-            ids[0], position="end",
-            u=False, v=False, w=False,
-            teta_x=False, teta_y=False, teta_z=True,
+            ids[0],
+            position="end",
+            u=False,
+            v=False,
+            w=False,
+            teta_x=False,
+            teta_y=False,
+            teta_z=True,
         )
         chains = model.detect_continuous_members()
         chains_sorted = sorted(map(tuple, chains), key=lambda c: c[0])
@@ -120,9 +122,14 @@ class TestDetectContinuousMembers:
         contrefiche = model.add_member("N2", "N4", mat, sec, poids_propre=False)
         # Relâchement en rotation au pied de la contrefiche (noeud N2)
         model.add_release(
-            contrefiche, position="start",
-            u=False, v=False, w=False,
-            teta_x=False, teta_y=False, teta_z=True,
+            contrefiche,
+            position="start",
+            u=False,
+            v=False,
+            w=False,
+            teta_x=False,
+            teta_y=False,
+            teta_z=True,
         )
         chains = model.detect_continuous_members()
         # L'arbalétrier reste continu ; la contrefiche isolée.
@@ -134,9 +141,9 @@ class TestDetectContinuousMembers:
         model = _make_model()
         mat = model.add_material_by_class("C24")
         sec = model.add_section(100, 200, 0, "Rectangulaire")
-        model.add_node(X=0, Y=0, Z=0)         # N1
-        model.add_node(X=1000, Y=0, Z=0)      # N2
-        model.add_node(X=1000, Y=1000, Z=0)   # N3 -> angle 90°
+        model.add_node(X=0, Y=0, Z=0)  # N1
+        model.add_node(X=1000, Y=0, Z=0)  # N2
+        model.add_node(X=1000, Y=1000, Z=0)  # N3 -> angle 90°
         m1 = model.add_member("N1", "N2", mat, sec, poids_propre=False)
         m2 = model.add_member("N2", "N3", mat, sec, poids_propre=False)
         chains = model.detect_continuous_members()
@@ -147,10 +154,10 @@ class TestDetectContinuousMembers:
         model = _make_model()
         mat = model.add_material_by_class("C24")
         sec = model.add_section(100, 200, 0, "Rectangulaire")
-        model.add_node(X=0, Y=0, Z=0)         # N1
-        model.add_node(X=1000, Y=0, Z=0)      # N2
+        model.add_node(X=0, Y=0, Z=0)  # N1
+        model.add_node(X=1000, Y=0, Z=0)  # N2
         # Angle de ~0.5° (dy=10 sur dx=1000 -> atan ≈ 0.57°)
-        model.add_node(X=2000, Y=10, Z=0)     # N3
+        model.add_node(X=2000, Y=10, Z=0)  # N3
         ids = [
             model.add_member("N1", "N2", mat, sec, poids_propre=False),
             model.add_member("N2", "N3", mat, sec, poids_propre=False),
@@ -167,8 +174,8 @@ class TestDetectContinuousMembers:
         mat = model.add_material_by_class("C24")
         sec = model.add_section(100, 200, 0, "Rectangulaire")
         model.add_node(X=-1000, Y=0, Z=0)  # N1
-        model.add_node(X=0, Y=0, Z=0)      # N2 (partagé, deux "start")
-        model.add_node(X=1000, Y=0, Z=0)   # N3
+        model.add_node(X=0, Y=0, Z=0)  # N2 (partagé, deux "start")
+        model.add_node(X=1000, Y=0, Z=0)  # N3
         # Les deux barres partent de N2 -> même extrémité "start"
         m1 = model.add_member("N2", "N1", mat, sec, poids_propre=False)
         m2 = model.add_member("N2", "N3", mat, sec, poids_propre=False)
@@ -181,11 +188,14 @@ class TestDetectContinuousMembers:
 # group_members / auto_group_continuous_members / iter / get / del
 # ---------------------------------------------------------------------------
 
+
 class TestGroupMembers:
     def test_group_and_get(self):
         model, _, ids = _make_colinear_chain(3)
         model.group_members(
-            "Solive_1", ids, role="Solive",
+            "Solive_1",
+            ids,
+            role="Solive",
             design_params={"classe_bois": "C24", "cs": 1, "Hi": 12, "Hf": 12},
         )
         sm = model.get_structural_member("Solive_1")
@@ -242,7 +252,8 @@ class TestGroupMembers:
     def test_auto_group_creates_all(self):
         model, _, ids = _make_colinear_chain(3)
         created = model.auto_group_continuous_members(
-            role="Solive", design_params={"classe_bois": "C24", "cs": 1},
+            role="Solive",
+            design_params={"classe_bois": "C24", "cs": 1},
         )
         assert created == ["SM1"]
         sm = model.get_structural_member("SM1")

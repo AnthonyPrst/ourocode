@@ -1,4 +1,5 @@
 """Tests unitaires pour Projet, Objet et les mixins (Serialization, MathUtils, Synthese, DataLoader)."""
+
 import pytest
 import math
 import sys
@@ -6,9 +7,10 @@ import os
 import json
 import tempfile
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import forallpeople as si
+
 si.environment("structural")
 
 from ourocode.eurocode.core.projet import Projet
@@ -22,6 +24,7 @@ from ourocode.eurocode.ec3.element_droit.plat import Plat
 # ---------------------------------------------------------------------------
 # Fixtures communes
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def projet_vide():
@@ -49,6 +52,7 @@ def plat_simple():
 # ---------------------------------------------------------------------------
 # Test_Projet
 # ---------------------------------------------------------------------------
+
 
 class Test_Projet:
     def test_init_defaults(self, projet_vide):
@@ -107,6 +111,7 @@ class Test_Projet:
 # Test_Objet_get_value
 # ---------------------------------------------------------------------------
 
+
 class Test_Objet_get_value:
     def test_get_value_dict_key(self, projet_vide):
         data = {"a": 1, "b": 2}
@@ -129,6 +134,7 @@ class Test_Objet_get_value:
 # ---------------------------------------------------------------------------
 # Test_SerializationMixin
 # ---------------------------------------------------------------------------
+
 
 class Test_SerializationMixin:
     def test_physical_to_dict_simple(self, projet_vide):
@@ -191,10 +197,127 @@ class Test_SerializationMixin:
         assert abs(float(loaded["masse"]) - float(data["masse"])) < 1e-6
         assert abs(float(loaded["longueur"]) - float(data["longueur"])) < 1e-9
 
+    def test_save_open_object_roundtrip_path(self, tmp_path):
+        """save_object/_open_object acceptent un path : pas de QFileDialog (headless)."""
+        from ourocode.eurocode.ec5.element_droit.barre import Barre
+
+        barre = Barre(b=100, h=300, section="Rectangulaire", classe="GL24h", cs=2)
+        path = str(tmp_path / "test.oco")
+        barre.save_object(path=path)
+        loaded = Barre._open_object(path=path)
+        assert isinstance(loaded, Barre)
+        assert loaded.classe == "GL24h"
+
+    def test_save_open_multiple_objects_path(self, tmp_path):
+        from ourocode.eurocode.ec5.element_droit.barre import Barre
+
+        b1 = Barre(b=100, h=300, section="Rectangulaire", classe="C24", cs=1)
+        b2 = Barre(b=60, h=200, section="Rectangulaire", classe="C18", cs=1)
+        path = str(tmp_path / "multi.oco")
+        b1._save_muliple_objects([b1, b2], path=path)
+        loaded = Barre._open_multiple_objects(path=path)
+        assert len(loaded) == 2
+        assert all(isinstance(b, Barre) for b in loaded)
+
+    def test_compat_unpickler_redirects_v1_module(self):
+        """_CompatUnpickler redirige les anciens modules v1.x vers la v2.x."""
+        import io
+        from ourocode.eurocode.mixins.serialization import _CompatUnpickler
+        from ourocode.eurocode.ec5.element_droit.barre import Barre
+
+        unpickler = _CompatUnpickler(io.BytesIO(b""))
+        assert unpickler.find_class("ourocode.eurocode.EC5_Element_droit", "Barre") is Barre
+        assert unpickler.find_class("eurocode.EC5_Element_droit", "Barre") is Barre
+
+    def test_compat_unpickler_roundtrip_legacy_pickle(self, tmp_path):
+        """Un pickle écrit avec l'ancien chemin de module se recharge en v2.x."""
+        import io
+        import pickle
+        import sys
+        import types
+        from ourocode.eurocode.mixins.serialization import _CompatUnpickler
+        from ourocode.eurocode.ec5.element_droit.barre import Barre
+
+        # Simule un objet picklé sous l'ancien module EC5_Element_droit :
+        # __module__ pointe vers l'ancien chemin, __qualname__ vers "Barre".
+        legacy_module = types.ModuleType("ourocode.eurocode.EC5_Element_droit")
+
+        class LegacyBarre(Barre):
+            pass
+
+        LegacyBarre.__module__ = "ourocode.eurocode.EC5_Element_droit"
+        LegacyBarre.__qualname__ = "Barre"
+        legacy_module.Barre = LegacyBarre
+        sys.modules["ourocode.eurocode.EC5_Element_droit"] = legacy_module
+        try:
+            legacy = LegacyBarre(b=100, h=300, section="Rectangulaire", classe="C24", cs=1)
+            data = pickle.dumps(legacy)
+        finally:
+            del sys.modules["ourocode.eurocode.EC5_Element_droit"]
+
+        # Sans la redirection, le chargement lèverait ModuleNotFoundError.
+        loaded = _CompatUnpickler(io.BytesIO(data)).load()
+        assert type(loaded) is Barre
+        assert loaded.classe == "C24"
+
+    def test_save_object_writes_json_format(self, tmp_path):
+        """save_object écrit le format JSON versionné oco/1 (pas du pickle)."""
+        from ourocode.eurocode.ec5.element_droit.barre import Barre
+
+        barre = Barre(b=100, h=300, section="Rectangulaire", classe="C24", cs=1)
+        path = str(tmp_path / "json.oco")
+        barre.save_object(path=path)
+        with open(path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+        assert payload["_format"] == "oco/1"
+        assert payload["_class"].endswith("Barre")
+        assert payload["data"]["classe"] == "C24"
+
+    def test_open_object_json_restores_physical(self, tmp_path):
+        """Le roundtrip JSON restaure les Physical et l'état complet de l'objet."""
+        from ourocode.eurocode.ec5.element_droit.barre import Barre
+
+        barre = Barre(b=100, h=300, section="Rectangulaire", classe="C24", cs=2)
+        path = str(tmp_path / "phys.oco")
+        barre.save_object(path=path)
+        loaded = Barre._open_object(path=path)
+        assert loaded.b.value == barre.b.value
+        assert loaded.h.value == barre.h.value
+        assert loaded.cs == 2
+        assert loaded.effet_systeme is False
+
+    def test_open_object_detects_legacy_pickle(self, tmp_path):
+        """_open_object charge toujours un fichier pickle legacy (détection auto)."""
+        import pickle
+        from ourocode.eurocode.ec5.element_droit.barre import Barre
+
+        barre = Barre(b=100, h=300, section="Rectangulaire", classe="C24", cs=1)
+        path = str(tmp_path / "legacy.oco")
+        with open(path, "wb") as f:
+            pickle.dump(barre, f)
+        loaded = Barre._open_object(path=path)
+        assert type(loaded) is Barre
+        assert loaded.classe == "C24"
+
+    def test_resolve_oco_class_rejects_foreign_module(self):
+        """Un fichier .oco ne peut pas instancier de classe hors du package."""
+        from ourocode.eurocode.mixins.serialization import SerializationMixin
+
+        with pytest.raises(ValueError):
+            SerializationMixin._resolve_oco_class("os.PathLike")
+
+    def test_oco_unknown_format_raises(self):
+        """Un payload sans version oco/1 est refusé."""
+        from ourocode.eurocode.mixins.serialization import SerializationMixin
+
+        with pytest.raises(ValueError, match="Format .oco"):
+            SerializationMixin._oco_load({"_format": "oco/999", "_class": "x", "data": {}})
+
 
 # ---------------------------------------------------------------------------
 # Test_MathUtilsMixin
 # ---------------------------------------------------------------------------
+
 
 class Test_MathUtilsMixin:
     def test_abs_value(self, projet_vide):
@@ -224,10 +347,12 @@ class Test_MathUtilsMixin:
         assert all(n > 0 for n in nums)
 
     def test_max_list(self, projet_vide):
-        assert projet_vide.max_list([1.0, -5.0, 3.0]) == 5.0
+        assert projet_vide.max_list([1.0, -5.0, 3.0]) == 3.0
+        assert projet_vide.max_list([1.0, -5.0, 3.0], absolute=True) == 5.0
 
     def test_min_list(self, projet_vide):
-        assert projet_vide.min_list([1.0, -5.0, 3.0]) == 1.0
+        assert projet_vide.min_list([1.0, -5.0, 3.0]) == -5.0
+        assert projet_vide.min_list([1.0, -5.0, 3.0], absolute=True) == 1.0
 
     def test_operation_between_values(self, projet_vide):
         assert projet_vide.operation_between_values(4, 2, "+") == 6
@@ -269,6 +394,7 @@ class Test_MathUtilsMixin:
 # Test_SyntheseMixin
 # ---------------------------------------------------------------------------
 
+
 class Test_SyntheseMixin:
     @pytest.fixture
     def obj(self):
@@ -291,10 +417,12 @@ class Test_SyntheseMixin:
         assert len(df) == 2
 
     def test_synthese_taux_travail_max(self, obj):
-        obj._add_synthese_taux_travail([
-            ("Traction", 0.4, 0.2),
-            ("Flexion", 0.9, 0.7),
-        ])
+        obj._add_synthese_taux_travail(
+            [
+                ("Traction", 0.4, 0.2),
+                ("Flexion", 0.9, 0.7),
+            ]
+        )
         df_final = obj.synthese_taux_travail()
         max_row = df_final[df_final.iloc[:, 0] == "Max"].iloc[0]
         assert max_row["Situation normale"] == 0.9
@@ -304,10 +432,43 @@ class Test_SyntheseMixin:
         with pytest.raises(TypeError):
             obj._add_synthese_taux_travail(["invalide"])
 
+    def test_synthese_clause_combinaison_columns(self, obj):
+        """Les colonnes de traçabilité clause/combinaison sont supportées."""
+        df = obj._add_synthese_taux_travail(
+            [
+                ("Flexion", 0.9, None, "EN 1995-1-1 §6.1.6", "ELU_STR 1.35G + 1.5Q"),
+                {"effort": "Traction", "SN": 0.4, "clause": "EN 1995-1-1 §6.1.3", "combinaison": "ELU_STR 1.35G"},
+            ]
+        )
+        assert "Clause normative" in df.columns
+        assert "Combinaison" in df.columns
+        assert df.iloc[0]["Clause normative"] == "EN 1995-1-1 §6.1.6"
+        assert df.iloc[1]["Combinaison"] == "ELU_STR 1.35G"
+
+    def test_synthese_max_reports_governing_combinaison(self, obj):
+        """La ligne Max reporte la combinaison de la ligne gouvernante."""
+        obj._add_synthese_taux_travail(
+            [
+                ("Flexion", 0.9, None, "EN 1995-1-1 §6.1.6", "ELU_STR 1.35G + 1.5Q"),
+                ("Traction", 0.4, None, "EN 1995-1-1 §6.1.3", "ELU_STR 1.35G"),
+            ]
+        )
+        df = obj.synthese_taux_travail()
+        max_row = df[df.iloc[:, 0] == "Max"].iloc[0]
+        assert max_row["Combinaison"] == "ELU_STR 1.35G + 1.5Q"
+        assert max_row["Clause normative"] == "EN 1995-1-1 §6.1.6"
+
+    def test_synthese_compat_sans_tracabilite(self, obj):
+        """Les lignes sans clause/combinaison restent compatibles (None)."""
+        df = obj._add_synthese_taux_travail([("Cisaillement", 0.7, None)])
+        assert df.iloc[0]["Clause normative"] is None
+        assert df.iloc[0]["Combinaison"] is None
+
 
 # ---------------------------------------------------------------------------
 # Test_DataLoaderMixin
 # ---------------------------------------------------------------------------
+
 
 class Test_DataLoaderMixin:
     def test_data_from_csv_retourne_dataframe(self, projet_vide):

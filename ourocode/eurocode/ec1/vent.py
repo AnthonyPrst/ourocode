@@ -1,4 +1,4 @@
-﻿#! env\Scripts\python.exe
+#! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
 import os
 import sys
@@ -64,12 +64,14 @@ class Vent(Batiment):
             **kwargs: Arguments transmis à la classe parent Batiment.
         """
         super().__init__(**kwargs)
-        self.terrain = terrain
-        self.oro = oro
-        if oro == "Cas 1":
+        self.terrain = self._check_choice(terrain, self.CAT_TERRAIN.keys(), "terrain")
+        self.oro = self._check_choice(oro, self.CAT_ORO.keys(), "oro")
+        if self.oro == "Cas 1":
             self._calc_delta_AC()
-        elif oro == "Cas 2":
+        elif self.oro == "Cas 2":
             raise ValueError("Cas 2 non traité dans ce logiciel !")
+        if CsCd <= 0:
+            raise ValueError(f"CsCd doit être strictement positif, reçu : {CsCd}")
         self.z = z * si.m
         self.CsCd = CsCd
 
@@ -87,18 +89,19 @@ class Vent(Batiment):
         """
         if not hasattr(self, "dict_alti_oro"):
             self.dict_alti_oro = {
-                    "An1": "",
-                    "An2": "",
-                    "Ae1": "",
-                    "Ae2": "",
-                    "As1": "",
-                    "As2": "",
-                    "Ao1": "",
-                    "Ao2": "",
-                }
+                "An1": "",
+                "An2": "",
+                "Ae1": "",
+                "Ae2": "",
+                "As1": "",
+                "As2": "",
+                "Ao1": "",
+                "Ao2": "",
+            }
             # Demande des altitudes via des boîtes de dialogue QInputDialog (PySide6), autonome si aucune QApplication n'existe
             from PySide6.QtWidgets import QApplication, QInputDialog
             from PySide6.QtCore import Qt
+
             app = QApplication.instance()
             owns_app = False
             if app is None:
@@ -241,13 +244,19 @@ class Vent(Batiment):
             case "1":
                 Delta_A_C = self.delta_AC.value
                 if self.z.value >= 10:
-                    @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+
+                    @handcalc(
+                        override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]"
+                    )
                     def val():
                         C0_z = 1 + 0.004 * Delta_A_C * mt.exp(z - 10)
                         res = max(C0_z, 1)
                         return res
                 else:
-                    @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+
+                    @handcalc(
+                        override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]"
+                    )
                     def val():
                         C0_z = 1 + 0.004 * Delta_A_C * mt.exp(0)
                         res = max(C0_z, 1)
@@ -256,10 +265,12 @@ class Vent(Batiment):
             case "2":
                 raise ValueError("Erreur la catégorie orographique 2 n'est pas encore implémentée")
             case _:
+
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     C0_z = 1
                     return C0_z
+
         return val()
 
     @property
@@ -280,6 +291,7 @@ class Vent(Batiment):
         def val():
             V_m_z = C_r_z * C_o_z * V_b
             return V_m_z
+
         return val()
 
     @property
@@ -291,13 +303,9 @@ class Vent(Batiment):
         """
         match self.cat_oro:
             case "1":
-                return self.Co_z[1] * (
-                    1 - 2 * 10**-4 * (mt.log10(self.cat_terrain["Z0"]) + 3) ** 6
-                )  # 4.19NA
+                return self.Co_z[1] * (1 - 2 * 10**-4 * (mt.log10(self.cat_terrain["Z0"]) + 3) ** 6)  # 4.19NA
             case _:
-                return (
-                    1 - 2 * 10**-4 * (mt.log10(self.cat_terrain["Z0"]) + 3) ** 6
-                )  # 4.20NA
+                return 1 - 2 * 10**-4 * (mt.log10(self.cat_terrain["Z0"]) + 3) ** 6  # 4.20NA
 
     @property
     def _sigma_v(self):
@@ -315,13 +323,12 @@ class Vent(Batiment):
         Returns:
                 float: intensité de la turbulence
         """
-        if (
-            self.cat_terrain["Zmin"] <= self.z.value <= 200
-            or self.z.value < self.cat_terrain["Zmin"]
-        ):
+        if self.cat_terrain["Zmin"] <= self.z.value <= 200 or self.z.value < self.cat_terrain["Zmin"]:
             return self._sigma_v / self.Vm_z[1]  # 4.7
         else:
-            raise ValueError("Erreur la hauteur max du bâtiment ne peut dépasser 200m, impossible de calculer l'intensité de turbulence Iv")
+            raise ValueError(
+                "Erreur la hauteur max du bâtiment ne peut dépasser 200m, impossible de calculer l'intensité de turbulence Iv"
+            )
 
     @property
     def Qb(self):
@@ -518,9 +525,7 @@ class Murs_verticaux(Vent):
 
     def _geo(self):
         """Calcul les dimensions du zonage des parois verticale"""
-        self._df = self._data_from_csv(
-            os.path.join("vent", "vent_Cpe_mur_verticaux.csv")
-        )
+        self._df = self._data_from_csv(os.path.join("vent", "vent_Cpe_mur_verticaux.csv"))
         self._df.reset_index(drop=False, inplace=True)
 
         if self.e < self.d_bat:
@@ -593,9 +598,7 @@ class Murs_verticaux(Vent):
                     ]
 
         self._df.set_index("Zone", inplace=True)
-        self._df = self._df.loc[
-            [zone for zone in self._wind_direction[cle]["geometrie"].keys()]
-        ]
+        self._df = self._df.loc[[zone for zone in self._wind_direction[cle]["geometrie"].keys()]]
         return self._df
 
     def get_wind_dict(self) -> dict:
@@ -625,14 +628,13 @@ class Murs_verticaux(Vent):
 
     def show_zonage(self):
         """Affiche l'image du zonage pour les murs verticaux selon EN 1991-1-4 §7.2.2."""
-        file = os.path.join(
-            Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_mur_verticaux.png"
-        )
+        file = os.path.join(Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_mur_verticaux.png")
         image = Image.open(file)
         image.show()
 
+
 class Toiture_terrasse_acrotere(Vent):
-    def __init__(self, load_area:float, hp:si.m, h:si.m, *args, **kwargs):
+    def __init__(self, load_area: float, hp: si.m, h: si.m, *args, **kwargs):
         """Crée un objet pour le calcul des pressions sur une toiture terrasse avec acrotère selon EN 1991-1-4 §7.2.3.
 
         Le calcul est effectué pour la direction de vent 0° uniquement (symétrie).
@@ -652,7 +654,7 @@ class Toiture_terrasse_acrotere(Vent):
         self.load_area = load_area
         self.hp = hp * si.m
         self.h = h * si.m
-        self._hp_h = self.hp/self.h
+        self._hp_h = self.hp / self.h
         self._wind_direction = {"0°": {}}
 
         self.e = min(self.b_bat, self.h_bat * 2)
@@ -661,8 +663,7 @@ class Toiture_terrasse_acrotere(Vent):
         self._wind_direction["0°"]["Cpe"] = self._Cpe()
 
     def _geo(self):
-        """Calcul les surfaces du zonage de la toiture
-        """
+        """Calcul les surfaces du zonage de la toiture"""
         geometrie = {
             "F": {
                 "Longueur": self.e / 4,
@@ -694,9 +695,7 @@ class Toiture_terrasse_acrotere(Vent):
                 direction (str): sens du vent sur le bâtiment 0° ou 90°
         """
         num_columns = 7
-        df = self._data_from_csv(
-            os.path.join("vent", "vent_Cpe_toiture_terrasse.csv")
-        )
+        df = self._data_from_csv(os.path.join("vent", "vent_Cpe_toiture_terrasse.csv"))
         name_csv_type = self.type_terrasse.replace("è", "e")
         df = df.loc[name_csv_type]
         df.reset_index(drop=False, inplace=True)
@@ -768,12 +767,10 @@ class Toiture_terrasse_acrotere(Vent):
 
     def show_zonage(self):
         """Affiche l'image du zonage pour une toiture terrasse avec acrotère selon EN 1991-1-4 §7.2.3."""
-        file = os.path.join(
-            Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_toiture_terrasse.png"
-        )
+        file = os.path.join(Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_toiture_terrasse.png")
         image = Image.open(file)
         image.show()
-        
+
 
 class Toiture_1_pant(Vent):
     def __init__(self, load_area: float, *args, **kwargs):
@@ -821,9 +818,7 @@ class Toiture_1_pant(Vent):
                     "F": {
                         "Longueur": self.e / 4,
                         "Largeur": self.e / 10,
-                        "Surface": (self.e / 4)
-                        * (self.e / 10)
-                        / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": (self.e / 4) * (self.e / 10) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "G": {
                         "Longueur": self.b_bat - (self.e / 4 * 2),
@@ -835,9 +830,7 @@ class Toiture_1_pant(Vent):
                     "H": {
                         "Longueur": self.b_bat,
                         "Largeur": self.d_bat - self.e / 10,
-                        "Surface": self.b_bat
-                        * (self.d_bat - self.e / 10)
-                        / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": self.b_bat * (self.d_bat - self.e / 10) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                 }
             case "90°":
@@ -845,9 +838,7 @@ class Toiture_1_pant(Vent):
                     "F_up / F_low": {
                         "Longueur": self.e / 4,
                         "Largeur": self.e / 10,
-                        "Surface": (self.e / 10)
-                        * (self.e / 4)
-                        / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": (self.e / 10) * (self.e / 4) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "G": {
                         "Longueur": self.b_bat - (self.e / 4 * 2) / 2,
@@ -859,16 +850,12 @@ class Toiture_1_pant(Vent):
                     "H": {
                         "Longueur": self.b_bat / 2,
                         "Largeur": self.e / 2 - self.e / 10,
-                        "Surface": (self.e / 2 - self.e / 10)
-                        * (self.b_bat / 2)
-                        / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": (self.e / 2 - self.e / 10) * (self.b_bat / 2) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "I": {
                         "Longueur": self.b_bat,
                         "Largeur": self.d_bat - self.e / 2,
-                        "Surface": (self.d_bat - self.e / 2)
-                        * self.b_bat
-                        / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": (self.d_bat - self.e / 2) * self.b_bat / mt.cos(mt.radians(self.alpha_toit)),
                     },
                 }
         return geometrie
@@ -882,19 +869,13 @@ class Toiture_1_pant(Vent):
         match direction:
             case "0°":
                 num_columns = 8
-                df = self._data_from_csv(
-                    os.path.join("vent", "vent_Cpe_toiture_1_versant_0_degres.csv")
-                )
+                df = self._data_from_csv(os.path.join("vent", "vent_Cpe_toiture_1_versant_0_degres.csv"))
             case "90°":
                 num_columns = 7
-                df = self._data_from_csv(
-                    os.path.join("vent", "vent_Cpe_toiture_1_versant_90_degres.csv")
-                )
+                df = self._data_from_csv(os.path.join("vent", "vent_Cpe_toiture_1_versant_90_degres.csv"))
             case "180°":
                 num_columns = 5
-                df = self._data_from_csv(
-                    os.path.join("vent", "vent_Cpe_toiture_1_versant_180_degres.csv")
-                )
+                df = self._data_from_csv(os.path.join("vent", "vent_Cpe_toiture_1_versant_180_degres.csv"))
 
         df.reset_index(drop=False, inplace=True)
         list_alpha_toit = df["alpha_toit"].unique()
@@ -983,9 +964,7 @@ class Toiture_1_pant(Vent):
 
     def show_zonage(self):
         """Affiche l'image du zonage pour une toiture à 1 versant selon EN 1991-1-4 §7.2.4."""
-        file = os.path.join(
-            Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_toiture_1_versant.png"
-        )
+        file = os.path.join(Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_toiture_1_versant.png")
         image = Image.open(file)
         image.show()
 
@@ -1037,9 +1016,7 @@ class Toiture_2_pants(Vent):
                     "F": {
                         "Longueur": self.e / 4,
                         "Largeur": self.e / 10,
-                        "Surface": (self.e / 4)
-                        * (self.e / 10)
-                        / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": (self.e / 4) * (self.e / 10) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "G": {
                         "Longueur": self.b_bat - (self.e / 4 * 2),
@@ -1051,23 +1028,17 @@ class Toiture_2_pants(Vent):
                     "H": {
                         "Longueur": self.b_bat,
                         "Largeur": self.d_bat / 2 - self.e / 10,
-                        "Surface": self.b_bat
-                        * (self.d_bat / 2 - self.e / 10)
-                        / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": self.b_bat * (self.d_bat / 2 - self.e / 10) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "I": {
                         "Longueur": self.b_bat,
                         "Largeur": self.d_bat / 2 - self.e / 10,
-                        "Surface": self.b_bat
-                        * (self.d_bat / 2 - self.e / 10)
-                        / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": self.b_bat * (self.d_bat / 2 - self.e / 10) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "J": {
                         "Longueur": self.b_bat,
                         "Largeur": self.e / 10,
-                        "Surface": self.b_bat
-                        * (self.e / 10)
-                        / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": self.b_bat * (self.e / 10) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                 }
             case "90°":
@@ -1075,9 +1046,7 @@ class Toiture_2_pants(Vent):
                     "F": {
                         "Longueur": self.e / 4,
                         "Largeur": self.e / 10,
-                        "Surface": (self.e / 10)
-                        * (self.e / 4)
-                        / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": (self.e / 10) * (self.e / 4) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "G": {
                         "Longueur": (self.b_bat - (self.e / 4 * 2)) / 2,
@@ -1089,16 +1058,12 @@ class Toiture_2_pants(Vent):
                     "H": {
                         "Longueur": self.b_bat / 2,
                         "Largeur": self.e / 2 - self.e / 10,
-                        "Surface": (self.e / 2 - self.e / 10)
-                        * (self.b_bat / 2)
-                        / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": (self.e / 2 - self.e / 10) * (self.b_bat / 2) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "I": {
                         "Longueur": self.b_bat / 2,
                         "Largeur": self.d_bat - self.e / 2,
-                        "Surface": (self.d_bat - self.e / 2)
-                        * (self.b_bat / 2)
-                        / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": (self.d_bat - self.e / 2) * (self.b_bat / 2) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                 }
         return geometrie
@@ -1112,14 +1077,10 @@ class Toiture_2_pants(Vent):
         match direction:
             case "0°":
                 num_columns = 12
-                df = self._data_from_csv(
-                    os.path.join("vent", "vent_Cpe_toiture_2_versants_0_degres.csv")
-                )
+                df = self._data_from_csv(os.path.join("vent", "vent_Cpe_toiture_2_versants_0_degres.csv"))
             case "90°":
                 num_columns = 6
-                df = self._data_from_csv(
-                    os.path.join("vent", "vent_Cpe_toiture_2_versants_90_degres.csv")
-                )
+                df = self._data_from_csv(os.path.join("vent", "vent_Cpe_toiture_2_versants_90_degres.csv"))
 
         df.reset_index(drop=False, inplace=True)
         list_alpha_toit = df["alpha_toit"].unique()
@@ -1208,9 +1169,7 @@ class Toiture_2_pants(Vent):
 
     def show_zonage(self):
         """Affiche l'image du zonage pour une toiture à 2 versants selon EN 1991-1-4 §7.2.5."""
-        file = os.path.join(
-            Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_toiture_2_versants.png"
-        )
+        file = os.path.join(Vent.PATH_CATALOG, "data", "vent", "vent_Cpe_toiture_2_versants.png")
         image = Image.open(file)
         image.show()
 
@@ -1249,9 +1208,7 @@ class Toiture_isolee_1_pant(Vent):
 
     def _geo(self):
         """Calcul les surfaces du zonage de la toiture"""
-        self._df = self._data_from_csv(
-            os.path.join("vent", "vent_Cp_toiture_isolee_1_versant.csv")
-        )
+        self._df = self._data_from_csv(os.path.join("vent", "vent_Cp_toiture_isolee_1_versant.csv"))
         self._df.reset_index(drop=False, inplace=True)
 
         geometrie = {
@@ -1265,14 +1222,12 @@ class Toiture_isolee_1_pant(Vent):
             "B": {
                 "Longueur": self.d_bat - self.d_bat / 10 * 2,
                 "Largeur": self.b_bat / 10,
-                "Surface": ((self.d_bat - self.d_bat / 10 * 2) * self.b_bat / 10)
-                / mt.cos(mt.radians(self.alpha_toit)),
+                "Surface": ((self.d_bat - self.d_bat / 10 * 2) * self.b_bat / 10) / mt.cos(mt.radians(self.alpha_toit)),
             },
             "C": {
                 "Longueur": self.b_bat - self.b_bat / 10 * 2,
                 "Largeur": self.d_bat / 10,
-                "Surface": ((self.b_bat - self.b_bat / 10 * 2) * self.d_bat / 10)
-                / mt.cos(mt.radians(self.alpha_toit)),
+                "Surface": ((self.b_bat - self.b_bat / 10 * 2) * self.d_bat / 10) / mt.cos(mt.radians(self.alpha_toit)),
             },
         }
         return geometrie
@@ -1374,9 +1329,7 @@ class Toiture_isolee_1_pant(Vent):
 
     def show_zonage(self):
         """Affiche l'image du zonage pour une toiture isolée à un versant selon EN 1991-1-4 §7.3."""
-        file = os.path.join(
-            Vent.PATH_CATALOG, "data", "vent", "vent_Cp_toiture_isolee_1_versant.png"
-        )
+        file = os.path.join(Vent.PATH_CATALOG, "data", "vent", "vent_Cp_toiture_isolee_1_versant.png")
         image = Image.open(file)
         image.show()
 
@@ -1415,40 +1368,31 @@ class Toiture_isolee_2_pants(Vent):
 
     def _geo(self):
         """Calcul les surfaces du zonage de la toiture"""
-        self._df = self._data_from_csv(
-            os.path.join("vent", "vent_Cp_toiture_isolee_2_versants.csv")
-        )
+        self._df = self._data_from_csv(os.path.join("vent", "vent_Cp_toiture_isolee_2_versants.csv"))
         self._df.reset_index(drop=False, inplace=True)
 
         geometrie = {
             "A": {
                 "Longueur": self.d_bat - self.d_bat / 10 * 2,
                 "Largeur": self.d_bat - (2 * self.d_bat / 10) - self.d_bat / 5,
-                "Surface": (
-                    (self.d_bat - self.d_bat / 10 * 2)
-                    * (self.d_bat - (2 * self.d_bat / 10) - self.d_bat / 5)
-                )
+                "Surface": ((self.d_bat - self.d_bat / 10 * 2) * (self.d_bat - (2 * self.d_bat / 10) - self.d_bat / 5))
                 / mt.cos(mt.radians(self.alpha_toit)),
             },
             "B": {
                 "Longueur": self.d_bat - self.d_bat / 10 * 2,
                 "Largeur": self.b_bat / 10,
-                "Surface": ((self.d_bat - self.d_bat / 10 * 2) * self.b_bat / 10)
-                / mt.cos(mt.radians(self.alpha_toit)),
+                "Surface": ((self.d_bat - self.d_bat / 10 * 2) * self.b_bat / 10) / mt.cos(mt.radians(self.alpha_toit)),
             },
             "C": {
                 "Longueur": self.b_bat - self.b_bat / 10 * 2,
                 "Largeur": self.d_bat / 10,
-                "Surface": ((self.b_bat - self.b_bat / 10 * 2) * self.d_bat / 10)
-                / mt.cos(mt.radians(self.alpha_toit)),
+                "Surface": ((self.b_bat - self.b_bat / 10 * 2) * self.d_bat / 10) / mt.cos(mt.radians(self.alpha_toit)),
             },
             "D": {
                 "Longueur": (self.b_bat - self.b_bat / 10 * 2) / 2,
                 "Largeur": (self.d_bat / 5) / 2,
                 "Surface": (
-                    ((self.b_bat - self.b_bat / 10 * 2) * self.d_bat / 5)
-                    / mt.cos(mt.radians(self.alpha_toit))
-                    / 2
+                    ((self.b_bat - self.b_bat / 10 * 2) * self.d_bat / 5) / mt.cos(mt.radians(self.alpha_toit)) / 2
                 ),
             },
         }
@@ -1550,17 +1494,13 @@ class Toiture_isolee_2_pants(Vent):
 
     def show_zonage(self):
         """Affiche l'image du zonage pour une toiture isolée à deux versants selon EN 1991-1-4 §7.3."""
-        file = os.path.join(
-            Vent.PATH_CATALOG, "data", "vent", "vent_Cp_toiture_isolee_2_versants.png"
-        )
+        file = os.path.join(Vent.PATH_CATALOG, "data", "vent", "vent_Cp_toiture_isolee_2_versants.png")
         image = Image.open(file)
         image.show()
 
 
 if __name__ == "__main__":
-    building = Batiment(
-        h_bat=5, d_bat=15, b_bat=13.1, alpha_toit=15, alt=400, code_INSEE=73215
-    )
+    building = Batiment(h_bat=5, d_bat=15, b_bat=13.1, alpha_toit=15, alt=400, code_INSEE=73215)
     Action_wind = Vent._from_parent_class(building, terrain="IIIa", oro="Aucun", z=5)
     print(si.environment())
     print(Action_wind.Vb[1])
@@ -1570,8 +1510,6 @@ if __name__ == "__main__":
     print(ffr)
     print(Action_wind.rayon_secteur_angu)
     # Action_wind.show_Ffr()
-    vertical = Toiture_terrasse_acrotere._from_parent_class(
-        Action_wind, load_area=10, hp= 1, h= 10.5
-    )
+    vertical = Toiture_terrasse_acrotere._from_parent_class(Action_wind, load_area=10, hp=1, h=10.5)
     # vertical.show_zonage()
     print(vertical.get_Cpe())

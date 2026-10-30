@@ -1,4 +1,4 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 import sys
 import os
@@ -8,6 +8,7 @@ from math import sqrt, pi
 import pandas as pd
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
@@ -34,12 +35,11 @@ class Cisaillement_feu(Cisaillement, Feu):
         Returns:
             float: facteur Kv
         """
-        h_ef = hef*si.mm - self._def["Bas"][1] - self._def["Haut"][1]  # Réduction de la section
-        return super().Kv(h_ef.value*10**3, x, i_lo, ent)
-    
+        h_ef = hef * si.mm - self._def["Bas"][1] - self._def["Haut"][1]  # Réduction de la section
+        return super().Kv(h_ef.value * 10**3, x, i_lo, ent)
+
     def f_v_d(self) -> tuple:
-        """Retourne la résistance f,v,d au feu de l'élément en MPa
-        """
+        """Retourne la résistance f,v,d au feu de l'élément en MPa"""
         return super()._f_type_d("fvk")
 
     def taux_tau_d(self) -> tuple:

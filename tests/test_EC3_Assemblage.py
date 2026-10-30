@@ -47,15 +47,7 @@ def soudure(plat_acier):
 def tige_scellement_plaque(tige):
     # Tige de scellement avec plaque circulaire, paramètres choisis pour respecter les vérifications
     return EC3_Assem.Tige_scellement_plaque_ancrage._from_parent_class(
-        tige,
-        tr=9,
-        dr=50,
-        l_ancr=200,
-        d1=100,
-        e_tiges=120,
-        n=4,
-        n_traction=2,
-        classe_beton="C25/30"
+        tige, tr=9, dr=50, l_ancr=200, d1=100, e_tiges=120, n=4, n_traction=2, classe_beton="C25/30"
     )
 
 
@@ -63,13 +55,7 @@ def tige_scellement_plaque(tige):
 def tige_scellement_crochet(tige):
     # Tige de scellement avec crochet, paramètres choisis pour satisfaire les contraintes géométriques
     return EC3_Assem.Tige_scellement_crochet._from_parent_class(
-        tige,
-        l1=200,
-        l2=30,
-        rayon_crochet=60,
-        n=4,
-        n_traction=2,
-        classe_beton="C25/30"
+        tige, l1=200, l2=30, rayon_crochet=60, n=4, n_traction=2, classe_beton="C25/30"
     )
 
 
@@ -127,7 +113,9 @@ class Test_Tige:
         assert Fb[1]["F_bx_Rd"].value > 0
         assert Fb[1]["F_by_Rd"].value > 0
 
-        res = tige.taux_Fb_d(FvEd=50, alpha=30, FbxRd=Fb[1]["F_bx_Rd"].value * 10**-3, FbyRd=Fb[1]["F_by_Rd"].value * 10**-3)
+        res = tige.taux_Fb_d(
+            FvEd=50, alpha=30, FbxRd=Fb[1]["F_bx_Rd"].value * 10**-3, FbyRd=Fb[1]["F_by_Rd"].value * 10**-3
+        )
         assert isinstance(res[1], tuple)
         assert res[1][0] >= 0
         assert res[1][1] >= 0

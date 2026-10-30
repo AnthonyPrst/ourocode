@@ -1,9 +1,10 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 import math as mt
 from math import sqrt
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
@@ -38,27 +39,30 @@ class Flexion(Plat):
         gamma_M0 = self.GAMMA_M["gamma_M0"]
         f_y = self.fy
         match self.classe_transv:
-            case 1|2:
+            case 1 | 2:
                 W_pl = self.W
+
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    M_pl_Rd = W_pl * f_y/ gamma_M0 #équa 6.13
+                    M_pl_Rd = W_pl * f_y / gamma_M0  # équa 6.13
                     return M_pl_Rd
             case 3:
                 W_el_min = self.W
+
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    M_el_Rd = W_el_min * f_y/ gamma_M0 #équa 6.14
+                    M_el_Rd = W_el_min * f_y / gamma_M0  # équa 6.14
                     return M_el_Rd
             case 4:
                 W_eff_min = self.W
+
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    M_c_Rd = W_eff_min * f_y/ gamma_M0 #équa 6.15
+                    M_c_Rd = W_eff_min * f_y / gamma_M0  # équa 6.15
                     return M_c_Rd
+
         return val()
-            
-        
+
     def Mc_V_Rd(self, Av: si.mm**2, V_Ed: si.kN):
         """Retourne la résistance réduite au moment fléchissant avec cisaillement M_V,Rd selon EN 1993-1-1 §6.2.8.
 
@@ -76,18 +80,19 @@ class Flexion(Plat):
         cis = Cisaillement._from_parent_class(self, Av=Av)
         Vpl_Rd = cis.Vpl_Rd[1]
         Mc_Rd = self.Mc_Rd[1]
-        
-        if V_Ed/Vpl_Rd > 0.5:
+
+        if V_Ed / Vpl_Rd > 0.5:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                rho = (2*(V_Ed/Vpl_Rd)-1)**2
-                My_V_Rd = (1-rho) * Mc_Rd
+                rho = (2 * (V_Ed / Vpl_Rd) - 1) ** 2
+                My_V_Rd = (1 - rho) * Mc_Rd
                 return My_V_Rd
         else:
+
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 My_V_Rd = Mc_Rd
                 return My_V_Rd
+
         return val()
-
-

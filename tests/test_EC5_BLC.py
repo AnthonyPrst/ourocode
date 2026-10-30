@@ -1,11 +1,13 @@
 """Tests unitaires pour ec5/blc.py : Poutre_simple_decroissance."""
+
 import pytest
 import sys
 import os
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import forallpeople as si
+
 si.environment("structural")
 
 from ourocode.eurocode.ec5.blc import Poutre_simple_decroissance
@@ -14,6 +16,7 @@ from ourocode.eurocode.ec5.blc import Poutre_simple_decroissance
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def poutre():
@@ -57,8 +60,8 @@ def poutre_alpha_30():
 # Test_Poutre_simple_decroissance
 # ---------------------------------------------------------------------------
 
-class Test_Poutre_simple_decroissance:
 
+class Test_Poutre_simple_decroissance:
     def test_init_alpha(self, poutre):
         """L'attribut alpha doit être stocké correctement."""
         assert poutre.alpha == 5
@@ -69,6 +72,7 @@ class Test_Poutre_simple_decroissance:
     def test_herite_de_flexion(self, poutre):
         """Poutre_simple_decroissance doit hériter de Flexion."""
         from ourocode.eurocode.ec5.element_droit.flexion import Flexion
+
         assert isinstance(poutre, Flexion)
 
     def test_f_type_d_fvk_positif(self, poutre):

@@ -1,12 +1,14 @@
 """Tests unitaires pour ec3/assemblage/platine.py :
 Platine_assise_compression_beton et Platine_assise_compression_bois."""
+
 import pytest
 import sys
 import os
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import forallpeople as si
+
 si.environment("structural")
 
 from ourocode.eurocode.ec3.assemblage.platine import (
@@ -21,14 +23,19 @@ from ourocode.eurocode.ec5.element_droit.barre import Barre
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def tige_base():
     """Tige S235 16mm pour servir de base aux platines."""
     return Tige(
-        d=16, d0=18,
+        d=16,
+        d0=18,
         qualite="8.8",
-        t=15, h=150, b=150,
-        classe_acier="S235", classe_transv=1,
+        t=15,
+        h=150,
+        b=150,
+        classe_acier="S235",
+        classe_transv=1,
     )
 
 
@@ -36,7 +43,8 @@ def tige_base():
 def barre_bois():
     """Barre bois C24 100x200 pour platine bois."""
     return Barre(
-        b=100, h=200,
+        b=100,
+        h=200,
         section="Rectangulaire",
         classe="C24",
         cs=1,
@@ -67,8 +75,8 @@ def platine_bois(tige_base, barre_bois):
 # Test_Platine_assise_beton
 # ---------------------------------------------------------------------------
 
-class Test_Platine_assise_beton:
 
+class Test_Platine_assise_beton:
     def test_init_gorge(self, platine_beton):
         assert platine_beton.gorge == 5 * si.mm
 
@@ -114,8 +122,8 @@ class Test_Platine_assise_beton:
 # Test_Platine_assise_bois
 # ---------------------------------------------------------------------------
 
-class Test_Platine_assise_bois:
 
+class Test_Platine_assise_bois:
     def test_init_wood_beam(self, platine_bois, barre_bois):
         assert platine_bois.wood_beam is barre_bois
 

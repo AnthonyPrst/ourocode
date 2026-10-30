@@ -1,14 +1,17 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 import os
 import sys
 import math as mt
+import logging
 import numpy as np
 from PIL import Image
 
 import forallpeople as si
 
 from ourocode.eurocode.core.projet import Projet
+
+logger = logging.getLogger(__name__)
 
 
 class Model_generator(Projet):
@@ -39,9 +42,7 @@ class Model_generator(Projet):
         "Sismique Ae",
     )
     LIST_SECTION = ["Rectangulaire", "Circulaire"]
-    CLASSE_WOOD = tuple(
-        Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").index
-    )[2:]
+    CLASSE_WOOD = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_bois.csv").index)[2:]
 
     def __init__(self, *args, **kwargs):
         """Initialise un générateur de modèle MEF vide.
@@ -110,9 +111,7 @@ class Model_generator(Projet):
         Note:
             La convention de signe suit le repère local de chaque barre.
         """
-        file = os.path.join(
-            self.PATH_CATALOG, "data", "screenshot", "sign_convention.png"
-        )
+        file = os.path.join(self.PATH_CATALOG, "data", "screenshot", "sign_convention.png")
         image = Image.open(file)
         image.show()
 
@@ -232,9 +231,7 @@ class Model_generator(Projet):
             T = T / np.linalg.norm(T)
 
             # Calculer l'angle entre l'axe de référence projeté et l'axe transverse
-            angle_local = np.arctan2(
-                np.linalg.norm(np.cross(ref_vec, T)), np.dot(ref_vec, T)
-            )
+            angle_local = np.arctan2(np.linalg.norm(np.cross(ref_vec, T)), np.dot(ref_vec, T))
 
             return np.rad2deg(angle_local)
 
@@ -305,6 +302,9 @@ class Model_generator(Projet):
         Note:
             Les arguments tension_only et compression_only sont mutuellement exclusifs.
         """
+        poids_propre = self._flag(poids_propre)
+        tension_only = self._flag(tension_only)
+        compression_only = self._flag(compression_only)
         if name:
             member_id = name
         else:
@@ -322,10 +322,7 @@ class Model_generator(Projet):
             node_coor_2["Z"].value * 10**3,
         )
         vector = (x2 - x1, y2 - y1, z2 - z1)
-        length = (
-            mt.sqrt(abs(vector[0]) ** 2 + abs(vector[1]) ** 2 + abs(vector[2]) ** 2)
-            * si.mm
-        )
+        length = mt.sqrt(abs(vector[0]) ** 2 + abs(vector[1]) ** 2 + abs(vector[2]) ** 2) * si.mm
 
         self._data["members"][member_id] = {
             "Noeuds": [node1, node2],
@@ -338,7 +335,7 @@ class Model_generator(Projet):
             "Commentaire": comment,
         }
         if poids_propre:
-            rho = self._data["materials"][material]["rho"].value # en kg/m^3
+            rho = self._data["materials"][material]["rho"].value  # en kg/m^3
             aire = self._data["sections"][section]["Aire"].value
             pp = rho * aire * 10**-2
             # Important: appeler explicitement la méthode de la classe de base pour éviter
@@ -353,7 +350,8 @@ class Model_generator(Projet):
                 "end",
                 action="Permanente G",
                 direction="FY",
-                comment=f"Poids propre {member_id}")
+                comment=f"Poids propre {member_id}",
+            )
         if tension_only:
             self._data["members"][member_id]["Tension uniquement"] = True
         elif compression_only:
@@ -397,7 +395,7 @@ class Model_generator(Projet):
 
         if has_release:
             list_releases = list_releases[0] + list_releases[1]
-            print(list_releases)
+            logger.debug("Relâchements barre %s : %s", member_id, list_releases)
             self._model.def_releases(
                 member_id,
                 *list_releases,
@@ -429,7 +427,7 @@ class Model_generator(Projet):
             KeyError: Si la barre n'existe pas.
         """
         return self._data["members"][member_id]
-    
+
     def get_member_length(self, member_id: str) -> si.mm:
         """Retourne la longueur d'une barre par son identifiant.
 
@@ -651,9 +649,7 @@ class Model_generator(Projet):
         }
         return name
 
-    def add_section_by_property(
-        self, name: str, aire: si.mm**2, Iy: si.mm**4, Iz: si.mm**4, J: si.mm**4
-    ):
+    def add_section_by_property(self, name: str, aire: si.mm**2, Iy: si.mm**4, Iz: si.mm**4, J: si.mm**4):
         """Ajoute une section personnalisée définie par ses propriétés mécaniques.
 
         Permet de créer une section sans géométrie prédéfinie (IPE, HEA, etc.)
@@ -772,12 +768,12 @@ class Model_generator(Projet):
             créent un glisseur.
         """
         self._data["members"][member_id]["Relaxation"][position] = {
-            "u": u,
-            "v": v,
-            "w": w,
-            "teta_x": teta_x,
-            "teta_y": teta_y,
-            "teta_z": teta_z,
+            "u": self._flag(u),
+            "v": self._flag(v),
+            "w": self._flag(w),
+            "teta_x": self._flag(teta_x),
+            "teta_y": self._flag(teta_y),
+            "teta_z": self._flag(teta_z),
         }
         return self._data["members"][member_id]["Relaxation"][position]
 
@@ -823,21 +819,22 @@ class Model_generator(Projet):
         support_id = "S" + str(len(self._data["supports"]["classic"]) + 1)
         self._data["supports"]["classic"][support_id] = {
             "Noeud": node_id,
-            "DX": DX,
-            "DY": DY,
-            "DZ": DZ,
-            "RX": RX,
-            "RY": RY,
-            "RZ": RZ,
+            "DX": self._flag(DX),
+            "DY": self._flag(DY),
+            "DZ": self._flag(DZ),
+            "RX": self._flag(RX),
+            "RY": self._flag(RY),
+            "RZ": self._flag(RZ),
             "Longueur d'appui": l_appuis,
         }
         return self._data["supports"]["classic"][support_id]
 
-    def add_support_spring(self,
+    def add_support_spring(
+        self,
         node_id: str,
         dof: str = ("DX", "DY", "DZ", "RX", "RY", "RZ"),
-        stiffness: si.kN/si.m = 0,
-        limit_direction: str = ("Aucune limitation", "Tension uniquement", "Compression uniquement")
+        stiffness: si.kN / si.m = 0,
+        limit_direction: str = ("Aucune limitation", "Tension uniquement", "Compression uniquement"),
     ):
         """Ajoute un appui élastique (ressort) sur un nœud dans une direction donnée.
 
@@ -867,7 +864,7 @@ class Model_generator(Projet):
         self._data["supports"]["spring"][support_id] = {
             "Noeud": node_id,
             "Dof": dof,
-            "Raideur": stiffness * si.kN/si.m,
+            "Raideur": stiffness * si.kN / si.m,
             "Limite de direction": limit_direction,
         }
         return self._data["supports"]["spring"][support_id]
@@ -890,7 +887,7 @@ class Model_generator(Projet):
         Returns:
             str: Message de confirmation avec les détails de l'appui supprimé.
         """
-        return f"L'appui à été supprimé: {self._data["supports"]["classic"].pop(support_id)}"
+        return f"L'appui à été supprimé: {self._data['supports']['classic'].pop(support_id)}"
 
     def _add_support_to_model(self, support_id: str, support_type: str):
         """Ajoute un appui au model MEF
@@ -913,7 +910,7 @@ class Model_generator(Projet):
                 support["RZ"],
             )
         else:
-            limit_val = {"Aucune limitation": None, "Tension uniquement": "+", "Compression uniquement": "-"} 
+            limit_val = {"Aucune limitation": None, "Tension uniquement": "+", "Compression uniquement": "-"}
             self._model.def_support_spring(
                 support["Noeud"],
                 support["Dof"],
@@ -1122,9 +1119,7 @@ class Model_generator(Projet):
         }
         return self._data["loads"][load_id]
 
-    def create_load_by_list(
-        self, list_loads: list, type_load: str = ("Distribuée", "Autre")
-    ):
+    def create_load_by_list(self, list_loads: list, type_load: str = ("Distribuée", "Autre")):
         """Ajoute plusieurs charges en batch depuis une liste.
 
         Permet de créer rapidement plusieurs charges similaires à partir d'une
@@ -1187,14 +1182,10 @@ class Model_generator(Projet):
                 local_axes = ("Fx", "Fy", "Fz", "Mx", "My", "Mz")
                 if load["Position"] == 0 and load["Axe"] not in local_axes:
                     node1 = member["Noeuds"][0]
-                    self._model.add_node_load(
-                        node1, load["Axe"], load["Charge"].value, case
-                    )
+                    self._model.add_node_load(node1, load["Axe"], load["Charge"].value, case)
                 elif load["Position"] == long and load["Axe"] not in local_axes:
                     node2 = member["Noeuds"][1]
-                    self._model.add_node_load(
-                        node2, load["Axe"], load["Charge"].value, case
-                    )
+                    self._model.add_node_load(node2, load["Axe"], load["Charge"].value, case)
                 else:
                     self._model.add_member_pt_load(
                         load["N° barre"],
@@ -1236,11 +1227,7 @@ class Model_generator(Projet):
             >>> model.get_member_loads("M1")
             [{'N° barre': 'M1', 'Nom': 'PP', 'Action': 'Permanente G', ...}, ...]
         """
-        return [
-            load
-            for load in self._data["loads"].values()
-            if load["N° barre"] == member_id
-        ]
+        return [load for load in self._data["loads"].values() if load["N° barre"] == member_id]
 
     ################## Barre structurale (regroupement de barres FEM continues) ##################
 
@@ -1284,9 +1271,7 @@ class Model_generator(Projet):
             return False
         return bool(rel.get("teta_y") or rel.get("teta_z"))
 
-    def detect_continuous_members(
-        self, angle_tol_deg: float = 1.0
-    ) -> list[list[str]]:
+    def detect_continuous_members(self, angle_tol_deg: float = 1.0) -> list[list[str]]:
         """Détecte automatiquement les chaînes de barres FEM formant une barre continue.
 
         Deux barres FEM sont considérées comme continues au travers d'un noeud partagé si :
@@ -1345,9 +1330,9 @@ class Model_generator(Projet):
             # Ne pas exiger degré 2 au noeud : une contrefiche (T/Y) ne rompt
             # pas la continuité de l'arbalétrier si les deux barres sont
             # colinéaires et sans relâchement.
-            if self._has_flexural_release_at(
-                m1, self._end_at_node(m1, shared)
-            ) or self._has_flexural_release_at(m2, self._end_at_node(m2, shared)):
+            if self._has_flexural_release_at(m1, self._end_at_node(m1, shared)) or self._has_flexural_release_at(
+                m2, self._end_at_node(m2, shared)
+            ):
                 return False
             v1 = self._member_unit_vector(m1, shared)
             v2 = self._member_unit_vector(m2, shared)
@@ -1390,9 +1375,7 @@ class Model_generator(Projet):
                         break
                     chain_ids.append(nxt)
                     nxt_nodes = self._data["members"][nxt]["Noeuds"]
-                    out_node = (
-                        nxt_nodes[0] if nxt_nodes[1] == out_node else nxt_nodes[1]
-                    )
+                    out_node = nxt_nodes[0] if nxt_nodes[1] == out_node else nxt_nodes[1]
                     cur_mid = nxt
                 return chain_ids
 
@@ -1493,9 +1476,7 @@ class Model_generator(Projet):
         }
         return name
 
-    def _node_is_rotationally_fixed(
-        self, node_id: str, member_id: str, end: str, axis: str
-    ) -> bool:
+    def _node_is_rotationally_fixed(self, node_id: str, member_id: str, end: str, axis: str) -> bool:
         """Indique si une extrémité de barre est effectivement encastrée en rotation.
 
         Un encastrement en rotation sur ``axis`` requiert **deux conditions**
@@ -1526,10 +1507,13 @@ class Model_generator(Projet):
 
     def _type_appuis_between_nodes(
         self,
-        node_start: str, node_end: str,
-        member_start: str, member_end: str,
+        node_start: str,
+        node_end: str,
+        member_start: str,
+        member_end: str,
         axis: str,
-        end_str_start: str, end_str_end: str,
+        end_str_start: str,
+        end_str_end: str,
     ) -> str:
         """Retourne le type d'appui en flambement entre deux nœuds consécutifs.
 
@@ -1552,12 +1536,8 @@ class Model_generator(Projet):
             Un nœud sans appui classique (nœud de ferme, faîtage…) est toujours une rotule,
             même si la barre n'a pas de relâchement explicite.
         """
-        start_fixed = self._node_is_rotationally_fixed(
-            node_start, member_start, end_str_start, axis
-        )
-        end_fixed = self._node_is_rotationally_fixed(
-            node_end, member_end, end_str_end, axis
-        )
+        start_fixed = self._node_is_rotationally_fixed(node_start, member_start, end_str_start, axis)
+        end_fixed = self._node_is_rotationally_fixed(node_end, member_end, end_str_end, axis)
         if start_fixed and end_fixed:
             return "Encastré - Encastré"
         if start_fixed or end_fixed:
@@ -1593,15 +1573,16 @@ class Model_generator(Projet):
         end_str_start = self._end_at_node(member_ids[0], start_node)
         end_str_end = self._end_at_node(member_ids[-1], end_node)
         return self._type_appuis_between_nodes(
-            start_node, end_node,
-            member_ids[0], member_ids[-1],
+            start_node,
+            end_node,
+            member_ids[0],
+            member_ids[-1],
             axis,
-            end_str_start, end_str_end,
+            end_str_start,
+            end_str_end,
         )
 
-    def _determine_compression_params(
-        self, member_ids: list[str]
-    ) -> dict:
+    def _determine_compression_params(self, member_ids: list[str]) -> dict:
         """Calcule les paramètres de flambement (EC5 §6.3.2) par axe.
 
         Pour chaque axe (y, z) :
@@ -1642,26 +1623,22 @@ class Model_generator(Projet):
                 node_s = node_at_abs[x0]
                 node_e = node_at_abs[x1]
                 # Trouve les barres FEM dont les extrémités tombent sur ces nœuds
-                mid_s = next(
-                    m for m in member_ids
-                    if node_s in self._data["members"][m]["Noeuds"]
-                )
-                mid_e = next(
-                    m for m in reversed(member_ids)
-                    if node_e in self._data["members"][m]["Noeuds"]
-                )
+                mid_s = next(m for m in member_ids if node_s in self._data["members"][m]["Noeuds"])
+                mid_e = next(m for m in reversed(member_ids) if node_e in self._data["members"][m]["Noeuds"])
                 end_s = self._end_at_node(mid_s, node_s)
                 end_e = self._end_at_node(mid_e, node_e)
-                t = self._type_appuis_between_nodes(
-                    node_s, node_e, mid_s, mid_e, axis, end_s, end_e
-                )
+                t = self._type_appuis_between_nodes(node_s, node_e, mid_s, mid_e, axis, end_s, end_e)
                 if span_len >= worst_lo:
                     worst_lo = span_len
                     worst_type = t
             return worst_lo, worst_type
 
-        lo_flamb_y, type_appuis_y = _worst_span_for_axis("DY", "z") #inversé pour convertir le repère locale à l'EUROCODE 5
-        lo_flamb_z, type_appuis_z = _worst_span_for_axis("DZ", "y") #inversé pour convertir le repère locale à l'EUROCODE 5
+        lo_flamb_y, type_appuis_y = _worst_span_for_axis(
+            "DY", "z"
+        )  # inversé pour convertir le repère locale à l'EUROCODE 5
+        lo_flamb_z, type_appuis_z = _worst_span_for_axis(
+            "DZ", "y"
+        )  # inversé pour convertir le repère locale à l'EUROCODE 5
         return {
             "lo_flamb_y": lo_flamb_y,
             "lo_flamb_z": lo_flamb_z,
@@ -1669,9 +1646,7 @@ class Model_generator(Projet):
             "type_appuis_z": type_appuis_z,
         }
 
-    def _ordered_chain_nodes(
-        self, member_ids: list[str]
-    ) -> list[tuple[str, float]]:
+    def _ordered_chain_nodes(self, member_ids: list[str]) -> list[tuple[str, float]]:
         """Retourne la liste ordonnée ``[(node_id, abscisse_mm), …]`` pour une chaîne
         de barres FEM consécutives, en respectant la topologie réelle (sens des
         barres potentiellement alternés).
@@ -1818,9 +1793,7 @@ class Model_generator(Projet):
             cumul_map[_mid] = (x_cur, x_cur + _len)
             x_cur += _len
 
-        def _coeflef_for_span(
-            x0: float, x1: float, is_cant: bool
-        ) -> float:
+        def _coeflef_for_span(x0: float, x1: float, is_cant: bool) -> float:
             """Retourne le coeflef le plus défavorable pour un segment [x0, x1].
 
             Pour chaque charge verticale portant sur une barre dont l'abscisse
@@ -1867,9 +1840,7 @@ class Model_generator(Projet):
                     return 0.9
                 return 1.0  # moment constant — hypothèse conservative
 
-        def _worst_case_axis(
-            lateral_dof: str, rot_dof: str
-        ) -> tuple[float, float]:
+        def _worst_case_axis(lateral_dof: str, rot_dof: str) -> tuple[float, float]:
             """Retourne ``(lo_rel, coeflef)`` les plus défavorables pour un axe.
 
             Pour chaque sous-portée entre appuis latéraux, calcule le coeflef
@@ -1886,8 +1857,8 @@ class Model_generator(Projet):
                     worst_coeflef = c
             return worst_lo, worst_coeflef
 
-        lo_rel_y, coeflef_y = _worst_case_axis("DZ", "RY") #inversé pour convertir le repère locale à l'EUROCODE 5
-        lo_rel_z, coeflef_z = _worst_case_axis("DY", "RZ") #inversé pour convertir le repère locale à l'EUROCODE 5
+        lo_rel_y, coeflef_y = _worst_case_axis("DZ", "RY")  # inversé pour convertir le repère locale à l'EUROCODE 5
+        lo_rel_z, coeflef_z = _worst_case_axis("DY", "RZ")  # inversé pour convertir le repère locale à l'EUROCODE 5
 
         return {
             "lo_rel_y": lo_rel_y,
@@ -1928,6 +1899,7 @@ class Model_generator(Projet):
             ...     role="Solive", design_params={"classe_bois": "C24", "cs": 1})
             >>> # ["SM1", "SM2", ...]
         """
+        only_continuous = self._flag(only_continuous)
         chains = self.detect_continuous_members(angle_tol_deg=angle_tol_deg)
         created: list[str] = []
         idx = 1
@@ -1939,7 +1911,9 @@ class Model_generator(Projet):
                 idx += 1
                 name = f"{name_prefix}{idx}"
             self.group_members(
-                name, chain, role=role,
+                name,
+                chain,
+                role=role,
                 design_params=design_params,
             )
             created.append(name)
@@ -2138,7 +2112,13 @@ class Model_generator(Projet):
             classe Combinaison. Elle n'a pas besoin d'être invoquée manuellement
             dans un flux de travail standard.
         """
-        from Pynite import FEModel3D
+        try:
+            from Pynite import FEModel3D
+        except ImportError as exc:
+            raise ImportError(
+                "PyNiteFEA est requis pour la génération du modèle MEF. Installez-le via : pip install 'ourocode[mef]'"
+            ) from exc
+
         self._model = FEModel3D()
         self._add_nodes_to_model()
         self._add_materials_to_model()
@@ -2150,6 +2130,7 @@ class Model_generator(Projet):
     def _add_load_combos_to_model(self, combos: dict, tag: str):
         for combo, factor in combos.items():
             self._model.add_load_combo(combo, factor, tag)
+
 
 class Wood_beam_model(Model_generator):
     """Générateur de modèle MEF simplifié pour poutres bois continues.
@@ -2181,7 +2162,7 @@ class Wood_beam_model(Model_generator):
         longueur: si.mm,
         b: si.mm,
         h: si.mm,
-        section: str=Model_generator.LIST_SECTION,
+        section: str = Model_generator.LIST_SECTION,
         classe: str = Model_generator.CLASSE_WOOD,
         poids_propre: bool = ("True", "False"),
         nbr_appuis: int = 2,
@@ -2225,7 +2206,7 @@ class Wood_beam_model(Model_generator):
         self.h = h * si.mm
         self.section = section
         self.classe = classe
-        self.poids_propre = poids_propre
+        self.poids_propre = self._flag(poids_propre)
         self.nbr_appuis = nbr_appuis
         self.l_appuis = l_appuis
         self.devers = devers
@@ -2236,14 +2217,27 @@ class Wood_beam_model(Model_generator):
 
         d_appuis = longueur / (nbr_appuis - 1)
         for i in range(nbr_appuis):
-            node = self.add_node(int(float(i * d_appuis * mt.cos(mt.radians(inclinaison)))), int(float(i * d_appuis * mt.sin(mt.radians(inclinaison)))), 0)
+            node = self.add_node(
+                int(float(i * d_appuis * mt.cos(mt.radians(inclinaison)))),
+                int(float(i * d_appuis * mt.sin(mt.radians(inclinaison)))),
+                0,
+            )
             if not i:
                 self.add_support(node, DX=True, DY=True, DZ=True, RX=True, RY=False, RZ=False, l_appuis=l_appuis)
             else:
                 self.add_support(node, DX=False, DY=True, DZ=True, RX=True, RY=False, RZ=False, l_appuis=l_appuis)
 
-        for i in range(nbr_appuis-1):
-            self.add_member(f"N{i+1}", f"N{i+2}", material, section, poids_propre, rotation=devers, tension_only=False, compression_only=False)
+        for i in range(nbr_appuis - 1):
+            self.add_member(
+                f"N{i + 1}",
+                f"N{i + 2}",
+                material,
+                section,
+                self.poids_propre,
+                rotation=devers,
+                tension_only=False,
+                compression_only=False,
+            )
 
     def _convert_beam_pos(self, pos_index: int | str) -> int:
         """Converti la position en valeur recevable par la fonction create_load
@@ -2296,7 +2290,7 @@ class Wood_beam_model(Model_generator):
                         pos_index = self._data["members"][member_id]["Longueur"] - delta_end_dist
                         break
                 pos_index = round(pos_index, 0)
-        return pos_index.value*10**3, member_id
+        return pos_index.value * 10**3, member_id
 
     def create_dist_load(
         self,
@@ -2332,35 +2326,43 @@ class Wood_beam_model(Model_generator):
         if member_id_start != member_id_end:
             id_start = int(member_id_start.split("M")[1])
             id_end = int(member_id_end.split("M")[1])
-            super().create_dist_load(f"M{id_start}", name, start_load, end_load, start_pos, 'end', action, direction, comment)
-            if id_start != id_end-1:
-                for i in range(id_start, id_end-1):
-                    super().create_dist_load(f"M{i+1}", name, start_load, end_load, 'start', 'end', action, direction, comment)
-            super().create_dist_load(f"M{id_end}", name, start_load, end_load, 'start', end_pos, action, direction, comment)
+            super().create_dist_load(
+                f"M{id_start}", name, start_load, end_load, start_pos, "end", action, direction, comment
+            )
+            if id_start != id_end - 1:
+                for i in range(id_start, id_end - 1):
+                    super().create_dist_load(
+                        f"M{i + 1}", name, start_load, end_load, "start", "end", action, direction, comment
+                    )
+            super().create_dist_load(
+                f"M{id_end}", name, start_load, end_load, "start", end_pos, action, direction, comment
+            )
         else:
-            super().create_dist_load(member_id_start, name, start_load, end_load, start_pos, end_pos, action, direction, comment)
+            super().create_dist_load(
+                member_id_start, name, start_load, end_load, start_pos, end_pos, action, direction, comment
+            )
 
     def create_point_load(
         self,
         name: str,
         load: float,
         pos: str = None,
-        action: str = Model_generator.ACTION, 
+        action: str = Model_generator.ACTION,
         direction: str = (
-                "Fx",
-                "Fy",
-                "Fz",
-                "Mx",
-                "My",
-                "Mz",
-                "FX",
-                "FY",
-                "FZ",
-                "MX",
-                "MY",
-                "MZ",
-            ),
-            comment: str = None
+            "Fx",
+            "Fy",
+            "Fz",
+            "Mx",
+            "My",
+            "Mz",
+            "FX",
+            "FY",
+            "FZ",
+            "MX",
+            "MY",
+            "MZ",
+        ),
+        comment: str = None,
     ):
         """Ajoute une charge nodale sur la barre
 

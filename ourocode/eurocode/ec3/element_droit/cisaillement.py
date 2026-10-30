@@ -1,9 +1,10 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 import math as mt
 from math import sqrt
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
@@ -33,9 +34,10 @@ class Cisaillement(Plat):
         A_v = self.Av
         f_y = self.fy
         gamma_M0 = self.GAMMA_M["gamma_M0"]
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            Vpl_Rd = (A_v * f_y/sqrt(3)) / gamma_M0 #(équa 6.18)
+            Vpl_Rd = (A_v * f_y / sqrt(3)) / gamma_M0  # (équa 6.18)
             return Vpl_Rd
-        return val() 
 
+        return val()

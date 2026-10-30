@@ -1,12 +1,14 @@
 """Tests unitaires pour ec3/feu.py : _TemperatureGaz, _CoeffFeu, Feu_acier."""
+
 import pytest
 import math
 import sys
 import os
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import forallpeople as si
+
 si.environment("structural")
 
 from ourocode.eurocode.ec3.feu import _TemperatureGaz, _CoeffFeu, Feu_acier
@@ -16,6 +18,7 @@ from ourocode.eurocode.ec3.element_droit.plat import Plat
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def plat():
@@ -38,8 +41,8 @@ def feu_acier(plat):
 # Test_TemperatureGaz
 # ---------------------------------------------------------------------------
 
-class Test_TemperatureGaz:
 
+class Test_TemperatureGaz:
     def test_iso_834_t0(self):
         """A t=0s (0 min) la formule donne 20 + 345*log10(1) = 20°C."""
         assert _TemperatureGaz.iso_834(0) == 20.0
@@ -74,8 +77,8 @@ class Test_TemperatureGaz:
 # Test_CoeffFeu
 # ---------------------------------------------------------------------------
 
-class Test_CoeffFeu:
 
+class Test_CoeffFeu:
     def test_ky_theta_20_est_1(self):
         """A 20°C ky,θ = 1.0."""
         coef = _CoeffFeu(theta=20)
@@ -119,9 +122,7 @@ class Test_CoeffFeu:
         """synthese() doit contenir exactement les 6 clés attendues."""
         coef = _CoeffFeu(theta=400)
         s = coef.synthese()
-        assert set(s.keys()) == {
-            "theta_C", "k_y_theta", "k_p_theta", "k_E_theta", "k_b_theta", "k_w_theta"
-        }
+        assert set(s.keys()) == {"theta_C", "k_y_theta", "k_p_theta", "k_E_theta", "k_b_theta", "k_w_theta"}
 
     def test_synthese_valeurs_cohérentes(self):
         """Les valeurs de synthese() doivent correspondre aux propriétés."""
@@ -146,8 +147,8 @@ class Test_CoeffFeu:
 # Test_Feu_acier
 # ---------------------------------------------------------------------------
 
-class Test_Feu_acier:
 
+class Test_Feu_acier:
     def test_init(self, feu_acier):
         """Attributs initialisés correctement."""
         assert feu_acier.time == 30
@@ -158,6 +159,7 @@ class Test_Feu_acier:
     def test_fire_data_non_vide(self, feu_acier):
         """fire_data doit être un DataFrame non vide."""
         import pandas as pd
+
         assert isinstance(feu_acier.fire_data, pd.DataFrame)
         assert not feu_acier.fire_data.empty
 
@@ -176,6 +178,7 @@ class Test_Feu_acier:
     def test_get_fire_data_retourne_dataframe(self, feu_acier):
         """get_fire_data() retourne le DataFrame complet."""
         import pandas as pd
+
         df = feu_acier.get_fire_data()
         assert isinstance(df, pd.DataFrame)
         assert len(df) == feu_acier.time * 60 // 5 + 1

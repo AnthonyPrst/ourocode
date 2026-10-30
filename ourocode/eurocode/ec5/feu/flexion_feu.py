@@ -1,4 +1,4 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 import sys
 import os
@@ -8,6 +8,7 @@ from math import sqrt, pi
 import pandas as pd
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
@@ -15,13 +16,13 @@ from ourocode.eurocode.ec5.feu.feu import Feu
 from ourocode.eurocode.ec5.element_droit.flexion import Flexion
 
 
-
 class Flexion_feu(Feu, Flexion):
     def __init__(
         self,
-        lo_rel_y:si.mm, lo_rel_z:si.mm, 
-        coeflef_y: float=0.9, 
-        coeflef_z: float=0.9,
+        lo_rel_y: si.mm,
+        lo_rel_z: si.mm,
+        coeflef_y: float = 0.9,
+        coeflef_z: float = 0.9,
         pos: str = Flexion.LOAD_POS,
         **kwargs,
     ):
@@ -37,41 +38,44 @@ class Flexion_feu(Feu, Flexion):
             coeflef_z (float): Coefficient de longueur efficace de déversement axe z (mêmes valeurs que coeflef_y).
             pos (str): Positionnement de la charge sur la hauteur de la poutre.
         """
-        super().__init__(lo_rel_y=lo_rel_y, lo_rel_z=lo_rel_z, coeflef_y=coeflef_y, coeflef_z=coeflef_z, pos=pos, **kwargs)
+        super().__init__(
+            lo_rel_y=lo_rel_y, lo_rel_z=lo_rel_z, coeflef_y=coeflef_y, coeflef_z=coeflef_z, pos=pos, **kwargs
+        )
 
     @property
     def sigma_m_crit(self) -> tuple:
-        """ Retourne sigma m,crit pour la prise en compte du déversement d'une poutre """
-        self.l_ef_y = self.lo_rel_y * self.coeflef['y']
-        self.l_ef_z = self.lo_rel_z * self.coeflef['z']
+        """Retourne sigma m,crit pour la prise en compte du déversement d'une poutre"""
+        self.l_ef_y = self.lo_rel_y * self.coeflef["y"]
+        self.l_ef_z = self.lo_rel_z * self.coeflef["z"]
         if self.pos == "Charge sur fibre comprimée":
             self.l_ef_y = self.l_ef_y + 2 * self.h_calcul
             self.l_ef_z = self.l_ef_z + 2 * self.h_calcul
         elif self.pos == "Charge sur fibre tendue":
             self.l_ef_y = self.l_ef_y - 0.5 * self.h_calcul
             self.l_ef_z = self.l_ef_z - 0.5 * self.h_calcul
-        
+
         self.l_ef = {"y": self.l_ef_y, "z": self.l_ef_z}
         b_calcul = self.b_calcul
         h_calcul = self.h_calcul
-        l_ef_y = self.l_ef['y']
-        l_ef_z = self.l_ef['z']
-        E_0_05 = int(self.caract_meca.loc['E005']) * si.MPa
+        l_ef_y = self.l_ef["y"]
+        l_ef_z = self.l_ef["z"]
+        E_0_05 = int(self.caract_meca.loc["E005"]) * si.MPa
         K_fi = self.K_fi
-        
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            sigma_m_crit_y_fi = (0.78 * b_calcul ** 2 * E_0_05 * K_fi) / (h_calcul * l_ef_y)
-            sigma_m_crit_z_fi = (0.78 * h_calcul ** 2 * E_0_05 * K_fi) / (b_calcul * l_ef_z)
+            sigma_m_crit_y_fi = (0.78 * b_calcul**2 * E_0_05 * K_fi) / (h_calcul * l_ef_y)
+            sigma_m_crit_z_fi = (0.78 * h_calcul**2 * E_0_05 * K_fi) / (b_calcul * l_ef_z)
             return {"y": sigma_m_crit_y_fi, "z": sigma_m_crit_z_fi}
+
         return val()
 
     @property
     def lamb_rel_m(self) -> tuple:
-        """ Retourne l'élancement relatif de la section avec pour argument """
-        f_m0k = float(self.caract_meca.loc['fm0k']) *si.MPa
-        sigma_m_crit_y_fi = self.sigma_m_crit[1]['y']
-        sigma_m_crit_z_fi = self.sigma_m_crit[1]['z']
+        """Retourne l'élancement relatif de la section avec pour argument"""
+        f_m0k = float(self.caract_meca.loc["fm0k"]) * si.MPa
+        sigma_m_crit_y_fi = self.sigma_m_crit[1]["y"]
+        sigma_m_crit_z_fi = self.sigma_m_crit[1]["z"]
         K_fi = self.K_fi
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -79,35 +83,40 @@ class Flexion_feu(Feu, Flexion):
             lamb_rel_m_y_fi = sqrt(f_m0k * K_fi / sigma_m_crit_y_fi)
             lamb_rel_m_z_fi = sqrt(f_m0k * K_fi / sigma_m_crit_z_fi)
             return {"y": lamb_rel_m_y_fi, "z": lamb_rel_m_z_fi}
+
         return val()
 
     @property
     def K_crit(self) -> tuple:
-        """ Retourne K,crit le coef. de minoration de la résistance en flexion au déversement"""
-        lamb_rel_m_y = self.lamb_rel_m[1]['y']
-        lamb_rel_m_z = self.lamb_rel_m[1]['z']
+        """Retourne K,crit le coef. de minoration de la résistance en flexion au déversement"""
+        lamb_rel_m_y = self.lamb_rel_m[1]["y"]
+        lamb_rel_m_z = self.lamb_rel_m[1]["z"]
         result = [None, {"y": None, "z": None}]
 
         for axe in ["y", "z"]:
             lamb_rel_m_fi = lamb_rel_m_y if axe == "y" else lamb_rel_m_z
             if lamb_rel_m_fi <= 0.75:
+
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     K_crit_fi = 1
                     axe
                     return K_crit_fi
             elif 0.75 < lamb_rel_m_fi <= 1.4:
+
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
                     K_crit_fi = 1.56 - 0.75 * lamb_rel_m_fi
                     axe
                     return K_crit_fi
             else:
+
                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
                 def val():
-                    K_crit_fi = 1 / (lamb_rel_m_fi ** 2)
+                    K_crit_fi = 1 / (lamb_rel_m_fi**2)
                     axe
                     return K_crit_fi
+
             kcrit_axe = val()
             if result[0]:
                 result[0] = result[0] + kcrit_axe[0]
@@ -116,10 +125,9 @@ class Flexion_feu(Feu, Flexion):
             result[1][axe] = kcrit_axe[1]
         result = (result[0], result[1])
         return result
-    
+
     def f_m_d(self) -> tuple:
-        """Retourne la résistance f,m,d au feu de l'élément en MPa
-        """
+        """Retourne la résistance f,m,d au feu de l'élément en MPa"""
         return super()._f_type_d("fm0k")
 
     def taux_m_d(self, compression: object = None, traction: object = None) -> tuple:
@@ -161,6 +169,7 @@ class Flexion_feu(Feu, Flexion):
 
         from ourocode.eurocode.ec5.feu.compression_feu import Compression_feu as _Compression_feu
         from ourocode.eurocode.ec5.feu.traction_feu import Traction_feu as _Traction_feu
+
         if compression and isinstance(compression, _Compression_feu):
             sigma_c_0_d = compression.sigma_c_0_rd
             f_c_0_d = compression.f_type_rd
@@ -176,10 +185,14 @@ class Flexion_feu(Feu, Flexion):
                 taux_6_20 = taux_6_2**2 + taux_6_12  # equ6.20
                 taux_6_23 = sigma_c_0_d / (f_c_0_d * K_c_y)  # equ6.23
                 taux_6_24 = sigma_c_0_d / (f_c_0_d * K_c_z)  # equ6.24
-                taux_6_35zyz = (taux_6_33y**2 + (sigma_mz_d_fi / (f_m_d_fi * K_h_z)) + taux_6_24)  # equ6.35
-                taux_6_35yzz = (taux_6_33y + (sigma_mz_d_fi / (f_m_d_fi * K_h_z)) ** 2 + taux_6_24)  # equ6.35 interprétation
-                taux_6_35yzy = (taux_6_33z**2 + (sigma_my_d_fi / (f_m_d_fi * K_h_y)) + taux_6_23)  # equ6.35
-                taux_6_35zyy = (taux_6_33z + (sigma_my_d_fi / (f_m_d_fi * K_h_y)) ** 2 + taux_6_23)  # equ6.35 interprétation
+                taux_6_35zyz = taux_6_33y**2 + (sigma_mz_d_fi / (f_m_d_fi * K_h_z)) + taux_6_24  # equ6.35
+                taux_6_35yzz = (
+                    taux_6_33y + (sigma_mz_d_fi / (f_m_d_fi * K_h_z)) ** 2 + taux_6_24
+                )  # equ6.35 interprétation
+                taux_6_35yzy = taux_6_33z**2 + (sigma_my_d_fi / (f_m_d_fi * K_h_y)) + taux_6_23  # equ6.35
+                taux_6_35zyy = (
+                    taux_6_33z + (sigma_my_d_fi / (f_m_d_fi * K_h_y)) ** 2 + taux_6_23
+                )  # equ6.35 interprétation
                 return (taux_6_19, taux_6_20, taux_6_35zyz, taux_6_35yzz, taux_6_35yzy, taux_6_35zyy)
 
             compression_val = comp(
@@ -192,7 +205,9 @@ class Flexion_feu(Feu, Flexion):
             latex = latex + compression_val[0]
             self.taux_m_rd["equ6.19"] = compression_val[1][0]
             self.taux_m_rd["equ6.20"] = compression_val[1][1]
-            self.taux_m_rd["equ6.35zyz"] = compression_val[1][2]  # 1er item axe de flexion pas au carré, 2eme item axe de flexion au carré, 3eme axe de compression
+            self.taux_m_rd["equ6.35zyz"] = compression_val[1][
+                2
+            ]  # 1er item axe de flexion pas au carré, 2eme item axe de flexion au carré, 3eme axe de compression
             self.taux_m_rd["equ6.35yzz"] = compression_val[1][3]
             self.taux_m_rd["equ6.35yzy"] = compression_val[1][4]
             self.taux_m_rd["equ6.35zyy"] = compression_val[1][5]

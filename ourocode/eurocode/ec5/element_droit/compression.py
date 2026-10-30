@@ -1,4 +1,4 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 from copy import deepcopy
 import warnings
@@ -9,6 +9,7 @@ from math import sqrt, pi, cos, sin, radians
 import numpy as np
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
@@ -28,15 +29,17 @@ class Compression(Barre):
     - Les combinaisons flexo-compression (si objet Flexion fourni)
     """
 
-    COEF_LF = {"Encastré 1 côté" : 2,
-                "Rotule - Rotule" : 1,
-                "Encastré - Rotule" : 0.7,
-                "Encastré - Encastré" : 0.5,
-                "Encastré - Rouleau" : 1}
+    COEF_LF = {
+        "Encastré 1 côté": 2,
+        "Rotule - Rotule": 1,
+        "Encastré - Rotule": 0.7,
+        "Encastré - Encastré": 0.5,
+        "Encastré - Rouleau": 1,
+    }
 
-    def __init__(self, lo_y: si.mm, lo_z: si.mm,
-                 type_appuis_y: str = COEF_LF, type_appuis_z: str = COEF_LF,
-                 *args, **kwargs):
+    def __init__(
+        self, lo_y: si.mm, lo_z: si.mm, type_appuis_y: str = COEF_LF, type_appuis_z: str = COEF_LF, *args, **kwargs
+    ):
         """Initialise un objet de vérification en compression axiale.
 
         Définit les longueurs de flambement et les coefficients de longueur
@@ -67,8 +70,8 @@ class Compression(Barre):
         """
         super().__init__(*args, **kwargs)
         self.lo_comp = {"y": lo_y * si.mm, "z": lo_z * si.mm}
-        self.lo_y = self.lo_comp['y']
-        self.lo_z = self.lo_comp['z']
+        self.lo_y = self.lo_comp["y"]
+        self.lo_z = self.lo_comp["z"]
         self.type_appuis_y = type_appuis_y
         self.type_appuis_z = type_appuis_z
         self.coef_lef_y = self.COEF_LF[type_appuis_y]
@@ -77,9 +80,9 @@ class Compression(Barre):
 
     @property
     def lamb(self) -> tuple:
-        """ Retourne l'élancement d'un poteau en compression avec risque de flambement suivant son axe de rotation """
-        lo_y = self.lo_comp['y'].value * 10**3
-        lo_z = self.lo_comp['z'].value * 10**3
+        """Retourne l'élancement d'un poteau en compression avec risque de flambement suivant son axe de rotation"""
+        lo_y = self.lo_comp["y"].value * 10**3
+        lo_z = self.lo_comp["z"].value * 10**3
         coef_lef_y = self.coef_lef_y
         coef_lef_z = self.coef_lef_z
         I_y = self.inertie[0].value * 10**12
@@ -90,65 +93,64 @@ class Compression(Barre):
         def val():
             lamb_y = (lo_y * coef_lef_y) / sqrt(I_y / A)
             lamb_z = (lo_z * coef_lef_z) / sqrt(I_z / A)
-            return {'y': lamb_y, 'z': lamb_z}
+            return {"y": lamb_y, "z": lamb_z}
+
         return val()
-    
-    
+
     @property
     def lamb_rel_Axe(self) -> tuple:
-        """ Retourne l'élancement relatif d'un poteau en compression avec risque de flambement suivant son axe de rotation """
-        lamb_y = self.lamb[1]['y']
-        lamb_z = self.lamb[1]['z']
-        f_c0k = float(self.caract_meca.loc['fc0k']) * si.MPa
-        E_0_05 = int(self.caract_meca.loc['E005']) * si.MPa
+        """Retourne l'élancement relatif d'un poteau en compression avec risque de flambement suivant son axe de rotation"""
+        lamb_y = self.lamb[1]["y"]
+        lamb_z = self.lamb[1]["z"]
+        f_c0k = float(self.caract_meca.loc["fc0k"]) * si.MPa
+        E_0_05 = int(self.caract_meca.loc["E005"]) * si.MPa
 
         @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             lamb_rel_y = (lamb_y / pi) * sqrt(f_c0k / E_0_05)
             lamb_rel_z = (lamb_z / pi) * sqrt(f_c0k / E_0_05)
-            return {'y': lamb_rel_y, 'z': lamb_rel_z}
+            return {"y": lamb_rel_y, "z": lamb_rel_z}
+
         return val()
-    
 
     @property
     def beta_C(self) -> float:
-        if self.type_bois == 'Massif':
+        if self.type_bois == "Massif":
             betaC = 0.2
         else:
             betaC = 0.1
         return betaC
-    
-    
+
     @property
     def k_Axe(self):
-        """ Retourne le facteur Ky ou Kz (fonction de l'axe de flambement) """
+        """Retourne le facteur Ky ou Kz (fonction de l'axe de flambement)"""
         beta_C = self.beta_C
-        lamb_rel_y = self.lamb_rel_Axe[1]['y']
-        lamb_rel_z = self.lamb_rel_Axe[1]['z']
+        lamb_rel_y = self.lamb_rel_Axe[1]["y"]
+        lamb_rel_z = self.lamb_rel_Axe[1]["z"]
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            k_y = 0.5 * (1 + beta_C * (lamb_rel_y - 0.3) + lamb_rel_y ** 2)
-            k_z = 0.5 * (1 + beta_C * (lamb_rel_z - 0.3) + lamb_rel_z ** 2)
-            return {'y': k_y, 'z': k_z}
+            k_y = 0.5 * (1 + beta_C * (lamb_rel_y - 0.3) + lamb_rel_y**2)
+            k_z = 0.5 * (1 + beta_C * (lamb_rel_z - 0.3) + lamb_rel_z**2)
+            return {"y": k_y, "z": k_z}
+
         return val()
-    
 
     @property
     def kc_Axe(self) -> tuple:
-        """ Retourne le coefficient multiplicateur KcAxe  (axe = y ou z suivant axe de rotation en flambement) de fc,0,d """
-        k_y = self.k_Axe[1]['y']
-        k_z = self.k_Axe[1]['z']
-        lamb_rel_y = self.lamb_rel_Axe[1]['y']
-        lamb_rel_z = self.lamb_rel_Axe[1]['z']
+        """Retourne le coefficient multiplicateur KcAxe  (axe = y ou z suivant axe de rotation en flambement) de fc,0,d"""
+        k_y = self.k_Axe[1]["y"]
+        k_z = self.k_Axe[1]["z"]
+        lamb_rel_y = self.lamb_rel_Axe[1]["y"]
+        lamb_rel_z = self.lamb_rel_Axe[1]["z"]
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            k_c_y = 1 / (k_y + sqrt(k_y** 2 - lamb_rel_y ** 2))
-            k_c_z = 1 / (k_z + sqrt(k_z** 2 - lamb_rel_z ** 2))
-            return {'y': min(k_c_y, 1), 'z': min(k_c_z, 1)}
-        return val()
+            k_c_y = 1 / (k_y + sqrt(k_y**2 - lamb_rel_y**2))
+            k_c_z = 1 / (k_z + sqrt(k_z**2 - lamb_rel_z**2))
+            return {"y": min(k_c_y, 1), "z": min(k_c_z, 1)}
 
+        return val()
 
     def f_c_0_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION):
         """Calcule la résistance de calcul en compression axiale f_c,0,d selon l'EC5 §6.2.2.
@@ -169,9 +171,8 @@ class Compression(Barre):
             Cette valeur est réduite par le coefficient kc en cas de flambement.
         """
         return super()._f_type_d("fc0k", loadtype, typecombi)
-    
-    
-    def sigma_c_0_d(self, Fc0d: si.kN, Anet: si.mm**2=None) -> tuple:
+
+    def sigma_c_0_d(self, Fc0d: si.kN, Anet: si.mm**2 = None) -> tuple:
         """Calcule la contrainte de compression axiale sigma_c,0,d selon l'EC5 §6.2.2.
 
         Détermine la contrainte normale due à l'effort de compression axial.
@@ -201,12 +202,12 @@ class Compression(Barre):
         def val():
             sigma_c_0_d = Fc_0_d / A
             return sigma_c_0_d
+
         value = val()
         self.sigma_c_0_rd = value[1]
         return value
-    
-    
-    def taux_c_0_d(self, flexion: object=None) -> tuple:
+
+    def taux_c_0_d(self, flexion: object = None) -> tuple:
         """Calcule les taux de travail en compression axiale selon l'EC5 §6.2.2 et §6.3.2.
 
         Vérifie les critères de résistance :
@@ -232,47 +233,53 @@ class Compression(Barre):
         self.taux_c_0_rd = {}
         sigma_c_0_d = self.sigma_c_0_rd
         f_c_0_d = self.f_type_rd
-        lamb_rel_y  = self.lamb_rel_Axe[1]['y']
-        lamb_rel_z  = self.lamb_rel_Axe[1]['z']
-        K_c_y = self.kc_Axe[1]['y']
-        K_c_z = self.kc_Axe[1]['z']
+        lamb_rel_y = self.lamb_rel_Axe[1]["y"]
+        lamb_rel_z = self.lamb_rel_Axe[1]["z"]
+        K_c_y = self.kc_Axe[1]["y"]
+        K_c_z = self.kc_Axe[1]["z"]
 
         from ourocode.eurocode.ec5.element_droit.flexion import Flexion as _Flexion
+
         if flexion and isinstance(flexion, _Flexion):
             taux_6_11 = flexion.taux_m_rd["equ6.11"]
             taux_6_12 = flexion.taux_m_rd["equ6.12"]
         else:
             taux_6_11 = 0
             taux_6_12 = 0
-        
-        if lamb_rel_y <= 0.3 and lamb_rel_z <= 0.3:
-            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                taux_6_2 = sigma_c_0_d / f_c_0_d # equ6.2
-                taux_6_19 = (sigma_c_0_d / (f_c_0_d * K_c_y))**2 + taux_6_11 # equ6.19
-                taux_6_20 = (sigma_c_0_d / (f_c_0_d * K_c_z))**2 + taux_6_12 # equ6.20
-                return taux_6_2, taux_6_19, taux_6_20
-            value = val()
-            self.taux_c_0_rd['equ6.19'] = value[1][1]
-            self.taux_c_0_rd['equ6.20'] = value[1][2]
-        else:      
-            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                taux_6_2 = sigma_c_0_d / f_c_0_d # equ6.2
-                taux_6_23 = sigma_c_0_d / (f_c_0_d * K_c_y) + taux_6_11 # equ6.23
-                taux_6_24 = sigma_c_0_d / (f_c_0_d * K_c_z) + taux_6_12 # equ6.24
-                return taux_6_2, taux_6_23, taux_6_24
-            value = val()
-            self.taux_c_0_rd['equ6.23'] = value[1][1]
-            self.taux_c_0_rd['equ6.24'] = value[1][2]
 
-        self.taux_c_0_rd['equ6.2'] = value[1][0]
+        if lamb_rel_y <= 0.3 and lamb_rel_z <= 0.3:
+
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                taux_6_2 = sigma_c_0_d / f_c_0_d  # equ6.2
+                taux_6_19 = (sigma_c_0_d / (f_c_0_d * K_c_y)) ** 2 + taux_6_11  # equ6.19
+                taux_6_20 = (sigma_c_0_d / (f_c_0_d * K_c_z)) ** 2 + taux_6_12  # equ6.20
+                return taux_6_2, taux_6_19, taux_6_20
+
+            value = val()
+            self.taux_c_0_rd["equ6.19"] = value[1][1]
+            self.taux_c_0_rd["equ6.20"] = value[1][2]
+        else:
+
+            @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+            def val():
+                taux_6_2 = sigma_c_0_d / f_c_0_d  # equ6.2
+                taux_6_23 = sigma_c_0_d / (f_c_0_d * K_c_y) + taux_6_11  # equ6.23
+                taux_6_24 = sigma_c_0_d / (f_c_0_d * K_c_z) + taux_6_12  # equ6.24
+                return taux_6_2, taux_6_23, taux_6_24
+
+            value = val()
+            self.taux_c_0_rd["equ6.23"] = value[1][1]
+            self.taux_c_0_rd["equ6.24"] = value[1][2]
+
+        self.taux_c_0_rd["equ6.2"] = value[1][0]
         max_taux = max([v for v in self.taux_c_0_rd.values()])
         synthese = [
-            ["Compression bois", max_taux, None],
+            ["Compression bois", max_taux, None, "EN 1995-1-1 §6.1.4/§6.3.2"],
         ]
         self._add_synthese_taux_travail(synthese)
         return value
+
 
 class Compression_perpendiculaire(Barre):
     """Classe de vérification des éléments bois en compression perpendiculaire selon l'EC5 §6.1.5.
@@ -286,18 +293,19 @@ class Compression_perpendiculaire(Barre):
     """
 
     TYPE_APPUIS = ("Appuis discret", "Appuis continu")
+
     def __init__(
-        self, 
-        b_appuis:si.mm, 
-        l_appuis: si.mm, 
-        l1d: si.mm=10000, 
-        l1g: si.mm=10000, 
-        ad: si.mm=0, 
-        ag: si.mm=0, 
-        type_appuis_90: str=TYPE_APPUIS, 
-        *args, 
-        **kwargs
-        ):
+        self,
+        b_appuis: si.mm,
+        l_appuis: si.mm,
+        l1d: si.mm = 10000,
+        l1g: si.mm = 10000,
+        ad: si.mm = 0,
+        ag: si.mm = 0,
+        type_appuis_90: str = TYPE_APPUIS,
+        *args,
+        **kwargs,
+    ):
         """Initialise un objet de vérification en compression perpendiculaire.
 
         Args:
@@ -327,10 +335,10 @@ class Compression_perpendiculaire(Barre):
     @property
     def K_c90(self):
         """Retourne le facteur K_c,90 qui tient compte de la configuration de chargement, du fendage et de la déformation
-            en compression avec pour argument :
-            h : Hauteur de l'élement subissant la compression en mm
-            lO : Longeur de l'appuis en compression en mm
-            l1 : Distance la plus petite entre deux appuis en mm (l et l)
+        en compression avec pour argument :
+        h : Hauteur de l'élement subissant la compression en mm
+        lO : Longeur de l'appuis en compression en mm
+        l1 : Distance la plus petite entre deux appuis en mm (l et l)
         """
         try:
             return self._setter_K_c90
@@ -345,7 +353,7 @@ class Compression_perpendiculaire(Barre):
                 l1 = min(self.l1d, self.l1g)
 
             if self.type_appuis_90 == "Appuis discret":
-                if self.type_bois == 'Massif':
+                if self.type_bois == "Massif":
                     if self.h_calcul.value * 10**3 <= 300:
                         if l1 >= 2 * self.h_calcul:
                             kc_90 = 1.5
@@ -353,7 +361,7 @@ class Compression_perpendiculaire(Barre):
                             kc_90 = 1
                     else:
                         kc_90 = 1.5
-                elif self.type_bois == 'BLC':
+                elif self.type_bois == "BLC":
                     if self.h_calcul.value * 10**3 <= 300 and self.l_appuis.value * 10**3 <= 400:
                         if l1 >= 2 * self.h_calcul:
                             kc_90 = 1.75
@@ -369,7 +377,7 @@ class Compression_perpendiculaire(Barre):
                     else:
                         kc_90 = 1
             else:
-                if self.type_bois == 'Massif':
+                if self.type_bois == "Massif":
                     if self.h_calcul.value * 10**3 <= 300:
                         if l1 >= 2 * self.h_calcul:
                             kc_90 = 1.25
@@ -377,7 +385,7 @@ class Compression_perpendiculaire(Barre):
                             kc_90 = 1
                     else:
                         kc_90 = 1.5
-                elif self.type_bois == 'BLC':
+                elif self.type_bois == "BLC":
                     if self.h_calcul.value * 10**3 <= 300:
                         if l1 >= 2 * self.h_calcul:
                             kc_90 = 1.5
@@ -396,8 +404,7 @@ class Compression_perpendiculaire(Barre):
     def K_c90(self, value):
         self._setter_K_c90 = value
 
-
-    def f_c_90_d(self, loadtype: str=Barre.LOAD_TIME, typecombi: str=Barre.TYPE_ACTION):
+    def f_c_90_d(self, loadtype: str = Barre.LOAD_TIME, typecombi: str = Barre.TYPE_ACTION):
         """Calcule la résistance de calcul en compression perpendiculaire f_c,90,d selon l'EC5 §6.1.5.
 
         Détermine la résistance à partir de la résistance caractéristique fc,90,k
@@ -413,8 +420,7 @@ class Compression_perpendiculaire(Barre):
             float: Résistance de calcul fc,90,d en MPa avec unité (si.MPa).
         """
         return super()._f_type_d("fc90k", loadtype, typecombi)
-    
-    
+
     def sigma_c_90_d(self, Fc90d: si.kN) -> tuple:
         """Calcule la contrainte de compression perpendiculaire sigma_c,90,d selon l'EC5 §6.1.5.
 
@@ -431,7 +437,7 @@ class Compression_perpendiculaire(Barre):
             L'aire effective a_ef = (l_appuis + min(30mm, distance_bord, l_appuis, 0.5×entraxe)) × b_appuis
             La valeur est stockée dans l'attribut sigma_c_90_rd.
         """
-        
+
         self.Fc90d = Fc90d * si.kN
         Fc_90_d = self.Fc90d
         l_appuis = self.l_appuis
@@ -444,13 +450,15 @@ class Compression_perpendiculaire(Barre):
 
         @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            a_ef = (l_appuis + min(30*mm, ad, l_appuis, 0.5*l_1d) + min(30*mm, ag, l_appuis, 0.5*l_1g)) * b_appuis
+            a_ef = (
+                l_appuis + min(30 * mm, ad, l_appuis, 0.5 * l_1d) + min(30 * mm, ag, l_appuis, 0.5 * l_1g)
+            ) * b_appuis
             sigma_c_90_d = Fc_90_d / a_ef
             return sigma_c_90_d
+
         value = val()
         self.sigma_c_90_rd = value[1]
         return value
-
 
     def taux_c_90_d(self) -> tuple:
         """Calcule le taux de travail en compression perpendiculaire selon l'EC5 §6.1.5 (Eq. 6.3).
@@ -477,23 +485,20 @@ class Compression_perpendiculaire(Barre):
 
         @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            taux_6_3 = sigma_c_90_d / (K_c90 * f_c_90_d) # equ6.3
+            taux_6_3 = sigma_c_90_d / (K_c90 * f_c_90_d)  # equ6.3
             return taux_6_3
-        
+
         value = val()
-        self.taux_c_90_rd['equ6.3'] = value[1]
+        self.taux_c_90_rd["equ6.3"] = value[1]
         synthese = [
-            ["Compression perpendiculaire bois", self.taux_c_90_rd['equ6.3'], None],
+            ["Compression perpendiculaire bois", self.taux_c_90_rd["equ6.3"], None, "EN 1995-1-1 §6.1.5"],
         ]
         self._add_synthese_taux_travail(synthese)
         return value
-    
-    
-    def show_c90(self) -> None:
-        """Affiche l'image des caractéristiques d'une compression perpendiculaire
-        """
-        self._show_element("C90_def.png")
 
+    def show_c90(self) -> None:
+        """Affiche l'image des caractéristiques d'une compression perpendiculaire"""
+        self._show_element("C90_def.png")
 
 
 class Compression_inclinees(Compression_perpendiculaire):
@@ -507,7 +512,7 @@ class Compression_inclinees(Compression_perpendiculaire):
     σ_c,α,d ≤ f_c,0,d / [(f_c,0,d/(K_c,90·f_c,90,d))·sin²(α) + cos²(α)]
     """
 
-    def __init__(self, alpha: float=45, **kwargs):
+    def __init__(self, alpha: float = 45, **kwargs):
         """Initialise un objet de vérification en compression inclinée.
 
         Args:
@@ -519,7 +524,7 @@ class Compression_inclinees(Compression_perpendiculaire):
         """
         super().__init__(**kwargs)
         self.alpha = alpha
-    
+
     def sigma_c_alpha_d(self, Fcad: si.kN) -> tuple:
         """Calcule la contrainte de compression inclinée sigma_c,alpha,d.
 
@@ -538,18 +543,17 @@ class Compression_inclinees(Compression_perpendiculaire):
         b_appuis = self.b_appuis
         l_appuis = self.l_appuis
         self.Fc_alpha_d = Fcad * si.kN
-        Fc_alpha_d  = self.Fc_alpha_d
-        
+        Fc_alpha_d = self.Fc_alpha_d
+
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
             A = b_appuis * l_appuis
             sigma_c_alpha_d = Fc_alpha_d / A
             return sigma_c_alpha_d
-        
+
         value = val()
         self.sigma_c_alpha_rd = value[1]
         return value
-    
 
     def taux_c_alpha_d(self, loadtype=Barre.LOAD_TIME, typecombi=Barre.TYPE_ACTION) -> tuple:
         """Calcule le taux de travail en compression inclinée selon l'EC5 §6.2.2 (Eq. 6.16).
@@ -580,16 +584,15 @@ class Compression_inclinees(Compression_perpendiculaire):
 
         @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            taux_6_16 = sigma_c_alpha_d / (f_c_0_d / ((f_c_0_d /(K_c90 * f_c_90_d)) * sin(radians(alpha))**2 + cos(radians(alpha))**2)) # equ6.16
+            taux_6_16 = sigma_c_alpha_d / (
+                f_c_0_d / ((f_c_0_d / (K_c90 * f_c_90_d)) * sin(radians(alpha)) ** 2 + cos(radians(alpha)) ** 2)
+            )  # equ6.16
             return taux_6_16
-         
+
         value = val()
-        self.taux_c_alpha_rd['equ6.16'] = value[1]
+        self.taux_c_alpha_rd["equ6.16"] = value[1]
         synthese = [
-            ["Compression inclinée bois", self.taux_c_alpha_rd['equ6.16'], None],
+            ["Compression inclinée bois", self.taux_c_alpha_rd["equ6.16"], None, "EN 1995-1-1 §6.2.2"],
         ]
         self._add_synthese_taux_travail(synthese)
         return value
-    
-
-

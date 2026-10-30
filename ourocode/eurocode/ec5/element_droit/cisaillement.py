@@ -1,4 +1,4 @@
-﻿# coding in UTF-8
+# coding in UTF-8
 # by Anthony PARISOT
 from copy import deepcopy
 import warnings
@@ -9,6 +9,7 @@ from math import sqrt, pi, cos, sin, radians
 import numpy as np
 
 import forallpeople as si
+
 si.environment("structural")
 from ourocode.eurocode.core._renderer import handcalc
 
@@ -27,7 +28,8 @@ class Cisaillement(Barre):
     - Le cisaillement avec entaille (§6.5, Eq. 6.60) avec facteur K_v
     """
 
-    DICT_KN = {"Massif": 5,"BLC": 6.5, "LVL": 4.5}
+    DICT_KN = {"Massif": 5, "BLC": 6.5, "LVL": 4.5}
+
     def __init__(self, **kwargs):
         """Initialise un objet de vérification au cisaillement.
 
@@ -73,8 +75,7 @@ class Cisaillement(Barre):
         else:
             return 0.67
 
-
-    def Kv(self, hef:si.mm, x:si.mm, i_lo:si.mm, ent=("Dessous", "Dessus")) -> tuple:
+    def Kv(self, hef: si.mm, x: si.mm, i_lo: si.mm, ent=("Dessous", "Dessus")) -> tuple:
         """Calcule le facteur de réduction d'entaille K_v selon l'EC5 §6.5.
 
         Ce coefficient réduit la résistance au cisaillement en présence d'une
@@ -109,11 +110,17 @@ class Cisaillement(Barre):
             self.K_v = 1
             return self.K_v
         else:
+
             @handcalc(override="long", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
                 alpha = h_ef / h_calcul
-                K_v = min(1,(K_n * (1 + (1.1 * i ** 1.5) / sqrt(h_calcul))) / (sqrt(h_calcul) * (sqrt(alpha * (1 - alpha)) + 0.8 * x / h_calcul * sqrt(1 / alpha - alpha ** 2))))
+                K_v = min(
+                    1,
+                    (K_n * (1 + (1.1 * i**1.5) / sqrt(h_calcul)))
+                    / (sqrt(h_calcul) * (sqrt(alpha * (1 - alpha)) + 0.8 * x / h_calcul * sqrt(1 / alpha - alpha**2))),
+                )
                 return K_v
+
             value = val()
             self.K_v = value[1]
             return value
@@ -135,7 +142,7 @@ class Cisaillement(Barre):
         """
         return super()._f_type_d("fvk", loadtype, typecombi)
 
-    def tau_d(self, Vd:si.kN) -> tuple:
+    def tau_d(self, Vd: si.kN) -> tuple:
         """Calcule la contrainte de cisaillement tau_d selon l'EC5 §6.1.7.
 
         Détermine la contrainte de cisaillement longitudinal pour une poutre
@@ -186,7 +193,7 @@ class Cisaillement(Barre):
         self.taux_tau_rd = {}
         tau_d = self.tau_rd
         f_v_d = self.f_type_rd
-        K_v  = self.K_v
+        K_v = self.K_v
 
         @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
@@ -195,18 +202,16 @@ class Cisaillement(Barre):
             return taux_6_13, taux_6_60
 
         value = val()
-        self.taux_tau_rd['equ6.13'] = value[1][0]
-        self.taux_tau_rd['equ6.60'] = value[1][1]
+        self.taux_tau_rd["equ6.13"] = value[1][0]
+        self.taux_tau_rd["equ6.60"] = value[1][1]
         synthese = [
-            ["Cisaillement bois", max(value[1][0], value[1][1]), None],
+            ["Cisaillement bois", max(value[1][0], value[1][1]), None, "EN 1995-1-1 §6.1.7"],
         ]
         self._add_synthese_taux_travail(synthese)
         return value
-    
-    
+
     def show_Kv(self) -> None:
-        """Affiche l'image des caractéristiques d'une entaille au cisaillement
-        """
+        """Affiche l'image des caractéristiques d'une entaille au cisaillement"""
         self._show_element("Kv_def.png")
 
 
@@ -214,26 +219,26 @@ class Cisaillement(Barre):
 
 # class Poutre_assemblee_meca(Projet):
 #     def __init__(self, beam_2:object, l: si.mm, disposition: str=["Latérale", "Dessus / Dessous"], recouvrement: list=[0,0], Ki: list=[0,None,0], entraxe: list=[1, None, 1], psy_2: int|float=0, **kwargs):
-#         """Classe définitssant une poutre composée d'au maximum 3 éléments connectés entre eux par liaisons mécanique 
+#         """Classe définitssant une poutre composée d'au maximum 3 éléments connectés entre eux par liaisons mécanique
 #         suivant la théorie de HEIMESHOFF Annexe B de l'EN 1995
 #         Args:
 #             beam_2 (object): objet contenant l'élément centrale de la poutre i=2, cette objet doit être issu de la classe élément ou de son héritage
 #             l (int | float): longueur de la poutre en mm
 #             disposition (str): Disposition des éléments supplémentaires à l'élément 2, "Latérale" ou "Dessus / Dessous"
-#             recouvrement (int): Si disposition latérale alors donner un recouvrement en mm. 
+#             recouvrement (int): Si disposition latérale alors donner un recouvrement en mm.
 #                                 Cela correspond à la distance entre le centre géométrique de la pièce 2 et celui de la pièce i.
 #                                 ATTENTION z local est vers le bas quand vous donnez le recouvrement.
-                                
+
 #             Ki (list, optional): Rigidité de liaison par connecteur entre les éléments entre i=1/2 et i=2/3, en N/mm. Soit Kser soit Ku en fonction du type de vérification
 #                                     S'il n'y a que 2 éléments connectés, laisser l'index correspondant vide (ex: [0, 2000]). Defaults to [0,None,0].
-                                    
+
 #             entraxe (list, optional): Entraxe entre connecteur en mm suivant i=1 ou i=3. Defaults to [1, None, 1].
 #             type_action (int | float, optional): Psy 2 qui permet de prendre en compte le fluage dans le temps,
-#                                         si calcul en instantanée alors 0, 
-#                                         si intermédiaire = voir dans data/coeff_psy.csv 
-#                                         et enfin temps infini = 1. 
+#                                         si calcul en instantanée alors 0,
+#                                         si intermédiaire = voir dans data/coeff_psy.csv
+#                                         et enfin temps infini = 1.
 #                                         Defaults to 0.
-                                        
+
 #             **kwargs (object): beam_1 et ou beam_3
 #         """
 #         super().__init__(**kwargs)
@@ -252,7 +257,7 @@ class Cisaillement(Barre):
 #                 self.Ki.append(Ki[i] * si.N / si.mm)
 #             else:
 #                 self.Ki.append(None)
-            
+
 #         for key, value in kwargs.items():
 #             match key[0:4]:
 #                 case "beam" if key[-1] == "2":
@@ -263,7 +268,7 @@ class Cisaillement(Barre):
 #             if beam is not None:
 #                 beam.Emean_fin(psy_2)
 
-   
+
 #     @property
 #     def K_def(self):
 #         kdef = (None, 0)
@@ -285,8 +290,8 @@ class Cisaillement(Barre):
 #                 if value[1] > kdef[1]:
 #                     kdef = value
 #         return kdef
-    
-        
+
+
 #     @property
 #     def Ki_fin(self):
 #         """Renvoie le Ki en fonction des Kdef des pièces assemblées et du psy2"""
@@ -296,19 +301,19 @@ class Cisaillement(Barre):
 #                 K_i = self.Ki[index]
 #                 psy_2 = beam.psy_2
 #                 K_def = self.K_def[1]
-                
+
 #                 @handcalc(override="long", precision=0, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
 #                 def val():
 #                     K_i_fin = K_i / (1 + psy_2 * K_def)
 #                     return K_i_fin
-                
+
 #                 if index == 0:
 #                     ki_fin["Ki fin 1-2"] = val()
 #                 else:
 #                     ki_fin["Ki fin 2-3"] = val()
 #         return ki_fin
-    
-    
+
+
 #     @property
 #     def gamma_i(self):
 #         """Renvoie le gamma"""
@@ -324,7 +329,7 @@ class Cisaillement(Barre):
 #                    K_i_fin = self.Ki_fin["Ki fin 1-2"][1].value * 10**-3
 #                 else:
 #                    K_i_fin = self.Ki_fin["Ki fin 2-3"][1].value * 10**-3
-                
+
 #                 @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
 #                 def val():
 #                     gamma_i = (1 + pi ** 2 * E_mean_fin * A * entraxe / (K_i_fin * lo ** 2)) ** (-1)
@@ -332,7 +337,7 @@ class Cisaillement(Barre):
 #                 gamma["gamma "+str(index+1)] = val()
 #         return gamma
 
-    
+
 #     @property
 #     def distance_ai(self):
 #         """Renvoie la distance à l'axe neutre de la pièce 2"""
@@ -340,23 +345,23 @@ class Cisaillement(Barre):
 #         if self.disposition == "Latérale":
 #             d1 = self.recouvrement[0]
 #             d3 = self.recouvrement[1]
-            
+
 #         else:
 #             h1 = self.beam[0].h_calcul
 #             h2 = self.beam[1].h_calcul
 #             h3 = self.beam[2].h_calcul
 #             d1 = -(h1 + h2)/2
 #             d3 = (h3 + h2)/2
-            
+
 #         for index, beam in enumerate(self.beam):
 #             if beam is not None:
 #                 if index == 1:
 #                     gamma_i = self.gamma_i["gamma "+str(index+1)]
 #                 else:
 #                     gamma_i = self.gamma_i["gamma "+str(index+1)][1]
-                    
+
 #                 denominateur = denominateur + (gamma_i * beam.E_mean_fin * beam.aire)
-                
+
 #         if self.beam[0] == None or self.beam[2] == None:
 #             di = [d1, None, d3]
 #             for index, beam in enumerate(self.beam):
@@ -364,7 +369,7 @@ class Cisaillement(Barre):
 #                     gamma_i = self.gamma_i["gamma "+str(index+1)][1]
 #                     numerateur = gamma_i * beam.E_mean_fin * beam.aire * di[index]
 #         else:
-#             numerateur = (self.gamma_i["gamma 1"][1] * self.beam[0].E_mean_fin * self.beam[0].aire * d1 
+#             numerateur = (self.gamma_i["gamma 1"][1] * self.beam[0].E_mean_fin * self.beam[0].aire * d1
 #                         - self.gamma_i["gamma 3"][1] * self.beam[2].E_mean_fin  * self.beam[2].aire * d3)
 #         a2 =  numerateur / denominateur
 #         ai = [None, -a2, None]
@@ -373,7 +378,7 @@ class Cisaillement(Barre):
 #                 di = [d1, None, d3]
 #                 ai[index] = di[index] - a2
 #         return ai
-       
+
 #     @property
 #     def EI_eff (self):
 #         """Renvoie la rigidité de la poutre connectée"""
@@ -385,23 +390,23 @@ class Cisaillement(Barre):
 #                     gamma_i = self.gamma_i["gamma "+str(index+1)]
 #                 else:
 #                     gamma_i = self.gamma_i["gamma "+str(index+1)][1]
-                    
+
 #                 E_mean_fin = beam.E_mean_fin
 #                 inertie = beam.inertie[0]
 #                 aire = self.beam[index].aire
 #                 distance_ai = self.distance_ai[index]
-                
+
 #                 @handcalc(override="long", precision=1, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-#                 def val():                    
+#                 def val():
 #                     EI_eff_i = E_mean_fin * inertie + gamma_i * E_mean_fin * aire * distance_ai**2
 #                     return EI_eff_i
 #                 inter = val()
 #                 EIeff_latex += f'EI eff {index+1}: '
 #                 EIeff_latex += inter[0]
 #                 EIeff_value = EIeff_value + inter[1]
-                
+
 #         @handcalc(override="params", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-#         def sum_EI(): 
+#         def sum_EI():
 #             EI_eff_global = EIeff_value # Somme des EI efficace
 #             return EI_eff_global
 #         sumEI = sum_EI()
@@ -414,10 +419,10 @@ class Cisaillement(Barre):
 #         Args:
 #             vz (float): Effort de cisaillement Vz en kN
 #         """
-        
+
 #         beam_2 = deepcopy(self.beam[1])
 #         K_cr = Cisaillement._from_parent_class(beam_2).K_cr
-        
+
 #         V_z = Vz * si.kN
 #         h = self.beam[1].h_calcul / 2 + self.distance_ai[1]
 #         gamma_3 = self.gamma_i["gamma 3"][1]
@@ -427,13 +432,13 @@ class Cisaillement(Barre):
 #         a_3 = self.distance_ai[2]
 #         b_2 = self.beam[1].b_calcul
 #         EI_eff = self.EI_eff[1]
-        
+
 #         @handcalc(override="long", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
 #         def val():
 #             tau_2 = V_z * (gamma_3 * E_mean_fin_3 * aire_3 * a_3 + 0.5 * E_mean_fin_2 * b_2 * h**2) / (b_2 * K_cr * EI_eff)
 #             return tau_2
 #         return val()
-    
+
 
 #     def sigma_i(self, My:float, beam: int=[1, 2, 3]):
 #         """Contrainte de compression parallèle au fil selon Annexe B.3 de l'EN 1995
@@ -441,7 +446,7 @@ class Cisaillement(Barre):
 #         Args:
 #             My (float): Moment selon l'axe y en kN.m
 #             beam (int, optional): Beam 1 = Barre 1
-#                                   Beam 2 = Barre 2 
+#                                   Beam 2 = Barre 2
 #                                   Beam 3 = Barre 3.
 #         """
 #         Mf_z = My * si.kN*si.m
@@ -454,22 +459,22 @@ class Cisaillement(Barre):
 #             E_mean_fin = self.beam[index-1].E_mean_fin
 #             distance_ai = self.distance_ai[index-1]
 #             EI_eff = self.EI_eff[1]
-            
+
 #             @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
 #             def val():
 #                 sigma_i = Mf_z * gamma_i * E_mean_fin * distance_ai / EI_eff
-                
+
 #                 return sigma_i
 #             return val()
-            
-    
+
+
 #     def sigma_mi(self, My:float, beam: int=[1, 2, 3]):
 #         """Contrainte de flexion selon l'axe y selon Annexe B.3 de l'EN 1995
 
 #         Args:
 #             My (float): Moment selon l'axe y en kN.m
 #             beam (int, optional): Beam 1 = Barre 1
-#                                   Beam 2 = Barre 2 
+#                                   Beam 2 = Barre 2
 #                                   Beam 3 = Barre 3.
 #         """
 #         M_y = My * si.kN*si.m
@@ -478,15 +483,15 @@ class Cisaillement(Barre):
 #             E_mean_fin = self.beam[index-1].E_mean_fin
 #             h_i = self.beam[index-1].h_calcul
 #             EI_eff = self.EI_eff[1]
-            
+
 #             @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
 #             def val():
 #                 sigma_m_i = 0.5 * M_y * E_mean_fin * h_i / EI_eff
-                
+
 #                 return sigma_m_i
 #             return val()
-            
-            
+
+
 #     def F_i(self, Vz:float, connecteur: int=[1,2]):
 #         """Permet de calculer la charge à reprendre par organe d'assemblage selon Annexe B.5 de l'EN 1995
 
@@ -494,7 +499,7 @@ class Cisaillement(Barre):
 #             Vz (float): Effort de cisaillement Vz en kN
 #             connecteur (int, optional): Position des connecteurs:
 #                         1 : connecteur entre les planches 1 et 2
-#                         2 : connecteur entre les planches 2 et 3. 
+#                         2 : connecteur entre les planches 2 et 3.
 #                         Defaults to [1,2].
 #         """
 #         V_z = Vz * si.kN
@@ -506,13 +511,13 @@ class Cisaillement(Barre):
 #         distance_ai = self.distance_ai[connecteur]
 #         entraxe = self.entraxe[connecteur]
 #         EI_eff = self.EI_eff[1]
-        
+
 #         @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
 #         def val():
 #             F_i = gamma_i * E_mean_fin * aire * distance_ai * entraxe * V_z / EI_eff
 #             return F_i
 #         return val()
-    
+
 
 # class Poteau_assemble_meca(Poutre_assemblee_meca):
 #     def __init__(self, lo_y: si.mm, lo_z: si.mm, type_appuis: str=Compression.COEF_LF, **kwargs):
@@ -527,7 +532,7 @@ class Cisaillement(Barre):
 #                 self.pole.append(compression)
 #             else:
 #                 self.pole.append(None)
-    
+
 #     @property
 #     def aire(self):
 #         """Détermine la surface total du poteau assemblé mécaniquement
@@ -537,10 +542,10 @@ class Cisaillement(Barre):
 #             if beam is not None:
 #                 aire = aire + beam.aire
 #         return aire
-    
+
 #     @property
 #     def Ief(self):
-#         """Détermine l'inertie efficace à partir d'un module d'élasticité moyen Emean et 
+#         """Détermine l'inertie efficace à partir d'un module d'élasticité moyen Emean et
 #         de la rigidité équivalente en flexion EIef d'une poutre assemblée mécaniquement.
 #         """
 #         E_mean_beams = []
@@ -555,7 +560,7 @@ class Cisaillement(Barre):
 #             I_ef = EI_ef / E_mean # equC.4
 #             return I_ef
 #         return inertie_ef()
-    
+
 #     @property
 #     def lamb_ef(self):
 #         """ Retourne l'élancement d'un poteau assemblé mécaniquement en compression avec risque de flambement suivant l'axe de rotation z donc une direction de flèche suivant y"""
@@ -568,7 +573,7 @@ class Cisaillement(Barre):
 #             lamb_z_ef = lo_z * sqrt(A_tot / I_z_ef) # equC.3
 #             return lamb_z_ef
 #         return val()
-    
+
 
 #     @property
 #     def lamb(self):
@@ -587,7 +592,7 @@ class Cisaillement(Barre):
 #                     return lamb_y
 #                 dict_lamb["Pole"+str(i+1) + " lamb,y"] = val()
 #         return dict_lamb
-    
+
 
 #     @property
 #     def lamb_rel_Axe(self):
@@ -619,7 +624,7 @@ class Cisaillement(Barre):
 #                     return lamb_rel_y
 #                 dict_lamb_rel["Pole"+str(i+1) + " lamb,rel,y"] = val()
 #         return dict_lamb_rel
-    
+
 
 #     @property
 #     def k_Axe(self):
@@ -628,11 +633,11 @@ class Cisaillement(Barre):
 #         def ky(beta_C:float, lamb_rel_y:float):
 #             k_y = 0.5 * (1 + beta_C * (lamb_rel_y - 0.3) + lamb_rel_y ** 2)
 #             return k_y
-        
+
 #         dict_k_axe = {}
 #         beta_C_poles = 0
 #         lamb_rel_ef_z = self.lamb_rel_Axe["lamb,rel,ef,z"][1]
-        
+
 #         for i, pole in enumerate(self.pole):
 #             if pole is not None:
 #                 beta_C = pole.beta_C
@@ -647,7 +652,7 @@ class Cisaillement(Barre):
 #             return k_ef_y
 #         dict_k_axe["k,ef,z"] =  kz()
 #         return dict_k_axe
-    
+
 
 #     @property
 #     def kc_Axe(self):
@@ -664,7 +669,7 @@ class Cisaillement(Barre):
 #         def kcy(k_y, lamb_rel_y):
 #             k_c_y = 1 / (k_y + sqrt(k_y** 2 - lamb_rel_y ** 2))
 #             return k_c_y
-        
+
 #         dict_kc_axe = {"kc,ef,z": kcz()}
 #         for i, pole in enumerate(self.pole):
 #             if pole is not None:
@@ -672,8 +677,8 @@ class Cisaillement(Barre):
 #                 lamb_rel_y = self.lamb_rel_Axe["Pole"+str(i+1) + " lamb,rel,y"][1]
 #                 dict_kc_axe["Pole"+str(i+1) + " kc,y"] =  kcy(k_y, lamb_rel_y)
 #         return dict_kc_axe
-    
-    
+
+
 #     def sigma_c_0_d(self, Fc0d: float):
 #         """ Retourne la contrainte de compression axial en MPa avec:
 #             Fc0d : la charge en kN de compression """
@@ -688,7 +693,7 @@ class Cisaillement(Barre):
 #         value = val()
 #         self.sigma_c_0_rd = value[1]
 #         return value
-    
+
 
 #     def Vd_organe(self, Fc0d: float):
 #         """ Retourne l'effort de cisaillement à prendr en compte sur un organe d'assemblage suivant l'annexe C §C.2.2 avec:
@@ -732,11 +737,11 @@ class Cisaillement(Barre):
 #                 self.dict_fc0d["Pole"+str(i+1) + " fc,0,d"] = pole._f_type_d("fc0k", loadtype, typecombi)
 #         self.dict_fc0d["fc,0,ef,d"] = np.mean([value[1] for value in self.dict_fc0d.values()])
 #         return self.dict_fc0d
-    
+
 
 #     def taux_c_0_d(self, flexion: object=None):
 #         """Retourne les taux de travaux de la compression axial.
-#         Si l'élement est un poteau (donc avec un travail principalement en compression) et de la flexion combinée (EN 1995-1-1 §6.3.2), 
+#         Si l'élement est un poteau (donc avec un travail principalement en compression) et de la flexion combinée (EN 1995-1-1 §6.3.2),
 #         il est possible d'ajouter l'objet flexion et de vérifier cette combinaison.
 
 #         Args:
@@ -756,7 +761,7 @@ class Cisaillement(Barre):
 #                 kcy = self.kc_Axe["Pole"+str(i+1) + " kc,y"][1]
 #                 fcod_y = self.dict_fc0d["Pole"+str(i+1) + " fc,0,d"][1]
 #                 f_c0d_tot_Kcy = f_c0d_tot_Kcy + kcy * fcod_y
-        
+
 #         lamb_rel_y  = max([value[1] for key, value in self.lamb_rel_Axe.items() if key != "lamb,rel,ef,z"])
 #         lamb_rel_z  = self.lamb_rel_Axe["lamb,rel,ef,z"][1]
 
@@ -768,7 +773,7 @@ class Cisaillement(Barre):
 #         else:
 #             taux_6_11 = 0
 #             taux_6_12 = 0
-        
+
 #         if lamb_rel_y < 0.3 and lamb_rel_z < 0.3:
 #             @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
 #             def val():
@@ -779,7 +784,7 @@ class Cisaillement(Barre):
 #             value = val()
 #             self.taux_c_0_rd['equ6.19'] = value[1][3]
 #             self.taux_c_0_rd['equ6.20'] = value[1][4]
-#         else:      
+#         else:
 #             @handcalc(override="short", precision=3, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
 #             def val():
 #                 taux_6_2 = sigma_c_0_d / f_c0_d_tot # equ6.2
@@ -792,7 +797,6 @@ class Cisaillement(Barre):
 
 #         self.taux_c_0_rd['equ6.2'] = value[1][0]
 #         return value
-
 
 
 # if __name__=='__main__':

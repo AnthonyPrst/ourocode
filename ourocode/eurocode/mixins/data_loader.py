@@ -29,6 +29,7 @@ class DataLoaderMixin:
     _json_cache: dict[str, dict] = {}
     try:
         import ourocode
+
         PATH_CATALOG = os.path.join(get_package_path(ourocode))
     except ImportError:
         PATH_CATALOG = os.path.join(os.getcwd(), "ourocode")
@@ -51,9 +52,9 @@ class DataLoaderMixin:
         cache_key = (data_file, index_col)
         if cache_key not in DataLoaderMixin._csv_cache:
             repertory = os.path.join(self.PATH_CATALOG, "data", data_file)
-            DataLoaderMixin._csv_cache[cache_key] = pd.read_csv(repertory, sep=';', header=0, index_col=index_col)
+            DataLoaderMixin._csv_cache[cache_key] = pd.read_csv(repertory, sep=";", header=0, index_col=index_col)
         return DataLoaderMixin._csv_cache[cache_key].copy()
-    
+
     def _data_from_json(self, data_file: str):
         """Charge et retourne les données depuis un fichier JSON sous forme de DataFrame.
 

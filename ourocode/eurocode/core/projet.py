@@ -33,7 +33,7 @@ class Projet(Objet):
         "Cat G : véhicule <= 160kN",
         "Cat H : toits",
     )
-    PAYS = ("France")
+    PAYS = "France"
 
     def __init__(
         self,
