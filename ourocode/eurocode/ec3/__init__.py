@@ -1,4 +1,4 @@
-from ourocode.eurocode.ec3.element_droit import Plat, Traction, Compression, Cisaillement, Flexion
+from ourocode.eurocode.ec3.element_droit import Plat, Profil, Traction, Compression, Cisaillement, Flexion
 from ourocode.eurocode.ec3.assemblage import (
     Tige,
     Tige_scellement_plaque_ancrage,
@@ -10,6 +10,7 @@ from ourocode.eurocode.ec3.assemblage import (
 )
 
 __all__ = [
+    "Profil",
     "Plat",
     "Traction",
     "Compression",

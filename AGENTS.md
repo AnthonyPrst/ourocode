@@ -81,7 +81,7 @@ Objet  (core/objet.py) = SerializationMixin + DataLoaderMixin + MathUtilsMixin +
     │   ├── Flexion, Traction, Compression (+_perpendiculaire, +_inclinees),
     │   │   Cisaillement, Verification_EC5
     │   └── Feu → Flexion_feu, Traction_feu, Compression_feu, Cisaillement_feu
-    ├── Plat / _Profil  (ec3/element_droit/)  ← acier
+    ├── Plat / Profil  (ec3/element_droit/)  ← acier
     │   └── Traction, Compression, Cisaillement, Flexion (EC3), Feu_acier
     └── Assemblage  (ec5/assemblage/assemblage.py)
         └── Pointe, Agrafe, Boulon, Tirefond_inf_7, Tirefond_sup_6,

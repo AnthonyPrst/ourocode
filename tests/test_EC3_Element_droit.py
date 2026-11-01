@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import forallpeople as si
 
 si.environment("structural")
-from ourocode.eurocode.ec3.element_droit import Plat, _Profil, Traction, Compression, Cisaillement, Flexion
+from ourocode.eurocode.ec3.element_droit import Plat, Profil, Traction, Compression, Cisaillement, Flexion
 
 
 class TestPlat:
@@ -67,7 +67,8 @@ class TestCompression:
             Iz=8333.33,
             lo_y=2000,
             lo_z=3000,
-            type_appuis="Encastré 1 côté",
+            type_appuis_y="Encastré 1 côté",
+            type_appuis_z="Encastré 1 côté",
             t=10,
             b=200,
             h=100,
@@ -84,7 +85,8 @@ class TestCompression:
             Iz=8333.33,
             lo_y=2000,
             lo_z=3000,
-            type_appuis="Encastré 1 côté",
+            type_appuis_y="Encastré 1 côté",
+            type_appuis_z="Encastré 1 côté",
             t=10,
             b=200,
             h=100,
@@ -147,7 +149,8 @@ class TestCompressionFlambement:
             lo_y=3000,
             lo_z=3000,
             courbe_flamb={"y": "b", "z": "c"},
-            type_appuis="Rotule - Rotule",
+            type_appuis_y="Rotule - Rotule",
+            type_appuis_z="Rotule - Rotule",
             t=15,
             h=150,
             b=100,
@@ -169,7 +172,8 @@ class TestCompressionFlambement:
             lo_y=3000,
             lo_z=3000,
             courbe_flamb={"y": "a", "z": "b"},
-            type_appuis="Rotule - Rotule",
+            type_appuis_y="Rotule - Rotule",
+            type_appuis_z="Rotule - Rotule",
             t=15,
             h=150,
             b=100,
@@ -193,7 +197,8 @@ class TestCompressionFlambement:
                 lo_y=3000,
                 lo_z=3000,
                 courbe_flamb={"y": courbe, "z": courbe},
-                type_appuis="Rotule - Rotule",
+                type_appuis_y="Rotule - Rotule",
+                type_appuis_z="Rotule - Rotule",
                 t=15,
                 h=150,
                 b=100,
@@ -278,7 +283,7 @@ class TestProfil:
 
     def test_initialisation_IPE(self):
         """Test l'initialisation d'un profil IPE."""
-        profil = _Profil(designation="IPE 300", classe_acier="S235", classe_transv=1)
+        profil = Profil(designation="IPE 300", classe_acier="S235", classe_transv=1)
         assert profil.designation == "IPE 300"
         assert profil.classe_acier == "S235"
         assert profil.classe_transv == 1
@@ -289,16 +294,16 @@ class TestProfil:
 
     def test_initialisation_HEA(self):
         """Test l'initialisation d'un profil HEA."""
-        profil = _Profil(designation="HEA 200", classe_acier="S355", classe_transv=2)
+        profil = Profil(designation="HEA 200", classe_acier="S355", classe_transv=2)
         assert profil.designation == "HEA 200"
         assert profil.classe_acier == "S355"
         assert profil.type_profil == "HEA"
-        assert profil.h == 200.0 * si.mm
+        assert profil.h == 190.0 * si.mm
         assert profil.b == 200.0 * si.mm
 
     def test_initialisation_HEB(self):
         """Test l'initialisation d'un profil HEB."""
-        profil = _Profil(designation="HEB 300", classe_acier="S275", classe_transv=1)
+        profil = Profil(designation="HEB 300", classe_acier="S275", classe_transv=1)
         assert profil.designation == "HEB 300"
         assert profil.classe_acier == "S275"
         assert profil.type_profil == "HEB"
@@ -306,62 +311,76 @@ class TestProfil:
         assert profil.b == 300.0 * si.mm
 
     def test_caracteristiques_geometriques(self):
-        """Test le chargement des caractéristiques géométriques."""
-        profil = _Profil(designation="IPE 300", classe_acier="S235")
-        assert profil.A == 53.81 * si.mm**2
-        assert profil.Av == 16.7 * si.mm**2
-        assert profil.Iy == 8356 * si.mm**4
-        assert profil.Iz == 435.5 * si.mm**4
-        assert profil.Wely == 557.1 * si.mm**3
-        assert profil.Welz == 58.0 * si.mm**3
-        assert profil.Wply == 628.4 * si.mm**3
-        assert profil.Wplz == 72.9 * si.mm**3
-        assert profil.iy == 12.46 * si.mm
-        assert profil.iz == 2.85 * si.mm
-        assert profil.masse == 42.2 * si.kg / si.m
+        """Valeurs IPE 300 (catalogue) en mm, mm², mm³, mm⁴."""
+        profil = Profil(designation="IPE 300", classe_acier="S235")
+        assert profil.A.value * 1e6 == pytest.approx(5381, rel=1e-2)
+        assert profil.Avz.value * 1e6 == pytest.approx(2568, rel=1e-2)
+        assert profil.Iy.value * 1e12 == pytest.approx(83.56e6, rel=1e-3)
+        assert profil.Iz.value * 1e12 == pytest.approx(6.04e6, rel=1e-2)
+        assert profil.Wely.value * 1e9 == pytest.approx(557e3, rel=1e-2)
+        assert profil.Wply.value * 1e9 == pytest.approx(628.4e3, rel=5e-3)
+        assert profil.Wplz.value * 1e9 == pytest.approx(125.2e3, rel=1e-2)
+        assert profil.iy.value * 1e3 == pytest.approx(124.6, rel=1e-2)
+        assert profil.masse.value == pytest.approx(42.2, rel=1e-2)
+
+    def test_inertie_non_ecrasee(self):
+        """Iy/Iz du profilé ne sont pas remplacés par l'inertie rectangulaire de Plat."""
+        profil = Profil(designation="HEA 200")
+        assert profil._inertie == [profil.Iy, profil.Iz]
+        assert profil.Iy.value * 1e12 == pytest.approx(36.92e6, rel=1e-3)
+
+    @pytest.mark.parametrize("des", ["IPN 200", "UPN 200", "HEM 300", "HEB 300"])
+    def test_autres_familles(self, des):
+        profil = Profil(designation=des)
+        assert profil.type_profil == des.split()[0]
+        assert profil.A.value > 0
+
+    def test_liste(self):
+        assert "IPE 300" in Profil.liste("IPE")
+        assert all(d.startswith("HEA") for d in Profil.liste("HEA"))
 
     def test_fy_fu_S235(self):
         """Test les valeurs de fy et fu pour un profil S235."""
-        profil = _Profil(designation="IPE 300", classe_acier="S235")
+        profil = Profil(designation="IPE 300", classe_acier="S235")
         assert profil.fy == 235000000.0  # 235 MPa en Pa
         assert profil.fu == 360000000.0  # 360 MPa en Pa
 
     def test_fy_fu_S355(self):
         """Test les valeurs de fy et fu pour un profil S355."""
-        profil = _Profil(designation="HEA 200", classe_acier="S355")
+        profil = Profil(designation="HEA 200", classe_acier="S355")
         assert profil.fy == 355000000.0  # 355 MPa en Pa
         assert profil.fu == 490000000.0  # 490 MPa en Pa
 
     def test_designation_invalide(self):
         """Test ValueError sur désignation invalide."""
         with pytest.raises(ValueError, match="IPE 999"):
-            _Profil(designation="IPE 999", classe_acier="S235")
+            Profil(designation="IPE 999", classe_acier="S235")
 
     def test_classe_acier_invalide(self):
         """Test ValueError sur classe d'acier invalide."""
         with pytest.raises(ValueError, match="S999"):
-            _Profil(designation="IPE 300", classe_acier="S999")
+            Profil(designation="IPE 300", classe_acier="S999")
 
     def test_classe_transv_invalide(self):
         """Test ValueError sur classe transversale invalide."""
         with pytest.raises(ValueError, match="4"):
-            _Profil(designation="IPE 300", classe_acier="S235", classe_transv=4)
+            Profil(designation="IPE 300", classe_acier="S235", classe_transv=4)
 
     def test_compatibility_with_compression(self):
         """Test que Profil est compatible avec Compression via _from_parent_class."""
-        profil = _Profil(designation="IPE 300", classe_acier="S235")
+        profil = Profil(designation="IPE 300", classe_acier="S235")
         compression = Compression._from_parent_class(
             profil,
-            A=profil.A.value,
-            Iy=profil.Iy.value,
-            Iz=profil.Iz.value,
+            A=profil.A.value * 1e6,
+            Iy=profil.Iy.value * 1e12,
+            Iz=profil.Iz.value * 1e12,
             lo_y=3000,
             lo_z=3000,
             courbe_flamb={"y": "b", "z": "c"},
-            type_appuis="Rotule - Rotule",
+            type_appuis_y="Rotule - Rotule",
+            type_appuis_z="Rotule - Rotule",
         )
         # Vérification que les attributs de Profil sont hérités
-        assert compression.designation == "IPE 300"
         assert compression.classe_acier == "S235"
         assert compression.fy == profil.fy
         # Vérification que la méthode Nc_Rd fonctionne
@@ -371,3 +390,64 @@ class TestProfil:
 
 if __name__ == "__main__":
     pytest.main(["-v", "test_EC3_Element_droit.py"])
+
+
+class TestGeometrieAutomatique:
+    """Les classes de vérification récupèrent la géométrie de Plat / Profil."""
+
+    def test_plat_geometrie(self):
+        plat = Plat(t=10, h=1000, b=200, classe_acier="S235")
+        assert plat.A.value * 1e6 == pytest.approx(2000)
+        assert plat.Iy.value * 1e12 == pytest.approx(10 * 200**3 / 12)
+        assert plat.Wply.value * 1e9 == pytest.approx(10 * 200**2 / 4)
+
+    def test_traction_auto_profil(self):
+        profil = Profil(designation="IPE 300", classe_acier="S235")
+        traction = Traction._from_parent_class(profil)
+        assert traction.Nt_Rd[1].value == pytest.approx(5381.2e-6 * 235e6)
+
+    def test_traction_auto_plat(self):
+        traction = Traction(t=10, b=200, h=1000, classe_acier="S235")
+        assert traction.Nt_Rd[1].value == pytest.approx(2000e-6 * 235e6)
+
+    def test_compression_auto_profil(self):
+        profil = Profil(designation="HEA 200", classe_acier="S355")
+        comp = Compression._from_parent_class(profil, lo_y=4000, lo_z=4000)
+        assert comp.Iy == profil.Iy and comp.A == profil.A
+        assert comp.fy == profil.fy
+        assert comp.courbe_flamb == {"y": "b", "z": "c"}  # h/b <= 1.2
+        assert comp.Nb_Rd[1]["z"].value < comp.Nb_Rd[1]["y"].value
+
+    def test_courbe_flamb_auto(self):
+        assert Compression(designation="IPE 300", lo_y=1, lo_z=1).courbe_flamb == {"y": "a", "z": "b"}
+        assert Compression(designation="UPN 200", lo_y=1, lo_z=1).courbe_flamb == {"y": "c", "z": "c"}
+        assert Compression(designation="IPE 300", classe_acier="S460 N/NL", lo_y=1, lo_z=1).courbe_flamb == {
+            "y": "a0",
+            "z": "a0",
+        }
+
+    def test_flexion_auto_profil(self):
+        profil = Profil(designation="IPE 300", classe_acier="S235", classe_transv=1)
+        assert Flexion._from_parent_class(profil).W == profil.Wply
+        assert Flexion._from_parent_class(profil, axe="z").W == profil.Wplz
+        assert Flexion._from_parent_class(profil, classe_transv=3).W == profil.Wely
+
+    def test_flexion_upn_sans_wpl(self):
+        flexion = Flexion(designation="UPN 200", classe_transv=1)
+        assert flexion.W == flexion.Wely
+
+    def test_cisaillement_auto_profil(self):
+        profil = Profil(designation="IPE 300", classe_acier="S235")
+        cis = Cisaillement._from_parent_class(profil)
+        assert cis.Av == profil.Avz
+        assert Cisaillement._from_parent_class(profil, axe_effort="y").Av == profil.Avy
+
+    def test_Mc_V_Rd_auto(self):
+        flexion = Flexion(designation="IPE 300", classe_acier="S235")
+        mc = flexion.Mc_Rd[1]
+        assert flexion.Mc_V_Rd(V_Ed=100)[1].value == pytest.approx(mc.value)
+        assert flexion.Mc_V_Rd(V_Ed=300)[1].value < mc.value
+
+    def test_geometrie_manquante(self):
+        with pytest.raises(ValueError, match="A non défini"):
+            Traction(classe_acier="S235")

@@ -12,15 +12,24 @@ from ourocode.eurocode.ec3.element_droit.plat import Plat
 
 
 class Cisaillement(Plat):
-    def __init__(self, Av: si.mm**2, *args, **kwargs):
+    def __init__(self, Av: si.mm**2 = None, axe_effort: str = ("z", "y"), *args, **kwargs):
         """Defini une classe permettant le calcul d'un élément métallique en cisaillement selon l'EN 1993-1-1 §6.2.6.
         Cette classe est hérité de la classe Plat du module E3_Element_droit.py.
 
         Args:
-            Av (float): Aire de cisaillemment en mm²
+            Av (float, optional): Aire de cisaillemment en mm². Si None, l'aire de cisaillement
+                de la section est utilisée selon axe_effort (Avz pour V_z, Avy pour V_y). Defaults to None.
+            axe_effort (str, optional): Direction de l'effort tranchant ("z" : V_z, parallèle à l'âme ;
+                "y" : V_y, parallèle aux semelles). Utilisé uniquement si Av est None. Defaults to "z".
         """
         super().__init__(*args, **kwargs)
-        self.Av = Av * si.mm**2
+        self.axe_effort = self._check_choice(axe_effort, ("z", "y"), "axe_effort")
+        if Av is not None:
+            self.Av = Av * si.mm**2
+        else:
+            self.Av = self.Avz if self.axe_effort == "z" else self.Avy
+            if self.Av is None:
+                raise ValueError("Av non défini : renseigner Av ou la géométrie (t, b ou designation).")
 
     @property
     def Vpl_Rd(self):

@@ -1,5 +1,6 @@
 # coding in UTF-8
 # by Anthony PARISOT
+import difflib
 import math as mt
 from math import sqrt
 import pandas as pd
@@ -26,6 +27,9 @@ class Plat(Projet):
     }
     E = 210000 * si.MPa
     CLASSE_STEEL = tuple(Projet._data_from_csv(Projet, "caracteristique_meca_acier.csv").index)
+    _PROFIL_DATA = Projet._data_from_csv(Projet, "profil_acier.csv", index_col=None)
+    TYPES_PROFIL = tuple(_PROFIL_DATA["type"].unique())
+    DESIGNATIONS = tuple(_PROFIL_DATA["designation"])
 
     def __init__(
         self,
@@ -34,13 +38,20 @@ class Plat(Projet):
         b: si.mm = 0,
         classe_acier: str = CLASSE_STEEL,
         classe_transv: int = ("1", "2", "3", "4"),
+        designation: str = None,
         **kwargs,
     ):
-        """Initialise un élément acier de section rectangulaire selon l'EN 1993-1-1.
+        """Initialise un élément acier selon l'EN 1993-1-1.
 
-        Définit la géométrie (t, b, h) et les caractéristiques mécaniques (fy, fu) en fonction
-        de la classe d'acier et de l'épaisseur. Classe de base dont héritent Traction, Compression,
-        Cisaillement et Flexion.
+        Définit la géométrie et les caractéristiques mécaniques (fy, fu) en fonction
+        de la classe d'acier et de l'épaisseur. Classe de base dont héritent Profil, Traction,
+        Compression, Cisaillement et Flexion.
+
+        Sans `designation`, la section est rectangulaire t × b (Iy = t·b³/12). Avec une
+        `designation` de profilé (ex : "IPE 300"), la géométrie est chargée depuis
+        `data/profil_acier.csv` et t, h, b sont ignorés (t = tw). Les caractéristiques de
+        section (A, Avz, Avy, Iy, Iz, Wely, Welz, Wply, Wplz, iy, iz) sont ainsi disponibles
+        automatiquement pour les classes de vérification.
 
         Args:
             t (int, optional): Épaisseur du plat en mm. Defaults to 0.
@@ -51,11 +62,14 @@ class Plat(Projet):
                 (ex. "S235", "S275", "S355"). Defaults to "S235".
             classe_transv (int, optional): Classe transversale de la section (1, 2 ou 3)
                 selon EN 1993-1-1 §5.5. La classe 4 n'est pas implémentée. Defaults to 1.
+            designation (str, optional): Désignation d'un profilé du catalogue (voir Profil).
+                Defaults to None (section rectangulaire).
             **kwargs: Arguments transmis à la classe parent Projet.
 
         Raises:
             ValueError: Si classe_acier n'est pas dans CLASSE_STEEL.
             ValueError: Si classe_transv n'est pas 1, 2 ou 3.
+            ValueError: Si designation n'est pas dans DESIGNATIONS.
         """
         super().__init__(**kwargs)
         self._check_dimension(t, "t", strict=False)
@@ -67,12 +81,75 @@ class Plat(Projet):
             (1, 2, 3),
             "classe_transv",
         )
-        self.t = t * si.mm
-        self.h = h * si.mm
-        self.b = b * si.mm
         self.classe_acier = classe_acier
         self.classe_transv = int(classe_transv)
+        self.designation = designation
+        if designation:
+            self._load_profil(designation)
+        else:
+            self.t = t * si.mm
+            self.h = h * si.mm
+            self.b = b * si.mm
+            self._geometrie_rectangulaire()
         self.__fy_fu()
+
+    def _load_profil(self, designation: str):
+        """Charge la géométrie d'un profilé laminé depuis `profil_acier.csv` (valeurs en mm)."""
+        if designation not in self.DESIGNATIONS:
+            proches = difflib.get_close_matches(designation, self.DESIGNATIONS, n=5)
+            raise ValueError(
+                f"Désignation '{designation}' invalide. Désignations proches : {proches}. "
+                f"Types disponibles : {self.TYPES_PROFIL}"
+            )
+        df = self._PROFIL_DATA
+        p = df[df["designation"] == designation].iloc[0]
+
+        def val(name, unit):
+            return float(p[name]) * unit if pd.notna(p[name]) else None
+
+        self.type_profil = p["type"]
+        self.h = val("h", si.mm)
+        self.b = val("b", si.mm)
+        self.tw = val("tw", si.mm)
+        self.tf = val("tf", si.mm)
+        self.r = val("r", si.mm)
+        self.t = self.tw
+        self.A = val("A", si.mm**2)
+        self.Avz = val("Avz", si.mm**2)
+        self.Avy = self.A - (self.h - 2 * self.tf) * self.tw
+        self.Iy = val("Iy", si.mm**4)
+        self.Iz = val("Iz", si.mm**4)
+        self.Wely = val("Wely", si.mm**3)
+        self.Welz = val("Welz", si.mm**3)
+        self.Wply = val("Wply", si.mm**3)
+        self.Wplz = val("Wplz", si.mm**3)
+        self.iy = val("iy", si.mm)
+        self.iz = val("iz", si.mm)
+        self.masse = val("masse", si.kg / si.m)
+
+    def _geometrie_rectangulaire(self):
+        """Caractéristiques d'une section rectangulaire t × b (b selon z, flexion forte autour de y)."""
+        self.type_profil = "Plat"
+        if not (self.t.value and self.b.value):
+            self.A = self.Avz = self.Avy = self.Iy = self.Iz = None
+            self.Wely = self.Welz = self.Wply = self.Wplz = self.iy = self.iz = None
+            return
+        t, b = self.t, self.b
+        self.A = t * b
+        self.Avz = self.Avy = self.A
+        self.Iy = t * b**3 / 12
+        self.Iz = b * t**3 / 12
+        self.Wely = t * b**2 / 6
+        self.Welz = b * t**2 / 6
+        self.Wply = t * b**2 / 4
+        self.Wplz = b * t**2 / 4
+        self.iy = b / sqrt(12)
+        self.iz = t / sqrt(12)
+
+    @property
+    def _t_ref(self):
+        """Épaisseur de référence pour fy/fu : max(tw, tf) pour un profilé, t sinon."""
+        return max(self.tw, self.tf) if self.designation else self.t
 
     @property
     def __classe_acier(self):
@@ -83,27 +160,20 @@ class Plat(Projet):
 
     def __fy_fu(self):
         """Défini fy (résistance élastique) et fu (résistance plastique) en MPa fonction de la classe d'acier choisi"""
-        if self.t <= 40 * si.mm:
+        t = self._t_ref
+        if t <= 40 * si.mm:
             self.fy = self.__classe_acier.loc["t<= 40  fy"] * si.MPa
             self.fu = self.__classe_acier.loc["t<= 40  fu"] * si.MPa
-        elif self.t > 40 * si.mm and self.t <= 80 * si.mm:
+        elif t <= 80 * si.mm:
             self.fy = self.__classe_acier.loc["40<t<= 80  fy"] * si.MPa
             self.fu = self.__classe_acier.loc["40<t<= 80  fu"] * si.MPa
+        else:
+            raise ValueError(f"Épaisseur {t} > 80 mm : non couverte par le tableau 3.1 de l'EN 1993-1-1.")
 
     @property
     def _inertie(self):
-        """Retourne les moments quadratiques [I_y, I_z] d'une section rectangulaire en mm⁴.
+        """Retourne les moments quadratiques [I_y, I_z] de la section en mm⁴ (avec unité si.mm⁴).
 
-        Calcule I_y = t × b³ / 12 et I_z = b × t³ / 12 si b et t sont renseignés.
-        Retourne les valeurs pré-calculées sinon.
-
-        Returns:
-            list: [I_y, I_z] en mm⁴ (avec unité si.mm⁴).
+        Section rectangulaire : I_y = t × b³ / 12 et I_z = b × t³ / 12 ; profilé : valeurs du catalogue.
         """
-        if self.t and self.b:
-            self.Iy = (self.t * self.b**3) / 12
-            self.Iz = (self.b * self.t**3) / 12
-            return [self.Iy, self.Iz]
-
-        elif self.Iy and self.Iz:
-            return [self.Iy, self.Iz]
+        return [self.Iy, self.Iz]
