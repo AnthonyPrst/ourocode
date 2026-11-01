@@ -12,17 +12,21 @@ from ourocode.eurocode.ec3.element_droit.plat import Plat
 
 
 class Traction(Plat):
-    def __init__(self, A: si.mm**2, Anet: si.mm**2 = 0, ass_cat_C: bool = ("False", "True"), *args, **kwargs):
+    def __init__(self, A: si.mm**2 = None, Anet: si.mm**2 = 0, ass_cat_C: bool = ("False", "True"), *args, **kwargs):
         """Défini une classe traction permettant le calcul d'un élément métallique à l'EN 1993-1-1 §6.2.3.
         Cette classe est hérité de la classe Plat du module EC3_Element_droit.py.
 
         Args:
-            A (float): Aire brute de la section en mm².
+            A (float, optional): Aire brute de la section en mm². Si None, l'aire de la section
+                (Plat t × b ou Profil) est utilisée. Defaults to None.
             Anet (float, optional): Aire nette au droit droit des trous de fixation selon §6.2.2.2 en mm².
             ass_cat_C (bool, optional): Si assemblage de catégorie C alors True sinon False, voir EN 1993-1-8 §3.4.1.(1). Defaults to False.
         """
         super().__init__(*args, **kwargs)
-        self.A = A * si.mm**2
+        if A is not None:
+            self.A = A * si.mm**2
+        elif self.A is None:
+            raise ValueError("A non défini : renseigner A ou la géométrie (t, b ou designation).")
         self.Anet = Anet * si.mm**2
         self.ass_cat_C = self._flag(ass_cat_C)
 
@@ -84,7 +88,7 @@ class Traction(Plat):
         """
         if self.ass_cat_C:
             return self._Nnet_Rd
-        if self.Anet:
+        if self.Anet.value:
             latex_Npl_Rd, N_pl_Rd = self._Npl_Rd
             latex_Nu_Rd, N_u_Rd = self._Nu_Rd
 

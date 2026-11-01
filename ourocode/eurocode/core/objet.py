@@ -308,10 +308,13 @@ class Objet(SerializationMixin, DataLoaderMixin, MathUtilsMixin, SyntheseMixin):
                 if hasattr(obj, "__dict__"):
                     dict_objet.update(obj.__dict__)
                     dict_objet.update(cls._reset_physical_object(obj))
+                    dict_objet.update(cls._reset_physical_dictionnary(cls, obj.__dict__))
         elif hasattr(objet, "__dict__"):
             # Pour un seul objet
             dict_objet.update(objet.__dict__)
             dict_objet.update(cls._reset_physical_object(objet))
+            # Unités attendues par la classe cible (attributs non annotés dans la classe source)
+            dict_objet.update(cls._reset_physical_dictionnary(cls, objet.__dict__))
 
         # On ne propage que les attributs qui correspondent à un paramètre
         # attendu par l'un des constructeurs de la classe cible (MRO).

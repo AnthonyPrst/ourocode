@@ -15,6 +15,7 @@ from ourocode.eurocode.ec5.assemblage import Assemblage
 
 class MOB(Batiment):
     CRITERE_ELS = 200
+    RATIO_KU_KSER = 2 / 3  # Ku = 2/3 Kser, EN 1995-1-1 §2.2.2(1)b
     POSITION_PANEL = ("Extérieur", "Intérieur")
     COEFF_DOUBLE_PANEL = {
         "Non": 1,
@@ -33,8 +34,10 @@ class MOB(Batiment):
         2. Ajouter les systèmes de mur via add_sys_wall.
         3. Ajouter les murs internes via add_wall_to_sys.
         4. Ajouter les panneaux via add_panel_to_wall.
-        5. Calculer les efforts via calculate_loads_and_deformations ou en fournissant Fv_Ed directement dans add_sys_wall.
-        6. Récupérer les taux de vérification via taux_walls et taux_ancrage.
+        5. (Optionnel) Ajouter des murs béton (refends) via add_concrete_wall.
+        6. Calculer les efforts via calculate_loads_and_deformations ou en fournissant Fv_Ed directement dans add_sys_wall.
+        7. Récupérer les taux de vérification via taux_walls et taux_ancrage, la torsion via synthese_torsion.
+        8. Visualiser la vue en plan via show_plan.
 
         Cette classe ne calcule pas les montants au flambement ni la compression perpendiculaire
         sur la lisse basse : utiliser Barre et les classes de vérification EC5_Element_droit.
@@ -50,6 +53,7 @@ class MOB(Batiment):
         self._connecteurs = {"Intérieur": connecteurs_int, "Extérieur": connecteurs_ext}
         self._data_MOB = {}
         self._data_connecteurs = {}
+        self._data_concrete = {}
         self._list_on_top_of = []
         self._setup_MOB()
 
@@ -79,6 +83,125 @@ class MOB(Batiment):
                 data.append(sys_name)
         return data
 
+    # ------------------------------------------------------------------
+    # Outils internes : étages, unités, solveur diaphragme rigide
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _val(x) -> float:
+        """Retourne la valeur SI (float) d'une grandeur Physical, ou la valeur telle quelle."""
+        return float(getattr(x, "value", x))
+
+    def _all_floors(self) -> list:
+        """Retourne la liste ordonnée des étages contenant des MOB ou des murs béton."""
+        floors = list(self.data.keys())
+        for wall in self.data_concrete_walls.values():
+            if wall["Etage"] not in floors:
+                floors.append(wall["Etage"])
+        return floors
+
+    def _resolve_etage(self, etage=None) -> str:
+        """Résout l'étage demandé (un tuple/liste = choix par défaut -> premier étage existant)."""
+        if etage is None or isinstance(etage, (tuple, list)):
+            floors = self._all_floors()
+            for e in etage or []:
+                if e in floors:
+                    return e
+            return floors[0] if floors else None
+        return etage
+
+    @staticmethod
+    def _solve_diaphragm(elements: list, Fx: float, Fy: float, XF: float, YF: float, e_acc: float = 0) -> dict:
+        """Résout l'équilibre d'un diaphragme rigide sur appuis élastiques (murs de contreventement).
+
+        Chaque élément i est défini par (x_i, y_i, alpha_i, K_i) en unités SI (m, rad, N/m) :
+        il ne reprend un effort que dans son plan (direction (cos alpha, sin alpha)).
+        Inconnues : translations (u, v) et rotation theta (anti-horaire) de l'origine du repère.
+        Déplacement dans le plan de l'élément : delta_i = u cos(a) + v sin(a) + theta * d_i,
+        avec d_i = x_i sin(a) - y_i cos(a) le bras de levier signé de l'élément.
+
+        Args:
+            elements (list): Liste de tuples (x, y, alpha, K) en SI.
+            Fx, Fy (float): Composantes de la force résultante en N.
+            XF, YF (float): Point d'application de la force en m.
+            e_acc (float): Excentricité accidentelle en m (enveloppe des cas +e_acc et -e_acc).
+
+        Returns:
+            dict: delta (m), F (N) par élément, centre de raideur xO, yO, raideurs Kx, Ky, K_theta (au CR),
+                rayons de torsion r_x, r_y, excentricités ex, ey, translations u, v et rotation theta du cas de base.
+        """
+        arr = np.asarray(elements, dtype=float).reshape(-1, 4)
+        x, y, al, K = arr.T
+        c, s = np.cos(al), np.sin(al)
+        d = x * s - y * c
+        A, B, C = (K * c * c).sum(), (K * c * s).sum(), (K * s * s).sum()
+        D, E, G = (K * c * d).sum(), (K * s * d).sum(), (K * d * d).sum()
+        det = A * C - B**2
+        if len(arr) < 3 or det <= 1e-9 * (A + C) ** 2:
+            raise ValueError(
+                "Contreventement instable : il faut au moins 3 murs non tous parallèles "
+                "et non concourants pour reprendre les translations et la torsion."
+            )
+        xO = (A * E - B * D) / det
+        yO = (B * E - C * D) / det
+        d_cr = d - (xO * s - yO * c)
+        K_theta = (K * d_cr**2).sum()
+        M3 = np.array([[A, B, D], [B, C, E], [D, E, G]])
+        if abs(np.linalg.det(M3)) <= 1e-12 * (A + C) * G:
+            raise ValueError("Contreventement instable en torsion : tous les murs concourent en un point.")
+
+        F_res = np.hypot(Fx, Fy)
+        cases = []
+        for sign in [0] if not e_acc else [1, -1]:
+            Mz = XF * Fy - YF * Fx + sign * F_res * e_acc
+            u, v, theta = np.linalg.solve(M3, [Fx, Fy, Mz])
+            cases.append((u, v, theta, u * c + v * s + theta * d))
+        deltas = np.array([case[3] for case in cases])
+        idx = np.abs(deltas).argmax(axis=0)
+        delta = deltas[idx, np.arange(len(arr))]
+        u, v, theta, _ = cases[0]
+        return {
+            "delta": delta,
+            "F": K * delta,
+            "xO": xO,
+            "yO": yO,
+            "Kx": A,
+            "Ky": C,
+            "K_theta": K_theta,
+            "r_x": sqrt(K_theta / C) if C else float("inf"),
+            "r_y": sqrt(K_theta / A) if A else float("inf"),
+            "ex": XF - xO,
+            "ey": YF - yO,
+            "u": u,
+            "v": v,
+            "theta": theta,
+        }
+
+    def _init_loads_frames(self):
+        """Crée (ou complète) les tableaux d'efforts en conservant les résultats des autres étages."""
+        frames = {
+            "data_sys_walls_loads": (self._get_all_sys_walls_names(), ["Étage", "delta,v,Ed,i ELS", "Fv,Ed,i ELU"]),
+            "data_walls_loads": (list(self.data_walls.keys()), ["Étage", "Fv,Ed,i ELU", "Ft,Ed,i ELU (soulèvement)"]),
+            "data_panels_loads": (list(self.data_panels.keys()), ["Étage", "Fv,Ed,i ELU"]),
+            "data_concrete_loads": (
+                list(self.data_concrete_walls.keys()),
+                ["Étage", "delta,v,Ed,i ELS", "Fv,Ed,i ELU", "M,base,Ed ELU"],
+            ),
+        }
+        for attr, (index, columns) in frames.items():
+            df = getattr(self, attr, None)
+            if df is None:
+                df = pd.DataFrame(index=index, columns=columns, dtype=object)
+            else:
+                df = df.reindex(index).astype(object)
+            setattr(self, attr, df)
+        if getattr(self, "data_torsion", None) is None:
+            self.data_torsion = pd.DataFrame(
+                columns=["xO", "yO", "ex", "ey", "Kx", "Ky", "K_theta", "r_x", "r_y", "theta ELS", "xO ELU", "yO ELU"],
+                dtype=object,
+            )
+            self.data_torsion.index.name = "Étage"
+
     def calculate_loads_and_deformations(
         self,
         Fw_Ed_ELS: si.kN,
@@ -87,12 +210,25 @@ class MOB(Batiment):
         YFw: si.m = 0,
         alpha_Fw: float = 0,
         etage: str = Batiment.ETAGE,
+        e_acc: si.m = 0,
     ) -> "pd.DataFrame":
-        """Calcule les efforts de contreventement et les déformations par système de mur selon la méthode AQCEN MOB.
+        """Calcule les efforts de contreventement et les déformations par système de mur (diaphragme rigide).
 
-        Répartit l'effort global de contreventement entre les systèmes de mur en fonction de leurs
-        raideurs et de leurs positions par rapport au centre de rigidité. Nécessite que le diaphragme
-        (plancher ou toiture) soit considéré parfaitement rigide (faibles ouvertures et trémies).
+        Répartit l'effort global de contreventement entre les systèmes de mur MOB et les murs béton
+        (voir add_concrete_wall) en fonction de leurs raideurs dans leur plan et de leurs positions
+        par rapport au centre de raideur (centre de torsion), selon la méthode AQCEN MOB généralisée
+        (résolution matricielle u, v, theta). Nécessite que le diaphragme (plancher ou toiture) soit
+        considéré parfaitement rigide (faibles ouvertures et trémies). Chaque étage est traité
+        indépendamment (pas de couplage vertical des refends).
+
+        Deux répartitions sont réalisées :
+
+        - ELS : raideurs Kser des MOB et raideur des murs béton -> déplacements delta,v,Ed,i ELS ;
+        - ELU : raideurs Ku = 2/3 Kser des MOB (EN 1995-1-1 §2.2.2(1)b, RATIO_KU_KSER) et raideur
+          inchangée des murs béton -> efforts Fv,Ed,i ELU sous Fw_Ed_ELU.
+
+        Pour un contreventement uniquement bois, la répartition ELU est proportionnelle à la
+        répartition ELS ; en présence de murs béton, ceux-ci reprennent une part plus importante à l'ELU.
 
         Args:
             Fw_Ed_ELS (float): Force résultante de contreventement à l'ELS en kN, au niveau de l'étage.
@@ -104,110 +240,449 @@ class MOB(Batiment):
             alpha_Fw (float): Angle d'application de la force résultante par rapport au repère cartésien,
                 en degrés dans le sens trigonométrique (sens inverse des aiguilles d'une montre). Defaults to 0.
             etage (str): Nom de l'étage où s'applique la force résultante. Defaults to premier étage.
+            e_acc (float): Excentricité accidentelle en m (ex. 0,05 x dimension du bâtiment perpendiculaire
+                à l'action, EN 1998-1 §4.3.2). Si non nulle, les cas +e_acc et -e_acc sont enveloppés
+                (effort maximal en valeur absolue par mur). Defaults to 0.
 
         Returns:
             pd.DataFrame: Tableau des efforts et déplacements par système de mur avec les colonnes
-                ["Étage", "delta,v,Ed,i ELS", "Fv,Ed,i ELU"].
+                ["Étage", "delta,v,Ed,i ELS", "Fv,Ed,i ELU"]. Les résultats des murs béton sont dans
+                data_concrete_loads et les caractéristiques de torsion dans data_torsion.
         """
-        Fw_Ed_ELS = Fw_Ed_ELS * si.kN
-        Fw_Ed_ELU = Fw_Ed_ELU * si.kN
-        XFw = XFw * si.m
-        YFw = YFw * si.m
-
+        if not Fw_Ed_ELS:
+            raise ValueError("Fw_Ed_ELS doit être non nul.")
+        etage = self._resolve_etage(etage)
+        F_ELS = Fw_Ed_ELS * 1e3
+        F_ELU = Fw_Ed_ELU * 1e3
         alpha_Fw_rad = radians(alpha_Fw)
+
         Ks = self.get_Kser_wall()
-        sys_walls_names = self._get_all_sys_walls_names()
-        df_sw = pd.DataFrame(
-            index=sys_walls_names, columns=["dn_p_sw", "dn_sw", "a", "b", "c", "d", "e", "C1", "C2", "C3", "C6"]
+        self._init_loads_frames()
+
+        # Éléments résistants de l'étage : (type, nom, x, y, alpha, K ELS, K ELU) en SI
+        elements = []
+        for sys_name, sys_wall in self.data.get(etage, {}).items():
+            K = self._val(Ks.loc[sys_name, "Kser système de mur"])
+            if K > 0:
+                elements.append(
+                    (
+                        "MOB",
+                        sys_name,
+                        self._val(sys_wall.get("Xg", 0)),
+                        self._val(sys_wall.get("Yg", 0)),
+                        radians(sys_wall.get("alpha_sw", 0)),
+                        K,
+                        K * self.RATIO_KU_KSER,
+                    )
+                )
+        for name, wall in self.data_concrete_walls.items():
+            if wall["Etage"] == etage:
+                elements.append(
+                    (
+                        "Béton",
+                        name,
+                        self._val(wall["X"]),
+                        self._val(wall["Y"]),
+                        radians(wall["alpha"]),
+                        self._val(wall["Kser"]),
+                        self._val(wall["Kser"]),
+                    )
+                )
+        if not elements:
+            raise ValueError(f"Aucun élément de contreventement raide trouvé pour l'étage {etage}.")
+
+        res = self._solve_diaphragm(
+            [e[2:6] for e in elements],
+            F_ELS * cos(alpha_Fw_rad),
+            F_ELS * sin(alpha_Fw_rad),
+            XFw,
+            YFw,
+            e_acc,
         )
-        if not hasattr(self, "data_sys_walls_loads"):
-            self.data_sys_walls_loads = pd.DataFrame(
-                index=sys_walls_names, columns=["Étage", "delta,v,Ed,i ELS", "Fv,Ed,i ELU"]
-            )
-            self.data_walls_loads = pd.DataFrame(
-                index=self.data_walls.keys(), columns=["Étage", "Fv,Ed,i ELU", "Ft,Ed,i ELU (soulèvement)"]
-            )
-            self.data_panels_loads = pd.DataFrame(index=self.data_panels.keys(), columns=["Étage", "Fv,Ed,i ELU"])
+        res_ELU = self._solve_diaphragm(
+            [(*e[2:5], e[6]) for e in elements],
+            F_ELU * cos(alpha_Fw_rad),
+            F_ELU * sin(alpha_Fw_rad),
+            XFw,
+            YFw,
+            e_acc,
+        )
+        self.data_torsion.loc[etage] = [
+            res["xO"] * si.m,
+            res["yO"] * si.m,
+            res["ex"] * si.m,
+            res["ey"] * si.m,
+            res["Kx"] * si.N / si.m,
+            res["Ky"] * si.N / si.m,
+            res["K_theta"] * si.N * si.m,
+            res["r_x"] * si.m,
+            res["r_y"] * si.m,
+            res["theta"],
+            res_ELU["xO"] * si.m,
+            res_ELU["yO"] * si.m,
+        ]
+        self._last_load = {
+            "Etage": etage,
+            "Fw_Ed_ELS": Fw_Ed_ELS,
+            "Fw_Ed_ELU": Fw_Ed_ELU,
+            "XFw": XFw,
+            "YFw": YFw,
+            "alpha_Fw": alpha_Fw,
+            "e_acc": e_acc,
+        }
 
-        for etage_data, sys in self.data.items():
-            if etage_data != etage:
+        for (kind, name, *_), delta, F in zip(elements, res["delta"], res_ELU["F"]):
+            Fv_ELU = F * si.N
+            if kind == "Béton":
+                h = self.data_concrete_walls[name]["Hauteur"]
+                self.data_concrete_loads.loc[name] = [etage, delta * si.m, Fv_ELU, Fv_ELU * h]
                 continue
-            for sys_name, sys_wall in sys.items():
-                xg = sys_wall.get("Xg", 0)
-                yg = sys_wall.get("Yg", 0)
-                alpha_sw = radians(sys_wall.get("alpha_sw", 0))
-                gamma_sw = alpha_sw + radians(90)
-                Ksw = Ks.loc[sys_name]["Kser système de mur"]
-                Kp_ref = Ks.loc[sys_name]["Kser,p,ref"]
-                Ceq_sw = Ks.loc[sys_name]["Coeff. équivalence"]
 
-                dn_p_sw = xg * cos(gamma_sw) + yg * sin(gamma_sw)
-                df_sw.loc[sys_name]["dn_p_sw"] = dn_p_sw
-                df_sw.loc[sys_name]["a"] = Ksw * cos(gamma_sw) ** 2
-                df_sw.loc[sys_name]["b"] = Ksw * cos(gamma_sw) * sin(gamma_sw)
-                df_sw.loc[sys_name]["c"] = Ksw * sin(gamma_sw) ** 2
-                df_sw.loc[sys_name]["d"] = Ksw * cos(gamma_sw) * dn_p_sw
-                df_sw.loc[sys_name]["e"] = Ksw * sin(gamma_sw) * dn_p_sw
-                df_sw.loc[sys_name]["C1"] = Ceq_sw * cos(alpha_sw) ** 2
-                df_sw.loc[sys_name]["C2"] = Ceq_sw * cos(alpha_sw) * sin(alpha_sw)
-                df_sw.loc[sys_name]["C3"] = Ceq_sw * sin(alpha_sw) ** 2
+            self.data_sys_walls_loads.loc[name] = [etage, delta * si.m, Fv_ELU]
+            Ksw = Ks.loc[name, "Kser système de mur"]
+            for wall_name, wall in self.data[etage][name]["Murs"].items():
+                Kw = self.data_Kser_walls.loc[wall_name, "Kser mur"]
+                Fv_wall = Fv_ELU * Kw / Ksw
+                self.data_walls_loads.loc[wall_name, "Étage"] = etage
+                self.data_walls_loads.loc[wall_name, "Fv,Ed,i ELU"] = Fv_wall
+                # traction dans le montant d'extrémité
+                self.data_walls_loads.loc[wall_name, "Ft,Ed,i ELU (soulèvement)"] = self._FtEd(wall_name)
 
-            a = df_sw["a"].sum()
-            b = df_sw["b"].sum()
-            c = df_sw["c"].sum()
-            d = df_sw["d"].sum()
-            e = df_sw["e"].sum()
-            xO = (c * d - b * e) / (a * c - b**2)  # Position X du centre de raideur
-            yO = (a * e - b * d) / (a * c - b**2)  # Position Y du centre de raideur
-            dw_x = XFw - xO
-            dw_y = YFw - yO
-            dw_n = dw_x * sin(alpha_Fw_rad) - dw_y * cos(alpha_Fw_rad)
-
-            for sys_name, sys_wall in sys.items():
-                Ceq_sw = Ks.loc[sys_name]["Coeff. équivalence"]
-                dn_p_sw = df_sw.loc[sys_name]["dn_p_sw"]
-                dn_sw = xO * cos(gamma_sw) + yO * sin(gamma_sw) - dn_p_sw
-                df_sw.loc[sys_name]["dn_sw"] = dn_sw
-                df_sw.loc[sys_name]["C6"] = Ceq_sw * dn_sw**2
-
-            C1 = df_sw["C1"].sum()
-            C2 = df_sw["C2"].sum()
-            C3 = df_sw["C3"].sum()
-            C4 = Fw_Ed_ELS * cos(alpha_Fw_rad) / Kp_ref
-            C5 = Fw_Ed_ELS * sin(alpha_Fw_rad) / Kp_ref
-            C6 = Kp_ref * df_sw["C6"].sum()
-
-            u = (C4 * C3 - C5 * C2) / (C1 * C3 - C2**2)
-            v = (C1 * C5 + C4 * C2) / (C1 * C3 - C2**2)
-            teta = (Fw_Ed_ELS * dw_n) / C6
-
-            for sys_name, sys_wall in sys.items():
-                alpha_sw = radians(sys_wall.get("alpha_sw", 0))
-                Ksw = Ks.loc[sys_name]["Kser système de mur"]
-                self.data_sys_walls_loads.loc[sys_name]["Étage"] = etage_data
-
-                delta_v_i_ed = teta * df_sw.loc[sys_name]["dn_sw"] + u * cos(alpha_sw) + v * sin(alpha_sw)
-                self.data_sys_walls_loads.loc[sys_name]["delta,v,Ed,i ELS"] = delta_v_i_ed
-
-                Fv_i_Ed_sw = delta_v_i_ed * Ksw * (Fw_Ed_ELU / Fw_Ed_ELS)
-                self.data_sys_walls_loads.loc[sys_name]["Fv,Ed,i ELU"] = Fv_i_Ed_sw
-
-                for wall_name, wall in sys_wall["Murs"].items():
-                    Kw = self.data_Kser_walls.loc[wall_name]["Kser mur"]
-                    Fv_i_Ed_wall = Fv_i_Ed_sw * Kw / Ksw
-                    self.data_walls_loads.loc[wall_name]["Étage"] = etage_data
-                    self.data_walls_loads.loc[wall_name]["Fv,Ed,i ELU"] = Fv_i_Ed_wall
-                    # traction dans le montant d'extrémité
-                    self.data_walls_loads.loc[wall_name]["Ft,Ed,i ELU (soulèvement)"] = self._FtEd(wall_name)
-
-                    for panel_name, panel in wall["Panneaux"].items():
-                        if not panel["Contreventement"]:
-                            continue
-                        Kp = self.data_Kser_panels.loc[panel_name]["Kser,p unit."]
-                        self.data_panels_loads.loc[panel_name]["Étage"] = etage_data
-                        self.data_panels_loads.loc[panel_name]["Fv,Ed,i ELU"] = Fv_i_Ed_wall * Kp / Kw
+                for panel_name, panel in wall["Panneaux"].items():
+                    if not panel["Contreventement"]:
+                        continue
+                    Kp = self.data_Kser_panels.loc[panel_name, "Kser,p unit."]
+                    self.data_panels_loads.loc[panel_name, "Étage"] = etage
+                    self.data_panels_loads.loc[panel_name, "Fv,Ed,i ELU"] = Fv_wall * Kp / Kw
 
         return self.data_sys_walls_loads
+
+    def synthese_torsion(self) -> "pd.DataFrame":
+        """Retourne la synthèse de torsion par étage (après calculate_loads_and_deformations).
+
+        Colonnes : centre de raideur (xO, yO), excentricités de la force (ex, ey), raideurs de translation
+        globales (Kx, Ky), raideur de torsion au centre de raideur (K_theta), rayons de torsion
+        (r_x = sqrt(K_theta/Ky), r_y = sqrt(K_theta/Kx), cf. EN 1998-1 §4.2.3.2) et rotation ELS du diaphragme,
+        calculés avec les raideurs ELS (Kser). xO ELU, yO ELU : centre de raideur avec Ku = 2/3 Kser pour
+        les MOB (différent du CR ELS uniquement en présence de murs béton).
+
+        Returns:
+            pd.DataFrame: Tableau data_torsion indexé par étage.
+        """
+        if getattr(self, "data_torsion", None) is None:
+            raise ValueError("Lancer calculate_loads_and_deformations avant synthese_torsion.")
+        return self.data_torsion
+
+    # ------------------------------------------------------------------
+    # Murs béton (refends)
+    # ------------------------------------------------------------------
+
+    @property
+    def data_concrete_walls(self) -> dict:
+        """Retourne le dictionnaire des murs béton (refends) participant au contreventement."""
+        if not hasattr(self, "_data_concrete"):
+            self._data_concrete = {}
+        return self._data_concrete
+
+    def add_concrete_wall(
+        self,
+        l_wall: si.m,
+        t_wall: si.m,
+        h_wall: si.m,
+        X: si.m = 0,
+        Y: si.m = 0,
+        alpha_w: float = 0,
+        etage: str = Batiment.ETAGE,
+        classe_beton: str = "C25/30",
+        Ecm: si.MPa = None,
+        coeff_fissuration: float = 0.5,
+        nu: float = 0.2,
+        K_override: si.kN / si.mm = None,
+    ) -> str:
+        """Ajoute un mur béton (refend, voile) participant au contreventement de l'étage.
+
+        Les murs béton sont nommés automatiquement B1, B2, … Seule la raideur dans le plan du mur
+        est prise en compte (raideurs hors plan et de torsion propre négligées).
+        Par défaut la raideur est celle d'une console encastrée en pied (flexion + cisaillement) :
+
+            K = 1 / (h³ / (3·E·I) + 1,2·h / (G·A)),  I = t·l³/12,  A = t·l,  G = E / (2(1+ν)),
+            E = coeff_fissuration · Ecm
+
+        Pour un voile tenu en tête par un plancher rigide sur plusieurs niveaux ou un voile percé,
+        renseigner K_override (raideur issue d'un modèle dédié).
+
+        Args:
+            l_wall (float): Longueur du mur dans son plan en m.
+            t_wall (float): Épaisseur du mur en m.
+            h_wall (float): Hauteur du mur (de l'encastrement au diaphragme) en m.
+            X (float): Coordonnée X du milieu du mur depuis l'origine du repère du calculateur, en m.
+            Y (float): Coordonnée Y du milieu du mur depuis l'origine du repère du calculateur, en m.
+            alpha_w (float): Orientation du mur dans le sens trigonométrique, en degrés. Defaults to 0.
+            etage (str): Nom de l'étage auquel appartient le mur. Defaults to premier étage.
+            classe_beton (str): Classe de résistance du béton (ex. "C25/30"), utilisée pour Ecm.
+            Ecm (float, optional): Module sécant du béton en MPa. Écrase la valeur de la classe. Defaults to None.
+            coeff_fissuration (float): Coefficient de réduction de raideur pour fissuration
+                (0,5 usuel, EN 1998-1 §4.3.1(7) ; 1,0 si béton non fissuré). Defaults to 0.5.
+            nu (float): Coefficient de Poisson du béton. Defaults to 0.2.
+            K_override (float, optional): Raideur dans le plan en kN/mm. Si fournie, remplace le calcul.
+
+        Returns:
+            str: Nom attribué au mur béton (ex. : "B1").
+        """
+        etage = etage[0] if isinstance(etage, (tuple, list)) else etage
+        if Ecm is None:
+            Ecm = float(self._data_from_csv("caracteristique_meca_beton.csv").loc[classe_beton, "Ecm"])
+        if K_override:
+            K = K_override * 1e6
+        else:
+            if l_wall <= 0 or t_wall <= 0 or h_wall <= 0:
+                raise ValueError("l_wall, t_wall et h_wall doivent être strictement positifs.")
+            E = coeff_fissuration * Ecm * 1e6
+            G = E / (2 * (1 + nu))
+            I = t_wall * l_wall**3 / 12
+            A = t_wall * l_wall
+            K = 1 / (h_wall**3 / (3 * E * I) + 1.2 * h_wall / (G * A))
+
+        name = f"B{len(self.data_concrete_walls) + 1}"
+        self.data_concrete_walls[name] = {
+            "Etage": etage,
+            "Longueur": l_wall * si.m,
+            "Epaisseur": t_wall * si.m,
+            "Hauteur": h_wall * si.m,
+            "X": X * si.m,
+            "Y": Y * si.m,
+            "alpha": alpha_w,
+            "Classe béton": classe_beton,
+            "Ecm": Ecm * si.MPa,
+            "Coeff. fissuration": coeff_fissuration,
+            "Kser": K * si.N / si.m,
+        }
+        return name
+
+    # ------------------------------------------------------------------
+    # Visualisation
+    # ------------------------------------------------------------------
+
+    def _sys_wall_geometry(self, sys_name: str, sys_wall: dict) -> dict:
+        """Calcule la géométrie globale d'un système de mur (origine, direction, murs).
+
+        L'origine locale (coin gauche) est déduite de (Xg, Yg), considéré comme le centre de raideur
+        du système : x_c,local = Σ(Kw · (position + L/2)) / ΣKw (pondération par les longueurs à défaut).
+        """
+        alpha = radians(sys_wall.get("alpha_sw", 0))
+        ux, uy = cos(alpha), sin(alpha)
+        weights, centers, segments = [], [], {}
+        Kw_df = getattr(self, "data_Kser_walls", None)
+        for wall_name, wall in sys_wall["Murs"].items():
+            x0 = self._val(wall["Position en X"])
+            L = self._val(wall["Longueur"])
+            segments[wall_name] = (x0, x0 + L)
+            Kw = Kw_df.loc[wall_name, "Kser mur"] if Kw_df is not None and wall_name in Kw_df.index else 0
+            weights.append(self._val(Kw))
+            centers.append(x0 + L / 2)
+        if not weights or sum(weights) <= 0:
+            weights = [b - a for a, b in segments.values()]
+        xc = float(np.average(centers, weights=weights)) if centers and sum(weights) > 0 else 0
+        Xg, Yg = self._val(sys_wall.get("Xg", 0)), self._val(sys_wall.get("Yg", 0))
+        ox, oy = Xg - xc * ux, Yg - xc * uy
+
+        def to_global(t):
+            return ox + t * ux, oy + t * uy
+
+        return {
+            "origin": (ox, oy),
+            "dir": (ux, uy),
+            "center": (Xg, Yg),
+            "length": self._val(sys_wall["Longueur du système de mur"]),
+            "walls": {name: (to_global(a), to_global(b)) for name, (a, b) in segments.items()},
+            "to_global": to_global,
+        }
+
+    def show_plan(
+        self,
+        etage: str = None,
+        show_forces: bool = True,
+        show_labels: bool = True,
+        ax=None,
+        filepath: str = None,
+        show: bool = True,
+    ):
+        """Affiche la vue en plan du contreventement d'un étage (matplotlib).
+
+        Représente les systèmes de mur MOB (murs pleins en trait épais, ouvertures en pointillés),
+        les murs béton (hachurés), le centre de raideur / torsion (CR), la force résultante appliquée
+        et son excentricité, ainsi que les efforts ELU repris par chaque élément (flèches dans leur plan).
+        Si taux_walls a été appelé, les murs MOB sont colorés selon leur taux de cisaillement
+        (vert < 70 %, orange < 100 %, rouge ≥ 100 %).
+
+        Args:
+            etage (str, optional): Étage à représenter. Defaults to dernier étage calculé, sinon premier étage.
+            show_forces (bool): Affiche la force appliquée et les efforts repris. Defaults to True.
+            show_labels (bool): Affiche les noms et valeurs. Defaults to True.
+            ax (matplotlib.axes.Axes, optional): Axe existant sur lequel tracer. Defaults to None.
+            filepath (str, optional): Chemin d'export de l'image (PNG, PDF, SVG…). Defaults to None.
+            show (bool): Appelle plt.show(). Defaults to True.
+
+        Returns:
+            tuple: (fig, ax) matplotlib.
+        """
+        import matplotlib.pyplot as plt
+        from matplotlib.patches import Polygon
+
+        last = getattr(self, "_last_load", None)
+        if etage is None and last:
+            etage = last["Etage"]
+        etage = self._resolve_etage(etage)
+        if etage is None:
+            raise ValueError("Aucun mur à représenter.")
+        if getattr(self, "data_Kser_walls", None) is None and self.data:
+            self.get_Kser_wall()
+
+        fig, ax = plt.subplots(figsize=(10, 8)) if ax is None else (ax.figure, ax)
+        taux = getattr(self, "taux_FvRd_walls", None)
+        sys_loads = getattr(self, "data_sys_walls_loads", None)
+        concrete_loads = getattr(self, "data_concrete_loads", None)
+        loaded = bool(show_forces and last and last["Etage"] == etage)
+
+        def color_taux(t):
+            return "tab:green" if t < 70 else ("tab:orange" if t < 100 else "tab:red")
+
+        def load_of(df, name):
+            if df is None or name not in df.index or df.loc[name, "Étage"] != etage:
+                return None
+            F = df.loc[name, "Fv,Ed,i ELU"]
+            return None if F is None or (isinstance(F, float) and np.isnan(F)) else self._val(F)
+
+        points, arrows = [], []
+        for sys_name, sys_wall in self.data.get(etage, {}).items():
+            geo = self._sys_wall_geometry(sys_name, sys_wall)
+            p0, p1 = geo["to_global"](0), geo["to_global"](geo["length"])
+            points += [p0, p1]
+            ax.plot([p0[0], p1[0]], [p0[1], p1[1]], ls=":", color="grey", lw=1.5, zorder=1)
+            for wall_name, (a, b) in geo["walls"].items():
+                color = "saddlebrown"
+                if taux is not None and wall_name in taux.index:
+                    color = color_taux(abs(taux.loc[wall_name, "Taux cisaillement (%)"]))
+                ax.plot([a[0], b[0]], [a[1], b[1]], color=color, lw=6, solid_capstyle="butt", zorder=2)
+                if show_labels:
+                    ax.annotate(
+                        wall_name,
+                        ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2),
+                        xytext=(0, -12),
+                        textcoords="offset points",
+                        ha="center",
+                        fontsize=7,
+                        color=color,
+                    )
+            ax.plot(*geo["center"], marker="o", ms=4, color="saddlebrown", zorder=3)
+            if show_labels:
+                ax.annotate(
+                    sys_name, geo["center"], xytext=(4, 6), textcoords="offset points", fontsize=9, weight="bold"
+                )
+            F = load_of(sys_loads, sys_name) if loaded else None
+            if F is not None:
+                arrows.append((geo["center"], geo["dir"], F))
+
+        for name, wall in self.data_concrete_walls.items():
+            if wall["Etage"] != etage:
+                continue
+            al = radians(wall["alpha"])
+            ux, uy, nx, ny = cos(al), sin(al), -sin(al), cos(al)
+            X, Y = self._val(wall["X"]), self._val(wall["Y"])
+            L, t = self._val(wall["Longueur"]) / 2, self._val(wall["Epaisseur"]) / 2
+            corners = [
+                (X + i * L * ux + j * t * nx, Y + i * L * uy + j * t * ny)
+                for i, j in ((-1, -1), (1, -1), (1, 1), (-1, 1))
+            ]
+            points += corners
+            ax.add_patch(
+                Polygon(corners, closed=True, facecolor="lightgrey", edgecolor="dimgrey", hatch="///", zorder=2)
+            )
+            if show_labels:
+                ax.annotate(
+                    name, (X, Y), xytext=(4, 6), textcoords="offset points", fontsize=9, weight="bold", color="dimgrey"
+                )
+            F = load_of(concrete_loads, name) if loaded else None
+            if F is not None:
+                arrows.append(((X, Y), (ux, uy), F))
+
+        torsion = getattr(self, "data_torsion", None)
+        cr = cr_ELU = None
+        if torsion is not None and etage in torsion.index:
+            cr = (self._val(torsion.loc[etage, "xO"]), self._val(torsion.loc[etage, "yO"]))
+            cr_ELU = (self._val(torsion.loc[etage, "xO ELU"]), self._val(torsion.loc[etage, "yO ELU"]))
+            if np.hypot(cr_ELU[0] - cr[0], cr_ELU[1] - cr[1]) < 0.01:
+                cr_ELU = None
+            points += [p for p in (cr, cr_ELU) if p]
+
+        if loaded:
+            points.append((last["XFw"], last["YFw"]))
+        pts = np.array(points) if points else np.zeros((1, 2))
+        extent = max(np.ptp(pts[:, 0]), np.ptp(pts[:, 1]), 1.0)
+
+        if arrows:
+            F_max = max(abs(F) for *_, F in arrows) or 1
+            for (x, y), (ux, uy), F in arrows:
+                k = 0.15 * extent * F / F_max
+                ax.annotate(
+                    "",
+                    xy=(x + k * ux, y + k * uy),
+                    xytext=(x, y),
+                    arrowprops=dict(arrowstyle="->", color="tab:blue", lw=1.5),
+                    zorder=4,
+                )
+                if show_labels:
+                    ax.annotate(
+                        f"{F / 1e3:.1f} kN",
+                        (x + k * ux, y + k * uy),
+                        xytext=(3, 3),
+                        textcoords="offset points",
+                        fontsize=7,
+                        color="tab:blue",
+                    )
+
+        if cr is not None:
+            ax.plot(*cr, marker="X", ms=12, color="tab:purple", zorder=5, label="Centre de raideur / torsion")
+            if show_labels:
+                ax.annotate("CR", cr, xytext=(6, -12), textcoords="offset points", color="tab:purple", weight="bold")
+        if cr_ELU is not None:
+            ax.plot(*cr_ELU, marker="x", ms=9, color="tab:pink", zorder=5, label="Centre de raideur ELU (Ku)")
+
+        if loaded:
+            XF, YF, a = last["XFw"], last["YFw"], radians(last["alpha_Fw"])
+            L = 0.25 * extent
+            ax.annotate(
+                "",
+                xy=(XF + L * cos(a), YF + L * sin(a)),
+                xytext=(XF, YF),
+                arrowprops=dict(arrowstyle="-|>", color="tab:red", lw=2.5, mutation_scale=20),
+                zorder=6,
+            )
+            ax.plot(XF, YF, marker="o", color="tab:red", zorder=6, label="Force résultante Fw")
+            if show_labels:
+                ax.annotate(
+                    f"Fw,ELU = {last['Fw_Ed_ELU']:.1f} kN\nFw,ELS = {last['Fw_Ed_ELS']:.1f} kN",
+                    (XF + L * cos(a), YF + L * sin(a)),
+                    xytext=(5, 5),
+                    textcoords="offset points",
+                    color="tab:red",
+                    fontsize=8,
+                )
+            if cr is not None:
+                ax.plot([cr[0], XF], [cr[1], YF], ls="--", color="tab:purple", lw=1, zorder=4, label="Excentricité")
+
+        ax.set_aspect("equal", adjustable="datalim")
+        ax.grid(True, ls=":", alpha=0.6)
+        ax.set_xlabel("X (m)")
+        ax.set_ylabel("Y (m)")
+        ax.set_title(f"Contreventement - {etage}")
+        if ax.get_legend_handles_labels()[0]:
+            ax.legend(loc="best", fontsize=8)
+        if filepath:
+            fig.savefig(filepath, dpi=150, bbox_inches="tight")
+        if show:
+            plt.show()
+        return fig, ax
 
     @property
     def data(self):
@@ -523,7 +998,8 @@ class MOB(Batiment):
                 Si None, une boîte de dialogue s'ouvre pour sélectionner le fichier.
                 Defaults to None.
         """
-        super().save_data(self.data, type_data="JSON", path=path)
+        data = {"_MOB": self.data, "_concrete": self.data_concrete_walls} if self.data_concrete_walls else self.data
+        super().save_data(data, type_data="JSON", path=path)
 
     def load_walls_data(self, path: str = None) -> dict:
         """Charge la structure des murs MOB depuis un fichier JSON produit par save_walls_data.
@@ -538,7 +1014,12 @@ class MOB(Batiment):
         Returns:
             dict: Dictionnaire data structuré par étage → système de mur → mur → panneau.
         """
-        self.data = super().load_data(type_data="JSON", path=path)
+        data = super().load_data(type_data="JSON", path=path)
+        if "_concrete" in data:
+            self._data_concrete = data["_concrete"]
+            data = data["_MOB"]
+        self.data = data
+        self._list_on_top_of = [name for name, panel in self.data_panels.items() if panel.get("On top of")]
         return self.data
 
     def _get_Kser_panel(self, b: float, h: float, k_ser_r: float, k_ser_i: float):
@@ -804,7 +1285,7 @@ class MOB(Batiment):
                 if direct_loads:
                     F_sw_Ed = direct_loads
                     F_sw_Ed_ELS = sys_wall.get("Fv_Ed_ELS", 0 * si.kN)
-                    delta_v_sw_Ed = abs(K_sw * F_sw_Ed_ELS)
+                    delta_v_sw_Ed = abs(F_sw_Ed_ELS / K_sw)
                 else:
                     F_sw_Ed = self.data_sys_walls_loads.loc[sys_name]["Fv,Ed,i ELU"]
                     delta_v_sw_Ed = abs(self.data_sys_walls_loads.loc[sys_name]["delta,v,Ed,i ELS"])

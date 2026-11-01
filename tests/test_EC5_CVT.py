@@ -575,3 +575,125 @@ class TestMOB:
         mob_instance.get_Kser_wall()
         k_wall = mob_instance.data_Kser_walls.loc[wall_name, "Kser mur"]
         assert k_wall > 0
+
+
+class TestMOBDiaphragme:
+    """Répartition diaphragme rigide, murs béton et visualisation."""
+
+    @pytest.fixture
+    def mob(self, batiment, connectors):
+        conn_int, conn_ext = connectors
+        return EC5.MOB._from_parent_class(batiment, connecteurs_int=conn_int, connecteurs_ext=conn_ext)
+
+    @staticmethod
+    def _add_sys(mob, Xg, Yg, alpha, l_sys=10.0, etage="RDC"):
+        sys_name = mob.add_sys_wall(
+            h_etage=2.8, h_sys_MOB=2.5, l_sys_MOB=l_sys, etage=etage, Xg=Xg, Yg=Yg, alpha_sw=alpha
+        )
+        wall = mob.add_wall_to_sys(
+            sys_name=sys_name, position=1.0, l_MOB=2.4, couturage_ext_rive=150, couturage_ext_inter=300
+        )
+        mob.add_panel_to_wall(wall_name=wall, number=2, h_panel=2500, b_panel=1196, position_panel="Extérieur")
+        return sys_name
+
+    def _box(self, mob):
+        """Bâtiment rectangulaire 20 x 10 m, un système de mur par façade."""
+        return [
+            self._add_sys(mob, 10, 0, 0, 20),
+            self._add_sys(mob, 10, 10, 0, 20),
+            self._add_sys(mob, 0, 5, 90),
+            self._add_sys(mob, 20, 5, 90),
+        ]
+
+    def test_solver_equilibre(self):
+        elements = [(0, 0, 0, 2e6), (3, 8, 0, 1e6), (0, 4, np.pi / 2, 3e6), (12, 2, np.pi / 2, 1e6)]
+        Fx, Fy, XF, YF = 1e4, -4e3, 7.0, 3.0
+        res = EC5.MOB._solve_diaphragm(elements, Fx, Fy, XF, YF)
+        x, y, al, _ = np.array(elements).T
+        F = res["F"]
+        assert np.isclose((F * np.cos(al)).sum(), Fx)
+        assert np.isclose((F * np.sin(al)).sum(), Fy)
+        # Moment autour de l'origine
+        assert np.isclose((F * (x * np.sin(al) - y * np.cos(al))).sum(), XF * Fy - YF * Fx)
+        # Force appliquée au centre de raideur : pas de rotation
+        res_cr = EC5.MOB._solve_diaphragm(elements, Fx, Fy, res["xO"], res["yO"])
+        assert abs(res_cr["theta"]) < 1e-12
+
+    def test_solver_instable(self):
+        with pytest.raises(ValueError):
+            EC5.MOB._solve_diaphragm([(0, 0, 0, 1e6), (0, 5, 0, 1e6), (0, 9, 0, 1e6)], 1e3, 0, 0, 0)
+
+    def test_repartition_symetrique(self, mob):
+        s1, s2, s3, s4 = self._box(mob)
+        df = mob.calculate_loads_and_deformations(Fw_Ed_ELS=10, Fw_Ed_ELU=15, XFw=10, YFw=5, alpha_Fw=0, etage="RDC")
+        F = {s: df.loc[s, "Fv,Ed,i ELU"].value for s in (s1, s2, s3, s4)}
+        assert np.isclose(F[s1], 7.5e3) and np.isclose(F[s2], 7.5e3)
+        assert abs(F[s3]) < 1e-6 and abs(F[s4]) < 1e-6
+        tors = mob.synthese_torsion().loc["RDC"]
+        assert np.isclose(tors["xO"].value, 10) and np.isclose(tors["yO"].value, 5)
+        # Les murs et panneaux reçoivent l'effort du système
+        assert np.isclose(mob.data_walls_loads.loc[f"{s1}_W1", "Fv,Ed,i ELU"].value, 7.5e3)
+
+    def test_excentricite_et_e_acc(self, mob):
+        s1, s2, *_ = self._box(mob)
+        df = mob.calculate_loads_and_deformations(Fw_Ed_ELS=10, Fw_Ed_ELU=15, XFw=10, YFw=8, etage="RDC")
+        F1, F2 = df.loc[s1, "Fv,Ed,i ELU"].value, df.loc[s2, "Fv,Ed,i ELU"].value
+        assert F2 > F1 and np.isclose(F1 + F2, 15e3)
+        df_acc = mob.calculate_loads_and_deformations(Fw_Ed_ELS=10, Fw_Ed_ELU=15, XFw=10, YFw=8, etage="RDC", e_acc=0.5)
+        assert df_acc.loc[s2, "Fv,Ed,i ELU"].value > F2
+
+    def test_mur_beton(self, mob):
+        s1, s2, s3, s4 = self._box(mob)
+        b1 = mob.add_concrete_wall(l_wall=5, t_wall=0.2, h_wall=2.8, X=5, Y=2, alpha_w=0, etage="RDC")
+        wall = mob.data_concrete_walls[b1]
+        E = 0.5 * 31000e6
+        I, A = 0.2 * 5**3 / 12, 0.2 * 5
+        K = 1 / (2.8**3 / (3 * E * I) + 1.2 * 2.8 / (E / 2.4 * A))
+        assert np.isclose(wall["Kser"].value, K)
+        mob.calculate_loads_and_deformations(Fw_Ed_ELS=10, Fw_Ed_ELU=15, XFw=10, YFw=5, etage="RDC")
+        F_b = mob.data_concrete_loads.loc[b1, "Fv,Ed,i ELU"].value
+        assert F_b > 0.9 * 15e3
+        assert np.isclose(mob.data_concrete_loads.loc[b1, "M,base,Ed ELU"].value, F_b * 2.8)
+        F_mob = sum(mob.data_sys_walls_loads.loc[s, "Fv,Ed,i ELU"].value for s in (s1, s2))
+        assert np.isclose(F_b + F_mob, 15e3)
+        # Le centre de raideur se déplace vers le refend
+        assert 2 <= mob.synthese_torsion().loc["RDC", "yO"].value < 2.1
+        assert mob.add_concrete_wall(l_wall=1, t_wall=0.2, h_wall=2.8, K_override=100, etage="RDC") == "B2"
+        assert np.isclose(mob.data_concrete_walls["B2"]["Kser"].value, 1e8)
+
+    def test_ku_elu(self, mob):
+        """ELU avec Ku = 2/3 Kser pour les MOB : le refend béton reprend une part plus importante qu'à l'ELS."""
+        s1, s2, s3, s4 = self._box(mob)
+        b1 = mob.add_concrete_wall(l_wall=1, t_wall=0.2, h_wall=2.8, K_override=2, X=5, Y=2, etage="RDC")
+        mob.calculate_loads_and_deformations(Fw_Ed_ELS=10, Fw_Ed_ELU=10, XFw=10, YFw=5, etage="RDC")
+        K_b = mob.data_concrete_walls[b1]["Kser"].value
+        part_ELS = K_b * mob.data_concrete_loads.loc[b1, "delta,v,Ed,i ELS"].value / 10e3
+        part_ELU = mob.data_concrete_loads.loc[b1, "Fv,Ed,i ELU"].value / 10e3
+        assert part_ELU > part_ELS
+        F_mob = sum(mob.data_sys_walls_loads.loc[s, "Fv,Ed,i ELU"].value for s in (s1, s2))
+        assert np.isclose(part_ELU * 10e3 + F_mob, 10e3)
+        tors = mob.synthese_torsion().loc["RDC"]
+        assert tors["yO ELU"].value < tors["yO"].value
+
+    def test_save_load_beton(self, mob, batiment, tmp_path):
+        self._box(mob)
+        mob.add_concrete_wall(l_wall=5, t_wall=0.2, h_wall=2.8, X=5, Y=5, etage="RDC")
+        path = str(tmp_path / "mob.json")
+        mob.save_walls_data(path)
+        new = EC5.MOB._from_parent_class(batiment)
+        new.load_walls_data(path)
+        assert list(new.data["RDC"].keys()) == ["S1", "S2", "S3", "S4"]
+        assert "B1" in new.data_concrete_walls
+
+    def test_show_plan(self, mob, tmp_path):
+        import matplotlib
+
+        matplotlib.use("Agg")
+        self._box(mob)
+        mob.add_concrete_wall(l_wall=5, t_wall=0.2, h_wall=2.8, X=5, Y=5, etage="RDC")
+        mob.calculate_loads_and_deformations(Fw_Ed_ELS=10, Fw_Ed_ELU=15, XFw=10, YFw=7, alpha_Fw=30, etage="RDC")
+        mob.taux_walls()
+        path = tmp_path / "plan.png"
+        fig, ax = mob.show_plan(filepath=str(path), show=False)
+        assert path.exists()
+        assert ax.get_title() == "Contreventement - RDC"

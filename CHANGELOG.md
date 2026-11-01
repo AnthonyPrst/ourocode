@@ -7,6 +7,31 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [Unreleased]
 
+### Added
+- **`MOB.add_concrete_wall`** (`ec5/cvt.py`) : murs béton (refends) participant au contreventement de l'étage. Raideur dans le plan d'une console encastrée (flexion + cisaillement) avec `Ecm` issu de `caracteristique_meca_beton.csv` et coefficient de fissuration (0,5 par défaut), ou raideur imposée via `K_override` (kN/mm). Efforts dans `data_concrete_loads` (V_Ed, M_base,Ed).
+- **`MOB.show_plan`** : vue en plan matplotlib d'un étage — systèmes MOB (murs pleins / ouvertures), refends béton, centre de raideur/torsion, force résultante et excentricité, efforts repris par élément, coloration des murs selon leur taux de cisaillement. Export via `filepath`.
+- **`MOB.synthese_torsion`** / `data_torsion` : centre de raideur, excentricités, raideurs Kx, Ky, K_theta et rayons de torsion par étage.
+- **Répartition ELU avec Ku = 2/3 Kser** (EN 1995-1-1 §2.2.2(1)b, constante `MOB.RATIO_KU_KSER`) : les efforts ELU sont obtenus par une seconde résolution avec Ku pour les MOB et la raideur inchangée des murs béton (au lieu d'un simple rapport ELU/ELS). Résultat identique pour un contreventement uniquement bois. Centre de raideur ELU dans `data_torsion` (`xO ELU`, `yO ELU`) et affiché par `show_plan` s'il diffère du CR ELS.
+- **Excentricité accidentelle** : paramètre `e_acc` de `calculate_loads_and_deformations` (enveloppe des cas ±e_acc).
+- Tests `TestMOBDiaphragme` (équilibre, centre de raideur, symétrie, excentricité, refend béton, sauvegarde, visualisation).
+
+### Changed
+- **`EC3` - Géométrie automatique** : `Plat` calcule les caractéristiques de section (A, Avz, Avy, Iy, Iz, Wel, Wpl, i) d'un rectangle t × b, ou les charge depuis le catalogue via le nouveau paramètre `designation` (propagé par `_from_parent_class`). `Traction(A)`, `Compression(A, Iy, Iz)`, `Cisaillement(Av)` et `Flexion(W)` deviennent optionnels et sont déduits de la section si omis (`Flexion` : Wpl en classes 1-2, Wel en classe 3, paramètre `axe` ; `Cisaillement` : paramètre `axe_effort` → Avz/Avy ; `Flexion.Mc_V_Rd(Av=None, V_Ed)`).
+- **`Compression`** : courbes de flambement déterminées automatiquement selon EN 1993-1-1 Tableau 6.2 si `courbe_flamb` est omis (`courbe_flamb_auto`) ; défaut `type_appuis_y/z = "Rotule - Rotule"` ; `Nb_Rd` utilise γM1 (éq. 6.47).
+- **`EC3` - `_Profil` renommée `Profil`** (classe publique, sans alias) ; `Profil.liste(type)`, `Wply`/`Wplz` à `None` pour les UPN, `fy`/`fu` sur `max(tw, tf)` avec erreur au-delà de 80 mm.
+- **`MOB.calculate_loads_and_deformations`** : réécrite avec un solveur matriciel générique de diaphragme rigide (u, v, theta) applicable aux MOB et aux murs béton. Les tableaux d'efforts sont complétés à chaque appel (ajout d'étages/systèmes) ; erreur explicite si le contreventement est instable (murs tous parallèles ou concourants).
+- `save_walls_data` / `load_walls_data` : les murs béton sont sauvegardés (format `{"_MOB", "_concrete"}` uniquement s'il y a des murs béton, rétrocompatible).
+
+### Fixed
+- **`data/profil_acier.csv`** refait (IPE, IPN, HEA, HEB, HEM, UPN) en mm/mm²/mm³/mm⁴ : ancien fichier erroné (HEA uniquement, unités cm, colonnes décalées). Wel/Wpl/Avz recalculés depuis la géométrie ; Wpl des UPN non fournis.
+- `Compression` : les valeurs par défaut de `type_appuis_y/z` (dict) et `courbe_flamb` (chaîne) provoquaient une erreur à l'instanciation.
+- `Traction.Nt_Rd` : `Anet = 0` (sans trous) était considéré comme renseigné et renvoyait N_t,Rd = 0.
+- `Objet._from_parent_class` : les grandeurs physiques annotées uniquement dans la classe cible (ex. `A` d'un `Profil` vers `Traction`) étaient transmises avec leur unité et multipliées une seconde fois.
+- `Profil` : `Iy`/`Iz` n'étaient plus écrasés par l'inertie rectangulaire de `Plat`.
+- `calculate_loads_and_deformations` : `gamma_sw` et `Kp_ref` hérités de la dernière itération de boucle, sommes de raideurs mélangeant les étages, affectations pandas chaînées (`df.loc[x][y] = …`) inopérantes en Copy-on-Write, étage par défaut (tuple) ignoré.
+- `taux_walls` avec efforts manuels : le déplacement ELS était calculé `K × F` au lieu de `F / K`.
+- `load_walls_data` : reconstruction de la liste des panneaux empilés (`on_top_of`).
+
 ## [2.2.0] - 2026-10-30
 
 ### Added

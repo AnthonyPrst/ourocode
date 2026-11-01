@@ -1,5 +1,6 @@
 # coding in UTF-8
 # by Anthony PARISOT
+import json
 import math as mt
 from math import sqrt
 
@@ -23,14 +24,14 @@ class Compression(Plat):
 
     def __init__(
         self,
-        A: si.mm**2,
-        Iy: si.mm**4,
-        Iz: si.mm**4,
+        A: si.mm**2 = None,
+        Iy: si.mm**4 = None,
+        Iz: si.mm**4 = None,
         lo_y: si.mm = 0,
         lo_z: si.mm = 0,
-        courbe_flamb: dict = "{'y':'c', 'z':'c'}",
-        type_appuis_y: str = COEF_LF,
-        type_appuis_z: str = COEF_LF,
+        courbe_flamb: dict = None,
+        type_appuis_y: str = ("Rotule - Rotule", *COEF_LF),
+        type_appuis_z: str = ("Rotule - Rotule", *COEF_LF),
         *args,
         **kwargs,
     ):
@@ -39,11 +40,14 @@ class Compression(Plat):
         Cette classe est hérité de la classe Plat du module EC3_Element_droit.py.
 
         Args:
-            A (float): Aire brute si classe 1,2 ou 3 et Aeff si classe 4 en mm²
-            Iy (float): Moment quadratique suivant l'axe de rotation y en mm4
-            Iz (float): Moment quadratique suivant l'axe de rotation z en mm4
+            A (float, optional): Aire brute si classe 1,2 ou 3 et Aeff si classe 4 en mm².
+                Si None, l'aire de la section (Plat t × b ou Profil) est utilisée.
+            Iy (float, optional): Moment quadratique suivant l'axe de rotation y en mm4. Si None, valeur de la section.
+            Iz (float, optional): Moment quadratique suivant l'axe de rotation z en mm4. Si None, valeur de la section.
             lo_y (float): Longueur de flambement suivant l'axe de rotation y en mm. Defaults to 0.
             lo_z (float): Longueur de flambement suivant l'axe de rotation z en mm. Defaults to 0.
+            courbe_flamb (dict, optional): Courbes de flambement {"y": "a0".."d", "z": ...}.
+                Si None, déterminées selon EN 1993-1-1 Tableau 6.2 (voir courbe_flamb_auto).
             type_appuis_y (str): Conditions d'appui pour le flambement selon l'axe de rotation y.
                 Détermine β_y dans lf_y = β_y · lo_y.
                 Valeurs possibles (voir COEF_LF):
@@ -58,15 +62,40 @@ class Compression(Plat):
 
         """
         super().__init__(*args, **kwargs)
-        self.A = A * si.mm**2
-        self.Iy = Iy * si.mm**4
-        self.Iz = Iz * si.mm**4
+        for name, value, unit in (("A", A, si.mm**2), ("Iy", Iy, si.mm**4), ("Iz", Iz, si.mm**4)):
+            if value is not None:
+                setattr(self, name, value * unit)
+            elif getattr(self, name) is None:
+                raise ValueError(f"{name} non défini : renseigner {name} ou la géométrie (t, b ou designation).")
         self.lo = {"y": lo_y * si.mm, "z": lo_z * si.mm}
-        self.courbe_flamb = courbe_flamb
-        self.type_appuis_y = type_appuis_y
-        self.type_appuis_z = type_appuis_z
-        self.coef_lef_y = self.COEF_LF[type_appuis_y]
-        self.coef_lef_z = self.COEF_LF[type_appuis_z]
+        if isinstance(courbe_flamb, str):
+            courbe_flamb = json.loads(courbe_flamb.replace("'", '"'))
+        self.courbe_flamb = courbe_flamb or self.courbe_flamb_auto
+        for courbe in self.courbe_flamb.values():
+            self._check_choice(courbe, tuple(self.FACTEUR_ALPHA), "courbe_flamb")
+        self.type_appuis_y = self._check_choice(type_appuis_y, tuple(self.COEF_LF), "type_appuis_y")
+        self.type_appuis_z = self._check_choice(type_appuis_z, tuple(self.COEF_LF), "type_appuis_z")
+        self.coef_lef_y = self.COEF_LF[self.type_appuis_y]
+        self.coef_lef_z = self.COEF_LF[self.type_appuis_z]
+
+    @property
+    def courbe_flamb_auto(self) -> dict:
+        """Courbes de flambement selon EN 1993-1-1 Tableau 6.2.
+
+        - Profilés laminés en I/H (IPE, IPN, HEA, HEB, HEM) selon h/b, tf et la nuance (S460 à part).
+        - Profilés en U et sections pleines (Plat) : courbe c sur les deux axes.
+        """
+        if self.type_profil not in ("IPE", "IPN", "HEA", "HEB", "HEM"):
+            return {"y": "c", "z": "c"}
+        s460 = self.classe_acier.startswith("S460")
+        tf = self.tf
+        if self.h / self.b > 1.2:
+            if tf <= 40 * si.mm:
+                return {"y": "a0", "z": "a0"} if s460 else {"y": "a", "z": "b"}
+            return {"y": "a", "z": "a"} if s460 else {"y": "b", "z": "c"}
+        if tf <= 100 * si.mm:
+            return {"y": "a", "z": "a"} if s460 else {"y": "b", "z": "c"}
+        return {"y": "c", "z": "c"} if s460 else {"y": "d", "z": "d"}
 
     @property
     def Nc_Rd(self):
@@ -146,7 +175,7 @@ class Compression(Plat):
         Returns:
             tuple: (latex_string, {"y": N_b_y_Rd, "z": N_b_z_Rd}) où les valeurs sont en N (avec unité si.N).
         """
-        gamma_M0 = self.GAMMA_M["gamma_M0"]
+        gamma_M1 = self.GAMMA_M["gamma_M1"]
         f_y = self.fy
         A = self.A
         chi_y = self._chi["y"]
@@ -154,8 +183,8 @@ class Compression(Plat):
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            N_b_y_Rd = chi_y * A * f_y / gamma_M0
-            N_b_z_Rd = chi_z * A * f_y / gamma_M0
+            N_b_y_Rd = chi_y * A * f_y / gamma_M1  # (équa 6.47)
+            N_b_z_Rd = chi_z * A * f_y / gamma_M1  # (équa 6.47)
             return {"y": N_b_y_Rd, "z": N_b_z_Rd}
 
         return val()

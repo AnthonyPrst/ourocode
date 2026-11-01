@@ -32,6 +32,7 @@ from ourocode.eurocode.ec1 import Neige, Vent, Exploitation
 # EC3 - Acier
 from ourocode.eurocode.ec3 import (
     Plat,
+    Profil,
     Traction as Traction_EC3,
     Compression as Compression_EC3,
     Cisaillement as Cisaillement_EC3,
@@ -90,6 +91,7 @@ __all__ = [
     "Exploitation",
     # EC3
     "Plat",
+    "Profil",
     "Traction_EC3",
     "Compression_EC3",
     "Cisaillement_EC3",
