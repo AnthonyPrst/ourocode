@@ -5,7 +5,7 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
-## [Unreleased]
+## [2.3.0]
 
 ### Added
 - **`MOB.add_concrete_wall`** (`ec5/cvt.py`) : murs béton (refends) participant au contreventement de l'étage. Raideur dans le plan d'une console encastrée (flexion + cisaillement) avec `Ecm` issu de `caracteristique_meca_beton.csv` et coefficient de fissuration (0,5 par défaut), ou raideur imposée via `K_override` (kN/mm). Efforts dans `data_concrete_loads` (V_Ed, M_base,Ed).
