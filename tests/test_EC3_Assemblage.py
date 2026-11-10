@@ -121,6 +121,16 @@ class Test_Tige:
         assert res[1][1] >= 0
         assert res[1][2] >= 0
 
+    def test_Fb_Rd_utilise_fu_de_la_plaque(self, tige):
+        """EN 1993-1-8 tab. 3.4 : F_b,Rd = k1·αb·f_u·d·t/γM2 (f_u de la plaque, f_ub dans αb)."""
+        Fb = tige.Fb_Rd(e1=40, e2=40, p1=80, p2=80)[1]
+        d0, fu, fub = 18, 360, 400
+        alpha_b = min(40 / (3 * d0), 80 / (3 * d0) - 0.25, fub / fu, 1)
+        k1 = min(2.8 * 40 / d0 - 1.7, 1.4 * 80 / d0 - 1.7, 2.5)
+        attendu = k1 * alpha_b * fu * 16 * 10 / 1.25  # N
+        assert Fb["F_bx_Rd"].value == pytest.approx(attendu, rel=1e-3)
+        assert Fb["F_by_Rd"].value == pytest.approx(attendu, rel=1e-3)
+
     def test_Veff_Rd_et_taux_Veff_d(self, tige):
         Veff = tige.Veff_Rd(Lnt=200, Lvt=200, effort="Centré")
         assert Veff[1].value > 0

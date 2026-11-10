@@ -402,11 +402,11 @@ class Tige(Plat):
                 t_eff = t - e_tete_fraisee / 2
                 alpha_bx = min(e_1 / (3 * d_0), (p_1 / (3 * d_0)) - 0.25, f_u_b / f_u, 1)
                 k_1x = min(2.8 * e_2 / d_0 - 1.7, 1.4 * p_2 / d_0 - 1.7, 2.5)
-                F_bx_Rd = k_b * k_1x * alpha_bx * f_u_b * d * t_eff / gamma_M_2
+                F_bx_Rd = k_b * k_1x * alpha_bx * f_u * d * t_eff / gamma_M_2
 
                 alpha_by = min(e_2 / (3 * d_0), (p_2 / (3 * d_0)) - 0.25, f_u_b / f_u, 1)
                 k_1y = min(2.8 * e_1 / d_0 - 1.7, 1.4 * p_1 / d_0 - 1.7, 2.5)
-                F_by_Rd = k_b * k_1y * alpha_by * f_u_b * d * t_eff / gamma_M_2
+                F_by_Rd = k_b * k_1y * alpha_by * f_u * d * t_eff / gamma_M_2
                 return {"F_bx_Rd": F_bx_Rd, "F_by_Rd": F_by_Rd}
         else:
 
@@ -414,11 +414,11 @@ class Tige(Plat):
             def val():
                 alpha_bx = min(e_1 / (3 * d_0), (p_1 / (3 * d_0)) - 0.25, f_u_b / f_u, 1)
                 k_1x = min(2.8 * e_2 / d_0 - 1.7, 1.4 * p_2 / d_0 - 1.7, 2.5)
-                F_bx_Rd = k_b * k_1x * alpha_bx * f_u_b * d * t / gamma_M_2
+                F_bx_Rd = k_b * k_1x * alpha_bx * f_u * d * t / gamma_M_2
 
                 alpha_by = min(e_2 / (3 * d_0), (p_2 / (3 * d_0)) - 0.25, f_u_b / f_u, 1)
                 k_1y = min(2.8 * e_1 / d_0 - 1.7, 1.4 * p_1 / d_0 - 1.7, 2.5)
-                F_by_Rd = k_b * k_1y * alpha_by * f_u_b * d * t / gamma_M_2
+                F_by_Rd = k_b * k_1y * alpha_by * f_u * d * t / gamma_M_2
                 return {"F_bx_Rd": F_bx_Rd, "F_by_Rd": F_by_Rd}
 
         return val()

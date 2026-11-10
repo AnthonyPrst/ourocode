@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [Unreleased]
+
+### Fixed
+- **`Tige.Fb_Rd`** (`ec3/assemblage/tige.py`) : la pression diamétrale utilisait la résistance ultime du boulon `fub` au lieu de celle de la plaque `fu` (EN 1993-1-8 tab. 3.4 : F_b,Rd = k1·αb·fu·d·t/γM2, `fub` n'intervenant que dans αb). Résultat surestimé d'un facteur fub/fu (≈ 2,2 pour un boulon 8.8 dans une plaque S235). Corrigé pour les deux branches (tête fraisée ou non).
+
 ## [2.3.0]
 
 ### Added
