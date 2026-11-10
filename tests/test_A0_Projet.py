@@ -488,3 +488,12 @@ class Test_DataLoaderMixin:
 
 if __name__ == "__main__":
     pytest.main(["-v", __file__])
+
+
+def test_convert_unit_physical_unite_absente_de_l_environnement():
+    """Annotation non convertible (int) ou unité absente (si.cm) : pas d'AttributeError."""
+    import forallpeople as si
+    from ourocode.eurocode.core.objet import Objet
+    assert Objet._convert_unit_physical(2.0, si.m, int) == 2.0
+    assert Objet._convert_unit_physical(0.008, si.m, si.mm) == pytest.approx(8.0)
+    assert Objet._convert_unit_physical(5000, si.N, si.kN) == pytest.approx(5.0)
