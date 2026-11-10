@@ -8,6 +8,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 ## [Unreleased]
 
 ### Fixed
+- **`MathUtilsMixin._convert_unit_physical`** : `AttributeError: module 'forallpeople' has no attribute 'cm'` lors d'un `_from_parent_class` (ex. brique Assemblage) quand une valeur en m devait être convertie vers une unité autre que mm (annotation non unitaire) : `si.cm`/`si.km` n'existent pas dans l'environnement « structural ». Les unités de comparaison sont désormais résolues sans erreur (`_unit_str`) et la valeur est renvoyée inchangée si aucune conversion ne s'applique.
 - **`Tige.Fb_Rd`** (`ec3/assemblage/tige.py`) : la pression diamétrale utilisait la résistance ultime du boulon `fub` au lieu de celle de la plaque `fu` (EN 1993-1-8 tab. 3.4 : F_b,Rd = k1·αb·fu·d·t/γM2, `fub` n'intervenant que dans αb). Résultat surestimé d'un facteur fub/fu (≈ 2,2 pour un boulon 8.8 dans une plaque S235). Corrigé pour les deux branches (tête fraisée ou non).
 
 ## [2.3.0]
