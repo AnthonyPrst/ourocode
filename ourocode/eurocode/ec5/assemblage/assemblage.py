@@ -66,20 +66,34 @@ class Assemblage(Projet):
     def __type_assemblage(self):
         self._type_beam = []
         for i, beam in enumerate([self.beam_1, self.beam_2]):
-            try:
-                if beam.type_bois:
-                    if beam.type_bois in ["Massif", "BLC", "LVL"]:
-                        self._type_beam.append(self.TYPE_BOIS_ASSEMBLAGE[0])
-                    elif beam.type_bois in ["OSB 2", "OSB 3/4"]:
-                        self._type_beam.append(self.TYPE_BOIS_ASSEMBLAGE[1])
-                    elif beam.type_bois == "CP":
-                        self._type_beam.append(self.TYPE_BOIS_ASSEMBLAGE[2])
-                    elif beam.type_bois == "Panneau dur":
-                        self._type_beam.append(self.TYPE_BOIS_ASSEMBLAGE[3])
-
-                    beam.rho_k = int(beam.caract_meca.loc["rhok"])
-            except AttributeError:
+            type_bois = getattr(beam, "type_bois", None)
+            if type_bois is None:
+                # Pas d'attribut type_bois : pièce supposée métallique (Plat/Profil EC3 exposent .t)
+                if not hasattr(beam, "t"):
+                    raise TypeError(
+                        f"La pièce {i + 1} n'est reconnue ni comme élément bois (Barre EC5, attribut 'type_bois') "
+                        f"ni comme plat métallique (Plat/Profil EC3, attribut 't'). Type reçu : {type(beam).__name__}."
+                    )
                 self._type_beam.append("Métal")
+                continue
+            if type_bois in ["Massif", "BLC", "LVL"]:
+                self._type_beam.append(self.TYPE_BOIS_ASSEMBLAGE[0])
+            elif type_bois in ["OSB 2", "OSB 3/4"]:
+                self._type_beam.append(self.TYPE_BOIS_ASSEMBLAGE[1])
+            elif type_bois == "CP":
+                self._type_beam.append(self.TYPE_BOIS_ASSEMBLAGE[2])
+            elif type_bois == "Panneau dur":
+                self._type_beam.append(self.TYPE_BOIS_ASSEMBLAGE[3])
+            else:
+                raise ValueError(f"Type de bois non pris en charge pour la pièce {i + 1} : {type_bois!r}.")
+
+            try:
+                beam.rho_k = int(beam.caract_meca.loc["rhok"])
+            except (AttributeError, KeyError, TypeError) as exc:
+                raise ValueError(
+                    f"La pièce {i + 1} est de type bois {type_bois!r} mais sa masse volumique "
+                    "caractéristique 'rhok' est introuvable dans caract_meca."
+                ) from exc
 
         # Détermine le type d'assemblage Bois/Bois ou Bois/métal
         if self._type_beam[0] in self.TYPE_BOIS_ASSEMBLAGE:
@@ -960,6 +974,10 @@ class Assemblage(Projet):
         Fv_Ed = abs(Fv_Ed) * si.kN
         Fax_Ed = abs(Fax_Ed) * si.kN
         if Fax_Ed:
+            if not hasattr(self, "FaxRk"):
+                raise AttributeError(
+                    "Fax_Rk() doit être exécuté avant taux_F_v_Ed avec un effort axial (Fax_Ed ≠ 0)."
+                )
             if self.type_organe in ("Pointe circulaire lisse", "Pointe carrée lisse", "Agrafe", "Boulon"):
                 self.Fax_Rk_ass = self.FaxRk * self.nfile * self.n
                 Fax_Rd_ass = self.F_Rd(self.Fax_Rk_ass.value * 10**-3, loadtype)[1]
@@ -969,6 +987,8 @@ class Assemblage(Projet):
                     taux_combi = Fax_Ed / Fax_Rd_ass + Fv_Ed / Fv_Rd_ass
                     return taux_combi
             elif self.type_organe in ("Tirefond", "Autres pointes"):
+                if self.type_organe == "Autres pointes":
+                    self.Fax_Rk_ass = self.FaxRk * self.nfile * self.n
                 Fax_Rd_ass = self.F_Rd(self.Fax_Rk_ass.value * 10**-3, loadtype)[1]
 
                 @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -976,7 +996,9 @@ class Assemblage(Projet):
                     taux_combi = (Fax_Ed / Fax_Rd_ass) ** 2 + (Fv_Ed / Fv_Rd_ass) ** 2
                     return taux_combi
             else:
-                raise f"L'organe {self.type_organe} ne peut pas être pris en compte pour une vérification de l'élément chargées à la fois axialement et latéralement"
+                raise ValueError(
+                    f"L'organe {self.type_organe} ne peut pas être pris en compte pour une vérification de l'élément chargées à la fois axialement et latéralement"
+                )
         else:
 
             @handcalc(override="long", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")

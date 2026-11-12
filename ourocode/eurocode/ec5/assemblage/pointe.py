@@ -294,22 +294,23 @@ class Pointe(Assemblage):
                     return F_ax_Rk
 
         F_ax_Rk = val()
+        f_ax_rk = F_ax_Rk[1]
         if self.type_organe == "Autres pointes" and self.t2 < 8 * self.d:
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
-                F_ax_Rk_min = F_ax_Rk * (t_pen / (2 * d) - 3)
+                F_ax_Rk_min = f_ax_rk * (t_pen / (2 * d) - 3)
                 return F_ax_Rk_min
 
             minoration = val2()
             self.FaxRk = minoration[1]
             return (F_ax_Rk[0] + minoration[0], minoration[1])
 
-        elif self.type_organe and self.t2 < 12 * self.d:
+        elif self.type_organe != "Autres pointes" and self.t2 < 12 * self.d:
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val2():
-                F_ax_Rk_min = F_ax_Rk * (t_pen / (4 * d) - 2)
+                F_ax_Rk_min = f_ax_rk * (t_pen / (4 * d) - 2)
                 return F_ax_Rk_min
 
             minoration = val2()
