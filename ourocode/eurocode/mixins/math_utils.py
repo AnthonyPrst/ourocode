@@ -6,6 +6,15 @@ import inspect
 import forallpeople as si
 
 si.environment("structural")
+
+
+def _unit_str(factory):
+    """Représentation d'une unité forallpeople, None si elle n'existe pas dans
+    l'environnement courant (ex. ``si.cm``/``si.km`` absents de « structural »)."""
+    try:
+        return str(factory())
+    except AttributeError:
+        return None
 from forallpeople import Physical
 
 
@@ -263,58 +272,58 @@ class MathUtilsMixin:
         """
         si_unit, unit_to_convert = str(si_unit), str(unit_to_convert)
         if si_unit != unit_to_convert:
-            if si_unit == str(si.m):
-                if unit_to_convert == str(si.mm):
+            if si_unit == _unit_str(lambda: si.m):
+                if unit_to_convert == _unit_str(lambda: si.mm):
                     return value * 10**3
-                elif unit_to_convert == str(si.cm):
+                elif unit_to_convert == _unit_str(lambda: si.cm):
                     return value * 10**2
-                elif unit_to_convert == str(si.km):
+                elif unit_to_convert == _unit_str(lambda: si.km):
                     return value * 10**-3
-            elif si_unit == str(si.m**2):
-                if unit_to_convert == str(si.mm**2):
+            elif si_unit == _unit_str(lambda: si.m**2):
+                if unit_to_convert == _unit_str(lambda: si.mm**2):
                     return value * 10**6
-                elif unit_to_convert == str(si.cm**2):
+                elif unit_to_convert == _unit_str(lambda: si.cm**2):
                     return value * 10**4
-            elif si_unit == str(si.m**3):
-                if unit_to_convert == str(si.mm**3):
+            elif si_unit == _unit_str(lambda: si.m**3):
+                if unit_to_convert == _unit_str(lambda: si.mm**3):
                     return value * 10**9
-                elif unit_to_convert == str(si.cm**3):
+                elif unit_to_convert == _unit_str(lambda: si.cm**3):
                     return value * 10**6
-            elif si_unit == str(si.m**4):
-                if unit_to_convert == str(si.mm**4):
+            elif si_unit == _unit_str(lambda: si.m**4):
+                if unit_to_convert == _unit_str(lambda: si.mm**4):
                     return value * 10**12
-                elif unit_to_convert == str(si.cm**4):
+                elif unit_to_convert == _unit_str(lambda: si.cm**4):
                     return value * 10**8
-            elif si_unit == str(si.N):
-                if unit_to_convert == str(si.kN):
+            elif si_unit == _unit_str(lambda: si.N):
+                if unit_to_convert == _unit_str(lambda: si.kN):
                     return value * 10**-3
-                elif unit_to_convert == str(si.daN):
+                elif unit_to_convert == _unit_str(lambda: si.daN):
                     return value * 10**-1
-            elif si_unit == str(si.N * si.m):
-                if unit_to_convert == str(si.kN * si.m):
+            elif si_unit == _unit_str(lambda: si.N * si.m):
+                if unit_to_convert == _unit_str(lambda: si.kN * si.m):
                     return value * 10**-3
-                elif unit_to_convert == str(si.daN * si.m):
+                elif unit_to_convert == _unit_str(lambda: si.daN * si.m):
                     return value * 10**-1
-                elif unit_to_convert == str(si.N * si.mm):
+                elif unit_to_convert == _unit_str(lambda: si.N * si.mm):
                     return value * 10**3
-            elif si_unit == str(si.N / si.m):
-                if unit_to_convert == str(si.kN / si.m):
+            elif si_unit == _unit_str(lambda: si.N / si.m):
+                if unit_to_convert == _unit_str(lambda: si.kN / si.m):
                     return value * 10**-3
-                elif unit_to_convert == str(si.daN / si.m):
+                elif unit_to_convert == _unit_str(lambda: si.daN / si.m):
                     return value * 10**-1
-                elif unit_to_convert == str(si.N / si.mm):
+                elif unit_to_convert == _unit_str(lambda: si.N / si.mm):
                     return value * 10**-3
-            elif si_unit == str(si.N / si.m**2):
-                if unit_to_convert == str(si.kN / si.m**2):
+            elif si_unit == _unit_str(lambda: si.N / si.m**2):
+                if unit_to_convert == _unit_str(lambda: si.kN / si.m**2):
                     return value * 10**-3
-                elif unit_to_convert == str(si.daN / si.m**2):
+                elif unit_to_convert == _unit_str(lambda: si.daN / si.m**2):
                     return value * 10**-1
-                elif unit_to_convert == str(si.N / si.mm**2):
+                elif unit_to_convert == _unit_str(lambda: si.N / si.mm**2):
                     return value * 10**-6
-            elif si_unit == str(si.Pa):
-                if unit_to_convert == str(si.kPa):
+            elif si_unit == _unit_str(lambda: si.Pa):
+                if unit_to_convert == _unit_str(lambda: si.kPa):
                     return value * 10**-3
-                elif unit_to_convert == str(si.MPa):
+                elif unit_to_convert == _unit_str(lambda: si.MPa):
                     return value * 10**-6
         return value
 
