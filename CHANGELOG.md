@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.3.2]
+
+### Fixed
+- **`Assemblage.taux_F_v_Ed`** (`ec5/assemblage/assemblage.py`) : `AttributeError: 'Pointe' object has no attribute 'Fax_Rk_ass'` pour les « Autres pointes » avec `Fax_Ed ≠ 0` — `Fax_Rk_ass` (= `FaxRk × nfile × n`) n'était calculé que pour les pointes lisses/agrafes/boulons. Ajout d'un `AttributeError` explicite si `Fax_Rk()` n'a pas été exécuté au préalable, et le `raise f"..."` (qui levait une chaîne) devient un `ValueError`.
+- **`Assemblage.__type_assemblage`** (`ec5/assemblage/assemblage.py`) : la détection du matériau ne repose plus sur un `try/except AttributeError` trop large. Tout objet sans `type_bois` était silencieusement classé « Métal » (risque de mauvaise détection d'une pièce bois) ; un échec de `caract_meca.loc["rhok"]` provoquait en outre un double enregistrement désalignant `_type_beam`. Désormais : `TypeError` explicite si la pièce n'est ni un élément bois (`type_bois`) ni un plat métallique (`t`), `ValueError` explicite si `type_bois` est inconnu ou `rhok` introuvable.
+- **`Pointe`** (`ec5/assemblage/pointe.py`) :
+  - `Fax_Rk` (minorations) : `TypeError: can't multiply sequence by non-int` dès que t2 < 12d — le tuple `(latex, valeur)` de `val()` était multiplié au lieu de sa valeur. La réduction `(t_pen/(4d) − 2)` est en outre désormais réservée aux pointes lisses : elle s'appliquait aussi aux « Autres pointes » entre 8d et 12d (facteur pouvant être ≤ 0).
+
 ## [2.3.1]
 
 ### Fixed
