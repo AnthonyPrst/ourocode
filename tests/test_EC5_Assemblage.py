@@ -134,6 +134,75 @@ class Test_Pointe:
         assert Fvrk[1].value == 5537.902373351718
 
 
+class Test_Pointe_BoisMetal:
+    @pytest.fixture
+    def pointe_metal_bois(self, barre_bois, barre_metal):
+        return EC5_Assem.Pointe(
+            d=3,
+            dh=6,
+            l=60,
+            qualite="6.8",
+            n=2,
+            alpha1=0,
+            alpha2=0,
+            type_organe="Pointe circulaire lisse",
+            percage=True,
+            beam_1=barre_metal,
+            beam_2=barre_bois,
+            nfile=1,
+            nCis=1,
+        )
+
+    @pytest.fixture
+    def pointe_metal_bois_2cis(self, barre_bois, barre_metal):
+        return EC5_Assem.Pointe(
+            d=3,
+            dh=6,
+            l=120,
+            qualite="6.8",
+            n=2,
+            alpha1=0,
+            alpha2=0,
+            type_organe="Pointe circulaire lisse",
+            percage=True,
+            beam_1=barre_metal,
+            beam_2=barre_bois,
+            nfile=1,
+            nCis=2,
+        )
+
+    def test_init(self, pointe_metal_bois):
+        assert pointe_metal_bois.type_assemblage == "Bois/Métal"
+        assert pointe_metal_bois._type_beam == ["Métal", "Bois"]
+        assert pointe_metal_bois.t1 == 6 * si.mm
+        assert pointe_metal_bois.t2 == 51 * si.mm
+
+    def test_init_2cis(self, pointe_metal_bois_2cis):
+        assert pointe_metal_bois_2cis.type_assemblage == "Bois/Métal"
+        assert pointe_metal_bois_2cis.t1 == 6 * si.mm
+        assert pointe_metal_bois_2cis.t2 == 100 * si.mm
+
+    def test_Fax_Rk(self, pointe_metal_bois):
+        # Pièce 1 métallique : seule l'arrachement coté pointe (pièce 2) est considéré
+        assert pointe_metal_bois.Fax_Rk()[1].value == pytest.approx(453.5685)
+
+    def test_FvRk(self, pointe_metal_bois):
+        pointe_metal_bois.nef(a1_beam1=150, a1_beam2=150)
+        pointe_metal_bois.Fax_Rk()
+        Fvrk = pointe_metal_bois.FvRk(effet_corde=True)
+        assert Fvrk[1].value == pytest.approx(2694.1611859579516)
+
+    def test_FvRk_2cis(self, pointe_metal_bois_2cis):
+        pointe_metal_bois_2cis.nef(a1_beam1=150, a1_beam2=150)
+        pointe_metal_bois_2cis.Fax_Rk()
+        Fvrk = pointe_metal_bois_2cis.FvRk(effet_corde=True)
+        assert Fvrk[1].value == pytest.approx(5674.966952703288)
+
+    def test_prepercage_metal(self, pointe_metal_bois):
+        with pytest.raises(ValueError):
+            pointe_metal_bois.prepercage(beam="1")
+
+
 class Test_Agrafe:
     @pytest.fixture
     def agrafe(self, barre_bois, panneau_bois):

@@ -5,9 +5,16 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
-## [Unreleased]
+## [2.3.1]
 
 ### Fixed
+- **`Pointe`** (`ec5/assemblage/pointe.py`) — assemblage Bois/Métal avec plat métallique en pièce 1 :
+  - `Fax_Rk` : `AttributeError: 'Plat' object has no attribute 'rho_k'` (`rho_k_head` lu inconditionnellement sur `beam_1`). Quand la pièce 1 est métallique, la traversée de tête dans le bois n'existe pas : `F_ax,Rk = F_ax,a,Rk` (retrait côté pointe uniquement), même convention que `_FaxaRkHead` pour les tirefonds.
+  - Double cisaillement avec flasques métalliques extérieures : lève désormais `t1 = beam_1.t` et `t2 = min(b_beam_2, l - 2·t1 - l_pointe)` au lieu d'un `ValueError`, les modes J/K/L/M étant déjà implémentés dans `_FvRk_BoisMetal`.
+  - Double cisaillement avec plaque métallique centrale : `self.t1` n'était jamais assigné (`AttributeError` différée).
+  - `b_beam_2 = beam_2.t + 2` ajoutait **2 mètres** (littéral interprété en unité SI de base) au lieu de 2 mm — corrigé en `+ 2 * si.mm` (même correction dans `boulon.py` pour les tirefonds > 6 mm).
+  - `_caracteristique_min` : le contrôle de pénétration minimale (t2 ≥ 8d pointes lisses, ≥ 6d autres) s'applique désormais dès que la pièce 2 est en bois (Bois/Métal inclus), pas seulement en Bois/Bois.
+  - `prepercage` : `ValueError` explicite si la pièce demandée est métallique au lieu d'un `AttributeError` sur `rho_k`.
 - **`MathUtilsMixin._convert_unit_physical`** : `AttributeError: module 'forallpeople' has no attribute 'cm'` lors d'un `_from_parent_class` (ex. brique Assemblage) quand une valeur en m devait être convertie vers une unité autre que mm (annotation non unitaire) : `si.cm`/`si.km` n'existent pas dans l'environnement « structural ». Les unités de comparaison sont désormais résolues sans erreur (`_unit_str`) et la valeur est renvoyée inchangée si aucune conversion ne s'applique.
 - **`Tige.Fb_Rd`** (`ec3/assemblage/tige.py`) : la pression diamétrale utilisait la résistance ultime du boulon `fub` au lieu de celle de la plaque `fu` (EN 1993-1-8 tab. 3.4 : F_b,Rd = k1·αb·fu·d·t/γM2, `fub` n'intervenant que dans αb). Résultat surestimé d'un facteur fub/fu (≈ 2,2 pour un boulon 8.8 dans une plaque S235). Corrigé pour les deux branches (tête fraisée ou non).
 

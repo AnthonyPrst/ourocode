@@ -77,7 +77,7 @@ class Boulon(Assemblage):
                     if not self.t1:
                         if self.type_organe == "Tirefond" and self.nCis == 2:
                             if "Bois/Métal" in self.type_assemblage:
-                                b_beam_2 = self.beam_2.t + 2
+                                b_beam_2 = self.beam_2.t + 2 * si.mm
                             else:
                                 b_beam_2 = self.beam_2.b_calcul
                             l_pointe = self.d_vis

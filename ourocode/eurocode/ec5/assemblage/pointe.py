@@ -69,7 +69,7 @@ class Pointe(Assemblage):
             raise ValueError("La résistance du fil en traction est inférieur à 600 MPa, vérifier vos données !")
         if not self.percage and self.d > 6 * si.mm:
             raise ValueError("Erreur, le diamètre de la pointe est supérieur à 6mm, le prépercage est obligatoire")
-        if self.type_assemblage == self.TYPE_ASSEMBLAGE[0]:  # Si assemblage bois bois
+        if self._type_beam[1] in self.TYPE_BOIS_ASSEMBLAGE:  # Si la pièce 2 (coté pointe) est en bois
             if self.type_organe in ("Pointe circulaire lisse", "Pointe carrée lisse") and self.t2 < 8 * self.d:
                 raise ValueError(
                     f"Erreur, la longueur de pénétration t2 est inférieur à 8 fois le diamètre de la pointe. La longueur de pénétration minimal est de {self.d * 8}"
@@ -114,18 +114,22 @@ class Pointe(Assemblage):
         else:
             if self._type_beam[0] in self.TYPE_BOIS_ASSEMBLAGE:
                 if "Bois/Métal" in self.type_assemblage:
-                    b_beam_2 = self.beam_2.t + 2
+                    b_beam_2 = self.beam_2.t + 2 * si.mm
                 else:
                     b_beam_2 = self.beam_2.b_calcul
-                    self.t1 = min(self.beam_1.b_calcul, self.l - self.beam_1.b_calcul - b_beam_2 - l_pointe)
+                self.t1 = min(self.beam_1.b_calcul, self.l - self.beam_1.b_calcul - b_beam_2 - l_pointe)
+                if self._type_beam[1] in self.TYPE_BOIS_ASSEMBLAGE:
+                    self.t2 = self.beam_2.b_calcul
+                else:
+                    self.t2 = self.beam_2.t
+            elif self._type_beam[1] in self.TYPE_BOIS_ASSEMBLAGE:
+                # Flasques métalliques extérieures, pièce centrale en bois (EN 1995 §8.2.3)
+                self.t1 = self.beam_1.t
+                self.t2 = min(self.beam_2.b_calcul, self.l - 2 * self.t1 - l_pointe)
             else:
                 raise ValueError(
-                    "Il n'est pas considéré possible d'avoir un assemblage double cisaillement avec flasque métalique et un organe de type pointe!"
+                    "Il n'est pas considéré possible d'avoir un assemblage double cisaillement métal/métal avec un organe de type pointe!"
                 )
-            if self._type_beam[1] in self.TYPE_BOIS_ASSEMBLAGE:
-                self.t2 = self.beam_2.b_calcul
-            else:
-                self.t2 = self.beam_2.t
 
     @property
     def MyRk(self) -> tuple:
@@ -244,32 +248,50 @@ class Pointe(Assemblage):
             rho_k_ax = self.beam_1.rho_k
         else:
             rho_k_ax = self.beam_2.rho_k
-        rho_k_head = self.beam_1.rho_k
+        tete_dans_bois = self._type_beam[0] in self.TYPE_BOIS_ASSEMBLAGE
+        if tete_dans_bois:
+            rho_k_head = self.beam_1.rho_k
         d = self.d
         d_h = self.dh
         t = self.t1
         t_pen = self.t2
 
         if self.type_organe == "Autres pointes":
+            if tete_dans_bois:
 
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                f_ax_k = 20 * 10**-6 * rho_k_ax**2 * si.MPa
-                F_ax_a_Rk = f_ax_k * d * t_pen
-                f_head_k = 70 * 10**-6 * rho_k_head**2 * si.MPa
-                F_head_Rk = f_head_k * d_h**2
-                F_ax_Rk = min(F_ax_a_Rk, F_head_Rk)
-                return F_ax_Rk
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    f_ax_k = 20 * 10**-6 * rho_k_ax**2 * si.MPa
+                    F_ax_a_Rk = f_ax_k * d * t_pen
+                    f_head_k = 70 * 10**-6 * rho_k_head**2 * si.MPa
+                    F_head_Rk = f_head_k * d_h**2
+                    F_ax_Rk = min(F_ax_a_Rk, F_head_Rk)
+                    return F_ax_Rk
+            else:
+
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    f_ax_k = 20 * 10**-6 * rho_k_ax**2 * si.MPa
+                    F_ax_Rk = f_ax_k * d * t_pen
+                    return F_ax_Rk
         else:
+            if tete_dans_bois:
 
-            @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
-            def val():
-                f_ax_k = 20 * 10**-6 * rho_k_ax**2 * si.MPa
-                F_ax_a_Rk = f_ax_k * d * t_pen
-                f_head_k = 70 * 10**-6 * rho_k_head**2 * si.MPa
-                F_head_Rk = f_ax_k * d * t + f_head_k * d_h**2
-                F_ax_Rk = min(F_ax_a_Rk, F_head_Rk)
-                return F_ax_Rk
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    f_ax_k = 20 * 10**-6 * rho_k_ax**2 * si.MPa
+                    F_ax_a_Rk = f_ax_k * d * t_pen
+                    f_head_k = 70 * 10**-6 * rho_k_head**2 * si.MPa
+                    F_head_Rk = f_ax_k * d * t + f_head_k * d_h**2
+                    F_ax_Rk = min(F_ax_a_Rk, F_head_Rk)
+                    return F_ax_Rk
+            else:
+
+                @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+                def val():
+                    f_ax_k = 20 * 10**-6 * rho_k_ax**2 * si.MPa
+                    F_ax_Rk = f_ax_k * d * t_pen
+                    return F_ax_Rk
 
         F_ax_Rk = val()
         if self.type_organe == "Autres pointes" and self.t2 < 8 * self.d:
@@ -396,7 +418,6 @@ class Pointe(Assemblage):
             else:
                 if rho_k <= 420:
                     if self.d < 5:
-                        print(mt.cos(mt.radians(alpha)))
                         a1 = round((5 + 5 * mt.cos(mt.radians(alpha))) * self.d, 1)
                         a4t = round((5 + 2 * mt.sin(mt.radians(alpha))) * self.d, 1)
                     else:
@@ -453,8 +474,16 @@ class Pointe(Assemblage):
         """
         d = self.d
         if beam == "1":
+            if self._type_beam[0] not in self.TYPE_BOIS_ASSEMBLAGE:
+                raise ValueError(
+                    "La pièce 1 est métallique : l'épaisseur minimale sans pré-perçage ne s'applique qu'aux éléments bois."
+                )
             rho_k = self.beam_1.rho_k
         else:
+            if self._type_beam[1] not in self.TYPE_BOIS_ASSEMBLAGE:
+                raise ValueError(
+                    "La pièce 2 est métallique : l'épaisseur minimale sans pré-perçage ne s'applique qu'aux éléments bois."
+                )
             rho_k = self.beam_2.rho_k
         if self._flag(sensible):
 
