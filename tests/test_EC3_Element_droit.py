@@ -410,6 +410,13 @@ class TestGeometrieAutomatique:
         traction = Traction(t=10, b=200, h=1000, classe_acier="S235")
         assert traction.Nt_Rd[1].value == pytest.approx(2000e-6 * 235e6)
 
+    def test_traction_taux_t_d(self):
+        traction = Traction(t=8, b=200, h=200, A=1600, Anet=1392, classe_acier="S235")
+        n_rd = min(1600 * 235, 0.9 * 1392 * 360 / 1.25) / 1000
+        latex, taux = traction.taux_t_d(N_t_Ed=100)
+        assert taux == pytest.approx(100 / n_rd, rel=1e-4)
+        assert "N_{t,Rd}" in latex
+
     def test_compression_auto_profil(self):
         profil = Profil(designation="HEA 200", classe_acier="S355")
         comp = Compression._from_parent_class(profil, lo_y=4000, lo_z=4000)
