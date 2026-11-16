@@ -289,3 +289,22 @@ class TestGroupMembers:
         # lo_rel_z (déversement selon Z) bloqué par DY : N2 ne bloque pas DY
         # → longueur totale = 2000 mm
         assert sm["Design"]["lo_rel_z"] == pytest.approx(2000.0)
+
+
+def test_get_absolute_internal_force_unit_kn(monkeypatch):
+    """unit="kN" : nombre en kN (effort) / kN·m (moment), défaut Physical."""
+    import forallpeople as si
+    from ourocode.eurocode.core.model_result import Model_result
+
+    mr = object.__new__(Model_result)
+    extremes = {
+        "Vy": {"Min": (-500 * si.N, "C1"), "Max": (300 * si.N, "C2")},
+        "Mz": {"Min": (-2e6 * si.N * si.mm, "C1"), "Max": (0 * si.N * si.mm, "C1")},
+    }
+    monkeypatch.setattr(mr, "get_min_max_internal_force", lambda *a: extremes, raising=False)
+    physical = mr.get_absolute_internal_force("M1", "C1", type="Vy")
+    assert physical.value == pytest.approx(500)
+    assert mr.get_absolute_internal_force("M1", "C1", type="Vy", unit="kN") == pytest.approx(0.5)
+    assert mr.get_absolute_internal_force("M1", "C1", type="Mz", unit="kN") == pytest.approx(2.0)
+    res = mr.get_absolute_internal_force("M1", "C1", type="Vy", get_combo_name=True, unit="kN")
+    assert res == {"Effort": pytest.approx(0.5), "Combinaison": "C1"}

@@ -8,6 +8,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 ## [Unreleased]
 
 ### Added
+- **`Model_result.get_absolute_internal_force(..., unit="kN")`** : retourne un nombre en kN (effort) ou kN·m (moment) au lieu d'une grandeur physique, pour alimenter un argument numérique sans dépendre du préfixe d'affichage de forallpeople (500 N → « 500 »). Défaut inchangé (`"Physique"`).
 - **`Traction.taux_t_d(N_t_Ed)`** (`ec3/element_droit/traction.py`) : taux de travail N_t,Ed / N_t,Rd (EN 1993-1-1 §6.2.3, équa 6.5) avec ajout à la synthèse. Permet de chaîner la vérification de section nette dans un graphe sans lire la propriété `Nt_Rd`, qui est un couple (latex, valeur).
 
 ### Fixed
