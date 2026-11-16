@@ -7,6 +7,10 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ## [2.3.2]
 
+### Added
+- **`Model_result.get_absolute_internal_force(..., unit="kN")`** : retourne un nombre en kN (effort) ou kN·m (moment) au lieu d'une grandeur physique, pour alimenter un argument numérique sans dépendre du préfixe d'affichage de forallpeople (500 N → « 500 »). Défaut inchangé (`"Physique"`).
+- **`Traction.taux_t_d(N_t_Ed)`** (`ec3/element_droit/traction.py`) : taux de travail N_t,Ed / N_t,Rd (EN 1993-1-1 §6.2.3, équa 6.5) avec ajout à la synthèse. Permet de chaîner la vérification de section nette dans un graphe sans lire la propriété `Nt_Rd`, qui est un couple (latex, valeur).
+
 ### Fixed
 - **`Assemblage.taux_F_v_Ed`** (`ec5/assemblage/assemblage.py`) : `AttributeError: 'Pointe' object has no attribute 'Fax_Rk_ass'` pour les « Autres pointes » avec `Fax_Ed ≠ 0` — `Fax_Rk_ass` (= `FaxRk × nfile × n`) n'était calculé que pour les pointes lisses/agrafes/boulons. Ajout d'un `AttributeError` explicite si `Fax_Rk()` n'a pas été exécuté au préalable, et le `raise f"..."` (qui levait une chaîne) devient un `ValueError`.
 - **`Assemblage.__type_assemblage`** (`ec5/assemblage/assemblage.py`) : la détection du matériau ne repose plus sur un `try/except AttributeError` trop large. Tout objet sans `type_bois` était silencieusement classé « Métal » (risque de mauvaise détection d'une pièce bois) ; un échec de `caract_meca.loc["rhok"]` provoquait en outre un double enregistrement désalignant `_type_beam`. Désormais : `TypeError` explicite si la pièce n'est ni un élément bois (`type_bois`) ni un plat métallique (`t`), `ValueError` explicite si `type_bois` est inconnu ou `rhok` introuvable.

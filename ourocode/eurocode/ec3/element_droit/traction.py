@@ -101,3 +101,24 @@ class Traction(Plat):
             return (latex_Npl_Rd + latex_Nu_Rd + value[0], value[1])
         else:
             return self._Npl_Rd
+
+    def taux_t_d(self, N_t_Ed: si.kN = 0):
+        """Retourne le taux de travail en traction N_t,Ed / N_t,Rd selon EN 1993-1-1 §6.2.3 (équa 6.5).
+
+        Args:
+            N_t_Ed (float): effort de traction de calcul en kN.
+
+        Returns:
+            tuple: (latex_string, taux) où taux est sans dimension.
+        """
+        N_t_Ed = N_t_Ed * si.kN
+        latex_Nt_Rd, N_t_Rd = self.Nt_Rd
+
+        @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
+        def val():
+            taux_t_d = N_t_Ed / N_t_Rd  # (équa 6.5)
+            return taux_t_d
+
+        value = val()
+        self._add_synthese_taux_travail([["Traction section nette du plat", value[1], None]])
+        return (latex_Nt_Rd + value[0], value[1])
