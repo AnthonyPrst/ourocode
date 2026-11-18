@@ -1,16 +1,21 @@
 #! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
+import logging
 import os
 import sys
 from PIL import Image
 
 import math as mt
-from copy import copy
 
 import pandas as pd
 import forallpeople as si
 from ourocode.eurocode.core._renderer import handcalc
 from ourocode.eurocode.mixins.math_utils import MathUtilsMixin
+
+logger = logging.getLogger(__name__)
+
+# Correspondance code département INSEE -> territoire d'outre-mer
+DEPT_DOM = {"971": "Guadeloupe", "972": "Martinique", "973": "Guyane", "974": "Réunion", "976": "Mayotte"}
 
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 # from eurocode.A0_Projet import Batiment
@@ -42,7 +47,8 @@ class Vent(Batiment):
         "IV": {"Z0": 1, "Zmin": 15},
     }
 
-    CAT_ORO = {"Aucun": 1, "Cas 1": "1", "Cas 2": "2"}
+    CAT_ORO = {"Aucun": 0, "Cas 1": 1, "Cas 2": 2}
+
     CFR = {"Lisse": 0.01, "Rugueuse": 0.02, "Très rugueuse": 0.04}
 
     def __init__(self, z: si.m, terrain: str = CAT_TERRAIN, oro: str = CAT_ORO, CsCd: float = 1, **kwargs):
@@ -147,9 +153,29 @@ class Vent(Batiment):
 
     @property
     def zone_vent(self):
+        """Zone de vent du projet : 1 à 4 en métropole, nom du territoire pour les DOM.
+
+        Le fichier carte_action_region.csv code les communes d'outre-mer avec une zone
+        "2.5" ou vide : le département INSEE (971-976) est alors utilisé pour déterminer
+        la vitesse de référence cyclonique de l'Annexe Nationale.
+        """
         file = "carte_action_region.csv"
         df = self._data_from_csv(file, index_col=1)
-        return int(df.loc[str(self.code_INSEE)]["Zone_vent"])
+        row = df.loc[str(self.code_INSEE)]
+        zone = row["Zone_vent"]
+        try:
+            zone_num = float(zone)
+            if zone_num != int(zone_num):
+                raise ValueError  # zone non entière ("2.5") : commune d'outre-mer
+            return int(zone_num)
+        except (TypeError, ValueError):
+            dept = str(row["INSEE_Département"]).zfill(3)
+            if dept in DEPT_DOM:
+                return DEPT_DOM[dept]
+            raise ValueError(
+                f"Aucun zonage vent disponible pour la commune INSEE {self.code_INSEE} "
+                f"(Zone_vent={zone!r})."
+            )
 
     @property
     def Vb_0(self):
@@ -217,8 +243,13 @@ class Vent(Batiment):
 
         if self.cat_terrain["Zmin"] <= self.z.value <= 200:
             Cr_z = self._Kr * mt.log(self.z.value / self.cat_terrain["Z0"])
-        else:
+        elif self.z.value < self.cat_terrain["Zmin"]:
             Cr_z = self._Kr * mt.log(self.cat_terrain["Zmin"] / self.cat_terrain["Z0"])
+        else:
+            raise ValueError(
+                "Erreur la hauteur du bâtiment ne peut dépasser 200m, impossible de calculer "
+                "le coefficient de rugosité Cr"
+            )
 
         # print("Kr :", self._Kr)
         # print("Cr_z :", Cr_z)
@@ -234,35 +265,20 @@ class Vent(Batiment):
         Returns:
             tuple: (latex_string, C_0_z) où C_0_z est le coefficient orographique (sans unité, ≥ 1).
         """
-        # ATTENTION vérifier le z et zmin si toujours comptatible quand ajout du cas 2 !!!
-        if self.z.value < self.cat_terrain["Zmin"]:
-            z = self.cat_terrain["Zmin"]
-        else:
-            z = self.z.value
-
         match self.cat_oro:
-            case "1":
+            case 1:
                 Delta_A_C = self.delta_AC.value
-                if self.z.value >= 10:
+                z_moins_10 = max(0.0, self.z.value - 10)
 
-                    @handcalc(
-                        override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]"
-                    )
-                    def val():
-                        C0_z = 1 + 0.004 * Delta_A_C * mt.exp(z - 10)
-                        res = max(C0_z, 1)
-                        return res
-                else:
+                @handcalc(
+                    override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]"
+                )
+                def val():
+                    C0_z = 1 + 0.004 * Delta_A_C * mt.exp(-0.014 * z_moins_10)  # 4.14-NA
+                    res = max(C0_z, 1)
+                    return res
 
-                    @handcalc(
-                        override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]"
-                    )
-                    def val():
-                        C0_z = 1 + 0.004 * Delta_A_C * mt.exp(0)
-                        res = max(C0_z, 1)
-                        return res
-
-            case "2":
+            case 2:
                 raise ValueError("Erreur la catégorie orographique 2 n'est pas encore implémentée")
             case _:
 
@@ -271,7 +287,14 @@ class Vent(Batiment):
                     C0_z = 1
                     return C0_z
 
-        return val()
+        result = val()
+        if result[1] > 1.15:
+            logger.warning(
+                "C0(z) = %.3f > 1.15 : la formule de l'AN (orographie complexe) n'est plus "
+                "valable, une étude détaillée du relief est nécessaire (EN 1991-1-4 §A.3).",
+                result[1],
+            )
+        return result
 
     @property
     # @handcalc(override="params", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -302,7 +325,7 @@ class Vent(Batiment):
                 float: coef de turbulence
         """
         match self.cat_oro:
-            case "1":
+            case 1:
                 return self.Co_z[1] * (1 - 2 * 10**-4 * (mt.log10(self.cat_terrain["Z0"]) + 3) ** 6)  # 4.19NA
             case _:
                 return 1 - 2 * 10**-4 * (mt.log10(self.cat_terrain["Z0"]) + 3) ** 6  # 4.20NA
@@ -427,13 +450,12 @@ class Vent(Batiment):
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            W_e = Q_p_z * C_pi  # 5.2
-            return W_e
+            W_i = Q_p_z * C_pi  # 5.2
+            return W_i
 
         return val()
 
     def Fw_e(self, Aref: float):
-        self.CsCd
         pass  # 5.5
 
     def Fw_i(self, Aref: float):
@@ -515,13 +537,13 @@ class Murs_verticaux(Vent):
                     self.e = min(self.b_bat, self.h_bat * 2)
                 case "90°":
                     self.e = min(self.d_bat, self.h_bat * 2)
-                    d_bat = copy(self.d_bat)
-                    b_bat = copy(self.b_bat)
-                    self.b_bat = d_bat
-                    self.d_bat = b_bat
+                    self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
             self._wind_direction[cle]["geometrie"] = self._geo()
             self._wind_direction[cle]["Cpe"] = self._Cpe(cle)
+
+            if cle == "90°":
+                self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
     def _geo(self):
         """Calcul les dimensions du zonage des parois verticale"""
@@ -604,22 +626,22 @@ class Murs_verticaux(Vent):
     def get_wind_dict(self) -> dict:
         return self._wind_direction
 
-    def get_geo(self, dir=("0°", "90°")):
+    def get_geo(self, dir="0°"):
         """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
 
         Returns:
             dict: {"A": ..., "B": ..., "C": ..., "D": ..., "E": ...} avec les dimensions en m.
         """
         return self._wind_direction[dir]["geometrie"]
 
-    def get_Cpe(self, dir=("0°", "90°")):
+    def get_Cpe(self, dir="0°"):
         """Retourne les coefficients de pression extérieure C_pe pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
 
         Returns:
             pandas.DataFrame: C_pe par zone (A, B, C, D, E), interpolés selon h/d et load_area.
@@ -650,7 +672,8 @@ class Toiture_terrasse_acrotere(Vent):
             **kwargs: Arguments nommés transmis à la classe parent Vent.
         """
         super().__init__(*args, **kwargs)
-        self.type_terrasse = "Acrotères"
+        # hp = 0 correspond à une terrasse à rives vives (sans acrotère, tab. 7.2)
+        self.type_terrasse = "Acrotères" if hp > 0 else "Rives vives"
         self.load_area = load_area
         self.hp = hp * si.m
         self.h = h * si.m
@@ -700,33 +723,37 @@ class Toiture_terrasse_acrotere(Vent):
         df = df.loc[name_csv_type]
         df.reset_index(drop=False, inplace=True)
         df.drop("Type", axis=1, inplace=True)
-        list_type_rapport = df["Rapport"].unique()
+        list_type_rapport = df["Rapport"].dropna().unique()
 
-        if self._hp_h > 0.1:
-            self._hp_h = 0.1
-        elif self._hp_h not in list_type_rapport:
-            minimum = list_type_rapport[list_type_rapport < self._hp_h].max()
-            maximum = list_type_rapport[list_type_rapport > self._hp_h].min()
-            df_min = df[df["Rapport"] == minimum]
-            df_max = df[df["Rapport"] == maximum]
+        # Pas de rapport hp/h pour les rives vives (bord sans acrotère)
+        if list_type_rapport.size > 0:
+            self._hp_h = min(self._hp_h, 0.1)
+            if self._hp_h < list_type_rapport.min():
+                # hp/h sous le plus petit rapport tabulé (0.025) : on retient la borne basse
+                df = df[df["Rapport"] == list_type_rapport.min()]
+                self._hp_h = list_type_rapport.min()
+            elif self._hp_h not in list_type_rapport:
+                minimum = list_type_rapport[list_type_rapport < self._hp_h].max()
+                maximum = list_type_rapport[list_type_rapport > self._hp_h].min()
+                df_min = df[df["Rapport"] == minimum]
+                df_max = df[df["Rapport"] == maximum]
 
-            df = df[df["Rapport"].isin([minimum, maximum])]
-            df.reset_index(drop=True, inplace=True)
+                df = df[df["Rapport"].isin([minimum, maximum])]
+                df.reset_index(drop=True, inplace=True)
 
-            df.reset_index(drop=True, inplace=True)
-            for i, cpe in enumerate(["CPE 10", "CPE 1"]):
-                row = [round(self._hp_h, 3), cpe]
-                for j in range(2, num_columns):
-                    row.append(
-                        MathUtilsMixin.interpolation_lineaire(
-                            self._hp_h,
-                            minimum,
-                            maximum,
-                            df_min.iloc[i, j],
-                            df_max.iloc[i, j],
+                for i, cpe in enumerate(["CPE 10", "CPE 1"]):
+                    row = [round(self._hp_h, 3), cpe]
+                    for j in range(2, num_columns):
+                        row.append(
+                            MathUtilsMixin.interpolation_lineaire(
+                                self._hp_h,
+                                minimum,
+                                maximum,
+                                df_min.iloc[i, j],
+                                df_max.iloc[i, j],
+                            )
                         )
-                    )
-                df.loc[df.shape[0]] = row
+                    df.loc[df.shape[0]] = row
 
         if self.load_area > 1 and self.load_area < 10:
             for i in range(df.shape[0]):
@@ -741,9 +768,14 @@ class Toiture_terrasse_acrotere(Vent):
                     df.loc[df.shape[0]] = row
             df.reset_index(drop=True, inplace=True)
 
-        df = df[df["Rapport"] == round(self._hp_h, 3)]
-        df.dropna(axis=1, how="all", inplace=True)
-        df.set_index("Rapport", inplace=True)
+        if list_type_rapport.size > 0:
+            df = df[df["Rapport"] == round(self._hp_h, 3)]
+            df.dropna(axis=1, how="all", inplace=True)
+            df.set_index("Rapport", inplace=True)
+        else:
+            df.drop("Rapport", axis=1, inplace=True)
+            df.dropna(axis=1, how="all", inplace=True)
+            df.set_index("Cpe", inplace=True)
         return df
 
     def get_wind_dict(self) -> dict:
@@ -800,13 +832,13 @@ class Toiture_1_pant(Vent):
 
                 case "90°":
                     self.e = min(self.d_bat, self.h_bat * 2)
-                    d_bat = copy(self.d_bat)
-                    b_bat = copy(self.b_bat)
-                    self.b_bat = d_bat
-                    self.d_bat = b_bat
+                    self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
             self._wind_direction[cle]["geometrie"] = self._geo(cle)
             self._wind_direction[cle]["Cpe"] = self._Cpe(cle)
+
+            if cle == "90°":
+                self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
     def _geo(self, direction: str):
         """Calcul les surfaces du zonage de la toiture
@@ -834,6 +866,8 @@ class Toiture_1_pant(Vent):
                     },
                 }
             case "90°":
+                # Fig. 7.7(c) : F_up et F_low (e/4) aux deux extrémités du bandeau au vent (e/10),
+                # G entre les deux, H jusqu'à e/2 puis I jusqu'au bord sous le vent
                 geometrie = {
                     "F_up / F_low": {
                         "Longueur": self.e / 4,
@@ -841,16 +875,16 @@ class Toiture_1_pant(Vent):
                         "Surface": (self.e / 10) * (self.e / 4) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "G": {
-                        "Longueur": self.b_bat - (self.e / 4 * 2) / 2,
+                        "Longueur": self.b_bat - self.e / 2,
                         "Largeur": self.e / 10,
                         "Surface": (self.e / 10)
-                        * (self.b_bat - (self.e / 4 * 2) / 2)
+                        * (self.b_bat - self.e / 2)
                         / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "H": {
-                        "Longueur": self.b_bat / 2,
+                        "Longueur": self.b_bat,
                         "Largeur": self.e / 2 - self.e / 10,
-                        "Surface": (self.e / 2 - self.e / 10) * (self.b_bat / 2) / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": (self.e / 2 - self.e / 10) * self.b_bat / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "I": {
                         "Longueur": self.b_bat,
@@ -938,11 +972,11 @@ class Toiture_1_pant(Vent):
     def get_wind_dict(self) -> dict:
         return self._wind_direction
 
-    def get_geo(self, direction=("0°", "90°", "180°")):
+    def get_geo(self, direction="0°"):
         """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-            direction (str): Direction du vent ("0°", "90°" ou "180°"). Defaults to ("0°", "90°", "180°").
+            direction (str): Direction du vent ("0°", "90°" ou "180°"). Defaults to "0°".
 
         Returns:
             dict: Zones avec Longueur, Largeur et Surface en m / m².
@@ -951,11 +985,11 @@ class Toiture_1_pant(Vent):
         """
         return self._wind_direction[direction]["geometrie"]
 
-    def get_Cpe(self, direction=("0°", "90°", "180°")):
+    def get_Cpe(self, direction="0°"):
         """Retourne les coefficients de pression extérieure C_pe pour la direction de vent donnée.
 
         Args:
-            direction (str): Direction du vent ("0°", "90°" ou "180°"). Defaults to ("0°", "90°", "180°").
+            direction (str): Direction du vent ("0°", "90°" ou "180°"). Defaults to "0°".
 
         Returns:
             pandas.DataFrame: C_pe par zone, interpolés selon alpha_toit et load_area.
@@ -998,13 +1032,13 @@ class Toiture_2_pants(Vent):
 
                 case "90°":
                     self.e = min(self.d_bat, self.h_bat * 2)
-                    d_bat = copy(self.d_bat)
-                    b_bat = copy(self.b_bat)
-                    self.b_bat = d_bat
-                    self.d_bat = b_bat
+                    self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
             self._wind_direction[cle]["geometrie"] = self._geo(cle)
             self._wind_direction[cle]["Cpe"] = self._Cpe(cle)
+
+            if cle == "90°":
+                self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
     def _geo(self, direction: str = "0°"):
         """Calcul les surfaces du zonage de la toiture
@@ -1042,6 +1076,8 @@ class Toiture_2_pants(Vent):
                     },
                 }
             case "90°":
+                # Fig. 7.8(b) : chaque versant se comporte comme une toiture à un versant :
+                # F (e/4) à chaque extrémité du bandeau au vent (e/10), G entre les deux
                 geometrie = {
                     "F": {
                         "Longueur": self.e / 4,
@@ -1049,10 +1085,10 @@ class Toiture_2_pants(Vent):
                         "Surface": (self.e / 10) * (self.e / 4) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "G": {
-                        "Longueur": (self.b_bat - (self.e / 4 * 2)) / 2,
+                        "Longueur": self.b_bat / 2 - self.e / 2,
                         "Largeur": self.e / 10,
                         "Surface": (self.e / 10)
-                        * (self.b_bat - (self.e / 4 * 2) / 2)
+                        * (self.b_bat / 2 - self.e / 2)
                         / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "H": {
@@ -1143,11 +1179,11 @@ class Toiture_2_pants(Vent):
     def get_wind_dict(self) -> dict:
         return self._wind_direction
 
-    def get_geo(self, dir=("0°", "90°")):
+    def get_geo(self, dir="0°"):
         """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
 
         Returns:
             dict: Zones avec Longueur, Largeur et Surface en m / m².
@@ -1156,11 +1192,11 @@ class Toiture_2_pants(Vent):
         """
         return self._wind_direction[dir]["geometrie"]
 
-    def get_Cpe(self, dir=("0°", "90°")):
+    def get_Cpe(self, dir="0°"):
         """Retourne les coefficients de pression extérieure C_pe pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
 
         Returns:
             pandas.DataFrame: C_pe par zone, interpolés selon alpha_toit et load_area.
@@ -1198,13 +1234,13 @@ class Toiture_isolee_1_pant(Vent):
         for cle in self._wind_direction.keys():
             match cle:
                 case "90°":
-                    d_bat = copy(self.d_bat)
-                    b_bat = copy(self.b_bat)
-                    self.b_bat = d_bat
-                    self.d_bat = b_bat
+                    self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
             self._wind_direction[cle]["geometrie"] = self._geo()
             self._wind_direction[cle]["Cp"] = self._Cp()
+
+            if cle == "90°":
+                self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
     def _geo(self):
         """Calcul les surfaces du zonage de la toiture"""
@@ -1304,22 +1340,22 @@ class Toiture_isolee_1_pant(Vent):
     def get_wind_dict(self) -> dict:
         return self._wind_direction
 
-    def get_geo(self, dir=("0°", "90°")):
+    def get_geo(self, dir="0°"):
         """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
 
         Returns:
             dict: {"A": ..., "B": ..., "C": ...} avec Longueur, Largeur et Surface en m / m².
         """
         return self._wind_direction[dir]["geometrie"]
 
-    def get_Cp(self, dir=("0°", "90°")):
+    def get_Cp(self, dir="0°"):
         """Retourne les coefficients de pression nette C_p pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
 
         Returns:
             pandas.DataFrame: C_p nets par zone (A, B, C), interpolés selon phi et alpha_toit.
@@ -1358,13 +1394,13 @@ class Toiture_isolee_2_pants(Vent):
         for cle in self._wind_direction.keys():
             match cle:
                 case "90°":
-                    d_bat = copy(self.d_bat)
-                    b_bat = copy(self.b_bat)
-                    self.b_bat = d_bat
-                    self.d_bat = b_bat
+                    self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
             self._wind_direction[cle]["geometrie"] = self._geo()
             self._wind_direction[cle]["Cp"] = self._Cp()
+
+            if cle == "90°":
+                self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
     def _geo(self):
         """Calcul les surfaces du zonage de la toiture"""
@@ -1469,22 +1505,22 @@ class Toiture_isolee_2_pants(Vent):
     def get_wind_dict(self) -> dict:
         return self._wind_direction
 
-    def get_geo(self, dir=("0°", "90°")):
+    def get_geo(self, dir="0°"):
         """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
 
         Returns:
             dict: {"A": ..., "B": ..., "C": ..., "D": ...} avec Longueur, Largeur et Surface en m / m².
         """
         return self._wind_direction[dir]["geometrie"]
 
-    def get_Cp(self, dir=("0°", "90°")):
+    def get_Cp(self, dir="0°"):
         """Retourne les coefficients de pression nette C_p pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
 
         Returns:
             pandas.DataFrame: C_p nets par zone (A, B, C, D), interpolés selon phi et alpha_toit.

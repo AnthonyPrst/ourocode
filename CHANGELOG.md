@@ -5,6 +5,21 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [Unreleased]
+
+### Fixed
+- **`Vent.Co_z` — Cas 1** (`ec1/vent.py`) : la formule 4.14-NA utilisait `exp(z − 10)` au lieu de `exp(−0,014·max(0, z−10))`, produisant un C₀ dément (~10⁷ au lieu de ~1,15). Le coefficient est borné à 1 minimum et un avertissement est émis si le résultat dépasse 1,15 (limite de validité de la formule AN).
+- **`Vent.zone_vent` — communes d'outre-mer** (`ec1/vent.py`) : la zone « 2.5 » du fichier `carte_action_region.csv` était silencieusement tronquée en zone 2 (`int(2.5)`), calculant la Guadeloupe à 24 m/s au lieu de 36 m/s. Le département INSEE (971-976) détermine désormais le territoire (`DEPT_DOM`) et la vitesse cyclonique AN ; les communes sans zonage (975) lèvent un `ValueError` explicite au lieu d'un crash.
+- **Permutation `b_bat`/`d_bat` jamais restaurée** (`ec1/vent.py`) : après instanciation de `Murs_verticaux`, `Toiture_1_pant`, `Toiture_2_pants`, `Toiture_isolee_1_pant` ou `Toiture_isolee_2_pants`, les dimensions restaient permutées (ex. `b_bat=20, d_bat=30` pour 30×20), corrompant `K_red_U` et tout consommateur en aval.
+- **`Toiture_terrasse_acrotere`** (`ec1/vent.py`) : `hp=0` (terrasse à rives vives) levait un `ValueError` alors que le tableau 7.2 couvre ce cas — `type_terrasse` devient `"Rives vives"` automatiquement. `hp/h < 0,025` retombe sur la borne tabulée la plus basse au lieu d'échouer.
+- **`Toiture_2_pants._geo` à 90°** (`ec1/vent.py`) : la zone G était incohérente (`Longueur` et `Surface` calculées avec deux formules différentes, surface ~×2,7). Conformément à la fig. 7.8(b), chaque versant est zoné comme une toiture à un versant : `G = (b/2 − e/2) × e/10`.
+- **`Toiture_1_pant._geo` à 90°** (`ec1/vent.py`) : conformément à la fig. 7.7(c), `G = b − e/2` et `H` porte sur toute la longueur `b` (au lieu de `b/2`).
+- **`_Cr_z`** (`ec1/vent.py`) : pour `z > 200 m`, lève désormais un `ValueError` explicite (cohérent avec `_Iv_z`) au lieu de renvoyer `Cr(z_min)`.
+- **`get_geo` / `get_Cpe` / `get_Cp`** (`ec1/vent.py`) : les valeurs par défaut étaient des tuples `("0°", "90°")` provoquant un `KeyError` à l'appel sans argument — remplacées par `"0°"`.
+
+### Added
+- **`tests/test_EC1_Vent.py`** : 18 tests de non-régression couvrant le zonage DOM, le coefficient orographique Cas 1, la restauration de `b_bat`/`d_bat`, les terrasses rives vives/acroteres et la géométrie des zones à 90°.
+
 ## [2.3.2]
 
 ### Added
