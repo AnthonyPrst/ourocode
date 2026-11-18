@@ -626,22 +626,22 @@ class Murs_verticaux(Vent):
     def get_wind_dict(self) -> dict:
         return self._wind_direction
 
-    def get_geo(self, dir="0°"):
+    def get_geo(self, dir=("0°", "90°")):
         """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
 
         Returns:
             dict: {"A": ..., "B": ..., "C": ..., "D": ..., "E": ...} avec les dimensions en m.
         """
         return self._wind_direction[dir]["geometrie"]
 
-    def get_Cpe(self, dir="0°"):
+    def get_Cpe(self, dir=("0°", "90°")):
         """Retourne les coefficients de pression extérieure C_pe pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
 
         Returns:
             pandas.DataFrame: C_pe par zone (A, B, C, D, E), interpolés selon h/d et load_area.
@@ -972,11 +972,11 @@ class Toiture_1_pant(Vent):
     def get_wind_dict(self) -> dict:
         return self._wind_direction
 
-    def get_geo(self, direction="0°"):
+    def get_geo(self, direction=("0°", "90°", "180°")):
         """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-            direction (str): Direction du vent ("0°", "90°" ou "180°"). Defaults to "0°".
+            direction (str): Direction du vent ("0°", "90°" ou "180°"). Defaults to ("0°", "90°", "180°").
 
         Returns:
             dict: Zones avec Longueur, Largeur et Surface en m / m².
@@ -985,11 +985,11 @@ class Toiture_1_pant(Vent):
         """
         return self._wind_direction[direction]["geometrie"]
 
-    def get_Cpe(self, direction="0°"):
+    def get_Cpe(self, direction=("0°", "90°", "180°")):
         """Retourne les coefficients de pression extérieure C_pe pour la direction de vent donnée.
 
         Args:
-            direction (str): Direction du vent ("0°", "90°" ou "180°"). Defaults to "0°".
+            direction (str): Direction du vent ("0°", "90°" ou "180°"). Defaults to ("0°", "90°", "180°").
 
         Returns:
             pandas.DataFrame: C_pe par zone, interpolés selon alpha_toit et load_area.
@@ -1179,11 +1179,11 @@ class Toiture_2_pants(Vent):
     def get_wind_dict(self) -> dict:
         return self._wind_direction
 
-    def get_geo(self, dir="0°"):
+    def get_geo(self, dir=("0°", "90°")):
         """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
 
         Returns:
             dict: Zones avec Longueur, Largeur et Surface en m / m².
@@ -1192,11 +1192,11 @@ class Toiture_2_pants(Vent):
         """
         return self._wind_direction[dir]["geometrie"]
 
-    def get_Cpe(self, dir="0°"):
+    def get_Cpe(self, dir=("0°", "90°")):
         """Retourne les coefficients de pression extérieure C_pe pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
 
         Returns:
             pandas.DataFrame: C_pe par zone, interpolés selon alpha_toit et load_area.
@@ -1340,22 +1340,22 @@ class Toiture_isolee_1_pant(Vent):
     def get_wind_dict(self) -> dict:
         return self._wind_direction
 
-    def get_geo(self, dir="0°"):
+    def get_geo(self, dir=("0°", "90°")):
         """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
 
         Returns:
             dict: {"A": ..., "B": ..., "C": ...} avec Longueur, Largeur et Surface en m / m².
         """
         return self._wind_direction[dir]["geometrie"]
 
-    def get_Cp(self, dir="0°"):
+    def get_Cp(self, dir=("0°", "90°")):
         """Retourne les coefficients de pression nette C_p pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
 
         Returns:
             pandas.DataFrame: C_p nets par zone (A, B, C), interpolés selon phi et alpha_toit.
@@ -1505,22 +1505,22 @@ class Toiture_isolee_2_pants(Vent):
     def get_wind_dict(self) -> dict:
         return self._wind_direction
 
-    def get_geo(self, dir="0°"):
+    def get_geo(self, dir=("0°", "90°")):
         """Retourne les dimensions des zones de pression pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
 
         Returns:
             dict: {"A": ..., "B": ..., "C": ..., "D": ...} avec Longueur, Largeur et Surface en m / m².
         """
         return self._wind_direction[dir]["geometrie"]
 
-    def get_Cp(self, dir="0°"):
+    def get_Cp(self, dir=("0°", "90°")):
         """Retourne les coefficients de pression nette C_p pour la direction de vent donnée.
 
         Args:
-            dir (str): Direction du vent ("0°" ou "90°"). Defaults to "0°".
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
 
         Returns:
             pandas.DataFrame: C_p nets par zone (A, B, C, D), interpolés selon phi et alpha_toit.

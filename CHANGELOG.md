@@ -15,10 +15,9 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - **`Toiture_2_pants._geo` à 90°** (`ec1/vent.py`) : la zone G était incohérente (`Longueur` et `Surface` calculées avec deux formules différentes, surface ~×2,7). Conformément à la fig. 7.8(b), chaque versant est zoné comme une toiture à un versant : `G = (b/2 − e/2) × e/10`.
 - **`Toiture_1_pant._geo` à 90°** (`ec1/vent.py`) : conformément à la fig. 7.7(c), `G = b − e/2` et `H` porte sur toute la longueur `b` (au lieu de `b/2`).
 - **`_Cr_z`** (`ec1/vent.py`) : pour `z > 200 m`, lève désormais un `ValueError` explicite (cohérent avec `_Iv_z`) au lieu de renvoyer `Cr(z_min)`.
-- **`get_geo` / `get_Cpe` / `get_Cp`** (`ec1/vent.py`) : les valeurs par défaut étaient des tuples `("0°", "90°")` provoquant un `KeyError` à l'appel sans argument — remplacées par `"0°"`.
 
 ### Added
-- **`tests/test_EC1_Vent.py`** : 18 tests de non-régression couvrant le zonage DOM, le coefficient orographique Cas 1, la restauration de `b_bat`/`d_bat`, les terrasses rives vives/acroteres et la géométrie des zones à 90°.
+- **`tests/test_EC1_Vent.py`** : tests de non-régression couvrant le zonage DOM, le coefficient orographique Cas 1, la restauration de `b_bat`/`d_bat`, les terrasses rives vives/acroteres et la géométrie des zones à 90°.
 
 ## [2.3.2]
 

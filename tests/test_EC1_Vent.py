@@ -139,10 +139,17 @@ class TestGeometrie90:
 
 
 class TestAccesseurs:
-    def test_get_geo_sans_argument(self):
+    def test_get_geo_0(self):
         t = Toiture_2_pants(load_area=10, z=8, **{**METRO, "h_bat": 8, "alpha_toit": 15})
-        assert list(t.get_geo().keys()) == ["F", "G", "H", "I", "J"]
+        assert list(t.get_geo("0°").keys()) == ["F", "G", "H", "I", "J"]
 
-    def test_get_cpe_sans_argument(self):
+    def test_get_cpe_0(self):
         t = Toiture_1_pant(load_area=10, z=8, **{**METRO, "h_bat": 8, "alpha_toit": 15})
-        assert "F-" in t.get_Cpe().columns
+        assert "F-" in t.get_Cpe("0°").columns
+
+    def test_tuple_defaut_enumere_les_directions(self):
+        """Les défauts tuple des accesseurs énumèrent les directions (convention OUREA-NoCode)."""
+        import inspect
+
+        assert inspect.signature(Toiture_2_pants.get_geo).parameters["dir"].default == ("0°", "90°")
+        assert inspect.signature(Toiture_1_pant.get_geo).parameters["direction"].default == ("0°", "90°", "180°")
