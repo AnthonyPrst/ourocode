@@ -1267,6 +1267,8 @@ class Toiture_4_pants(Vent):
         b = self.b_bat
         d = self.d_bat
         cos_a = self._cos_alpha(direction)
+        # Bandes e/10 le long des arêtiers, plafonnées pour que L+J n'excèdent pas la croupe
+        s_hip = min(e / 10, min(b, d) / 4)
         match direction:
             case "0°":
                 long_fait = b - d
@@ -1288,13 +1290,13 @@ class Toiture_4_pants(Vent):
                         "Largeur": d / 2 - e / 10,
                         "Surface": (b - d / 2 + e / 10) * (d / 2 - e / 10) / cos_a,
                     },
-                    "L": {"Longueur": d / 2, "Largeur": e / 10, "Surface": (e / 10) * (d / 2) / cos_a},
+                    "L": {"Longueur": d / 2, "Largeur": s_hip, "Surface": s_hip * (d / 2) / cos_a},
                     "M": {
                         "Longueur": d / 2,
-                        "Largeur": d / 2 - 2 * e / 10,
-                        "Surface": (d**2 / 4 - e * d / 10) / cos_a,
+                        "Largeur": d / 2 - 2 * s_hip,
+                        "Surface": (d**2 / 4 - s_hip * d) / cos_a,
                     },
-                    "J": {"Longueur": d / 2, "Largeur": e / 10, "Surface": (e / 10) * (d / 2) / cos_a},
+                    "J": {"Longueur": d / 2, "Largeur": s_hip, "Surface": s_hip * (d / 2) / cos_a},
                 }
             case "90°":
                 # Versant de croupe au vent : F, G, H ; versants latéraux : M, N ; croupe sous le vent : J, I
@@ -1312,11 +1314,11 @@ class Toiture_4_pants(Vent):
                     },
                     "M": {"Longueur": e / 2, "Largeur": b / 2, "Surface": m_plan / cos_a},
                     "N": {"Longueur": d - e / 2, "Largeur": b / 2, "Surface": (aire_versant - m_plan) / cos_a},
-                    "J": {"Longueur": b / 2, "Largeur": e / 10, "Surface": e * b / 10 / cos_a},
+                    "J": {"Longueur": b / 2, "Largeur": s_hip, "Surface": 2 * s_hip * (b / 2) / cos_a},
                     "I": {
                         "Longueur": b / 2,
-                        "Largeur": b / 2 - e / 10,
-                        "Surface": (triangle - e * b / 10) / cos_a,
+                        "Largeur": b / 2 - s_hip,
+                        "Surface": (triangle - 2 * s_hip * (b / 2)) / cos_a,
                     },
                 }
         return geometrie
@@ -1442,6 +1444,7 @@ class Toiture_multiple(Vent):
         for i in range(1, self.nb_travees + 1):
             zones = {}
             if i == 1:
+                # Face au vent : F, G en rive au vent (e/10), J en noue (e/10), H au milieu
                 zones["F"] = {"Longueur": e / 4, "Largeur": e / 10, "Surface": (e / 4) * (e / 10) / cos_a}
                 zones["G"] = {
                     "Longueur": b - e / 2,
@@ -1449,16 +1452,28 @@ class Toiture_multiple(Vent):
                     "Surface": (b - e / 2) * (e / 10) / cos_a,
                 }
                 zones["J"] = {"Longueur": b, "Largeur": e / 10, "Surface": b * (e / 10) / cos_a}
-            zones["H"] = {
-                "Longueur": b,
-                "Largeur": self.d_travee / 2,
-                "Surface": b * (self.d_travee / 2) / cos_a,
-            }
-            zones["I"] = {
-                "Longueur": b,
-                "Largeur": self.d_travee / 2,
-                "Surface": b * (self.d_travee / 2) / cos_a,
-            }
+                zones["H"] = {
+                    "Longueur": b,
+                    "Largeur": (self.d_travee - 2 * e / 10) / 2,
+                    "Surface": b * ((self.d_travee - 2 * e / 10) / 2) / cos_a,
+                }
+                zones["I"] = {
+                    "Longueur": b,
+                    "Largeur": (self.d_travee - 2 * e / 10) / 2,
+                    "Surface": b * ((self.d_travee - 2 * e / 10) / 2) / cos_a,
+                }
+            else:
+                # Travées suivantes : H sur la moitié au vent, I sur la moitié sous le vent
+                zones["H"] = {
+                    "Longueur": b,
+                    "Largeur": self.d_travee / 2,
+                    "Surface": b * (self.d_travee / 2) / cos_a,
+                }
+                zones["I"] = {
+                    "Longueur": b,
+                    "Largeur": self.d_travee / 2,
+                    "Surface": b * (self.d_travee / 2) / cos_a,
+                }
             geometrie[f"Travée {i}"] = zones
         return geometrie
 
@@ -1526,8 +1541,10 @@ class Toiture_multiple(Vent):
         df = self._cpe_base().copy()
         if self.config == "shed":
             # Zones J et I déduites du C_pe de la zone H (pas de valeurs dédiées au tab. 7.3a)
-            df["J-"] = df["H-"]
-            df["I-"] = df["H-"]
+            for sig in ("-", "+"):
+                if f"H{sig}" in df.columns:
+                    df[f"J{sig}"] = df[f"H{sig}"]
+                    df[f"I{sig}"] = df[f"H{sig}"]
 
         result = {}
         zone_cols = [c for c in df.columns if c != "Cpe"]
