@@ -1452,15 +1452,17 @@ class Toiture_multiple(Vent):
                     "Surface": (b - e / 2) * (e / 10) / cos_a,
                 }
                 zones["J"] = {"Longueur": b, "Largeur": e / 10, "Surface": b * (e / 10) / cos_a}
+                # Travées très étroites : les bandes F/G/J couvrent toute la travée -> H et I à 0
+                partie_centrale = max(self.d_travee - 2 * e / 10, 0 * si.m) / 2
                 zones["H"] = {
                     "Longueur": b,
-                    "Largeur": (self.d_travee - 2 * e / 10) / 2,
-                    "Surface": b * ((self.d_travee - 2 * e / 10) / 2) / cos_a,
+                    "Largeur": partie_centrale,
+                    "Surface": b * partie_centrale / cos_a,
                 }
                 zones["I"] = {
                     "Longueur": b,
-                    "Largeur": (self.d_travee - 2 * e / 10) / 2,
-                    "Surface": b * ((self.d_travee - 2 * e / 10) / 2) / cos_a,
+                    "Largeur": partie_centrale,
+                    "Surface": b * partie_centrale / cos_a,
                 }
             else:
                 # Travées suivantes : H sur la moitié au vent, I sur la moitié sous le vent
