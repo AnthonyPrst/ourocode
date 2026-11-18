@@ -5,7 +5,7 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
-## [Unreleased]
+## [2.4.0]
 
 ### Fixed
 - **`Vent.Co_z` — Cas 1** (`ec1/vent.py`) : la formule 4.14-NA utilisait `exp(z − 10)` au lieu de `exp(−0,014·max(0, z−10))`, produisant un C₀ dément (~10⁷ au lieu de ~1,15). Le coefficient est borné à 1 minimum et un avertissement est émis si le résultat dépasse 1,15 (limite de validité de la formule AN).
