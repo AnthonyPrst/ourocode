@@ -18,6 +18,8 @@ from ourocode.eurocode.ec1.vent import (
     Murs_verticaux,
     Toiture_1_pant,
     Toiture_2_pants,
+    Toiture_4_pants,
+    Toiture_multiple,
     Toiture_terrasse_acrotere,
     Vent,
 )
@@ -161,3 +163,67 @@ class TestAccesseurs:
 
         assert inspect.signature(Toiture_2_pants.get_geo).parameters["dir"].default == ("0°", "90°")
         assert inspect.signature(Toiture_1_pant.get_geo).parameters["direction"].default == ("0°", "90°", "180°")
+
+
+class TestToiture4Pants:
+    def test_zones_0_et_90(self):
+        t = Toiture_4_pants(load_area=10, z=8, **{**METRO, "h_bat": 8, "b_bat": 30, "d_bat": 20, "alpha_toit": 30})
+        assert set(t.get_geo("0°")) == {"F", "G", "H", "I", "J", "K", "L", "M"}
+        assert set(t.get_geo("90°")) == {"F", "G", "H", "I", "J", "M", "N"}
+
+    def test_cpe_tableau_7_5_alpha_30(self):
+        t = Toiture_4_pants(load_area=10, z=8, **{**METRO, "h_bat": 8, "b_bat": 30, "d_bat": 20, "alpha_toit": 30})
+        cpe = t.get_Cpe("0°").iloc[0]  # CPE 10
+        assert cpe["F-"] == -0.5
+        assert cpe["L"] == -1.4
+        assert cpe["N"] == -0.2
+
+    def test_alpha_toit_90_dedie(self):
+        t = Toiture_4_pants(
+            load_area=10, alpha_toit_90=60, z=8, **{**METRO, "h_bat": 8, "b_bat": 30, "d_bat": 20, "alpha_toit": 30}
+        )
+        assert t.get_Cpe("90°").iloc[0]["F+"] == 0.7  # alpha 60 -> cas pression seul
+        assert "F-" not in t.get_Cpe("90°").columns
+
+    def test_b_inferieur_d_leve_erreur(self):
+        with pytest.raises(ValueError, match="b_bat"):
+            Toiture_4_pants(load_area=10, z=8, **{**METRO, "h_bat": 8, "b_bat": 15, "d_bat": 20, "alpha_toit": 30})
+
+
+class TestToitureMultiple:
+    def test_facteurs_shed(self):
+        m = Toiture_multiple(
+            load_area=10, nb_travees=4, config="shed", z=8,
+            **{**METRO, "h_bat": 8, "b_bat": 30, "d_bat": 40, "alpha_toit": 15},
+        )
+        c = m.get_Cpe()
+        base = c["Travée 1"].iloc[0]["F-"]
+        assert c["Travée 2"].iloc[0]["F-"] == pytest.approx(0.8 * base)
+        assert c["Travée 3"].iloc[0]["F-"] == pytest.approx(0.6 * base)
+        assert c["Travée 4"].iloc[0]["F-"] == pytest.approx(0.6 * base)
+        assert c["Travée 2"].iloc[0]["F+"] == -0.4  # cas pression -> -0,4
+
+    def test_facteurs_duopitch(self):
+        m = Toiture_multiple(
+            load_area=10, nb_travees=3, config="duopitch", z=8,
+            **{**METRO, "h_bat": 8, "b_bat": 30, "d_bat": 30, "alpha_toit": 15},
+        )
+        c = m.get_Cpe()
+        base = c["Travée 1"].iloc[0]["J-"]
+        assert c["Travée 2"].iloc[0]["J-"] == pytest.approx(0.6 * base)
+
+    def test_geo_zones_par_travee(self):
+        m = Toiture_multiple(
+            load_area=10, nb_travees=3, config="shed", z=8,
+            **{**METRO, "h_bat": 8, "b_bat": 30, "d_bat": 30, "alpha_toit": 15},
+        )
+        geo = m.get_geo()
+        assert set(geo["Travée 1"]) == {"F", "G", "J", "H", "I"}
+        assert set(geo["Travée 2"]) == {"H", "I"}
+
+    def test_une_travee_refusee(self):
+        with pytest.raises(ValueError, match="travées"):
+            Toiture_multiple(
+                load_area=10, nb_travees=1, z=8,
+                **{**METRO, "h_bat": 8, "b_bat": 30, "d_bat": 30, "alpha_toit": 15},
+            )

@@ -17,7 +17,10 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - **`_Cr_z`** (`ec1/vent.py`) : pour `z > 200 m`, lève désormais un `ValueError` explicite (cohérent avec `_Iv_z`) au lieu de renvoyer `Cr(z_min)`.
 
 ### Added
-- **`tests/test_EC1_Vent.py`** : tests de non-régression couvrant le zonage DOM, le coefficient orographique Cas 1, la restauration de `b_bat`/`d_bat`, les terrasses rives vives/acroteres et la géométrie des zones à 90°.
+- **`Toiture_4_pants`** (`ec1/vent.py`) : pressions sur toitures à quatre pans (EN 1991-1-4 §7.2.6, fig. 7.9, tab. 7.5). Zones F–N pour θ=0° et θ=90°, C_pe interpolés selon la pente du versant au vent (`alpha_toit` à 0°, `alpha_toit_90` à 90°) et l'aire chargée. Hypothèse : croupes symétriques à 45° en plan (`b_bat > d_bat` exigé).
+- **`Toiture_multiple`** (`ec1/vent.py`) : pressions sur toitures à plusieurs versants (EN 1991-1-4 §7.2.7, fig. 7.10). `config="shed"` (sheds monopentes, facteurs 1 / 0,8 / 0,6 et cas pression −0,4) ou `"duopitch"` (versants symétriques multiples, 0,6·C_pe dès la 2ᵉ travée) ; zones F, G, J sur la face au vent, H et I par travée.
+- **`ourocode/data/vent/vent_Cpe_toiture_4_pans.csv`** : tableau 7.5 EN 1991-1-4 (C_pe toitures à quatre pans).
+- **`tests/test_EC1_Vent.py`** : tests de non-régression couvrant le zonage DOM, le coefficient orographique Cas 1, la restauration de `b_bat`/`d_bat`, les terrasses rives vives/acroteres, la géométrie des zones à 90°, les toitures à quatre pans et multiples.
 
 ## [2.3.2]
 
