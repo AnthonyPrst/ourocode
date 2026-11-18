@@ -131,11 +131,19 @@ class TestGeometrie90:
         )
 
     def test_toiture_2_pants(self):
-        """Fig. 7.8(b) : G par versant = b/2 − e/2 ; Surface = Longueur × Largeur / cos(α)."""
+        """Fig. 7.8(c) : par versant, F (e/4) au pignon puis G = b/2 − e/4 jusqu'au faîtage."""
         t = Toiture_2_pants(load_area=10, z=8, **{**METRO, "h_bat": 8, "alpha_toit": 15})
         g = t.get_geo("90°")["G"]
-        assert g["Longueur"].value == pytest.approx(20 / 2 - 16 / 2)
+        assert g["Longueur"].value == pytest.approx(20 / 2 - 16 / 4)
         assert g["Surface"].value == pytest.approx(g["Longueur"].value * g["Largeur"].value / mt.cos(mt.radians(15)))
+
+    def test_couverture_complete_toiture_2_pants(self):
+        """La somme des surfaces des zones des deux versants couvre toute la toiture."""
+        t = Toiture_2_pants(load_area=10, z=8, **{**METRO, "h_bat": 8, "alpha_toit": 15})
+        geo = t.get_geo("90°")
+        surface_totale = sum(geo[z]["Surface"].value for z in ("F", "G", "H", "I")) * 2
+        attendu = 20 * 30 / mt.cos(mt.radians(15))  # b_permuté × d_permuté / cos(α)
+        assert surface_totale == pytest.approx(attendu)
 
 
 class TestAccesseurs:

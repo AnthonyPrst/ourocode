@@ -1076,8 +1076,7 @@ class Toiture_2_pants(Vent):
                     },
                 }
             case "90°":
-                # Fig. 7.8(b) : chaque versant se comporte comme une toiture à un versant :
-                # F (e/4) à chaque extrémité du bandeau au vent (e/10), G entre les deux
+                # Fig. 7.8(c) : sur chaque versant, F (e/4) au pignon et G jusqu'au faîtage
                 geometrie = {
                     "F": {
                         "Longueur": self.e / 4,
@@ -1085,10 +1084,10 @@ class Toiture_2_pants(Vent):
                         "Surface": (self.e / 10) * (self.e / 4) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "G": {
-                        "Longueur": self.b_bat / 2 - self.e / 2,
+                        "Longueur": self.b_bat / 2 - self.e / 4,
                         "Largeur": self.e / 10,
                         "Surface": (self.e / 10)
-                        * (self.b_bat / 2 - self.e / 2)
+                        * (self.b_bat / 2 - self.e / 4)
                         / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "H": {
