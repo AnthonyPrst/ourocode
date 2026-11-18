@@ -1,16 +1,21 @@
 #! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
+import logging
 import os
 import sys
 from PIL import Image
 
 import math as mt
-from copy import copy
 
 import pandas as pd
 import forallpeople as si
 from ourocode.eurocode.core._renderer import handcalc
 from ourocode.eurocode.mixins.math_utils import MathUtilsMixin
+
+logger = logging.getLogger(__name__)
+
+# Correspondance code département INSEE -> territoire d'outre-mer
+DEPT_DOM = {"971": "Guadeloupe", "972": "Martinique", "973": "Guyane", "974": "Réunion", "976": "Mayotte"}
 
 # sys.path.append(os.path.join(os.getcwd(), "ourocode"))
 # from eurocode.A0_Projet import Batiment
@@ -42,7 +47,8 @@ class Vent(Batiment):
         "IV": {"Z0": 1, "Zmin": 15},
     }
 
-    CAT_ORO = {"Aucun": 1, "Cas 1": "1", "Cas 2": "2"}
+    CAT_ORO = {"Aucun": 0, "Cas 1": 1, "Cas 2": 2}
+
     CFR = {"Lisse": 0.01, "Rugueuse": 0.02, "Très rugueuse": 0.04}
 
     def __init__(self, z: si.m, terrain: str = CAT_TERRAIN, oro: str = CAT_ORO, CsCd: float = 1, **kwargs):
@@ -147,9 +153,29 @@ class Vent(Batiment):
 
     @property
     def zone_vent(self):
+        """Zone de vent du projet : 1 à 4 en métropole, nom du territoire pour les DOM.
+
+        Le fichier carte_action_region.csv code les communes d'outre-mer avec une zone
+        "2.5" ou vide : le département INSEE (971-976) est alors utilisé pour déterminer
+        la vitesse de référence cyclonique de l'Annexe Nationale.
+        """
         file = "carte_action_region.csv"
         df = self._data_from_csv(file, index_col=1)
-        return int(df.loc[str(self.code_INSEE)]["Zone_vent"])
+        row = df.loc[str(self.code_INSEE)]
+        zone = row["Zone_vent"]
+        try:
+            zone_num = float(zone)
+            if zone_num != int(zone_num):
+                raise ValueError  # zone non entière ("2.5") : commune d'outre-mer
+            return int(zone_num)
+        except (TypeError, ValueError):
+            dept = str(row["INSEE_Département"]).zfill(3)
+            if dept in DEPT_DOM:
+                return DEPT_DOM[dept]
+            raise ValueError(
+                f"Aucun zonage vent disponible pour la commune INSEE {self.code_INSEE} "
+                f"(Zone_vent={zone!r})."
+            )
 
     @property
     def Vb_0(self):
@@ -217,8 +243,13 @@ class Vent(Batiment):
 
         if self.cat_terrain["Zmin"] <= self.z.value <= 200:
             Cr_z = self._Kr * mt.log(self.z.value / self.cat_terrain["Z0"])
-        else:
+        elif self.z.value < self.cat_terrain["Zmin"]:
             Cr_z = self._Kr * mt.log(self.cat_terrain["Zmin"] / self.cat_terrain["Z0"])
+        else:
+            raise ValueError(
+                "Erreur la hauteur du bâtiment ne peut dépasser 200m, impossible de calculer "
+                "le coefficient de rugosité Cr"
+            )
 
         # print("Kr :", self._Kr)
         # print("Cr_z :", Cr_z)
@@ -234,35 +265,20 @@ class Vent(Batiment):
         Returns:
             tuple: (latex_string, C_0_z) où C_0_z est le coefficient orographique (sans unité, ≥ 1).
         """
-        # ATTENTION vérifier le z et zmin si toujours comptatible quand ajout du cas 2 !!!
-        if self.z.value < self.cat_terrain["Zmin"]:
-            z = self.cat_terrain["Zmin"]
-        else:
-            z = self.z.value
-
         match self.cat_oro:
-            case "1":
+            case 1:
                 Delta_A_C = self.delta_AC.value
-                if self.z.value >= 10:
+                z_moins_10 = max(0.0, self.z.value - 10)
 
-                    @handcalc(
-                        override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]"
-                    )
-                    def val():
-                        C0_z = 1 + 0.004 * Delta_A_C * mt.exp(z - 10)
-                        res = max(C0_z, 1)
-                        return res
-                else:
+                @handcalc(
+                    override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]"
+                )
+                def val():
+                    C0_z = 1 + 0.004 * Delta_A_C * mt.exp(-0.014 * z_moins_10)  # 4.14-NA
+                    res = max(C0_z, 1)
+                    return res
 
-                    @handcalc(
-                        override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]"
-                    )
-                    def val():
-                        C0_z = 1 + 0.004 * Delta_A_C * mt.exp(0)
-                        res = max(C0_z, 1)
-                        return res
-
-            case "2":
+            case 2:
                 raise ValueError("Erreur la catégorie orographique 2 n'est pas encore implémentée")
             case _:
 
@@ -271,7 +287,14 @@ class Vent(Batiment):
                     C0_z = 1
                     return C0_z
 
-        return val()
+        result = val()
+        if result[1] > 1.15:
+            logger.warning(
+                "C0(z) = %.3f > 1.15 : la formule de l'AN (orographie complexe) n'est plus "
+                "valable, une étude détaillée du relief est nécessaire (EN 1991-1-4 §A.3).",
+                result[1],
+            )
+        return result
 
     @property
     # @handcalc(override="params", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
@@ -302,7 +325,7 @@ class Vent(Batiment):
                 float: coef de turbulence
         """
         match self.cat_oro:
-            case "1":
+            case 1:
                 return self.Co_z[1] * (1 - 2 * 10**-4 * (mt.log10(self.cat_terrain["Z0"]) + 3) ** 6)  # 4.19NA
             case _:
                 return 1 - 2 * 10**-4 * (mt.log10(self.cat_terrain["Z0"]) + 3) ** 6  # 4.20NA
@@ -427,13 +450,12 @@ class Vent(Batiment):
 
         @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
         def val():
-            W_e = Q_p_z * C_pi  # 5.2
-            return W_e
+            W_i = Q_p_z * C_pi  # 5.2
+            return W_i
 
         return val()
 
     def Fw_e(self, Aref: float):
-        self.CsCd
         pass  # 5.5
 
     def Fw_i(self, Aref: float):
@@ -515,13 +537,13 @@ class Murs_verticaux(Vent):
                     self.e = min(self.b_bat, self.h_bat * 2)
                 case "90°":
                     self.e = min(self.d_bat, self.h_bat * 2)
-                    d_bat = copy(self.d_bat)
-                    b_bat = copy(self.b_bat)
-                    self.b_bat = d_bat
-                    self.d_bat = b_bat
+                    self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
             self._wind_direction[cle]["geometrie"] = self._geo()
             self._wind_direction[cle]["Cpe"] = self._Cpe(cle)
+
+            if cle == "90°":
+                self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
     def _geo(self):
         """Calcul les dimensions du zonage des parois verticale"""
@@ -650,7 +672,8 @@ class Toiture_terrasse_acrotere(Vent):
             **kwargs: Arguments nommés transmis à la classe parent Vent.
         """
         super().__init__(*args, **kwargs)
-        self.type_terrasse = "Acrotères"
+        # hp = 0 correspond à une terrasse à rives vives (sans acrotère, tab. 7.2)
+        self.type_terrasse = "Acrotères" if hp > 0 else "Rives vives"
         self.load_area = load_area
         self.hp = hp * si.m
         self.h = h * si.m
@@ -700,33 +723,37 @@ class Toiture_terrasse_acrotere(Vent):
         df = df.loc[name_csv_type]
         df.reset_index(drop=False, inplace=True)
         df.drop("Type", axis=1, inplace=True)
-        list_type_rapport = df["Rapport"].unique()
+        list_type_rapport = df["Rapport"].dropna().unique()
 
-        if self._hp_h > 0.1:
-            self._hp_h = 0.1
-        elif self._hp_h not in list_type_rapport:
-            minimum = list_type_rapport[list_type_rapport < self._hp_h].max()
-            maximum = list_type_rapport[list_type_rapport > self._hp_h].min()
-            df_min = df[df["Rapport"] == minimum]
-            df_max = df[df["Rapport"] == maximum]
+        # Pas de rapport hp/h pour les rives vives (bord sans acrotère)
+        if list_type_rapport.size > 0:
+            self._hp_h = min(self._hp_h, 0.1)
+            if self._hp_h < list_type_rapport.min():
+                # hp/h sous le plus petit rapport tabulé (0.025) : on retient la borne basse
+                df = df[df["Rapport"] == list_type_rapport.min()]
+                self._hp_h = list_type_rapport.min()
+            elif self._hp_h not in list_type_rapport:
+                minimum = list_type_rapport[list_type_rapport < self._hp_h].max()
+                maximum = list_type_rapport[list_type_rapport > self._hp_h].min()
+                df_min = df[df["Rapport"] == minimum]
+                df_max = df[df["Rapport"] == maximum]
 
-            df = df[df["Rapport"].isin([minimum, maximum])]
-            df.reset_index(drop=True, inplace=True)
+                df = df[df["Rapport"].isin([minimum, maximum])]
+                df.reset_index(drop=True, inplace=True)
 
-            df.reset_index(drop=True, inplace=True)
-            for i, cpe in enumerate(["CPE 10", "CPE 1"]):
-                row = [round(self._hp_h, 3), cpe]
-                for j in range(2, num_columns):
-                    row.append(
-                        MathUtilsMixin.interpolation_lineaire(
-                            self._hp_h,
-                            minimum,
-                            maximum,
-                            df_min.iloc[i, j],
-                            df_max.iloc[i, j],
+                for i, cpe in enumerate(["CPE 10", "CPE 1"]):
+                    row = [round(self._hp_h, 3), cpe]
+                    for j in range(2, num_columns):
+                        row.append(
+                            MathUtilsMixin.interpolation_lineaire(
+                                self._hp_h,
+                                minimum,
+                                maximum,
+                                df_min.iloc[i, j],
+                                df_max.iloc[i, j],
+                            )
                         )
-                    )
-                df.loc[df.shape[0]] = row
+                    df.loc[df.shape[0]] = row
 
         if self.load_area > 1 and self.load_area < 10:
             for i in range(df.shape[0]):
@@ -741,9 +768,14 @@ class Toiture_terrasse_acrotere(Vent):
                     df.loc[df.shape[0]] = row
             df.reset_index(drop=True, inplace=True)
 
-        df = df[df["Rapport"] == round(self._hp_h, 3)]
-        df.dropna(axis=1, how="all", inplace=True)
-        df.set_index("Rapport", inplace=True)
+        if list_type_rapport.size > 0:
+            df = df[df["Rapport"] == round(self._hp_h, 3)]
+            df.dropna(axis=1, how="all", inplace=True)
+            df.set_index("Rapport", inplace=True)
+        else:
+            df.drop("Rapport", axis=1, inplace=True)
+            df.dropna(axis=1, how="all", inplace=True)
+            df.set_index("Cpe", inplace=True)
         return df
 
     def get_wind_dict(self) -> dict:
@@ -800,13 +832,13 @@ class Toiture_1_pant(Vent):
 
                 case "90°":
                     self.e = min(self.d_bat, self.h_bat * 2)
-                    d_bat = copy(self.d_bat)
-                    b_bat = copy(self.b_bat)
-                    self.b_bat = d_bat
-                    self.d_bat = b_bat
+                    self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
             self._wind_direction[cle]["geometrie"] = self._geo(cle)
             self._wind_direction[cle]["Cpe"] = self._Cpe(cle)
+
+            if cle == "90°":
+                self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
     def _geo(self, direction: str):
         """Calcul les surfaces du zonage de la toiture
@@ -834,6 +866,8 @@ class Toiture_1_pant(Vent):
                     },
                 }
             case "90°":
+                # Fig. 7.7(c) : F_up et F_low (e/4) aux deux extrémités du bandeau au vent (e/10),
+                # G entre les deux, H jusqu'à e/2 puis I jusqu'au bord sous le vent
                 geometrie = {
                     "F_up / F_low": {
                         "Longueur": self.e / 4,
@@ -841,16 +875,16 @@ class Toiture_1_pant(Vent):
                         "Surface": (self.e / 10) * (self.e / 4) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "G": {
-                        "Longueur": self.b_bat - (self.e / 4 * 2) / 2,
+                        "Longueur": self.b_bat - self.e / 2,
                         "Largeur": self.e / 10,
                         "Surface": (self.e / 10)
-                        * (self.b_bat - (self.e / 4 * 2) / 2)
+                        * (self.b_bat - self.e / 2)
                         / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "H": {
-                        "Longueur": self.b_bat / 2,
+                        "Longueur": self.b_bat,
                         "Largeur": self.e / 2 - self.e / 10,
-                        "Surface": (self.e / 2 - self.e / 10) * (self.b_bat / 2) / mt.cos(mt.radians(self.alpha_toit)),
+                        "Surface": (self.e / 2 - self.e / 10) * self.b_bat / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "I": {
                         "Longueur": self.b_bat,
@@ -998,13 +1032,13 @@ class Toiture_2_pants(Vent):
 
                 case "90°":
                     self.e = min(self.d_bat, self.h_bat * 2)
-                    d_bat = copy(self.d_bat)
-                    b_bat = copy(self.b_bat)
-                    self.b_bat = d_bat
-                    self.d_bat = b_bat
+                    self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
             self._wind_direction[cle]["geometrie"] = self._geo(cle)
             self._wind_direction[cle]["Cpe"] = self._Cpe(cle)
+
+            if cle == "90°":
+                self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
     def _geo(self, direction: str = "0°"):
         """Calcul les surfaces du zonage de la toiture
@@ -1042,6 +1076,7 @@ class Toiture_2_pants(Vent):
                     },
                 }
             case "90°":
+                # Fig. 7.8(c) : sur chaque versant, F (e/4) au pignon et G jusqu'au faîtage
                 geometrie = {
                     "F": {
                         "Longueur": self.e / 4,
@@ -1049,10 +1084,10 @@ class Toiture_2_pants(Vent):
                         "Surface": (self.e / 10) * (self.e / 4) / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "G": {
-                        "Longueur": (self.b_bat - (self.e / 4 * 2)) / 2,
+                        "Longueur": self.b_bat / 2 - self.e / 4,
                         "Largeur": self.e / 10,
                         "Surface": (self.e / 10)
-                        * (self.b_bat - (self.e / 4 * 2) / 2)
+                        * (self.b_bat / 2 - self.e / 4)
                         / mt.cos(mt.radians(self.alpha_toit)),
                     },
                     "H": {
@@ -1174,6 +1209,384 @@ class Toiture_2_pants(Vent):
         image.show()
 
 
+class Toiture_4_pants(Vent):
+    def __init__(self, load_area: float, alpha_toit_90: float = None, *args, **kwargs):
+        """Crée un objet pour le calcul des pressions sur une toiture à quatre pans (croupes) selon EN 1991-1-4 §7.2.6.
+
+        Le calcul est effectué pour les directions de vent 0° et 90° (fig. 7.9).
+        Zones : F, G, H (versant au vent), I, J, K, L, M (croupes et versant sous le vent) à 0°,
+        et F, G, H, I, J, M, N à 90°. Les C_pe (tab. 7.5) sont les mêmes pour les deux directions
+        mais dépendent de la pente du versant au vent : alpha_toit à 0°, alpha_toit_90 à 90°.
+
+        Hypothèses : toiture symétrique, croupes à 45° en plan (retrait de croupe = d_bat/2,
+        faitière de longueur b_bat − d_bat, donc b_bat > d_bat exigé).
+
+        Args:
+            load_area (float): Aire chargée en m² pour le calcul des éléments ou des fixations.
+            alpha_toit_90 (float): Pente du versant de croupe en degrés. Si None, = alpha_toit.
+            *args: Arguments positionnels transmis à la classe parent Vent.
+            **kwargs: Arguments nommés transmis à la classe parent Vent.
+        """
+        super().__init__(*args, **kwargs)
+        self.load_area = load_area
+        self.alpha_toit_90 = alpha_toit_90 if alpha_toit_90 is not None else self.alpha_toit
+        self._wind_direction = {"0°": {}, "90°": {}}
+
+        if self.b_bat <= self.d_bat:
+            raise ValueError(
+                "Toiture à quatre pans : la dimension le long de la faitière (b_bat) doit être "
+                f"strictement supérieure à la largeur de pignon (d_bat), reçu b={self.b_bat}, d={self.d_bat}."
+            )
+
+        for cle in self._wind_direction.keys():
+            match cle:
+                case "0°":
+                    self.e = min(self.b_bat, self.h_bat * 2)
+                case "90°":
+                    self.e = min(self.d_bat, self.h_bat * 2)
+                    self.b_bat, self.d_bat = self.d_bat, self.b_bat
+
+            self._wind_direction[cle]["geometrie"] = self._geo(cle)
+            self._wind_direction[cle]["Cpe"] = self._Cpe(cle)
+
+            if cle == "90°":
+                self.b_bat, self.d_bat = self.d_bat, self.b_bat
+
+    def _cos_alpha(self, direction: str) -> float:
+        alpha = self.alpha_toit if direction == "0°" else self.alpha_toit_90
+        return mt.cos(mt.radians(alpha))
+
+    def _geo(self, direction: str = "0°"):
+        """Calcule les surfaces des zones de la toiture à quatre pans (fig. 7.9).
+
+        Surfaces en plan divisées par cos(pente du versant au vent). Croupes à 45° en plan :
+        les zones L et J des croupes sont les bandes de profondeur e/10 le long des arêtiers,
+        K la bande e/10 du versant sous le vent le long de la faitière.
+        """
+        e = self.e
+        b = self.b_bat
+        d = self.d_bat
+        cos_a = self._cos_alpha(direction)
+        # Bandes e/10 le long des arêtiers, plafonnées pour que L+J n'excèdent pas la croupe
+        s_hip = min(e / 10, min(b, d) / 4)
+        match direction:
+            case "0°":
+                long_fait = b - d
+                geometrie = {
+                    "F": {"Longueur": e / 4, "Largeur": e / 10, "Surface": (e / 4) * (e / 10) / cos_a},
+                    "G": {"Longueur": b - e / 2, "Largeur": e / 10, "Surface": (b - e / 2) * (e / 10) / cos_a},
+                    "H": {
+                        "Longueur": (b - e / 5 + long_fait) / 2,
+                        "Largeur": d / 2 - e / 10,
+                        "Surface": (b - e / 5 + long_fait) / 2 * (d / 2 - e / 10) / cos_a,
+                    },
+                    "K": {
+                        "Longueur": long_fait + e / 10,
+                        "Largeur": e / 10,
+                        "Surface": (long_fait + e / 10) * (e / 10) / cos_a,
+                    },
+                    "I": {
+                        "Longueur": (b - d / 2 + e / 10),
+                        "Largeur": d / 2 - e / 10,
+                        "Surface": (b - d / 2 + e / 10) * (d / 2 - e / 10) / cos_a,
+                    },
+                    "L": {"Longueur": d / 2, "Largeur": s_hip, "Surface": s_hip * (d / 2) / cos_a},
+                    "M": {
+                        "Longueur": d / 2,
+                        "Largeur": d / 2 - 2 * s_hip,
+                        "Surface": (d**2 / 4 - s_hip * d) / cos_a,
+                    },
+                    "J": {"Longueur": d / 2, "Largeur": s_hip, "Surface": s_hip * (d / 2) / cos_a},
+                }
+            case "90°":
+                # Versant de croupe au vent : F, G, H ; versants latéraux : M, N ; croupe sous le vent : J, I
+                triangle = b**2 / 4
+                bande = (b + b - 2 * e / 10) / 2 * (e / 10)
+                aire_versant = (2 * d - b) * b / 4
+                m_plan = min(e / 2, b / 2) ** 2 / 2 + (e / 2 - min(e / 2, b / 2)) * (b / 2)
+                geometrie = {
+                    "F": {"Longueur": e / 4, "Largeur": e / 10, "Surface": (e / 4) * (e / 10) / cos_a},
+                    "G": {"Longueur": b - e / 2, "Largeur": e / 10, "Surface": (b - e / 2) * (e / 10) / cos_a},
+                    "H": {
+                        "Longueur": b / 2,
+                        "Largeur": b / 2 - e / 10,
+                        "Surface": (triangle - bande) / cos_a,
+                    },
+                    "M": {"Longueur": e / 2, "Largeur": b / 2, "Surface": m_plan / cos_a},
+                    "N": {"Longueur": d - e / 2, "Largeur": b / 2, "Surface": (aire_versant - m_plan) / cos_a},
+                    "J": {"Longueur": b / 2, "Largeur": s_hip, "Surface": 2 * s_hip * (b / 2) / cos_a},
+                    "I": {
+                        "Longueur": b / 2,
+                        "Largeur": b / 2 - s_hip,
+                        "Surface": (triangle - 2 * s_hip * (b / 2)) / cos_a,
+                    },
+                }
+        return geometrie
+
+    def _Cpe(self, direction: str):
+        """Calcule les Cpe d'une toiture à quatre pans (tab. 7.5), interpolés sur la pente
+        du versant au vent (alpha_toit à 0°, alpha_toit_90 à 90°) et l'aire chargée."""
+        alpha = self.alpha_toit if direction == "0°" else self.alpha_toit_90
+        num_columns = 14
+        df = self._data_from_csv(os.path.join("vent", "vent_Cpe_toiture_4_pans.csv"))
+        df.reset_index(drop=False, inplace=True)
+        list_alpha_toit = df["alpha_toit"].unique()
+        touch_min = alpha < list_alpha_toit.min()
+        touch_max = alpha > list_alpha_toit.max()
+
+        if alpha not in list_alpha_toit:
+            minimum = list_alpha_toit.min() if touch_min else list_alpha_toit[list_alpha_toit < alpha].max()
+            maximum = list_alpha_toit.max() if touch_max else list_alpha_toit[list_alpha_toit > alpha].min()
+            df_min = df[df["alpha_toit"] == minimum]
+            df_max = df[df["alpha_toit"] == maximum]
+            df = df[df["alpha_toit"].isin([minimum, maximum])]
+            df.reset_index(drop=True, inplace=True)
+
+            for i, cpe in enumerate(["CPE 10", "CPE 1"]):
+                row = [round(alpha, 2), cpe]
+                for j in range(2, num_columns):
+                    if touch_min:
+                        row.append(df_min.iloc[i, j])
+                    elif touch_max:
+                        row.append(df_max.iloc[i, j])
+                    else:
+                        row.append(
+                            MathUtilsMixin.interpolation_lineaire(
+                                alpha, minimum, maximum, df_min.iloc[i, j], df_max.iloc[i, j]
+                            )
+                        )
+                df.loc[df.shape[0]] = row
+
+        if self.load_area > 1 and self.load_area < 10:
+            for i in range(df.shape[0]):
+                if i % 2 == 0:
+                    row = [df.iloc[i, 0], "CPE " + str(round(self.load_area, 2))]
+                    for j in range(2, num_columns):
+                        row.append(
+                            MathUtilsMixin.interpolation_logarithmique(
+                                self.load_area, 1, 10, df.iloc[i + 1, j], df.iloc[i, j]
+                            )
+                        )
+                    df.loc[df.shape[0]] = row
+            df.reset_index(drop=True, inplace=True)
+
+        df = df[df["alpha_toit"] == round(alpha, 2)]
+        df.dropna(axis=1, how="all", inplace=True)
+        df.set_index("alpha_toit", inplace=True)
+        return df
+
+    def get_wind_dict(self) -> dict:
+        return self._wind_direction
+
+    def get_geo(self, dir=("0°", "90°")):
+        """Retourne les dimensions des zones de pression pour la direction de vent donnée (fig. 7.9).
+
+        Args:
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+
+        Returns:
+            dict: Zones avec Longueur, Largeur et Surface en m / m².
+        """
+        return self._wind_direction[dir]["geometrie"]
+
+    def get_Cpe(self, dir=("0°", "90°")):
+        """Retourne les C_pe pour la direction de vent donnée (tab. 7.5).
+
+        Args:
+            dir (str): Direction du vent ("0°" ou "90°"). Defaults to ("0°", "90°").
+
+        Returns:
+            pandas.DataFrame: C_pe par zone (F à N), interpolés selon la pente et load_area.
+        """
+        return self._wind_direction[dir]["Cpe"]
+
+
+class Toiture_multiple(Vent):
+    def __init__(self, load_area: float, nb_travees: int, config: str = "shed", *args, **kwargs):
+        """Crée un objet pour le calcul des pressions sur une toiture à plusieurs versants (sheds) selon EN 1991-1-4 §7.2.7.
+
+        Direction de vent 0° uniquement (vent normal aux travées).
+        Facteurs de position par travée (fig. 7.10) appliqués aux C_pe de la travée au vent :
+        - config="shed" (sheds monopentes, fig. 7.10 a/b) : travée 1 = C_pe monopente (tab. 7.3a),
+          travée 2 = 0.8·C_pe, travées ≥3 = 0.6·C_pe ; si le cas en pression (C_pe > 0) est retenu,
+          les travées suivantes prennent C_pe = −0.4.
+        - config="duopitch" (versants symétriques multiples en sheds, fig. 7.10 c/d) :
+          travée 1 = C_pe deux versants (tab. 7.4a), travées suivantes = 0.6·C_pe.
+
+        Zones (§7.2.7(2)) : F, G, J uniquement sur la face au vent (travée 1), H et I sur chaque travée.
+
+        Args:
+            load_area (float): Aire chargée en m² pour le calcul des éléments ou des fixations.
+            nb_travees (int): Nombre de travées (versants) de la toiture (≥ 2).
+            config (str): "shed" pour sheds monopentes, "duopitch" pour versants symétriques multiples.
+            *args: Arguments positionnels transmis à la classe parent Vent.
+            **kwargs: Arguments nommés transmis à la classe parent Vent (d_bat = profondeur totale).
+        """
+        super().__init__(*args, **kwargs)
+        if nb_travees < 2:
+            raise ValueError(f"Une toiture multiple exige au moins 2 travées, reçu : {nb_travees}")
+        self.load_area = load_area
+        self.nb_travees = nb_travees
+        self.config = self._check_choice(config, ("shed", "duopitch"), "config")
+        self.d_travee = self.d_bat / nb_travees
+        self.e = min(self.b_bat, self.h_bat * 2)
+        self._wind_direction = {"0°": {}}
+        self._wind_direction["0°"]["geometrie"] = self._geo()
+        self._wind_direction["0°"]["Cpe"] = self._Cpe()
+
+    def _geo(self):
+        """Zones par travée : F, G, J sur la face au vent de la travée 1 (bande e/10 en rive
+        et en noue), H et I (demi-travées) sur chaque travée. Surfaces / cos(alpha_toit)."""
+        e = self.e
+        b = self.b_bat
+        cos_a = mt.cos(mt.radians(self.alpha_toit))
+        geometrie = {}
+        for i in range(1, self.nb_travees + 1):
+            zones = {}
+            if i == 1:
+                # Face au vent : F, G en rive au vent (e/10), J en noue (e/10), H au milieu
+                zones["F"] = {"Longueur": e / 4, "Largeur": e / 10, "Surface": (e / 4) * (e / 10) / cos_a}
+                zones["G"] = {
+                    "Longueur": b - e / 2,
+                    "Largeur": e / 10,
+                    "Surface": (b - e / 2) * (e / 10) / cos_a,
+                }
+                zones["J"] = {"Longueur": b, "Largeur": e / 10, "Surface": b * (e / 10) / cos_a}
+                # Travées très étroites : les bandes F/G/J couvrent toute la travée -> H et I à 0
+                partie_centrale = max(self.d_travee - 2 * e / 10, 0 * si.m) / 2
+                zones["H"] = {
+                    "Longueur": b,
+                    "Largeur": partie_centrale,
+                    "Surface": b * partie_centrale / cos_a,
+                }
+                zones["I"] = {
+                    "Longueur": b,
+                    "Largeur": partie_centrale,
+                    "Surface": b * partie_centrale / cos_a,
+                }
+            else:
+                # Travées suivantes : H sur la moitié au vent, I sur la moitié sous le vent
+                zones["H"] = {
+                    "Longueur": b,
+                    "Largeur": self.d_travee / 2,
+                    "Surface": b * (self.d_travee / 2) / cos_a,
+                }
+                zones["I"] = {
+                    "Longueur": b,
+                    "Largeur": self.d_travee / 2,
+                    "Surface": b * (self.d_travee / 2) / cos_a,
+                }
+            geometrie[f"Travée {i}"] = zones
+        return geometrie
+
+    def _cpe_base(self):
+        """C_pe de la travée au vent : tab. 7.3a (shed) ou tab. 7.4a (duopitch), interpolés."""
+        if self.config == "shed":
+            df = self._data_from_csv(os.path.join("vent", "vent_Cpe_toiture_1_versant_0_degres.csv"))
+        else:
+            df = self._data_from_csv(os.path.join("vent", "vent_Cpe_toiture_2_versants_0_degres.csv"))
+        df.reset_index(drop=False, inplace=True)
+        list_alpha_toit = df["alpha_toit"].unique()
+        touch_min = self.alpha_toit < list_alpha_toit.min()
+        touch_max = self.alpha_toit > list_alpha_toit.max()
+        num_columns = df.shape[1]
+
+        if self.alpha_toit not in list_alpha_toit:
+            minimum = list_alpha_toit.min() if touch_min else list_alpha_toit[list_alpha_toit < self.alpha_toit].max()
+            maximum = list_alpha_toit.max() if touch_max else list_alpha_toit[list_alpha_toit > self.alpha_toit].min()
+            df_min = df[df["alpha_toit"] == minimum]
+            df_max = df[df["alpha_toit"] == maximum]
+            df = df[df["alpha_toit"].isin([minimum, maximum])]
+            df.reset_index(drop=True, inplace=True)
+            for i, cpe in enumerate(["CPE 10", "CPE 1"]):
+                row = [round(self.alpha_toit, 2), cpe]
+                for j in range(2, num_columns):
+                    if touch_min:
+                        row.append(df_min.iloc[i, j])
+                    elif touch_max:
+                        row.append(df_max.iloc[i, j])
+                    else:
+                        row.append(
+                            MathUtilsMixin.interpolation_lineaire(
+                                self.alpha_toit, minimum, maximum, df_min.iloc[i, j], df_max.iloc[i, j]
+                            )
+                        )
+                df.loc[df.shape[0]] = row
+
+        if self.load_area > 1 and self.load_area < 10:
+            for i in range(df.shape[0]):
+                if i % 2 == 0:
+                    row = [df.iloc[i, 0], "CPE " + str(round(self.load_area, 2))]
+                    for j in range(2, num_columns):
+                        row.append(
+                            MathUtilsMixin.interpolation_logarithmique(
+                                self.load_area, 1, 10, df.iloc[i + 1, j], df.iloc[i, j]
+                            )
+                        )
+                    df.loc[df.shape[0]] = row
+            df.reset_index(drop=True, inplace=True)
+
+        df = df[df["alpha_toit"] == round(self.alpha_toit, 2)]
+        df.dropna(axis=1, how="all", inplace=True)
+        df.set_index("alpha_toit", inplace=True)
+        return df
+
+    def _Cpe(self):
+        """C_pe par travée avec les facteurs de position de la fig. 7.10.
+
+        Returns:
+            dict: {"Travée 1": DataFrame, "Travée 2": DataFrame, ...} — pour "shed", les zones
+            J et I reprennent le C_pe de la zone H (pas de valeurs dédiées au tab. 7.3a).
+            "shed" : travée 2 → 0.8·C_pe, ≥3 → 0.6·C_pe, ou −0.4 dans le cas en pression.
+            "duopitch" : travées ≥2 → 0.6·C_pe.
+        """
+        df = self._cpe_base().copy()
+        if self.config == "shed":
+            # Zones J et I déduites du C_pe de la zone H (pas de valeurs dédiées au tab. 7.3a)
+            for sig in ("-", "+"):
+                if f"H{sig}" in df.columns:
+                    df[f"J{sig}"] = df[f"H{sig}"]
+                    df[f"I{sig}"] = df[f"H{sig}"]
+
+        result = {}
+        zone_cols = [c for c in df.columns if c != "Cpe"]
+        pos_cols = [c for c in zone_cols if c.endswith("+")]
+        for i in range(1, self.nb_travees + 1):
+            df_i = df.copy()
+            if self.config == "shed":
+                # Pression sur la travée au vent : cas "+" -> -0.4 partout ensuite (fig. 7.10 b)
+                df_i[pos_cols] = -0.4 if i >= 2 else df_i[pos_cols]
+                if i == 2:
+                    df_i[[c for c in zone_cols if c.endswith("-")]] *= 0.8
+                elif i >= 3:
+                    df_i[[c for c in zone_cols if c.endswith("-")]] *= 0.6
+            elif i >= 2:  # duopitch : 0.6·C_pe sur toutes les zones des travées suivantes
+                df_i[zone_cols] *= 0.6
+            df_i.insert(0, "Travée", i)
+            df_i.set_index("Travée", append=True, inplace=True)
+            result[f"Travée {i}"] = df_i
+        return result
+
+    def get_wind_dict(self) -> dict:
+        return self._wind_direction
+
+    def get_geo(self):
+        """Retourne les zones de pression par travée pour la direction 0°.
+
+        Returns:
+            dict: {"Travée 1": {"F": ..., "G": ..., "J": ..., "H": ..., "I": ...}, "Travée 2": ...}.
+        """
+        return self._wind_direction["0°"]["geometrie"]
+
+    def get_Cpe(self):
+        """Retourne les C_pe par travée pour la direction 0° avec facteurs de position.
+
+        Returns:
+            dict: {"Travée 1": pandas.DataFrame, ...}.
+        """
+        return self._wind_direction["0°"]["Cpe"]
+
+
 class Toiture_isolee_1_pant(Vent):
     def __init__(self, phi: float, load_area: float, *args, **kwargs):
         """Crée un objet pour le calcul des pressions sur une toiture isolée à un versant selon EN 1991-1-4 §7.3.
@@ -1198,13 +1611,13 @@ class Toiture_isolee_1_pant(Vent):
         for cle in self._wind_direction.keys():
             match cle:
                 case "90°":
-                    d_bat = copy(self.d_bat)
-                    b_bat = copy(self.b_bat)
-                    self.b_bat = d_bat
-                    self.d_bat = b_bat
+                    self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
             self._wind_direction[cle]["geometrie"] = self._geo()
             self._wind_direction[cle]["Cp"] = self._Cp()
+
+            if cle == "90°":
+                self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
     def _geo(self):
         """Calcul les surfaces du zonage de la toiture"""
@@ -1358,13 +1771,13 @@ class Toiture_isolee_2_pants(Vent):
         for cle in self._wind_direction.keys():
             match cle:
                 case "90°":
-                    d_bat = copy(self.d_bat)
-                    b_bat = copy(self.b_bat)
-                    self.b_bat = d_bat
-                    self.d_bat = b_bat
+                    self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
             self._wind_direction[cle]["geometrie"] = self._geo()
             self._wind_direction[cle]["Cp"] = self._Cp()
+
+            if cle == "90°":
+                self.b_bat, self.d_bat = self.d_bat, self.b_bat
 
     def _geo(self):
         """Calcul les surfaces du zonage de la toiture"""

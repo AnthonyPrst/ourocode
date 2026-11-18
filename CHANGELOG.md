@@ -5,7 +5,28 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.4.0]
+
+### Fixed
+- **`Vent.Co_z` — Cas 1** (`ec1/vent.py`) : la formule 4.14-NA utilisait `exp(z − 10)` au lieu de `exp(−0,014·max(0, z−10))`, produisant un C₀ dément (~10⁷ au lieu de ~1,15). Le coefficient est borné à 1 minimum et un avertissement est émis si le résultat dépasse 1,15 (limite de validité de la formule AN).
+- **`Vent.zone_vent` — communes d'outre-mer** (`ec1/vent.py`) : la zone « 2.5 » du fichier `carte_action_region.csv` était silencieusement tronquée en zone 2 (`int(2.5)`), calculant la Guadeloupe à 24 m/s au lieu de 36 m/s. Le département INSEE (971-976) détermine désormais le territoire (`DEPT_DOM`) et la vitesse cyclonique AN ; les communes sans zonage (975) lèvent un `ValueError` explicite au lieu d'un crash.
+- **Permutation `b_bat`/`d_bat` jamais restaurée** (`ec1/vent.py`) : après instanciation de `Murs_verticaux`, `Toiture_1_pant`, `Toiture_2_pants`, `Toiture_isolee_1_pant` ou `Toiture_isolee_2_pants`, les dimensions restaient permutées (ex. `b_bat=20, d_bat=30` pour 30×20), corrompant `K_red_U` et tout consommateur en aval.
+- **`Toiture_terrasse_acrotere`** (`ec1/vent.py`) : `hp=0` (terrasse à rives vives) levait un `ValueError` alors que le tableau 7.2 couvre ce cas — `type_terrasse` devient `"Rives vives"` automatiquement. `hp/h < 0,025` retombe sur la borne tabulée la plus basse au lieu d'échouer.
+- **`Toiture_2_pants._geo` à 90°** (`ec1/vent.py`) : la zone G était incohérente (`Longueur` et `Surface` calculées avec deux formules différentes, surface ~×2,7). Conformément à la fig. 7.8(c), chaque versant porte un F (e/4) au pignon puis G jusqu'au faîtage : `G = (b/2 − e/4) × e/10`.
+- **`Toiture_1_pant._geo` à 90°** (`ec1/vent.py`) : conformément à la fig. 7.7(c), `G = b − e/2` et `H` porte sur toute la longueur `b` (au lieu de `b/2`).
+- **`_Cr_z`** (`ec1/vent.py`) : pour `z > 200 m`, lève désormais un `ValueError` explicite (cohérent avec `_Iv_z`) au lieu de renvoyer `Cr(z_min)`.
+
+### Added
+- **`Toiture_4_pants`** (`ec1/vent.py`) : pressions sur toitures à quatre pans (EN 1991-1-4 §7.2.6, fig. 7.9, tab. 7.5). Zones F–N pour θ=0° et θ=90°, C_pe interpolés selon la pente du versant au vent (`alpha_toit` à 0°, `alpha_toit_90` à 90°) et l'aire chargée. Hypothèse : croupes symétriques à 45° en plan (`b_bat > d_bat` exigé).
+- **`Toiture_multiple`** (`ec1/vent.py`) : pressions sur toitures à plusieurs versants (EN 1991-1-4 §7.2.7, fig. 7.10). `config="shed"` (sheds monopentes, facteurs 1 / 0,8 / 0,6 et cas pression −0,4) ou `"duopitch"` (versants symétriques multiples, 0,6·C_pe dès la 2ᵉ travée) ; zones F, G, J sur la face au vent, H et I par travée.
+- **`ourocode/data/vent/vent_Cpe_toiture_4_pans.csv`** : tableau 7.5 EN 1991-1-4 (C_pe toitures à quatre pans).
+- **`tests/test_EC1_Vent.py`** : tests de non-régression couvrant le zonage DOM, le coefficient orographique Cas 1, la restauration de `b_bat`/`d_bat`, les terrasses rives vives/acroteres, la géométrie des zones à 90°, les toitures à quatre pans et multiples.
+
 ## [2.3.2]
+
+### Added
+- **`Model_result.get_absolute_internal_force(..., unit="kN")`** : retourne un nombre en kN (effort) ou kN·m (moment) au lieu d'une grandeur physique, pour alimenter un argument numérique sans dépendre du préfixe d'affichage de forallpeople (500 N → « 500 »). Défaut inchangé (`"Physique"`).
+- **`Traction.taux_t_d(N_t_Ed)`** (`ec3/element_droit/traction.py`) : taux de travail N_t,Ed / N_t,Rd (EN 1993-1-1 §6.2.3, équa 6.5) avec ajout à la synthèse. Permet de chaîner la vérification de section nette dans un graphe sans lire la propriété `Nt_Rd`, qui est un couple (latex, valeur).
 
 ### Fixed
 - **`Assemblage.taux_F_v_Ed`** (`ec5/assemblage/assemblage.py`) : `AttributeError: 'Pointe' object has no attribute 'Fax_Rk_ass'` pour les « Autres pointes » avec `Fax_Ed ≠ 0` — `Fax_Rk_ass` (= `FaxRk × nfile × n`) n'était calculé que pour les pointes lisses/agrafes/boulons. Ajout d'un `AttributeError` explicite si `Fax_Rk()` n'a pas été exécuté au préalable, et le `raise f"..."` (qui levait une chaîne) devient un `ValueError`.

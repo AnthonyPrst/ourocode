@@ -317,6 +317,7 @@ class Model_result(Projet):
         combination: str | list,
         type: str = ("Nx", "Vy", "Vz", "Mx", "My", "Mz"),
         get_combo_name: bool = ("False", "True"),
+        unit: str = ("Physique", "kN"),
     ):
         """Retourne la valeur absolue maximale d'un type d'effort spécifique.
 
@@ -331,6 +332,9 @@ class Model_result(Projet):
                 Defaults to "Nx".
             get_combo_name (bool, optional): Si True, retourne également le nom
                 de la combinaison associée. Defaults to False.
+            unit (str, optional): "Physique" retourne une grandeur forallpeople ;
+                "kN" retourne un nombre en kN (effort) ou kN·m (moment), utile
+                pour un argument numérique (float) en aval. Defaults to "Physique".
 
         Returns:
             float | dict: Valeur absolue de l'effort maximal.
@@ -342,10 +346,14 @@ class Model_result(Projet):
         max = "Max"
         if abs(ei[type]["Min"][0]) > ei[type]["Max"][0]:
             max = "Min"
+        value = abs(ei[type][max][0])
+        if unit == "kN":
+            # Valeur SI de base (N ou N·m) → kN ou kN·m
+            value = value.value / 1000
         if get_combo_name:
-            return {"Effort": abs(ei[type][max][0]), "Combinaison": ei[type][max][1]}
+            return {"Effort": value, "Combinaison": ei[type][max][1]}
         else:
-            return abs(ei[type][max][0])
+            return value
 
     def show_internal_force_of_member(
         self,
