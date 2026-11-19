@@ -1215,7 +1215,7 @@ class Toiture_4_pants(Vent):
 
         Le calcul est effectué pour les directions de vent 0° et 90° (fig. 7.9).
         Zones : F, G, H (versant au vent), I, J, K, L, M (croupes et versant sous le vent) à 0°,
-        et F, G, H, I, J, M, N à 90°. Les C_pe (tab. 7.5) sont les mêmes pour les deux directions
+        et F, G, H, I, J, L, M, N à 90°. Les C_pe (tab. 7.5) sont les mêmes pour les deux directions
         mais dépendent de la pente du versant au vent : alpha_toit à 0°, alpha_toit_90 à 90°.
 
         Hypothèses : toiture symétrique, croupes à 45° en plan (retrait de croupe = d_bat/2,
@@ -1299,11 +1299,14 @@ class Toiture_4_pants(Vent):
                     "J": {"Longueur": d / 2, "Largeur": s_hip, "Surface": s_hip * (d / 2) / cos_a},
                 }
             case "90°":
-                # Versant de croupe au vent : F, G, H ; versants latéraux : M, N ; croupe sous le vent : J, I
+                # Versant de croupe au vent : F, G, H ; versants latéraux : L (bande e/10
+                # le long des arêtiers au vent), M, N ; croupe sous le vent : J, I
                 triangle = b**2 / 4
                 bande = (b + b - 2 * e / 10) / 2 * (e / 10)
                 aire_versant = (2 * d - b) * b / 4
-                m_plan = min(e / 2, b / 2) ** 2 / 2 + (e / 2 - min(e / 2, b / 2)) * (b / 2)
+                m2 = min(e / 2, b / 2)
+                m_plan = m2**2 / 2 + (e / 2 - m2) * (b / 2)
+                l_plan = s_hip * (b / 2)
                 geometrie = {
                     "F": {"Longueur": e / 4, "Largeur": e / 10, "Surface": (e / 4) * (e / 10) / cos_a},
                     "G": {"Longueur": b - e / 2, "Largeur": e / 10, "Surface": (b - e / 2) * (e / 10) / cos_a},
@@ -1312,8 +1315,9 @@ class Toiture_4_pants(Vent):
                         "Largeur": b / 2 - e / 10,
                         "Surface": (triangle - bande) / cos_a,
                     },
-                    "M": {"Longueur": e / 2, "Largeur": b / 2, "Surface": m_plan / cos_a},
-                    "N": {"Longueur": d - e / 2, "Largeur": b / 2, "Surface": (aire_versant - m_plan) / cos_a},
+                    "L": {"Longueur": b / 2, "Largeur": s_hip, "Surface": l_plan / cos_a},
+                    "M": {"Longueur": e / 2, "Largeur": b / 2, "Surface": (m_plan - s_hip * m2) / cos_a},
+                    "N": {"Longueur": d - e / 2, "Largeur": b / 2, "Surface": (aire_versant - m_plan - s_hip * (b / 2 - m2)) / cos_a},
                     "J": {"Longueur": b / 2, "Largeur": s_hip, "Surface": 2 * s_hip * (b / 2) / cos_a},
                     "I": {
                         "Longueur": b / 2,
