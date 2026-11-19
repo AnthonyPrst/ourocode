@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet seront documentées dans ce fichi
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [Unreleased]
+
+### Fixed
+- **`Toiture_4_pants._geo` à 90°** (`ec1/vent.py`) : la zone L de la fig. 7.9b (bande de profondeur e/10 le long des arêtiers au vent des versants latéraux) n'apparaissait pas, absorbée par M. Elle est désormais déclarée et déduite de M/N à surface de versant conservée.
+
 ## [2.4.0]
 
 ### Fixed

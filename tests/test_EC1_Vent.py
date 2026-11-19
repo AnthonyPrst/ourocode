@@ -169,7 +169,18 @@ class TestToiture4Pants:
     def test_zones_0_et_90(self):
         t = Toiture_4_pants(load_area=10, z=8, **{**METRO, "h_bat": 8, "b_bat": 30, "d_bat": 20, "alpha_toit": 30})
         assert set(t.get_geo("0°")) == {"F", "G", "H", "I", "J", "K", "L", "M"}
-        assert set(t.get_geo("90°")) == {"F", "G", "H", "I", "J", "M", "N"}
+        assert set(t.get_geo("90°")) == {"F", "G", "H", "I", "J", "L", "M", "N"}
+
+    def test_surface_versant_conservee_90(self):
+        """À 90°, L (bande le long des arêtiers, fig. 7.9b) est déduite de M/N :
+        la somme L+M+N reste la surface du versant."""
+        t = Toiture_4_pants(load_area=10, z=8, **{**METRO, "h_bat": 8, "b_bat": 30, "d_bat": 20, "alpha_toit": 30})
+        geo = t.get_geo("90°")
+        cos_a = mt.cos(mt.radians(30))
+        aire_versant = (2 * 30 - 20) * 20 / 4 / cos_a
+        total = sum(geo[z]["Surface"].value for z in ("L", "M", "N"))
+        assert total == pytest.approx(aire_versant, rel=1e-9)
+        assert geo["L"]["Surface"].value > 0 and geo["N"]["Surface"].value > 0
 
     def test_cpe_tableau_7_5_alpha_30(self):
         t = Toiture_4_pants(load_area=10, z=8, **{**METRO, "h_bat": 8, "b_bat": 30, "d_bat": 20, "alpha_toit": 30})
