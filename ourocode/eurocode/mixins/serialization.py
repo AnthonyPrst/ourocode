@@ -250,29 +250,13 @@ class SerializationMixin:
             Pour JSON : sauvegarde indentée avec encodage UTF-8.
             Pour CSV : format simple avec une ligne d'en-tête.
         """
-        from PySide6.QtWidgets import QFileDialog
-
         data = self._physical_to_dict(data)
         if type_data == "JSON":
-            save_file_path = (
-                path
-                if path
-                else QFileDialog.getSaveFileName(
-                    filter="JSON (*.json)",
-                    selectedFilter=".json",
-                )[0]
-            )
+            save_file_path = path if path else _file_dialog_save("JSON (*.json)", ".json")
             with open(save_file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4)
         elif type_data == "CSV":
-            save_file_path = (
-                path
-                if path
-                else QFileDialog.getSaveFileName(
-                    filter="CSV (*.csv)",
-                    selectedFilter=".csv",
-                )[0]
-            )
+            save_file_path = path if path else _file_dialog_save("CSV (*.csv)", ".csv")
             with open(save_file_path, "w", newline="") as f:
                 w = csv.DictWriter(f, data.keys())
                 w.writeheader()
@@ -293,28 +277,12 @@ class SerializationMixin:
             dict: Dictionnaire contenant les données chargées avec les unités
                 physiques restaurées.
         """
-        from PySide6.QtWidgets import QFileDialog
-
         if type_data == "JSON":
-            file_path = (
-                path
-                if path
-                else QFileDialog.getOpenFileName(
-                    filter="JSON (*.json)",
-                    selectedFilter=".json",
-                )[0]
-            )
+            file_path = path if path else _file_dialog_open("JSON (*.json)", ".json")
             with open(file_path, "r", encoding="utf-8") as f:
                 return self._dict_to_physical(json.load(f))
         elif type_data == "CSV":
-            file_path = (
-                path
-                if path
-                else QFileDialog.getOpenFileName(
-                    filter="CSV (*.csv)",
-                    selectedFilter=".csv",
-                )[0]
-            )
+            file_path = path if path else _file_dialog_open("CSV (*.csv)", ".csv")
             with open(file_path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 return self._dict_to_physical({row["key"]: row["value"] for row in reader})

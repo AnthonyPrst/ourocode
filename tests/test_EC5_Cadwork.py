@@ -1,6 +1,7 @@
 # Encoding in UTF-8 by Anthony PARISOT
 """Tests de la passerelle Cadwork -> MOB (export JSON + MOB.load_cadwork_data)."""
 
+import builtins
 import json
 import math
 import sys
@@ -231,6 +232,67 @@ class TestLoadCadworkData:
         expected = sum(panels[b]["Nombre"] * kp[t] * kp[b] / (kp[t] + kp[b]) for t, b in tops.items())
         expected += sum(p["Nombre"] * kp[n] for n, p in panels.items() if n not in tops and n not in tops.values())
         assert np.isclose(k_wall, expected)
+
+    def test_narrow_non_contreventing_wall_does_not_crash(self, export, mob, tmp_path):
+        data = json.loads(json.dumps(export))
+        data["sys_walls"].append(
+            {
+                "cadwork_id": 999,
+                "name": "Trumeau étroit",
+                "etage": "RDC",
+                "h_etage": 2.8,
+                "h_sys_MOB": 2.8,
+                "l_sys_MOB": 0.195,
+                "Xg": 5.0,
+                "Yg": 4.0,
+                "alpha_sw": 0.0,
+                "walls": [
+                    {
+                        "position": 0.0,
+                        "l_MOB": 0.195,
+                        "panels": [
+                            {
+                                "key": "cw999",
+                                "cadwork_ids": [999],
+                                "position_panel": "Intérieur",
+                                "h_panel": 2800.0,
+                                "b_panel": 195.0,
+                                "number": 1,
+                                "thickness": 12.0,
+                                "material": "OSB 3",
+                                "on_top_of": None,
+                            }
+                        ],
+                    }
+                ],
+            }
+        )
+        path = tmp_path / "cadwork.json"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        mob.load_cadwork_data(str(path))
+        mob.calculate_loads_and_deformations(Fw_Ed_ELS=10, Fw_Ed_ELU=15, XFw=5, YFw=4, etage="RDC")
+
+        assert mob._val(mob.data_walls_loads.loc["S5_W1", "Fv,Ed,i ELU"]) == 0
+        mob.taux_walls()
+        assert math.isinf(mob.taux_FvRd_walls.loc["S5_W1", "Taux cisaillement (%)"])
+        assert math.isinf(mob.taux_FvRd_sys_walls.loc["S5", "Taux cisaillement (%)"])
+        assert math.isinf(mob.taux_FvRd_sys_walls.loc["S5", "Taux déplacement (%)"])
+
+    def test_load_and_save_with_path_do_not_require_pyside(self, export, mob, tmp_path, monkeypatch):
+        path = tmp_path / "cadwork.json"
+        path.write_text(json.dumps(export), encoding="utf-8")
+        real_import = builtins.__import__
+
+        def blocked_import(name, *args, **kwargs):
+            if name.startswith("PySide6"):
+                raise ModuleNotFoundError(name)
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", blocked_import)
+        mob.load_cadwork_data(str(path))
+        save = tmp_path / "mob.json"
+        mob.save_walls_data(str(save))
+        assert save.exists()
 
     def test_missing_connector(self, export, tmp_path):
         batiment = Batiment(h_bat=3, d_bat=10.0, b_bat=20.0, alpha_toit=10)

@@ -12,6 +12,8 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - **Charge linéique stabilisante sur les MOB** (`ec5/cvt.py`) : `MOB.add_wall_to_sys(..., g_k_lin=…)` (kN/m, permanente caractéristique). L'effort de soulèvement devient `F_t,Ed = max(|F_v,Ed|·h/l − GAMMA_G_INF·g_k·l/2, 0)` avec `GAMMA_G_INF = 0,9` (EQU), au lieu de `F_v,Ed·h/l` seul qui majorait le dimensionnement des ancrages. Valeur sauvegardée par `save_walls_data` (clé `Charge linéique G`).
 
 ### Fixed
+- **MOB sans panneau contreventant** (`ec5/cvt.py`) : un trumeau trop étroit (rapport h/b > 4, donc raideur et résistance nulles) ne fait plus échouer `taux_walls` par division par zéro après un import Cadwork. Les systèmes sans raideur reçoivent un effort nul dans la répartition diaphragme et sont explicitement rapportés avec un taux infini au lieu de `NaN`/crash.
+- **Sérialisation headless** (`mixins/serialization.py`) : `save_data` et `load_data` n'importent plus PySide6 lorsque `path` est fourni ; l'import/export JSON ou CSV fonctionne donc hors environnement Qt.
 - **Export Cadwork (`ourocode_export_mob.py`)** : `TypeError: Unable to convert function return value to a Python type` sur `get_element_vertices` / `point_3d` dans Cadwork 3D. Le module `cadwork` (qui enregistre `point_3d`) est désormais importé, et seuls les parois ossature, ouvertures et panneaux sont interrogés.
 - **`Toiture_4_pants._geo` à 90°** (`ec1/vent.py`) : la zone L de la fig. 7.9b (bande de profondeur e/10 le long des arêtiers au vent des versants latéraux) n'apparaissait pas, absorbée par M. Elle est désormais déclarée et déduite de M/N à surface de versant conservée.
 
