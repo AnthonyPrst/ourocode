@@ -5,6 +5,7 @@ import json
 import math
 import sys
 import types
+from pathlib import Path
 
 import forallpeople as si
 import numpy as np
@@ -319,7 +320,7 @@ class TestCadworkApi:
 
     def test_vertices_non_convertibles(self, fake_cadwork, tmp_path, monkeypatch):
         """Cadwork 2025 : get_element_vertices lève TypeError -> boîte (centre, axes, dimensions) ; autres éléments ignorés."""
-        reference = json.loads(open(cw.export_from_cadwork(str(tmp_path / "ref.json")), encoding="utf-8").read())
+        reference = json.loads(Path(cw.export_from_cadwork(str(tmp_path / "ref.json"))).read_text(encoding="utf-8"))
         gc, ac, ec = (sys.modules[n] for n in ("geometry_controller", "attribute_controller", "element_controller"))
         vertices = {i: gc.get_element_vertices(i) for i in ec.get_visible_identifiable_element_ids()}
 
@@ -357,7 +358,7 @@ class TestCadworkApi:
             "get_height": lambda i: size(i, 2),
         }.items():
             monkeypatch.setattr(gc, name, func, raising=False)
-        data = json.loads(open(cw.export_from_cadwork(str(tmp_path / "box.json")), encoding="utf-8").read())
+        data = json.loads(Path(cw.export_from_cadwork(str(tmp_path / "box.json"))).read_text(encoding="utf-8"))
         assert data["sys_walls"] == reference["sys_walls"]
 
     def test_dialog_cancelled(self, fake_cadwork):
