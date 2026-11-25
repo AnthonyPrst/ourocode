@@ -96,6 +96,13 @@ class MOB(Batiment):
         """Retourne la valeur SI (float) d'une grandeur Physical, ou la valeur telle quelle."""
         return float(getattr(x, "value", x))
 
+    @classmethod
+    def _ratio_percent(cls, action, resistance) -> float:
+        """Taux action/résistance en %, infini si la résistance est nulle."""
+        if cls._val(resistance) == 0:
+            return float("inf")
+        return round(abs(action * 100 / resistance), 2)
+
     def _all_floors(self) -> list:
         """Retourne la liste ordonnée des étages contenant des MOB ou des murs béton."""
         floors = list(self.data.keys())
@@ -358,6 +365,14 @@ class MOB(Batiment):
                     Kp = self.data_Kser_panels.loc[panel_name, "Kser,p unit."]
                     self.data_panels_loads.loc[panel_name, "Étage"] = etage
                     self.data_panels_loads.loc[panel_name, "Fv,Ed,i ELU"] = Fv_wall * Kp / Kw
+
+        active_sys = {name for kind, name, *_ in elements if kind == "MOB"}
+        for sys_name, sys_wall in self.data.get(etage, {}).items():
+            if sys_name in active_sys:
+                continue
+            self.data_sys_walls_loads.loc[sys_name] = [etage, np.nan, 0 * si.N]
+            for wall_name in sys_wall["Murs"]:
+                self.data_walls_loads.loc[wall_name] = [etage, 0 * si.N, 0 * si.N]
 
         return self.data_sys_walls_loads
 
@@ -1411,7 +1426,7 @@ class MOB(Batiment):
                 if direct_loads:
                     F_sw_Ed = direct_loads
                     F_sw_Ed_ELS = sys_wall.get("Fv_Ed_ELS", 0 * si.kN)
-                    delta_v_sw_Ed = abs(F_sw_Ed_ELS / K_sw)
+                    delta_v_sw_Ed = abs(F_sw_Ed_ELS / K_sw) if self._val(K_sw) else np.nan
                 else:
                     F_sw_Ed = self.data_sys_walls_loads.loc[sys_name]["Fv,Ed,i ELU"]
                     delta_v_sw_Ed = abs(self.data_sys_walls_loads.loc[sys_name]["delta,v,Ed,i ELS"])
@@ -1421,7 +1436,10 @@ class MOB(Batiment):
                     Fv_Rd_walls = 0
 
                     if direct_loads:
-                        F_w_Ed = direct_loads * K_w / K_sw
+                        if self._val(K_sw):
+                            F_w_Ed = direct_loads * K_w / K_sw
+                        else:
+                            F_w_Ed = direct_loads / len(sys_wall["Murs"])
                         if not hasattr(self, "data_walls_loads"):
                             self.data_walls_loads = pd.DataFrame(
                                 index=self.data_walls.keys(),
@@ -1475,7 +1493,7 @@ class MOB(Batiment):
                             c_i,
                             coef_double_panel,
                             F_f_Rd,
-                            round(abs(F_f_Ed * 100 / F_f_Rd), 2),
+                            self._ratio_percent(F_f_Ed, F_f_Rd),
                         ]
                         Fv_Rd_walls = Fv_Rd_walls + F_f_Rd * panel["Nombre"]
 
@@ -1484,7 +1502,7 @@ class MOB(Batiment):
                         etage,
                         F_w_Ed,
                         Fv_Rd_walls,
-                        round(abs(F_w_Ed * 100 / Fv_Rd_walls), 2),
+                        self._ratio_percent(F_w_Ed, Fv_Rd_walls),
                     ]
                     Fv_Rd_sys_walls = Fv_Rd_sys_walls + Fv_Rd_walls
 
@@ -1495,10 +1513,10 @@ class MOB(Batiment):
                     etage,
                     F_sw_Ed,
                     Fv_Rd_sys_walls,
-                    round(abs(F_sw_Ed * 100 / Fv_Rd_sys_walls), 2),
+                    self._ratio_percent(F_sw_Ed, Fv_Rd_sys_walls),
                     delta_v_sw_Ed,
                     crit_ELS,
-                    round(abs(delta_v_sw_Ed * 100 / crit_ELS), 2),
+                    float("inf") if not self._val(K_sw) else round(abs(delta_v_sw_Ed * 100 / crit_ELS), 2),
                 ]
 
         return self.taux_FvRd_walls
