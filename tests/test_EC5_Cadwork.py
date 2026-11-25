@@ -217,6 +217,20 @@ class TestLoadCadworkData:
         k_manual = manual.get_Kser_wall().loc["S1", "Kser système de mur"].value
         assert np.isclose(k_import, k_manual)
 
+    def test_stacked_panels_kser_in_series(self, export, mob, tmp_path):
+        path = tmp_path / "cadwork.json"
+        path.write_text(json.dumps(export), encoding="utf-8")
+        mob.load_cadwork_data(str(path))
+        mob.get_Kser_wall()
+        k_wall = mob.data_Kser_walls.loc["S4_W1", "Kser mur"].value
+        kp = mob.data_Kser_panels["Kser,p unit."].apply(lambda k: k.value)
+        panels = {n: p for n, p in mob.data_panels.items() if n.startswith("S4_W1_")}
+        tops = {n: p["On top of"] for n, p in panels.items() if p.get("On top of")}
+        assert tops
+        expected = sum(panels[b]["Nombre"] * kp[t] * kp[b] / (kp[t] + kp[b]) for t, b in tops.items())
+        expected += sum(p["Nombre"] * kp[n] for n, p in panels.items() if n not in tops and n not in tops.values())
+        assert np.isclose(k_wall, expected)
+
     def test_missing_connector(self, export, tmp_path):
         batiment = Batiment(h_bat=3, d_bat=10.0, b_bat=20.0, alpha_toit=10)
         panel = Barre(b=12, h=1250, section="Rectangulaire", classe="OSB/3 11-18 mm", cs=1, effet_systeme=False)
