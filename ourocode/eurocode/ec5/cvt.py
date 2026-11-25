@@ -1,5 +1,6 @@
 #! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
+import logging
 from math import sqrt, radians, cos, sin, floor
 from copy import deepcopy
 import pandas as pd
@@ -11,6 +12,8 @@ from ourocode.eurocode.core._renderer import handcalc
 
 from ourocode.eurocode.core.batiment import Batiment
 from ourocode.eurocode.ec5.assemblage import Assemblage
+
+logger = logging.getLogger(__name__)
 
 
 class MOB(Batiment):
@@ -1028,6 +1031,115 @@ class MOB(Batiment):
         self.data = data
         self._list_on_top_of = [name for name, panel in self.data_panels.items() if panel.get("On top of")]
         return self.data
+
+    def load_cadwork_data(
+        self,
+        path: str = None,
+        couturage_ext_rive: si.mm = 150,
+        couturage_ext_inter: si.mm = 300,
+        couturage_int_rive: si.mm = 150,
+        couturage_int_inter: si.mm = 300,
+        Ff_Rk_ext: si.N = None,
+        Ff_Rk_int: si.N = None,
+        Kser_ext: si.N / si.mm = None,
+        Kser_int: si.N / si.mm = None,
+    ) -> dict:
+        """Importe les MOB exportés depuis Cadwork 3D et régénère add_sys_wall / add_wall_to_sys / add_panel_to_wall.
+
+        Le fichier JSON est produit dans Cadwork par le plugin ourocode_export_mob
+        (ourocode/eurocode/ec5/cadwork/ourocode_export_mob.py) à partir des « parois ossature » :
+        une paroi = un système de mur, les ouvertures la découpent en murs, les panneaux de
+        contreventement deviennent des panneaux (face extérieure/intérieure, panneaux empilés via on_top_of).
+
+        Les couturages et les caractéristiques des organes ne sont pas connus dans Cadwork : ils sont
+        appliqués à tous les murs importés (face intérieure uniquement si le mur possède des panneaux intérieurs).
+        Le type et l'épaisseur des panneaux proviennent des connecteurs de MOB (connecteurs_ext / connecteurs_int).
+        Les données importées s'ajoutent aux systèmes de mur existants ; save_walls_data permet ensuite
+        de les sauvegarder au format de load_walls_data.
+
+        Args:
+            path (str, optional): Chemin du fichier JSON exporté depuis Cadwork.
+                Si None, une boîte de dialogue s'ouvre. Defaults to None.
+            couturage_ext_rive (float): Entraxe des organes en rive, face extérieure, en mm. Defaults to 150.
+            couturage_ext_inter (float): Entraxe des organes intermédiaires, face extérieure, en mm. Defaults to 300.
+            couturage_int_rive (float): Entraxe des organes en rive, face intérieure, en mm. Defaults to 150.
+            couturage_int_inter (float): Entraxe des organes intermédiaires, face intérieure, en mm. Defaults to 300.
+            Ff_Rk_ext (float, optional): Surcharge de Ff,Rk du connecteur extérieur en N (voir add_wall_to_sys).
+            Ff_Rk_int (float, optional): Surcharge de Ff,Rk du connecteur intérieur en N (voir add_wall_to_sys).
+            Kser_ext (float, optional): Surcharge de Kser du connecteur extérieur en N/mm (voir add_wall_to_sys).
+            Kser_int (float, optional): Surcharge de Kser du connecteur intérieur en N/mm (voir add_wall_to_sys).
+
+        Returns:
+            dict: Correspondance {nom du système de mur ourocode: nom de la paroi Cadwork}.
+
+        Raises:
+            ValueError: Si le fichier n'est pas un export Cadwork ourocode, ou si des panneaux
+                sont présents sur une face sans connecteur défini.
+        """
+        from ourocode.eurocode.ec5.cadwork.ourocode_export_mob import FORMAT
+
+        data = super().load_data(type_data="JSON", path=path)
+        if data.get("format") != FORMAT:
+            raise ValueError(f"Le fichier n'est pas un export Cadwork ourocode (format attendu : {FORMAT}).")
+        for warning in data.get("warnings", []):
+            logger.warning("Import Cadwork : %s", warning)
+
+        mapping = {}
+        for sys_data in data["sys_walls"]:
+            sides = {p["position_panel"] for w in sys_data["walls"] for p in w["panels"]}
+            for side in sides:
+                if self._connecteurs.get(side) is None:
+                    raise ValueError(
+                        f"La paroi Cadwork {sys_data.get('name')} possède des panneaux côté {side} "
+                        f"mais aucun connecteur {side.lower()} n'est défini dans MOB."
+                    )
+        for sys_data in data["sys_walls"]:
+            sys_name = self.add_sys_wall(
+                h_etage=sys_data["h_etage"],
+                h_sys_MOB=sys_data["h_sys_MOB"],
+                l_sys_MOB=sys_data["l_sys_MOB"],
+                etage=sys_data["etage"],
+                Xg=sys_data["Xg"],
+                Yg=sys_data["Yg"],
+                alpha_sw=sys_data["alpha_sw"],
+            )
+            mapping[sys_name] = sys_data.get("name") or str(sys_data.get("cadwork_id"))
+            for wall_data in sys_data["walls"]:
+                sides = {p["position_panel"] for p in wall_data["panels"]}
+                ext, inte = "Extérieur" in sides, "Intérieur" in sides
+                wall_name = self.add_wall_to_sys(
+                    sys_name,
+                    position=wall_data["position"],
+                    l_MOB=wall_data["l_MOB"],
+                    couturage_ext_rive=couturage_ext_rive if ext else 0,
+                    couturage_ext_inter=couturage_ext_inter if ext else 0,
+                    couturage_int_rive=couturage_int_rive if inte else 0,
+                    couturage_int_inter=couturage_int_inter if inte else 0,
+                    Ff_Rk_ext=Ff_Rk_ext,
+                    Ff_Rk_int=Ff_Rk_int,
+                    Kser_ext=Kser_ext,
+                    Kser_int=Kser_int,
+                )
+                keys = {}
+                for panel in wall_data["panels"]:
+                    keys[panel["key"]] = self.add_panel_to_wall(
+                        wall_name,
+                        h_panel=panel["h_panel"],
+                        b_panel=panel["b_panel"],
+                        number=panel["number"],
+                        position_panel=panel["position_panel"],
+                        on_top_of=keys.get(panel.get("on_top_of")),
+                    )
+                    epaisseur = self._val(self._connecteurs[panel["position_panel"]].beam_1.b) * 1e3
+                    if panel.get("thickness") and abs(panel["thickness"] - epaisseur) > 0.5:
+                        logger.warning(
+                            "Import Cadwork : panneau %s d'épaisseur %s mm dans Cadwork, %s mm pour le connecteur %s.",
+                            keys[panel["key"]],
+                            panel["thickness"],
+                            round(epaisseur, 1),
+                            panel["position_panel"].lower(),
+                        )
+        return mapping
 
     def _get_Kser_panel(self, b: float, h: float, k_ser_r: float, k_ser_i: float):
         """
