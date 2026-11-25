@@ -347,19 +347,23 @@ def _pt(p):
 
 
 def _vertices(gc, eid):
-    """Sommets globaux (mm) ; repli sur la boîte de l'élément si l'API ne peut pas les convertir (Cadwork 2025)."""
+    """Sommets globaux (mm) ; repli sur la boîte de l'élément si l'API ne peut pas les convertir (Cadwork 2025).
+
+    Le long de XL la boîte part de P1 (début de l'axe de longueur), exact même pour un panneau entaillé ;
+    en YL/ZL elle est centrée sur le centre de gravité.
+    """
     try:
         return [_pt(v) for v in gc.get_element_vertices(eid)]
     except TypeError:
-        c = _pt(gc.get_center_of_gravity(eid))
-        axes = [
-            (_pt(gc.get_xl(eid)), gc.get_length(eid)),
-            (_pt(gc.get_yl(eid)), gc.get_width(eid)),
-            (_pt(gc.get_zl(eid)), gc.get_height(eid)),
-        ]
+        p1, c = _pt(gc.get_p1(eid)), _pt(gc.get_center_of_gravity(eid))
+        xl, yl, zl = _pt(gc.get_xl(eid)), _pt(gc.get_yl(eid)), _pt(gc.get_zl(eid))
+        length, width, height = gc.get_length(eid), gc.get_width(eid), gc.get_height(eid)
+        along = sum((p1[k] - c[k]) * xl[k] for k in range(3))
         return [
-            tuple(c[k] + sum(sign * d[k] * size / 2 for sign, (d, size) in zip(signs, axes)) for k in range(3))
-            for signs in itertools.product((-1, 1), repeat=3)
+            tuple(c[k] + (along + i * length) * xl[k] + j * width / 2 * yl[k] + m * height / 2 * zl[k] for k in range(3))
+            for i in (0, 1)
+            for j in (-1, 1)
+            for m in (-1, 1)
         ]
 
 

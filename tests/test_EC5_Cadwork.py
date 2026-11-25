@@ -319,7 +319,7 @@ class TestCadworkApi:
         assert "4 parois, 5 murs" in fake_cadwork[0]
 
     def test_vertices_non_convertibles(self, fake_cadwork, tmp_path, monkeypatch):
-        """Cadwork 2025 : get_element_vertices lève TypeError -> boîte (centre, axes, dimensions) ; autres éléments ignorés."""
+        """Cadwork 2025 : get_element_vertices lève TypeError -> boîte (P1, centre, axes, dimensions) ; autres ignorés."""
         reference = json.loads(Path(cw.export_from_cadwork(str(tmp_path / "ref.json"))).read_text(encoding="utf-8"))
         gc, ac, ec = (sys.modules[n] for n in ("geometry_controller", "attribute_controller", "element_controller"))
         vertices = {i: gc.get_element_vertices(i) for i in ec.get_visible_identifiable_element_ids()}
@@ -349,7 +349,12 @@ class TestCadworkApi:
         xl = gc.get_xl
         for name, func in {
             "get_element_vertices": raise_type_error,
-            "get_center_of_gravity": lambda i: tuple(sum(bbox(i, k)) / 2 for k in range(3)),
+            # centre de gravité décalé le long de XL (panneau entaillé) : la boîte doit partir de P1
+            "get_center_of_gravity": lambda i: tuple(sum(bbox(i, k)) / 2 + 300 * axes(i)[0][k] for k in range(3)),
+            "get_p1": lambda i: tuple(
+                (bbox(i, k)[0] if axes(i)[0][k] >= 0 else bbox(i, k)[1]) if axes(i)[0][k] else sum(bbox(i, k)) / 2
+                for k in range(3)
+            ),
             "get_xl": lambda i: xl(i) if ac.is_framed_wall(i) else (1, 0, 0),
             "get_yl": lambda i: axes(i)[1],
             "get_zl": lambda i: axes(i)[2],

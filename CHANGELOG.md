@@ -12,7 +12,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - **Charge linéique stabilisante sur les MOB** (`ec5/cvt.py`) : `MOB.add_wall_to_sys(..., g_k_lin=…)` (kN/m, permanente caractéristique). L'effort de soulèvement devient `F_t,Ed = max(|F_v,Ed|·h/l − GAMMA_G_INF·g_k·l/2, 0)` avec `GAMMA_G_INF = 0,9` (EQU), au lieu de `F_v,Ed·h/l` seul qui majorait le dimensionnement des ancrages. Valeur sauvegardée par `save_walls_data` (clé `Charge linéique G`).
 
 ### Fixed
-- **Export Cadwork (`ourocode_export_mob.py`)** : `get_element_vertices` lève `TypeError: Unable to convert function return value` sur certains éléments (Cadwork 2025). Seuls les parois ossature, ouvertures et panneaux sont désormais lus, et leurs sommets sont reconstitués depuis la boîte de l'élément (`get_center_of_gravity`, axes `xl/yl/zl`, `get_length/width/height`) si l'API échoue.
+- **Export Cadwork (`ourocode_export_mob.py`)** : `get_element_vertices` lève `TypeError: Unable to convert function return value` sur certains éléments (Cadwork 2025). Seuls les parois ossature, ouvertures et panneaux sont désormais lus, et leurs sommets sont reconstitués depuis la boîte de l'élément (départ en `get_p1` le long de `xl`, centrée sur `get_center_of_gravity` en `yl/zl`, `get_length/width/height`) si l'API échoue.
 - **`Toiture_4_pants._geo` à 90°** (`ec1/vent.py`) : la zone L de la fig. 7.9b (bande de profondeur e/10 le long des arêtiers au vent des versants latéraux) n'apparaissait pas, absorbée par M. Elle est désormais déclarée et déduite de M/N à surface de versant conservée.
 
 ## [2.4.0]
