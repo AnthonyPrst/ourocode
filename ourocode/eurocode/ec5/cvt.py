@@ -1,6 +1,7 @@
 #! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
 import logging
+import re
 from math import sqrt, radians, cos, sin, floor
 from copy import deepcopy
 import pandas as pd
@@ -112,14 +113,29 @@ class MOB(Batiment):
         return floors
 
     def _resolve_etage(self, etage=None) -> str:
-        """Résout l'étage demandé (un tuple/liste = choix par défaut -> premier étage existant)."""
+        """Résout l'étage demandé en recherchant RDC ou R+x dans les libellés BIM."""
+        floors = self._all_floors()
         if etage is None or isinstance(etage, (tuple, list)):
-            floors = self._all_floors()
             for e in etage or []:
                 if e in floors:
                     return e
             return floors[0] if floors else None
-        return etage
+        if etage in floors:
+            return etage
+        if len(floors) == 1:
+            return floors[0]
+
+        floor_pattern = r"(?<![A-Za-z0-9])(?:RDC|R\+\d+)(?![A-Za-z0-9])"
+        requested_match = re.search(floor_pattern, str(etage), flags=re.IGNORECASE)
+        if not requested_match:
+            return etage
+        requested = requested_match.group(0).lower()
+        matches = []
+        for floor in floors:
+            floor_match = re.search(floor_pattern, str(floor), flags=re.IGNORECASE)
+            if floor_match and floor_match.group(0).lower() == requested:
+                matches.append(floor)
+        return matches[0] if len(matches) == 1 else etage
 
     @staticmethod
     def _solve_diaphragm(elements: list, Fx: float, Fy: float, XF: float, YF: float, e_acc: float = 0) -> dict:
