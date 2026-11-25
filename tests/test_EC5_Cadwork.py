@@ -371,32 +371,14 @@ class TestCadworkEdgeCases:
         assert cw._storey_label("B", "", True) == ""
         assert cw._storey_label("B", "RDC", True) == "B / RDC"
 
-    def test_unassigned_storeys_split_by_building(self, monkeypatch):
+    @pytest.mark.parametrize(("default", "expected"), [(None, "Niveau 0.00 m"), ("RDC", "RDC")])
+    def test_unassigned_storeys_split_by_building(self, default, expected):
         walls = self._facade_and_refend()
-        elements = {w["id"]: w for w in walls}
-        mods = {
-            "element_controller": {
-                "get_active_identifiable_element_ids": lambda: list(elements),
-                "get_visible_identifiable_element_ids": list,
-            },
-            "attribute_controller": {
-                "get_name": lambda i: elements[i]["name"],
-                "is_framed_wall": lambda i: True,
-                "is_opening": lambda i: False,
-                "is_panel": lambda i: False,
-            },
-            "geometry_controller": {
-                "get_element_vertices": lambda i: elements[i]["vertices"],
-                "get_xl": lambda i: elements[i]["xl"],
-            },
-            "bim_controller": {
-                "get_storey": lambda i: "",
-                "get_building": lambda i: {1: "A", 2: "B"}[i],
-                "get_all_buildings": list,
-            },
-        }
-        for name, funcs in mods.items():
-            monkeypatch.setitem(sys.modules, name, types.SimpleNamespace(**funcs))
-        monkeypatch.setattr(cw, "build_mob_export", lambda walls, *a, **k: walls)
-        storeys = {w["storey"] for w in cw.collect_from_cadwork()}
-        assert storeys == {"A / Niveau 0.00 m", "B / Niveau 0.00 m"}
+        for w, building in zip(walls, "AB", strict=True):
+            w.update(storey="", building=building)
+        panels = [
+            {"id": 10, "name": "OSB", "vertices": box(0, 1250, -112, -100, 0, self.H)},
+            {"id": 11, "name": "OSB", "vertices": box(4888, 4900, 200, 1450, 0, self.H)},
+        ]
+        export = cw.build_mob_export(walls, panels, options={"default_storey": default})
+        assert {s["etage"] for s in export["sys_walls"]} == {f"A / {expected}", f"B / {expected}"}

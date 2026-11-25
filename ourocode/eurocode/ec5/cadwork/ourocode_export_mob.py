@@ -139,9 +139,11 @@ def build_mob_export(
     warnings, ignored = [], []
 
     frames = {}
+    multi = len({w.get("building") for w in walls if w.get("building")}) > 1
     for wall in walls:
         frame = _wall_frame(wall)
-        frame["storey"] = wall.get("storey") or opt["default_storey"] or f"Niveau {frame['z'][0] / 1000:.2f} m"
+        fallback = opt["default_storey"] or f"Niveau {frame['z'][0] / 1000:.2f} m"
+        frame["storey"] = wall.get("storey") or _storey_label(wall.get("building"), fallback, multi)
         frames[wall["id"]] = frame
 
     # Face extérieure : opposée au centre de gravité en plan des parois du même étage
@@ -400,10 +402,7 @@ def collect_from_cadwork(options: dict | None = None) -> dict:
             panels.append(base)
     multi = len({w["building"] for w in walls}) > 1
     for w in walls:
-        if multi and w["building"] and not w["storey"]:
-            w["storey"] = f"{w['building']} / Niveau {min(v[2] for v in w['vertices']) / 1000:.2f} m"
-        else:
-            w["storey"] = _storey_label(w["building"], w["storey"], multi)
+        w["storey"] = _storey_label(w["building"], w["storey"], multi)
     storeys = _storey_heights(bc, {w["storey"] for w in walls}, multi) if bc else {}
     return build_mob_export(walls, panels, openings, options=options, storeys=storeys)
 
