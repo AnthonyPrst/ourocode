@@ -5,6 +5,7 @@ import json
 import math
 import sys
 import types
+from pathlib import Path
 
 import forallpeople as si
 import numpy as np
@@ -273,6 +274,7 @@ class TestCadworkApi:
         elements.update({e["id"]: ("opening", e) for e in openings})
         messages = []
         mods = {
+            "cadwork": {},
             "element_controller": {
                 "get_active_identifiable_element_ids": list,
                 "get_visible_identifiable_element_ids": lambda: list(elements),
@@ -316,6 +318,25 @@ class TestCadworkApi:
         assert data["format"] == cw.FORMAT and data["source"] == "C:/projet.3d"
         assert len(data["sys_walls"]) == 4 and data["sys_walls"][0]["h_etage"] == 2.95
         assert "4 parois, 5 murs" in fake_cadwork[0]
+
+    def test_elements_hors_mob_ignores(self, fake_cadwork, tmp_path, monkeypatch):
+        """Les éléments hors MOB ne sont pas interrogés (leur géométrie peut être illisible)."""
+        reference = json.loads(Path(cw.export_from_cadwork(str(tmp_path / "ref.json"))).read_text(encoding="utf-8"))
+        gc, ac, ec = (sys.modules[n] for n in ("geometry_controller", "attribute_controller", "element_controller"))
+        ids = ec.get_visible_identifiable_element_ids()
+
+        def vertices(i, f=gc.get_element_vertices):
+            if i == 999:
+                raise TypeError("Unable to convert function return value to a Python type!")
+            return f(i)
+
+        monkeypatch.setattr(ec, "get_visible_identifiable_element_ids", lambda: [*ids, 999])
+        originals = {n: getattr(ac, n) for n in ("is_framed_wall", "is_opening", "is_panel")}
+        for name, func in originals.items():
+            monkeypatch.setattr(ac, name, lambda i, f=func: i != 999 and f(i))
+        monkeypatch.setattr(gc, "get_element_vertices", vertices)
+        data = json.loads(Path(cw.export_from_cadwork(str(tmp_path / "out.json"))).read_text(encoding="utf-8"))
+        assert data["sys_walls"] == reference["sys_walls"]
 
     def test_dialog_cancelled(self, fake_cadwork):
         assert cw.export_from_cadwork() == ""

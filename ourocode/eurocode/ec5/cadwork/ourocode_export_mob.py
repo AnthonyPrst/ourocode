@@ -369,6 +369,7 @@ def _storey_heights(bc, storey_names, multi=False):
 def collect_from_cadwork(options: dict | None = None) -> dict:
     """Lit la sélection active (ou les éléments visibles) dans Cadwork et construit l'export MOB."""
     import attribute_controller as ac
+    import cadwork  # enregistre point_3d, sans quoi pybind ne peut convertir les retours de l'API
     import element_controller as ec
     import geometry_controller as gc
 
@@ -380,17 +381,22 @@ def collect_from_cadwork(options: dict | None = None) -> dict:
     ids = ec.get_active_identifiable_element_ids() or ec.get_visible_identifiable_element_ids()
     walls, panels, openings = [], [], []
     for eid in ids:
+        kind = (
+            "wall" if ac.is_framed_wall(eid) else "opening" if ac.is_opening(eid) else "panel" if ac.is_panel(eid) else None
+        )
+        if kind is None:
+            continue
         base = {"id": int(eid), "name": ac.get_name(eid), "vertices": [_pt(v) for v in gc.get_element_vertices(eid)]}
         if not base["vertices"]:
             continue
         base["storey"] = bc.get_storey(eid) if bc else ""
         base["building"] = bc.get_building(eid) if bc else ""
-        if ac.is_framed_wall(eid):
+        if kind == "wall":
             base["xl"] = _pt(gc.get_xl(eid))
             walls.append(base)
-        elif ac.is_opening(eid):
+        elif kind == "opening":
             openings.append(base)
-        elif ac.is_panel(eid):
+        else:
             base.update(
                 {
                     "material": ac.get_element_material_name(eid),
