@@ -69,13 +69,18 @@ class MOB(Batiment):
                 continue
             effet_corde = False
             if connecteur.type_organe in [
-                "Tirefond",
                 "Pointe carrée lisse",
                 "Pointe circulaire lisse",
                 "Autres pointes",
             ]:
                 connecteur.Fax_Rk()
                 effet_corde = True
+            elif connecteur.type_organe == "Tirefond":
+                # Tirefond.Fax_Rk exige faxk, l_ef et alpha, qui ne sont pas
+                # déductibles sans ambiguïté du seul connecteur MOB. On ignore
+                # donc l'effet de corde plutôt que de faire échouer l'import :
+                # la vérification au cisaillement reste possible et conservative.
+                effet_corde = False
             Fvrk = connecteur.FvRk(effet_corde=effet_corde)
             Kser = connecteur.Kser()
             self._data_connecteurs[position] = {"Ff,Rk": Fvrk[1], "Kser": Kser[1]}

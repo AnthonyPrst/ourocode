@@ -13,6 +13,8 @@ from ourocode.eurocode.ec5 import cvt as EC5
 from ourocode.eurocode.core.batiment import Batiment
 from ourocode.eurocode.ec5.element_droit.barre import Barre
 from ourocode.eurocode.ec5.assemblage import Pointe
+from ourocode.eurocode.ec5.assemblage.assemblage import Assemblage
+from ourocode.eurocode.ec5.assemblage.tirefond import Vis_catalogue
 
 
 @pytest.fixture
@@ -740,3 +742,20 @@ class TestMOBChargeLineique:
         reloaded = EC5.MOB._from_parent_class(batiment, connecteurs_int=connectors[0], connecteurs_ext=connectors[1])
         reloaded.load_walls_data(str(path))
         assert reloaded.data_walls["S1_W1"]["Charge linéique G"] == 10 * si.kN / si.m
+
+
+def test_mob_vis_catalogue_ne_solicite_pas_faxrk_sans_donnees_axiales(batiment):
+    """Une vis catalogue doit pouvoir contreventer un MOB sans crash.
+
+    L'effet de corde est ignoré tant que faxk/l_ef/alpha ne sont pas fournis :
+    hypothèse conservative, mais calculable pour le cisaillement des panneaux.
+    """
+    panel = Barre(b=12, h=200, section="Rectangulaire", classe="OSB/3 11-18 mm", cs=1, effet_systeme=False)
+    montant = Barre(b=200, h=45, section="Rectangulaire", classe="C24", cs=1, effet_systeme=False)
+    assemblage = Assemblage(beam_1=panel, beam_2=montant, nfile=1, nCis=1)
+    vis = Vis_catalogue._from_parent_class(
+        assemblage, reference="ROTHOBLAAS_HBS_EVO_HBSEVO560", n=1,
+        alpha1=0, alpha2=0, percage=False)
+    mob = EC5.MOB._from_parent_class(batiment, connecteurs_int=vis, connecteurs_ext=vis)
+    assert mob._data_connecteurs["Extérieur"]["Ff,Rk"].value > 0
+    assert mob._data_connecteurs["Extérieur"]["Kser"].value > 0
