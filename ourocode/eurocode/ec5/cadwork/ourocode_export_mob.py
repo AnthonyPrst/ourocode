@@ -16,7 +16,9 @@ Règles de conversion (voir ``build_mob_export``) :
     - les panneaux (``is_panel``) situés dans la paroi, parallèles à son plan, filtrés par mots-clés,
       deviennent des panneaux de contreventement ; ceux qui chevauchent une ouverture sont ignorés ;
     - la face extérieure est celle opposée au centre de gravité en plan des parois de l'étage ;
-    - deux panneaux superposés dans un même trumeau sont liés par ``on_top_of``.
+    - deux panneaux superposés dans un même trumeau sont liés par ``on_top_of`` ;
+    - depuis la version 2, chaque panneau exporte aussi ``x_panel``/``z_panel`` et les positions
+      individuelles ``x_positions``/``z_positions`` (mm, repère local de la paroi).
 
 Le contenu de la sélection active est exporté ; à défaut, tous les éléments visibles.
 """
@@ -28,7 +30,7 @@ import json
 import math
 
 FORMAT = "ourocode.MOB.cadwork"
-VERSION = 1
+VERSION = 2
 
 # Options par défaut, modifiables en tête de script ou via build_mob_export(options=...)
 DEFAULT_OPTIONS = {
@@ -233,7 +235,7 @@ def build_mob_export(
                 continue
             pos0 = min(p["s"][0] for p in inside)
             pos1 = max(p["s"][1] for p in inside)
-            panels_out = _group_panels(inside, warnings, wall_by_id[wid].get("name"), tol)
+            panels_out = _group_panels(inside, warnings, wall_by_id[wid].get("name"), tol, z_base=f["z"][0])
             for p in inside:
                 weights.append((p["b"], (p["s"][0] + p["s"][1]) / 2))
             sub_walls.append(
@@ -283,7 +285,7 @@ def _mid_plan(frame):
     )
 
 
-def _group_panels(panels, warnings, wall_label, tol):
+def _group_panels(panels, warnings, wall_label, tol, z_base=0.0):
     """Regroupe les panneaux d'un trumeau : piles verticales (on_top_of) et panneaux identiques (number)."""
     out = []
     for side in ("Extérieur", "Intérieur"):
@@ -312,17 +314,17 @@ def _group_panels(panels, warnings, wall_label, tol):
                 )
             below = None
             for i, p in enumerate(col):
-                entry = _panel_entry([p], side)
+                entry = _panel_entry([p], side, z_base=z_base)
                 if i == 1:
                     entry["on_top_of"] = below
                 out.append(entry)
                 below = entry["key"]
         for group in singles.values():
-            out.append(_panel_entry(group, side))
+            out.append(_panel_entry(group, side, z_base=z_base))
     return out
 
 
-def _panel_entry(group, side):
+def _panel_entry(group, side, z_base=0.0):
     p = group[0]
     return {
         "key": f"cw{p['id']}",
@@ -333,6 +335,14 @@ def _panel_entry(group, side):
         "number": len(group),
         "thickness": _round(p["thickness"], 1),
         "material": p.get("material"),
+        # Position exacte dans la paroi ossature exportée, en mm. L'abscisse est
+        # mesurée depuis l'extrémité gauche de la paroi (vue extérieure) et
+        # l'altitude depuis le bas de la paroi. Les listes x/z_positions ont
+        # un élément par panneau physique regroupé dans ``number``.
+        "x_panel": _round(min(g["s"][0] for g in group), 1),
+        "z_panel": _round(min(g["z"][0] - z_base for g in group), 1),
+        "x_positions": [_round(g["s"][0], 1) for g in group],
+        "z_positions": [_round(g["z"][0] - z_base, 1) for g in group],
         "on_top_of": None,
     }
 
