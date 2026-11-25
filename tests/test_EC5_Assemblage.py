@@ -243,10 +243,14 @@ class Test_Agrafe:
         assert agrafe._nef == 9
 
     def test_Kser_ass(self, agrafe):
-        assert agrafe.Kser_ass()[1].value == 14281.908958018748
+        assert agrafe.Kser_ass()[1].value == pytest.approx(3587453.3327702433)
+
+    def test_Kser_unite_force_par_longueur(self, agrafe):
+        """Kser doit rester une raideur N/mm, sans unité résiduelle de d**0.8."""
+        assert float(agrafe.Kser()[1] / (si.N / si.mm)) == pytest.approx(398.60592586336037)
 
     def test_Ku_ass(self, agrafe):
-        assert agrafe.Ku_ass()[1].value == 9521.272638679166
+        assert agrafe.Ku_ass()[1].value == pytest.approx(2391635.555180162)
 
     def test_pince(self, agrafe):
         print(agrafe.pince["barre 2"])

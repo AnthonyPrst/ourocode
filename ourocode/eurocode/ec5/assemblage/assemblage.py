@@ -191,7 +191,7 @@ class Assemblage(Projet):
 
             @handcalc(override="short", precision=2, jupyter_display=self.JUPYTER_DISPLAY, left="\\[", right="\\]")
             def val():
-                K_ser = 2 * rho_mean**1.5 * self.d**0.8 / 80  # N/mm
+                K_ser = 2 * rho_mean**1.5 * d**0.8 / 80  # N/mm
                 return K_ser * si.N / si.mm
         elif self.type_organe == "Anneau" or self.type_organe == "Crampon C10/C11":
 
