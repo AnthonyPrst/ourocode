@@ -281,15 +281,15 @@ class TestLoadCadworkData:
     def test_unique_bim_storey_resolves_default_rdc(self, export, mob, tmp_path):
         data = json.loads(json.dumps(export))
         for sys_wall in data["sys_walls"]:
-            sys_wall["etage"] = "3 - R+1"
+            sys_wall["etage"] = "Bâtiment A niveau R+1"
         path = tmp_path / "cadwork.json"
         path.write_text(json.dumps(data), encoding="utf-8")
         mob.load_cadwork_data(str(path))
 
         result = mob.calculate_loads_and_deformations(Fw_Ed_ELS=10, Fw_Ed_ELU=15, XFw=5, YFw=4, etage="RDC")
-        assert result.loc["S1", "Étage"] == "3 - R+1"
-        mob.add_sys_wall(h_etage=2.8, h_sys_MOB=2.8, l_sys_MOB=4.0, etage="4 - R+2")
-        assert mob._resolve_etage("R+2") == "4 - R+2"
+        assert result.loc["S1", "Étage"] == "Bâtiment A niveau R+1"
+        mob.add_sys_wall(h_etage=2.8, h_sys_MOB=2.8, l_sys_MOB=4.0, etage="Niveau haut R+2 aile gauche")
+        assert mob._resolve_etage("R+2") == "Niveau haut R+2 aile gauche"
 
     def test_load_and_save_with_path_do_not_require_pyside(self, export, mob, tmp_path, monkeypatch):
         path = tmp_path / "cadwork.json"

@@ -1,6 +1,7 @@
 #! env\Scripts\python.exe
 # Encoding in UTF-8 by Anthony PARISOT
 import logging
+import re
 from math import sqrt, radians, cos, sin, floor
 from copy import deepcopy
 import pandas as pd
@@ -112,7 +113,7 @@ class MOB(Batiment):
         return floors
 
     def _resolve_etage(self, etage=None) -> str:
-        """Résout l'étage demandé, y compris les étages BIM du type « 3 - R+1 »."""
+        """Résout l'étage demandé en recherchant RDC ou R+x dans les libellés BIM."""
         floors = self._all_floors()
         if etage is None or isinstance(etage, (tuple, list)):
             for e in etage or []:
@@ -123,8 +124,17 @@ class MOB(Batiment):
             return etage
         if len(floors) == 1:
             return floors[0]
-        requested = str(etage).strip().lower()
-        matches = [floor for floor in floors if str(floor).rpartition("-")[2].strip().lower() == requested]
+
+        floor_pattern = r"(?<![A-Za-z0-9])(?:RDC|R\+\d+)(?![A-Za-z0-9])"
+        requested_match = re.search(floor_pattern, str(etage), flags=re.IGNORECASE)
+        if not requested_match:
+            return etage
+        requested = requested_match.group(0).lower()
+        matches = []
+        for floor in floors:
+            floor_match = re.search(floor_pattern, str(floor), flags=re.IGNORECASE)
+            if floor_match and floor_match.group(0).lower() == requested:
+                matches.append(floor)
         return matches[0] if len(matches) == 1 else etage
 
     @staticmethod
