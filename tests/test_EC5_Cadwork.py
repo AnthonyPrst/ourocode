@@ -317,6 +317,49 @@ class TestCadworkApi:
         assert len(data["sys_walls"]) == 4 and data["sys_walls"][0]["h_etage"] == 2.95
         assert "4 parois, 5 murs" in fake_cadwork[0]
 
+    def test_vertices_non_convertibles(self, fake_cadwork, tmp_path, monkeypatch):
+        """Cadwork 2025 : get_element_vertices lève TypeError -> boîte (centre, axes, dimensions) ; autres éléments ignorés."""
+        reference = json.loads(open(cw.export_from_cadwork(str(tmp_path / "ref.json")), encoding="utf-8").read())
+        gc, ac, ec = (sys.modules[n] for n in ("geometry_controller", "attribute_controller", "element_controller"))
+        vertices = {i: gc.get_element_vertices(i) for i in ec.get_visible_identifiable_element_ids()}
+
+        def bbox(i, k):
+            vals = [v[k] for v in vertices[i]]
+            return min(vals), max(vals)
+
+        def raise_type_error(i):
+            raise TypeError("Unable to convert function return value to a Python type!")
+
+        def axes(i):
+            xl = gc.get_xl(i) if ac.is_framed_wall(i) else (1, 0, 0)
+            return xl, (-xl[1], xl[0], 0), (0, 0, 1)
+
+        def size(i, n):
+            d = axes(i)[n]
+            k = max(range(3), key=lambda j: abs(d[j]))
+            lo, hi = bbox(i, k)
+            return hi - lo
+
+        ids = ec.get_visible_identifiable_element_ids()
+        monkeypatch.setattr(ec, "get_visible_identifiable_element_ids", lambda: [*ids, 999])
+        monkeypatch.setattr(ac, "is_framed_wall", lambda i, f=ac.is_framed_wall: i != 999 and f(i))
+        monkeypatch.setattr(ac, "is_opening", lambda i, f=ac.is_opening: i != 999 and f(i))
+        monkeypatch.setattr(ac, "is_panel", lambda i, f=ac.is_panel: i != 999 and f(i))
+        xl = gc.get_xl
+        for name, func in {
+            "get_element_vertices": raise_type_error,
+            "get_center_of_gravity": lambda i: tuple(sum(bbox(i, k)) / 2 for k in range(3)),
+            "get_xl": lambda i: xl(i) if ac.is_framed_wall(i) else (1, 0, 0),
+            "get_yl": lambda i: axes(i)[1],
+            "get_zl": lambda i: axes(i)[2],
+            "get_length": lambda i: size(i, 0),
+            "get_width": lambda i: size(i, 1),
+            "get_height": lambda i: size(i, 2),
+        }.items():
+            monkeypatch.setattr(gc, name, func, raising=False)
+        data = json.loads(open(cw.export_from_cadwork(str(tmp_path / "box.json")), encoding="utf-8").read())
+        assert data["sys_walls"] == reference["sys_walls"]
+
     def test_dialog_cancelled(self, fake_cadwork):
         assert cw.export_from_cadwork() == ""
 

@@ -346,6 +346,23 @@ def _pt(p):
     return (float(p[0]), float(p[1]), float(p[2]))
 
 
+def _vertices(gc, eid):
+    """Sommets globaux (mm) ; repli sur la boîte de l'élément si l'API ne peut pas les convertir (Cadwork 2025)."""
+    try:
+        return [_pt(v) for v in gc.get_element_vertices(eid)]
+    except TypeError:
+        c = _pt(gc.get_center_of_gravity(eid))
+        axes = [
+            (_pt(gc.get_xl(eid)), gc.get_length(eid)),
+            (_pt(gc.get_yl(eid)), gc.get_width(eid)),
+            (_pt(gc.get_zl(eid)), gc.get_height(eid)),
+        ]
+        return [
+            tuple(c[k] + sum(sign * d[k] * size / 2 for sign, (d, size) in zip(signs, axes)) for k in range(3))
+            for signs in itertools.product((-1, 1), repeat=3)
+        ]
+
+
 def _storey_label(building, storey, multi):
     """Nom d'étage unique : préfixé par le bâtiment BIM si le modèle en contient plusieurs."""
     return f"{building} / {storey}" if multi and building and storey else storey
@@ -380,17 +397,22 @@ def collect_from_cadwork(options: dict | None = None) -> dict:
     ids = ec.get_active_identifiable_element_ids() or ec.get_visible_identifiable_element_ids()
     walls, panels, openings = [], [], []
     for eid in ids:
-        base = {"id": int(eid), "name": ac.get_name(eid), "vertices": [_pt(v) for v in gc.get_element_vertices(eid)]}
+        kind = (
+            "wall" if ac.is_framed_wall(eid) else "opening" if ac.is_opening(eid) else "panel" if ac.is_panel(eid) else None
+        )
+        if kind is None:
+            continue
+        base = {"id": int(eid), "name": ac.get_name(eid), "vertices": _vertices(gc, eid)}
         if not base["vertices"]:
             continue
         base["storey"] = bc.get_storey(eid) if bc else ""
         base["building"] = bc.get_building(eid) if bc else ""
-        if ac.is_framed_wall(eid):
+        if kind == "wall":
             base["xl"] = _pt(gc.get_xl(eid))
             walls.append(base)
-        elif ac.is_opening(eid):
+        elif kind == "opening":
             openings.append(base)
-        elif ac.is_panel(eid):
+        else:
             base.update(
                 {
                     "material": ac.get_element_material_name(eid),
