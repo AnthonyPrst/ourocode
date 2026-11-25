@@ -279,6 +279,7 @@ class TestCadworkApi:
             },
             "bim_controller": {
                 "get_storey": lambda i: "RDC",
+                "get_building": lambda i: "B",
                 "get_all_buildings": lambda: ["B"],
                 "get_all_storeys": lambda b: ["RDC", "R+1"],
                 "get_storey_height": lambda b, s: {"RDC": 0.0, "R+1": 2950.0}[s],
@@ -304,3 +305,55 @@ class TestCadworkApi:
 
     def test_dialog_cancelled(self, fake_cadwork):
         assert cw.export_from_cadwork() == ""
+
+
+class TestCadworkEdgeCases:
+    H = 2700
+
+    def _facade_and_refend(self):
+        walls = [
+            {
+                "id": 1,
+                "name": "Facade",
+                "storey": "RDC",
+                "xl": (1, 0, 0),
+                "vertices": box(0, 10000, -100, 100, 0, self.H),
+            },
+            {
+                "id": 2,
+                "name": "Refend",
+                "storey": "RDC",
+                "xl": (0, 1, 0),
+                "vertices": box(4900, 5100, 100, 4000, 0, self.H),
+            },
+        ]
+        return walls
+
+    def test_t_junction_panel_kept_on_facade(self):
+        walls = self._facade_and_refend()
+        # Panneau intérieur de façade centré au droit du refend : centre aussi contenu dans le refend
+        panels = [{"id": 10, "name": "OSB", "vertices": box(4400, 5600, 100, 112, 0, self.H)}]
+        export = cw.build_mob_export(walls, panels)
+        facade = _by_name(export)["Facade"]
+        assert not export["ignored"]
+        assert facade["walls"][0]["panels"][0]["b_panel"] == 1200
+
+    def test_overlapping_layers_not_stacked(self):
+        walls = self._facade_and_refend()[:1]
+        panels = [
+            {"id": 10, "name": "OSB", "vertices": box(0, 1250, -112, -100, 0, self.H)},
+            {"id": 11, "name": "OSB", "vertices": box(0, 1250, -124, -112, 0, self.H)},
+        ]
+        export = cw.build_mob_export(walls, panels)
+        out = export["sys_walls"][0]["walls"][0]["panels"]
+        assert all(p["on_top_of"] is None for p in out)
+
+    def test_storey_heights_per_building(self):
+        levels = {"A": {"RDC": 0.0, "R+1": 3000.0}, "B": {"RDC": 500.0, "R+1": 3300.0}}
+        bc = types.SimpleNamespace(
+            get_all_buildings=lambda: list(levels),
+            get_all_storeys=lambda b: list(levels[b]),
+            get_storey_height=lambda b, s: levels[b][s],
+        )
+        heights = cw._storey_heights(bc, {"A / RDC", "B / RDC"}, multi=True)
+        assert heights == {"A / RDC": 3.0, "B / RDC": 2.8}

@@ -23,6 +23,7 @@ Le contenu de la sélection active est exporté ; à défaut, tous les élément
 
 from __future__ import annotations
 
+import itertools
 import json
 import math
 
@@ -160,8 +161,8 @@ def build_mob_export(
         frame.update({"u": u, "n": n_ext, "s": (s0, s1), "t": (t0, t1), "z": (z0, z1)})
 
     def locate(element):
-        """Paroi contenant le centre de l'élément et étendues locales associées."""
-        best = None
+        """Parois contenant le centre de l'élément (la plus proche du plan médian en premier)."""
+        candidates = []
         for wid, f in frames.items():
             (s0, s1), (t0, t1), (z0, z1) = _extent(element["vertices"], f["p0"], f["u"], f["n"])
             cs, ct, cz = (s0 + s1) / 2, (t0 + t1) / 2, (z0 + z1) / 2
@@ -170,14 +171,14 @@ def build_mob_export(
             if not (f["t"][0] - tol <= ct <= f["t"][1] + tol):
                 continue
             dist = abs(ct - (f["t"][0] + f["t"][1]) / 2)
-            if best is None or dist < best[0]:
-                best = (dist, wid, (s0, s1), (t0, t1), (z0, z1))
-        return best
+            candidates.append((dist, wid, (s0, s1), (t0, t1), (z0, z1)))
+        return sorted(candidates, key=lambda c: c[0])
 
     holes = {wid: [] for wid in frames}
     for op in openings:
-        loc = locate(op)
-        if loc:
+        locs = locate(op)
+        if locs:
+            loc = locs[0]
             f = frames[loc[1]]
             holes[loc[1]].append((loc[2][0] - f["s"][0], loc[2][1] - f["s"][0]))
 
@@ -185,18 +186,21 @@ def build_mob_export(
     for p in panels:
         if keywords and not any(k in _text_of(p) for k in keywords):
             continue
-        loc = locate(p)
-        if loc is None:
+        locs = locate(p)
+        if not locs:
             ignored.append({"cadwork_id": p["id"], "name": p.get("name"), "reason": "hors paroi ossature"})
             continue
-        _, wid, (s0, s1), (t0, t1), (z0, z1) = loc
-        f = frames[wid]
-        thickness, b, h = t1 - t0, s1 - s0, z1 - z0
-        if thickness > opt["max_panel_thickness"] or thickness >= min(b, h):
+        # Aux jonctions en T, le centre d'un panneau peut aussi tomber dans la paroi perpendiculaire
+        for _, wid, (s0, s1), (t0, t1), (z0, z1) in locs:
+            thickness, b, h = t1 - t0, s1 - s0, z1 - z0
+            if thickness <= opt["max_panel_thickness"] and thickness < min(b, h):
+                break
+        else:
             ignored.append(
                 {"cadwork_id": p["id"], "name": p.get("name"), "reason": "non parallèle à la paroi ou trop épais"}
             )
             continue
+        f = frames[wid]
         side = "Extérieur" if (t0 + t1) / 2 >= (f["t"][0] + f["t"][1]) / 2 else "Intérieur"
         wall_panels[wid].append(
             {
@@ -227,7 +231,7 @@ def build_mob_export(
                 continue
             pos0 = min(p["s"][0] for p in inside)
             pos1 = max(p["s"][1] for p in inside)
-            panels_out = _group_panels(inside, pos0, warnings, wall_by_id[wid].get("name"))
+            panels_out = _group_panels(inside, warnings, wall_by_id[wid].get("name"), tol)
             for p in inside:
                 weights.append((p["b"], (p["s"][0] + p["s"][1]) / 2))
             sub_walls.append(
@@ -277,7 +281,7 @@ def _mid_plan(frame):
     )
 
 
-def _group_panels(panels, pos0, warnings, wall_label):
+def _group_panels(panels, warnings, wall_label, tol):
     """Regroupe les panneaux d'un trumeau : piles verticales (on_top_of) et panneaux identiques (number)."""
     out = []
     for side in ("Extérieur", "Intérieur"):
@@ -286,7 +290,8 @@ def _group_panels(panels, pos0, warnings, wall_label):
             for col in columns:
                 ref = col[0]
                 overlap = min(ref["s"][1], p["s"][1]) - max(ref["s"][0], p["s"][0])
-                if overlap > 0.5 * min(ref["b"], p["b"]):
+                stacked = all(p["z"][0] >= q["z"][1] - tol or p["z"][1] <= q["z"][0] + tol for q in col)
+                if overlap > 0.5 * min(ref["b"], p["b"]) and stacked:
                     col.append(p)
                     break
             else:
@@ -339,15 +344,22 @@ def _pt(p):
     return (float(p[0]), float(p[1]), float(p[2]))
 
 
-def _storey_heights(bc, storey_names):
-    """Hauteurs d'étage (m) déduites des altitudes BIM (licence IFC requise, sinon dict vide)."""
+def _storey_label(building, storey, multi):
+    """Nom d'étage unique : préfixé par le bâtiment BIM si le modèle en contient plusieurs."""
+    return f"{building} / {storey}" if multi and building else storey
+
+
+def _storey_heights(bc, storey_names, multi=False):
+    """Hauteurs d'étage (m) déduites des altitudes BIM, par bâtiment (licence IFC requise, sinon dict vide)."""
     try:
-        levels = []
+        heights = {}
         for building in bc.get_all_buildings():
-            for storey in bc.get_all_storeys(building):
-                levels.append((bc.get_storey_height(building, storey), storey))
-        levels.sort()
-        return {name: (levels[i + 1][0] - z) / 1000 for i, (z, name) in enumerate(levels[:-1]) if name in storey_names}
+            levels = sorted((bc.get_storey_height(building, s), s) for s in bc.get_all_storeys(building))
+            for (z, name), (z_up, _) in itertools.pairwise(levels):
+                label = _storey_label(building, name, multi)
+                if label in storey_names:
+                    heights[label] = (z_up - z) / 1000
+        return heights
     except Exception:  # noqa: BLE001 - API Cadwork : licence IFC absente, etc.
         return {}
 
@@ -370,6 +382,7 @@ def collect_from_cadwork(options: dict | None = None) -> dict:
         if not base["vertices"]:
             continue
         base["storey"] = bc.get_storey(eid) if bc else ""
+        base["building"] = bc.get_building(eid) if bc else ""
         if ac.is_framed_wall(eid):
             base["xl"] = _pt(gc.get_xl(eid))
             walls.append(base)
@@ -385,7 +398,10 @@ def collect_from_cadwork(options: dict | None = None) -> dict:
                 }
             )
             panels.append(base)
-    storeys = _storey_heights(bc, {w["storey"] for w in walls}) if bc else {}
+    multi = len({w["building"] for w in walls}) > 1
+    for w in walls:
+        w["storey"] = _storey_label(w["building"], w["storey"], multi)
+    storeys = _storey_heights(bc, {w["storey"] for w in walls}, multi) if bc else {}
     return build_mob_export(walls, panels, openings, options=options, storeys=storeys)
 
 
