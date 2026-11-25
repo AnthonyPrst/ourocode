@@ -16,6 +16,7 @@ from ourocode.eurocode.ec5.assemblage import Assemblage
 class MOB(Batiment):
     CRITERE_ELS = 200
     RATIO_KU_KSER = 2 / 3  # Ku = 2/3 Kser, EN 1995-1-1 §2.2.2(1)b
+    GAMMA_G_INF = 0.9  # charge permanente favorable, équilibre statique EQU (EN 1990 tab. A1.2(A))
     POSITION_PANEL = ("Extérieur", "Intérieur")
     COEFF_DOUBLE_PANEL = {
         "Non": 1,
@@ -819,6 +820,7 @@ class MOB(Batiment):
         Ff_Rk_int: si.N = None,
         Kser_ext: si.N / si.mm = None,
         Kser_int: si.N / si.mm = None,
+        g_k_lin: si.kN / si.m = 0,
     ) -> str:
         """Ajoute un mur contreventant interne à un système de mur à ossature bois.
 
@@ -848,6 +850,9 @@ class MOB(Batiment):
                 Écrase la valeur issue de connecteurs_ext. Defaults to None.
             Kser_int (float, optional): Raideur ELS du connecteur intérieur en N/mm.
                 Écrase la valeur issue de connecteurs_int. Defaults to None.
+            g_k_lin (float, optional): Charge linéique permanente caractéristique descendant sur le mur
+                (toiture, plancher, poids propre), en kN/m. Stabilisante, elle réduit l'effort de
+                soulèvement : F_t,Ed = F_v,Ed·h/l − GAMMA_G_INF·g_k·l/2. Defaults to 0.
 
         Returns:
             str: Nom attribué au mur (ex. : "S1_W1", "S1_W2").
@@ -865,6 +870,8 @@ class MOB(Batiment):
 
         name = f"{sys_name}_W{len(self.data[etage_found][sys_name]['Murs']) + 1}"
         wall = {"Position en X": position * si.m, "Longueur": l_MOB * si.m, "Panneaux": {}}
+        if g_k_lin:
+            wall["Charge linéique G"] = g_k_lin * si.kN / si.m
 
         if couturage_ext_rive:
             wall["Couturage ext. rive"] = couturage_ext_rive * si.mm
@@ -1229,13 +1236,20 @@ class MOB(Batiment):
         """
         Calcul l'effort de soulèvement d'un mur au contreventement.
 
+        Équilibre du mur autour de son montant comprimé : la charge linéique permanente
+        (pondérée par GAMMA_G_INF) s'oppose au moment de renversement. Effort nul si le mur ne se soulève pas.
+
         Args:
             wall_name (str): Nom du mur.
         """
         sys_wall = self.data_sys_walls[wall_name.split("_")[0]]
         wall = self.data_walls[wall_name]
         Fv_i_Ed_wall = self.data_walls_loads.loc[wall_name]["Fv,Ed,i ELU"]
-        return Fv_i_Ed_wall * sys_wall["Hauteur du système de mur"] / wall["Longueur"]
+        Ft_Ed = abs(Fv_i_Ed_wall) * sys_wall["Hauteur du système de mur"] / wall["Longueur"]
+        g_k = wall.get("Charge linéique G")
+        if g_k:
+            Ft_Ed = max(Ft_Ed - self.GAMMA_G_INF * g_k * wall["Longueur"] / 2, 0 * si.N)
+        return Ft_Ed
 
     def taux_walls(self) -> "pd.DataFrame":
         """Calcule les taux de travail ELS et ELU en contreventement pour tous les éléments MOB.

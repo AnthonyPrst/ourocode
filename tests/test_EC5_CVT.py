@@ -697,3 +697,27 @@ class TestMOBDiaphragme:
         fig, ax = mob.show_plan(filepath=str(path), show=False)
         assert path.exists()
         assert ax.get_title() == "Contreventement - RDC"
+
+
+class TestMOBChargeLineique:
+    @staticmethod
+    def _uplift(mob, g_k_lin):
+        sys_name = mob.add_sys_wall(h_etage=3.0, h_sys_MOB=2.7, l_sys_MOB=3.0, etage="RDC", Fv_Ed_ELU=80.0, Fv_Ed_ELS=30.0)
+        wall = mob.add_wall_to_sys(sys_name=sys_name, position=0, l_MOB=3.0, g_k_lin=g_k_lin)
+        mob.add_panel_to_wall(wall_name=wall, number=2, h_panel=2700, b_panel=1250, position_panel="Extérieur")
+        mob.taux_walls()
+        return mob.data_walls_loads.loc[wall, "Ft,Ed,i ELU (soulèvement)"].value / 1e3
+
+    @pytest.mark.parametrize(("g_k_lin", "Ft_Ed"), [(0, 72.0), (10, 72.0 - 0.9 * 10 * 1.5), (100, 0.0)])
+    def test_charge_lineique_stabilisante(self, batiment, connectors, g_k_lin, Ft_Ed):
+        mob = EC5.MOB._from_parent_class(batiment, connecteurs_int=connectors[0], connecteurs_ext=connectors[1])
+        assert np.isclose(self._uplift(mob, g_k_lin), Ft_Ed)
+
+    def test_charge_lineique_save_load(self, batiment, connectors, tmp_path):
+        mob = EC5.MOB._from_parent_class(batiment, connecteurs_int=connectors[0], connecteurs_ext=connectors[1])
+        self._uplift(mob, 10)
+        path = tmp_path / "murs.json"
+        mob.save_walls_data(str(path))
+        reloaded = EC5.MOB._from_parent_class(batiment, connecteurs_int=connectors[0], connecteurs_ext=connectors[1])
+        reloaded.load_walls_data(str(path))
+        assert reloaded.data_walls["S1_W1"]["Charge linéique G"] == 10 * si.kN / si.m
