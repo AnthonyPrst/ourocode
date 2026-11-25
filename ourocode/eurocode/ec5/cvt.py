@@ -112,14 +112,20 @@ class MOB(Batiment):
         return floors
 
     def _resolve_etage(self, etage=None) -> str:
-        """Résout l'étage demandé (un tuple/liste = choix par défaut -> premier étage existant)."""
+        """Résout l'étage demandé, y compris les étages BIM du type « 3 - R+1 »."""
+        floors = self._all_floors()
         if etage is None or isinstance(etage, (tuple, list)):
-            floors = self._all_floors()
             for e in etage or []:
                 if e in floors:
                     return e
             return floors[0] if floors else None
-        return etage
+        if etage in floors:
+            return etage
+        if len(floors) == 1:
+            return floors[0]
+        requested = str(etage).strip().lower()
+        matches = [floor for floor in floors if str(floor).rpartition("-")[2].strip().lower() == requested]
+        return matches[0] if len(matches) == 1 else etage
 
     @staticmethod
     def _solve_diaphragm(elements: list, Fx: float, Fy: float, XF: float, YF: float, e_acc: float = 0) -> dict:
