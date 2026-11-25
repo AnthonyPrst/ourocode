@@ -301,7 +301,7 @@ def _group_panels(panels, warnings, wall_label, tol):
             col.sort(key=lambda p: p["z"][0])
             if len(col) == 1:
                 p = col[0]
-                key = (round(p["h"]), round(p["b"]))
+                key = (round(p["h"]), round(p["b"]), round(p["thickness"], 1), p.get("material"))
                 singles.setdefault(key, []).append(p)
                 continue
             if len(col) > 2:
@@ -346,7 +346,7 @@ def _pt(p):
 
 def _storey_label(building, storey, multi):
     """Nom d'étage unique : préfixé par le bâtiment BIM si le modèle en contient plusieurs."""
-    return f"{building} / {storey}" if multi and building else storey
+    return f"{building} / {storey}" if multi and building and storey else storey
 
 
 def _storey_heights(bc, storey_names, multi=False):

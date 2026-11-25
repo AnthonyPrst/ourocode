@@ -357,3 +357,16 @@ class TestCadworkEdgeCases:
         )
         heights = cw._storey_heights(bc, {"A / RDC", "B / RDC"}, multi=True)
         assert heights == {"A / RDC": 3.0, "B / RDC": 2.8}
+
+    def test_layers_of_different_thickness_not_grouped(self):
+        walls = self._facade_and_refend()[:1]
+        panels = [
+            {"id": 10, "name": "OSB", "vertices": box(0, 1250, -112, -100, 0, self.H)},
+            {"id": 11, "name": "OSB", "vertices": box(0, 1250, -127, -112, 0, self.H)},
+        ]
+        out = cw.build_mob_export(walls, panels)["sys_walls"][0]["walls"][0]["panels"]
+        assert sorted(p["thickness"] for p in out) == [12, 15]
+
+    def test_unassigned_storey_keeps_elevation_fallback(self):
+        assert cw._storey_label("B", "", True) == ""
+        assert cw._storey_label("B", "RDC", True) == "B / RDC"
