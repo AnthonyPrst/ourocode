@@ -138,6 +138,10 @@ class TestCadworkExport:
         assert (left["position"], left["l_MOB"]) == (0.1, 3.75)
         assert (right["position"], right["l_MOB"]) == (5.3, 4.8)
         assert [(p["number"], p["b_panel"]) for p in left["panels"]] == [(3, 1250)]
+        assert left["panels"][0]["x_panel"] == 100
+        assert left["panels"][0]["z_panel"] == 0
+        assert left["panels"][0]["x_positions"] == [100, 1350, 2600]
+        assert left["panels"][0]["z_positions"] == [0, 0, 0]
         assert sorted((p["number"], p["b_panel"]) for p in right["panels"]) == [(1, 1050), (3, 1250)]
         assert {p["position_panel"] for w in sud["walls"] for p in w["panels"]} == {"Extérieur"}
         reasons = {i["cadwork_id"]: i["reason"] for i in export["ignored"]}
