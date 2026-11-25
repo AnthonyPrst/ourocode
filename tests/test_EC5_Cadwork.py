@@ -370,3 +370,33 @@ class TestCadworkEdgeCases:
     def test_unassigned_storey_keeps_elevation_fallback(self):
         assert cw._storey_label("B", "", True) == ""
         assert cw._storey_label("B", "RDC", True) == "B / RDC"
+
+    def test_unassigned_storeys_split_by_building(self, monkeypatch):
+        walls = self._facade_and_refend()
+        elements = {w["id"]: w for w in walls}
+        mods = {
+            "element_controller": {
+                "get_active_identifiable_element_ids": lambda: list(elements),
+                "get_visible_identifiable_element_ids": list,
+            },
+            "attribute_controller": {
+                "get_name": lambda i: elements[i]["name"],
+                "is_framed_wall": lambda i: True,
+                "is_opening": lambda i: False,
+                "is_panel": lambda i: False,
+            },
+            "geometry_controller": {
+                "get_element_vertices": lambda i: elements[i]["vertices"],
+                "get_xl": lambda i: elements[i]["xl"],
+            },
+            "bim_controller": {
+                "get_storey": lambda i: "",
+                "get_building": lambda i: {1: "A", 2: "B"}[i],
+                "get_all_buildings": list,
+            },
+        }
+        for name, funcs in mods.items():
+            monkeypatch.setitem(sys.modules, name, types.SimpleNamespace(**funcs))
+        monkeypatch.setattr(cw, "build_mob_export", lambda walls, *a, **k: walls)
+        storeys = {w["storey"] for w in cw.collect_from_cadwork()}
+        assert storeys == {"A / Niveau 0.00 m", "B / Niveau 0.00 m"}

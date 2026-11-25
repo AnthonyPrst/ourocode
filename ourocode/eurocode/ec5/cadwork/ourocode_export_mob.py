@@ -400,7 +400,10 @@ def collect_from_cadwork(options: dict | None = None) -> dict:
             panels.append(base)
     multi = len({w["building"] for w in walls}) > 1
     for w in walls:
-        w["storey"] = _storey_label(w["building"], w["storey"], multi)
+        if multi and w["building"] and not w["storey"]:
+            w["storey"] = f"{w['building']} / Niveau {min(v[2] for v in w['vertices']) / 1000:.2f} m"
+        else:
+            w["storey"] = _storey_label(w["building"], w["storey"], multi)
     storeys = _storey_heights(bc, {w["storey"] for w in walls}, multi) if bc else {}
     return build_mob_export(walls, panels, openings, options=options, storeys=storeys)
 
