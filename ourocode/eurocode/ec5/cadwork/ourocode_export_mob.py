@@ -346,27 +346,6 @@ def _pt(p):
     return (float(p[0]), float(p[1]), float(p[2]))
 
 
-def _vertices(gc, eid):
-    """Sommets globaux (mm) ; repli sur la boîte de l'élément si l'API ne peut pas les convertir (Cadwork 2025).
-
-    Le long de XL la boîte part de P1 (début de l'axe de longueur), exact même pour un panneau entaillé ;
-    en YL/ZL elle est centrée sur le centre de gravité.
-    """
-    try:
-        return [_pt(v) for v in gc.get_element_vertices(eid)]
-    except TypeError:
-        p1, c = _pt(gc.get_p1(eid)), _pt(gc.get_center_of_gravity(eid))
-        xl, yl, zl = _pt(gc.get_xl(eid)), _pt(gc.get_yl(eid)), _pt(gc.get_zl(eid))
-        length, width, height = gc.get_length(eid), gc.get_width(eid), gc.get_height(eid)
-        along = sum((p1[k] - c[k]) * xl[k] for k in range(3))
-        return [
-            tuple(c[k] + (along + i * length) * xl[k] + j * width / 2 * yl[k] + m * height / 2 * zl[k] for k in range(3))
-            for i in (0, 1)
-            for j in (-1, 1)
-            for m in (-1, 1)
-        ]
-
-
 def _storey_label(building, storey, multi):
     """Nom d'étage unique : préfixé par le bâtiment BIM si le modèle en contient plusieurs."""
     return f"{building} / {storey}" if multi and building and storey else storey
@@ -390,6 +369,7 @@ def _storey_heights(bc, storey_names, multi=False):
 def collect_from_cadwork(options: dict | None = None) -> dict:
     """Lit la sélection active (ou les éléments visibles) dans Cadwork et construit l'export MOB."""
     import attribute_controller as ac
+    import cadwork  # enregistre point_3d, sans quoi pybind ne peut convertir les retours de l'API
     import element_controller as ec
     import geometry_controller as gc
 
@@ -406,7 +386,7 @@ def collect_from_cadwork(options: dict | None = None) -> dict:
         )
         if kind is None:
             continue
-        base = {"id": int(eid), "name": ac.get_name(eid), "vertices": _vertices(gc, eid)}
+        base = {"id": int(eid), "name": ac.get_name(eid), "vertices": [_pt(v) for v in gc.get_element_vertices(eid)]}
         if not base["vertices"]:
             continue
         base["storey"] = bc.get_storey(eid) if bc else ""
