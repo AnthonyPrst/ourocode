@@ -1558,6 +1558,9 @@ class MOB(Batiment):
         2. Ancrage lisse basse sur lisse d'implantation : F_v,Ed / F_v,anc,lb,Rd.
         3. Ancrage lisse d'implantation au sol : F_v,Ed / F_v,anc,li,Rd.
 
+        Le nombre d'ancrages est au minimum de 2 par mur pour chaque lisse, même lorsque
+        l'entraxe demandé est supérieur à la longueur du mur.
+
         Note:
             taux_walls doit être appelé avant taux_ancrage pour peupler data_walls_loads.
 
@@ -1620,18 +1623,8 @@ class MOB(Batiment):
             K_mod_lb = lisse_basse._get_k_mod("Instantanee")
             K_mod_li = lisse_impl._get_k_mod("Instantanee")
             long_wall = self.data_walls[wall_name]["Longueur"]
-            nb_anc_lb = floor(long_wall / e_anc_lb)
-            nb_anc_li = floor(long_wall / e_anc_li)
-            if nb_anc_lb == 0:
-                raise ValueError(
-                    f"Mur '{wall_name}' (L={long_wall}) : e_anc_lb={e_anc_lb} est supérieur "
-                    f"à la longueur du mur — aucun ancrage lisse basse possible (nb_anc_lb=0)."
-                )
-            if nb_anc_li == 0:
-                raise ValueError(
-                    f"Mur '{wall_name}' (L={long_wall}) : e_anc_li={e_anc_li} est supérieur "
-                    f"à la longueur du mur — aucun ancrage lisse d'implantation possible (nb_anc_li=0)."
-                )
+            nb_anc_lb = max(2, floor(long_wall / e_anc_lb))
+            nb_anc_li = max(2, floor(long_wall / e_anc_li))
             Ft_Rd_wood = Ft_Rk_wood * K_mod_montant / Assemblage.GAMMA_M_ASS
             Fv_Rd_anc_lb = (Fv_Rk_anc_lb * K_mod_lb / Assemblage.GAMMA_M_ASS) * nb_anc_lb
             Fv_Rd_anc_li = (Fv_Rk_anc_li * K_mod_li / Assemblage.GAMMA_M_ASS) * nb_anc_li
