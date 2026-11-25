@@ -13,6 +13,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ### Fixed
 - **Raideur des agrafes** (`ec5/assemblage`) : `Kser` utilise désormais le diamètre numérique en mm dans `d^0.8` au lieu de la grandeur physique, ce qui supprimait l’unité parasite `m^0.8` et faisait échouer les calculs de raideur des panneaux MOB.
+- **Ancrages des petits murs MOB** (`ec5/cvt.py`) : `taux_ancrage` impose désormais au minimum 2 points de fixation par mur pour la lisse basse et la lisse d'implantation, même lorsque `floor(longueur/entraxe)` est inférieur à 2, au lieu de lever une erreur pour les trumeaux trop courts.
 - **Étages BIM Cadwork dans les MOB** (`ec5/cvt.py`) : `calculate_loads_and_deformations(etage="RDC")` retombe sur l'unique étage importé même si son libellé BIM diffère (`"3 - R+1"`), au lieu de lever « Aucun élément de contreventement raide trouvé ». Les motifs `RDC` et `R+x` sont recherchés librement dans les libellés lorsque plusieurs étages existent.
 - **MOB sans panneau contreventant** (`ec5/cvt.py`) : un trumeau trop étroit (rapport h/b > 4, donc raideur et résistance nulles) ne fait plus échouer `taux_walls` par division par zéro après un import Cadwork. Les systèmes sans raideur reçoivent un effort nul dans la répartition diaphragme et sont explicitement rapportés avec un taux infini au lieu de `NaN`/crash.
 - **Sérialisation headless** (`mixins/serialization.py`) : `save_data` et `load_data` n'importent plus PySide6 lorsque `path` est fourni ; l'import/export JSON ou CSV fonctionne donc hors environnement Qt.

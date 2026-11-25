@@ -420,6 +420,23 @@ class TestMOB:
             position_panel="Extérieur",
         )
 
+        wall_small = mob_instance.add_wall_to_sys(
+            sys_name=sys_name,
+            position=8.0,
+            l_MOB=0.195,
+            couturage_ext_rive=150,
+            couturage_ext_inter=300,
+            couturage_int_rive=0,
+            couturage_int_inter=0,
+        )
+        mob_instance.add_panel_to_wall(
+            wall_name=wall_small,
+            number=1,
+            h_panel=2800,
+            b_panel=195,
+            position_panel="Extérieur",
+        )
+
         # Calculer les taux de murs pour remplir data_walls_loads (via charges directes)
         mob_instance.taux_walls()
 
@@ -467,12 +484,14 @@ class TestMOB:
         print(df_taux_anc.columns)
         assert all(col in df_taux_anc.columns for col in expected_columns)
 
-        # Le nombre d'ancrages doit correspondre à floor(longueur / entraxe)
+        # Le nombre d'ancrages correspond à floor(longueur / entraxe), avec 2 minimum
         long_w1 = mob_instance.data_walls[wall_name1]["Longueur"]
         nb_lb_w1 = df_taux_anc.loc[wall_name1, "Nbr ancr,lb"]
         nb_li_w1 = df_taux_anc.loc[wall_name1, "Nbr ancr,li"]
         assert nb_lb_w1 == int(np.floor(long_w1 / (600 * si.mm)))
         assert nb_li_w1 == int(np.floor(long_w1 / (800 * si.mm)))
+        assert df_taux_anc.loc[wall_small, "Nbr ancr,lb"] == 2
+        assert df_taux_anc.loc[wall_small, "Nbr ancr,li"] == 2
 
         # Les entraxes doivent être stockés avec unités mm
         assert df_taux_anc.loc[wall_name1, "entraxe anc,lb"] == 600 * si.mm
