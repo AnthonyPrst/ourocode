@@ -9,6 +9,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
 ### Added
 - **Import des MOB depuis Cadwork 3D** (`ec5/cadwork/ourocode_export_mob.py`, `MOB.load_cadwork_data`) : plugin Python Cadwork autonome (bibliothèque standard uniquement) qui exporte les « parois ossature » en JSON — une paroi = un système de mur, découpé en murs par les ouvertures, panneaux de contreventement filtrés par mots-clés/épaisseur, face extérieure/intérieure, panneaux empilés liés par `on_top_of`, position (`Xg`, `Yg`) et orientation (`alpha_sw`) en plan, étages BIM. `MOB.load_cadwork_data(path, couturages…)` relit ce fichier et régénère `add_sys_wall` / `add_wall_to_sys` / `add_panel_to_wall` avec les connecteurs du `MOB`.
+- **Charge linéique stabilisante sur les MOB** (`ec5/cvt.py`) : `MOB.add_wall_to_sys(..., g_k_lin=…)` (kN/m, permanente caractéristique). L'effort de soulèvement devient `F_t,Ed = max(|F_v,Ed|·h/l − GAMMA_G_INF·g_k·l/2, 0)` avec `GAMMA_G_INF = 0,9` (EQU), au lieu de `F_v,Ed·h/l` seul qui majorait le dimensionnement des ancrages. Valeur sauvegardée par `save_walls_data` (clé `Charge linéique G`).
 
 ### Fixed
 - **`Toiture_4_pants._geo` à 90°** (`ec1/vent.py`) : la zone L de la fig. 7.9b (bande de profondeur e/10 le long des arêtiers au vent des versants latéraux) n'apparaissait pas, absorbée par M. Elle est désormais déclarée et déduite de M/N à surface de versant conservée.
